@@ -278,7 +278,7 @@ sourceListMode
     ;
 
 targetListMode
-    : 'first' | 'share' | 'last' | 'single'
+    : 'first' | 'share' ':' identifier | 'last' | 'single'
     ;
 
 groupTypeMode
