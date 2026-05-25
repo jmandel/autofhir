@@ -57,7 +57,6 @@ define function ToString(value FHIR.AssertionOperatorType): value.value
 define function ToString(value FHIR.DaysOfWeek): value.value
 define function ToString(value FHIR.IssueType): value.value
 define function ToString(value FHIR.canonical): value.value
-define function ToString(value FHIR.StructureMapContextType): value.value
 define function ToString(value FHIR.FamilyHistoryStatus): value.value
 define function ToString(value FHIR.status): value.value
 define function ToString(value FHIR.ExtensionContextType): value.value
