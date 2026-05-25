@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -281,12 +281,10 @@ function CommitList({ rows, selected, onSelect, sort }: { rows: CommitReport[]; 
 }
 
 function CommitDetails({ rows, selected, onSelect, sort }: { rows: CommitReport[]; selected: string | null; onSelect: (sha: string) => void; sort: string }) {
-  const rendered = useProgressiveRows(rows);
   let lastGroup = "";
   return (
     <div className="detail">
-      {rendered.length < rows.length && <div className="render-progress">Rendering searchable diffs {rendered.length}/{rows.length}</div>}
-      {rendered.map((commit) => {
+      {rows.map((commit) => {
         const group = wgTitle(commit);
         const header = sort === "wg" && group !== lastGroup;
         if (header) lastGroup = group;
@@ -336,33 +334,6 @@ function CommitCard({ commit, selected, onSelect }: { commit: CommitReport; sele
       </div>
     </article>
   );
-}
-
-function useProgressiveRows(rows: CommitReport[]) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    let cancelled = false;
-    setCount(Math.min(24, rows.length));
-    const step = () => {
-      if (cancelled) return;
-      setCount((current) => {
-        const next = Math.min(rows.length, current + 24);
-        if (next < rows.length) schedule(step);
-        return next;
-      });
-    };
-    schedule(step);
-    return () => { cancelled = true; };
-  }, [rows]);
-  return rows.slice(0, count);
-}
-
-function schedule(callback: () => void) {
-  if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(callback, { timeout: 250 });
-  } else {
-    window.setTimeout(callback, 0);
-  }
 }
 
 type FacetOption = { total: number; items: { value: string; label: string; count: number }[] };
@@ -604,7 +575,6 @@ async function copyPlan(report: Report, rows: CommitReport[], bySha: Record<stri
 declare global {
   interface Window {
     __AUTOFHIR_REPORT_URL__?: string;
-    requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
   }
 }
 
