@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -282,6 +282,7 @@ function CommitList({ rows, selected, onSelect, sort }: { rows: CommitReport[]; 
 
 function CommitDetails({ rows, selected, onSelect, sort }: { rows: CommitReport[]; selected: string | null; onSelect: (sha: string) => void; sort: string }) {
   let lastGroup = "";
+  const selectCommit = useCallback((sha: string) => onSelect(sha), [onSelect]);
   return (
     <div className="detail">
       {rows.map((commit) => {
@@ -291,7 +292,7 @@ function CommitDetails({ rows, selected, onSelect, sort }: { rows: CommitReport[
         return (
           <React.Fragment key={commit.sha}>
             {header && <div className="detail-group">{group}</div>}
-            <CommitCard commit={commit} selected={commit.sha === selected} onSelect={() => onSelect(commit.sha)} />
+            <CommitCard commit={commit} selected={commit.sha === selected} onSelect={selectCommit} />
           </React.Fragment>
         );
       })}
@@ -299,13 +300,14 @@ function CommitDetails({ rows, selected, onSelect, sort }: { rows: CommitReport[
   );
 }
 
-function CommitCard({ commit, selected, onSelect }: { commit: CommitReport; selected: boolean; onSelect: () => void }) {
+const CommitCard = memo(function CommitCard({ commit, selected, onSelect }: { commit: CommitReport; selected: boolean; onSelect: (sha: string) => void }) {
   const rawEntry = useReviewStore((state) => state.bySha[commit.sha]);
   const entry = normalizeEntry(rawEntry);
   const setDecision = useReviewStore((state) => state.setDecision);
   const setNote = useReviewStore((state) => state.setNote);
+  const text = useMemo(() => reviewText(commit), [commit]);
   return (
-    <article id={`commit-${commit.sha}`} data-sha={commit.sha} className={selected ? "commit-card active" : "commit-card"} onFocus={onSelect}>
+    <article id={`commit-${commit.sha}`} data-sha={commit.sha} className={selected ? "commit-card active" : "commit-card"} onFocus={() => onSelect(commit.sha)}>
       <div className="card-head">
         <h2>
           {commit.short_sha} {commit.subject}
@@ -330,11 +332,14 @@ function CommitCard({ commit, selected, onSelect }: { commit: CommitReport; sele
       </div>
       <div className="card-body">
         {commit.omitted_patch_files?.length ? <div className="notice critical">Embedded diff is incomplete for this commit. Use the GitHub full diff link for complete content.</div> : null}
-        <pre className="review-text">{reviewText(commit)}</pre>
+        <details className="review-details">
+          <summary>Commit message, evidence, and diff</summary>
+          <pre className="review-text">{text}</pre>
+        </details>
       </div>
     </article>
   );
-}
+});
 
 type FacetOption = { total: number; items: { value: string; label: string; count: number }[] };
 
