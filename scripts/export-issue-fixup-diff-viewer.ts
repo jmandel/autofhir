@@ -413,6 +413,7 @@ const reviewArtifactBranch = `review-${runId}`;
 const reviewArtifactDir = runId;
 const reviewRawBaseUrl = `https://raw.githubusercontent.com/${githubRepo}/${reviewArtifactBranch}/${reviewArtifactDir}/`;
 const reviewGithubTreeUrl = `https://github.com/${githubRepo}/tree/${reviewArtifactBranch}/${reviewArtifactDir}`;
+const reviewPagesUrl = `https://jmandel.github.io/autofhir/${reviewArtifactDir}/`;
 const sourceRunId = run.chunkSource?.kind === "issue-mapping-not-fully-applied" ? run.chunkSource.path : undefined;
 const sourceIssueMappingReportPath = sourceRunId
   ? path.join(runPath(sourceRunId), "review", "issue-mapping-report.json")
@@ -499,6 +500,7 @@ const report = {
     review_artifact_dir: reviewArtifactDir,
     review_raw_base_url: reviewRawBaseUrl,
     review_github_tree_url: reviewGithubTreeUrl,
+    review_pages_url: reviewPagesUrl,
     source_run_id: sourceRunId,
     artifacts: {
       fixup_review_json: "issue-fixup-diff-report.json",
@@ -970,6 +972,7 @@ function reviewPlan() {
     '- Current head: ' + report.run.head,
     '- GitHub compare: ' + (report.run.github_compare_url || '(not available)'),
     '- GitHub branch tree: ' + (report.run.github_tree_url || '(not available)'),
+    '- Review app on GitHub Pages: ' + (report.run.review_pages_url || '(not available)'),
     '- Review app and artifact folder: ' + (report.run.review_github_tree_url || '(not available)'),
     '',
     'Downloadable context artifacts:',
