@@ -44,7 +44,6 @@ define function ToString(value FHIR.RequestStatus): value.value
 define function ToString(value FHIR.strandType): value.value
 define function ToString(value FHIR.QuestionnaireResponseStatus): value.value
 define function ToString(value FHIR.SearchComparator): value.value
-define function ToString(value FHIR.ChargeItemStatus): value.value
 define function ToString(value FHIR.ActionParticipantType): value.value
 define function ToString(value FHIR.AllergyIntoleranceType): value.value
 define function ToString(value FHIR.CarePlanActivityStatus): value.value
