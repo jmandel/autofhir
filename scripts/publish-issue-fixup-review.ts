@@ -122,11 +122,15 @@ if (!flag("--skip-export")) {
 
 if (!flag("--skip-fhir-branch")) {
   if (!run.fhirRepo || !run.combinedBranch) throw new Error("run has no fhirRepo/combinedBranch to publish");
+  const remoteRef = `refs/heads/${fhirBranch}`;
+  const remoteSha = runCommand(["git", "ls-remote", repoUrl, remoteRef], { cwd: run.fhirRepo, allowFailure: true }).trim().split(/\s+/)[0];
+  const leaseArgs = remoteSha ? [`--force-with-lease=${remoteRef}:${remoteSha}`] : [];
   runCommand([
     "git",
     "push",
+    ...leaseArgs,
     repoUrl,
-    `refs/heads/${run.combinedBranch}:refs/heads/${fhirBranch}`,
+    `refs/heads/${run.combinedBranch}:${remoteRef}`,
   ], { cwd: run.fhirRepo });
   console.log(`fhir_branch=https://github.com/${githubRepo}/tree/${fhirBranch}`);
 }
