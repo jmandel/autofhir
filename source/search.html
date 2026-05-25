@@ -393,11 +393,13 @@ parameter(s)</span>
 </p>
 
 <a name="entries"></a>
-<h4>Matches, Inclusions, and Outcomes - Bundle Entries</h4>
+<h4>Matches, Inclusions, and Bundle Issues</h4>
 <p>
-  Within the results bundle, there are three types of <a href="bundle-definitions.html#Bundle.entry">entries</a>
+  Within the results bundle, the primary types of <a href="bundle-definitions.html#Bundle.entry">entries</a>
   that may be present, identified by the <a href="bundle-definitions.html#Bundle.entry.search.mode">search mode</a>
-  of the entry: <code>match</code>, <code>include</code>, or <code>outcome</code>.
+  of the entry, are <code>match</code> and <code>include</code>. Search-wide information and warnings are conveyed using
+  <a href="bundle-definitions.html#Bundle.issues"><code>Bundle.issues</code></a>. For backward compatibility, the deprecated
+  <code>outcome</code> search mode can identify an <a href="operationoutcome.html">OperationOutcome</a> entry containing such information.
 </p>
 <p>
   Note that entries are unique (not allowed to repeat) and there is only one mode per entry. In some corner cases, a resource
@@ -418,18 +420,20 @@ parameter(s)</span>
   for the client to process other results.
 </p>
 
-<h5>Outcome</h5>
+<h5>Outcome (Deprecated)</h5>
 <p>
-  Entries marked with <code>outcome</code> in search results are <a href="operationoutcome.html">OperationOutcome</a>
-  resources with information related to the processing of a search.  For example, a server may use an outcome record
-  to report to a client that a search was unacceptable.
+  The <code>outcome</code> search mode is deprecated. Servers SHOULD send an <a href="operationoutcome.html">OperationOutcome</a>
+  with information related to the processing of a search in <a href="bundle-definitions.html#Bundle.issues"><code>Bundle.issues</code></a>.
+  Systems that previously used <code>outcome</code> entries SHOULD continue to support them for backward compatibility while clients
+  need the information there.
 </p>
 
 <a name="errors"></a>
 <h4>Handling Errors</h4>
 <p>
-<span class="fhir-conformance">If a server is unable to execute a search request, it MAY either return an error for the request or return success
-with an <code>outcome</code> containing details of the error.</span> A HTTP status code of 
+<span class="fhir-conformance">If a server is unable to execute a search request, it MAY either return an error for the request or, when
+non-fatal details can be conveyed while still returning a searchset, return success with <code>Bundle.issues</code> containing details.</span>
+A HTTP status code of
 <code>403</code> signifies that the server refused to perform the search,
 while other <code>4xx</code> and <code>5xx</code> codes signify that some sort of error has occurred. <span class="fhir-conformance">When
 the search fails, a server SHOULD return an <a href="operationoutcome.html">OperationOutcome</a>
@@ -532,9 +536,8 @@ an empty search set, since the parameter cannot be satisfied.</span>
 </p>
 <p>
 In such cases, the search process may include an <a href="operationoutcome.html">OperationOutcome</a>
-in the search set that contains additional hints and warnings about the search process.
-This is included in the search results as an entry with a <a href="bundle-definitions.html#Bundle.entry.search.mode">search mode</a> 
-of <a href="valueset-search-entry-mode.html"><code>outcome</code></a>. Clients can use this information to 
+in <a href="bundle-definitions.html#Bundle.issues"><code>Bundle.issues</code></a> that contains additional hints and warnings about the search process.
+Clients can use this information to
 improve future searches. If, for example, a client performed the following search:
 <span class="http-search-example">
   <span class='http-verb-selector'>Show as unencoded: <a href='#get'>HTTP GET</a> | <a href='#post'>HTTP POST</a></span>
@@ -545,7 +548,7 @@ Content-Type: application/x-www-form-urlencoded
 patient.identifier=http://example.com/fhir/identifier/mrn|123456</span>
   </span>
 </span>
-and there is no patient for MRN 123456, the server may return a bundle with no results and a warning outcome, such as
+and there is no patient for MRN 123456, the server may return a bundle with no results and a warning in <code>Bundle.issues</code>, such as
 <a href="bundle-search-warning.html">this</a>.
 </p>
 
@@ -615,8 +618,8 @@ see <a href="http.html#Http-Headers">HTTP Headers</a> on the HTTP Page.
       perspective the search was executed as desired.
     </li>
     <li>
-      By returning a warning message in the search 
-      <a href="operationoutcome.html">OperationOutcome</a> (see also: 
+      By returning a warning message in an <a href="operationoutcome.html">OperationOutcome</a> in
+      <a href="bundle-definitions.html#Bundle.issues"><code>Bundle.issues</code></a> (see also:
       <a href="#errors">Handling Errors</a>) indicating that not all filters were applied on all 
       resources. <span class="fhir-conformance">This SHOULD only occur in situations where it is known that some filters haven't been applied.</span>
     </li>
@@ -1835,7 +1838,7 @@ Note that the iterate modifier causes implementations to perform a sub-query for
 Using iterate directives can often reduce the total processing time of a set of queries (by reducing the number of round-trips) but
 can significantly increase the processing time of a single query.As noted in <a href="#include">Including Referenced Resources</a>, 
 servers have discretion about limiting the depth of recursion, which iterations to support, and how many resources to include. 
-When results are truncated, it is recommended for servers to inform clients via search outcome.
+When results are truncated, it is recommended for servers to inform clients using <code>Bundle.issues</code>.
 
 </p>
 [%dragons-end%]
@@ -4103,7 +4106,7 @@ value-range-values=le20$ge30</span>
         </li>
         <li>
           If the logical id does not exist or cannot be returned, the result of a valid search will still be a bundle.
-          The bundle may include further information in the form of an <a href="operationoutcome.html">OperationOutcome</a>.
+          The bundle may include further information in <a href="bundle-definitions.html#Bundle.issues"><code>Bundle.issues</code></a>.
           See <a href="#errors">Handling Errors</a> for more information.
         </li>
       </ul>
@@ -4264,8 +4267,8 @@ When searching on versioned References, the following rules apply:
   referenced, but most systems will not be capable of this because search is only defined to function against the current version of a resource
  </li>
  <li>
-  <span class="fhir-conformance">Where a search does not act on the referenced version, search results SHOULD contain a <a href="operationoutcome.html">OperationOutcome</a> 
-  with a warning that indicates the discrepancy.</span>
+  <span class="fhir-conformance">Where a search does not act on the referenced version, search results SHOULD contain
+  <a href="bundle-definitions.html#Bundle.issues"><code>Bundle.issues</code></a> with a warning that indicates the discrepancy.</span>
  </li>
  <li>
   <span class="fhir-conformance">If a resource has a reference that is versioned and the resource is included (e.g., <code>_include</code>, <code>_revinclude</code>), 
@@ -5218,10 +5221,10 @@ This way, the last matching resource will be returned.
 <span class="fhir-conformance">If <code>_count</code> has the value 0 (zero), this SHALL be treated the same as <code>_summary=count</code>: the
 server returns a bundle that reports the total number of resources that match in <code>Bundle.total</code>,
 but with no entries, and no previous/next/last links.</span> Note that the <code>Bundle.total</code> only
-includes the total number of matching resources. It does not count extra resources such as
-<a href="operationoutcome.html">OperationOutcome</a> or <a href="#include">included</a> resources that may also be returned.
+includes the total number of matching resources. It does not count <a href="#include">included</a> resources or extra information such as
+<a href="bundle-definitions.html#Bundle.issues"><code>Bundle.issues</code></a> that may also be returned.
 In the same way, the <code>_count</code> parameter only applies to resources with <code>entry.search.mode = match</code>, and does not include
-included resources or operation outcomes.
+included resources or <code>Bundle.issues</code>.
 </p>
 <p>
 The <code>_count</code> parameter has no impact on the value of <code>Bundle.total</code> as the latter represents the total
@@ -5248,8 +5251,8 @@ number of matches, not how many are returned in a response.
 </p>
 <p>
 The <code>_maxresults</code> parameter only affects the number of resources returned as matches (<code>entry.search.mode=match</code>).
-It does not affect the number of resources returned as included resources (<code>entry.search.mode=include</code>) or operation outcomes
-(<code>entry.search.mode=outcome</code>).
+It does not affect the number of resources returned as included resources (<code>entry.search.mode=include</code>) or information
+conveyed in <code>Bundle.issues</code>.
 </p>
 <p>
 The combination of <code>_sort</code> and <code>_maxresults</code> can be used to return
