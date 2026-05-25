@@ -43,22 +43,43 @@ dependencies {
 }
 
 task("publish", JavaExec::class) {
-    dependsOn(":printVersion")
+    dependsOn(":printVersion", ":classes")
     if (properties["logback.configurationFile"] != null) {
         jvmArgs = listOf("-Dlogback.configurationFile=${properties["logback.configurationFile"]}")
     }
     main = "org.hl7.fhir.tools.publisher.Publisher"
-    classpath = sourceSets["main"].compileClasspath
+    classpath = sourceSets["main"].runtimeClasspath
+    doLast {
+        tagExamplePackages()
+    }
 }
 
 task("publishFull", JavaExec::class) {
-    dependsOn(":printVersion")
+    dependsOn(":printVersion", ":classes")
     if (properties["logback.configurationFile"] != null) {
         jvmArgs = listOf("-Dlogback.configurationFile=${properties["logback.configurationFile"]}")
     }
     main = "org.hl7.fhir.tools.publisher.Publisher"
-    classpath = sourceSets["main"].compileClasspath
+    classpath = sourceSets["main"].runtimeClasspath
     args("-nopartial")
+    doLast {
+        tagExamplePackages()
+    }
+}
+
+task("tagExamplePackages", JavaExec::class) {
+    dependsOn(":classes")
+    main = "org.hl7.fhir.tools.publisher.ExamplePackageHTESTTagger"
+    classpath = sourceSets["main"].runtimeClasspath
+    args((project.findProperty("examplePackageDir") ?: file("publish").absolutePath).toString())
+}
+
+fun tagExamplePackages() {
+    javaexec {
+        main = "org.hl7.fhir.tools.publisher.ExamplePackageHTESTTagger"
+        classpath = sourceSets["main"].runtimeClasspath
+        args(file("publish").absolutePath)
+    }
 }
 
 task("printVersion") {
