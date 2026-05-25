@@ -51,6 +51,14 @@ The review app is driven by issue-fixup outputs, not the original discovery or i
 
 The "Copy Review Plan" button copies a self-contained handoff that can be saved as `prompt.md` for another agent. It includes the local branch, GitHub compare URL, review decisions, and download links for the full issue-mapping input JSON and the full issue-fixup review JSON.
 
+Publish the current review snapshot to GitHub branches and GitHub Pages:
+
+```bash
+bun autofhir/scripts/publish-issue-fixup-review.ts --run-id <run-id>
+```
+
+That command updates the reconciliation branch at `jmandel/autofhir:<run-id>`, the raw artifact branch at `review-<run-id>`, and the rendered review app under GitHub Pages.
+
 ## Common Commands
 
 Check a run:
