@@ -115,6 +115,14 @@ for attempt in $(seq 1 "$max_attempts"); do
   if git -C "{{SPEC_CHECKOUT_ROOT}}" push . "$integration_branch:{{COMBINED_BRANCH}}"; then
     break
   fi
+
+  # Another worker landed first. Remove this full temporary checkout before
+  # retrying so concurrent workers do not accumulate multiple large FHIR
+  # integration worktrees.
+  git -C "{{SPEC_CHECKOUT_ROOT}}" worktree remove -f "$integration_worktree" 2>/dev/null || true
+  rm -rf "$integration_worktree"
+  git -C "{{SPEC_CHECKOUT_ROOT}}" branch -D "$integration_branch" 2>/dev/null || true
+
   if [ "$attempt" = "$max_attempts" ]; then
     echo "local CAS publish failed after $max_attempts attempts" >&2
     exit 2
