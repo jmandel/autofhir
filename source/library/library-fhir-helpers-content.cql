@@ -199,7 +199,7 @@ define function ToString(value FHIR.SlicingRules): value.value
 define function ToString(value FHIR.ExplanationOfBenefitStatus): value.value
 define function ToString(value FHIR.GuideParameterCode): value.value
 define function ToString(value FHIR.LinkType): value.value
-define function ToString(value FHIR.ConceptMapEquivalence): value.value
+define function ToString(value FHIR.ConceptMapRelationship): value.value
 define function ToString(value FHIR.AuditEventAction): value.value
 define function ToString(value FHIR.SearchModifierCode): value.value
 define function ToString(value FHIR.EventStatus): value.value
