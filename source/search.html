@@ -1256,7 +1256,8 @@ location:above=A101</span>
   resource is either specified or the server chooses to infer it. <span class="fhir-conformance">Version-related search criteria against 
   resources with unknown versioning schemes SHALL be either ignored or rejected.</span> The <code>above</code>
   modifier comparison is performed as a 'greater than' against the version-scheme defined by the resource. Any versions that match the 
-  specified search are <b>excluded</b> from the result. The versions returned will be listed in no particular order.
+  specified search (as described in <a href="references.html#matching">Version Matching for Canonical Resources</a>) are <b>excluded</b>
+  from the result. The versions returned will be listed in no particular order.
   </p>
   <p>
     When using the <code>above</code> modifier on a canonical reference, all typically-valid search parameter token inputs are allowed. Note that any
@@ -1389,7 +1390,8 @@ location:below=BuildingA</span>
   resource is either specified or the server chooses to infer it. <span class="fhir-conformance">Version-related search criteria against 
   resources with unknown versioning schemes SHALL be either ignored or rejected.</span> The <code>below</code>
   modifier comparison is performed as a 'less than' against the version-scheme defined by the resource. Any versions that match the specified search 
-  are <b>excluded</b> from the result. The versions returned will be listed in no particular order.
+  (as described in <a href="references.html#matching">Version Matching for Canonical Resources</a>) are <b>excluded</b> from the result.
+  The versions returned will be listed in no particular order.
   </p>
   <p>
     When using the <code>below</code> modifier on a canonical reference, all typically-valid search parameter token inputs are allowed.  Note that any
@@ -4255,47 +4257,71 @@ This version is a canonical reference to the business version of the resource.
 <span class="fhir-conformance">For canonical references, servers SHOULD support searching by Canonical URLs, and SHOULD support
 automatically detecting a <code>|[version]</code> portion as part of the search parameter and
 interpreting that portion as a search on the business version of the target resource.</span>
-The modifier <code>:below</code> is used with canonical references, to control
-whether the version is considered in the search. The search:
+A search without an appended version matches canonical references by URL; the
+version in the reference does not need to match a version criterion. The search:
 <span class="http-search-example">
   <span class='http-verb-selector'>Show as unencoded: <a href='#get'>HTTP GET</a> | <a href='#post'>HTTP POST</a></span>
   <span class="http-verb-display">
-    <span class="http-verb-display-get">GET [base]/QuestionnaireResponse?questionnaire:below=http://example.org/fhir/questionnaire/patient-intake</span>
+    <span class="http-verb-display-get">GET [base]/QuestionnaireResponse?questionnaire=http://example.org/fhir/questionnaire/patient-intake</span>
     <span class="http-verb-display-post">POST [base]/QuestionnaireResponse/_search
 Content-Type: application/x-www-form-urlencoded
-questionnaire:below=http://example.org/fhir/questionnaire/patient-intake</span>
+questionnaire=http://example.org/fhir/questionnaire/patient-intake</span>
   </span>
 </span>
 would match QuestionnaireResponses based on Questionnaires:
 </p>
 <ul>
-  <li>http://example.org/fhir/questionnaire/patient-intake|1.0</li>
-  <li>http://example.org/fhir/questionnaire/patient-intake|1.1</li>
-  <li>http://example.org/fhir/questionnaire/patient-intake|2.0</li>
+  <li>http://example.org/fhir/questionnaire/patient-intake|1.0.0</li>
+  <li>http://example.org/fhir/questionnaire/patient-intake|1.1.0</li>
+  <li>http://example.org/fhir/questionnaire/patient-intake|2.0.0</li>
   <li>etc.</li>
 </ul>
+<p>
+The modifiers <code>:above</code> and <code>:below</code> compare against the version-scheme defined by the target resource when the version
+scheme is specified or inferred. Assuming matching Questionnaires use SemVer versions <code>0.9.0</code>, <code>1.0.0</code>,
+<code>1.1.0</code>, <code>1.1.1</code>, <code>2.0.0</code>, and <code>2.0.1</code>, the search:
+<span class="http-search-example">
+  <span class='http-verb-selector'>Show as unencoded: <a href='#get'>HTTP GET</a> | <a href='#post'>HTTP POST</a></span>
+  <span class="http-verb-display">
+    <span class="http-verb-display-get">GET [base]/QuestionnaireResponse?questionnaire:below=http://example.org/fhir/questionnaire/patient-intake|2.0.0</span>
+    <span class="http-verb-display-post">POST [base]/QuestionnaireResponse/_search
+Content-Type: application/x-www-form-urlencoded
+questionnaire:below=http://example.org/fhir/questionnaire/patient-intake|2.0.0</span>
+  </span>
+</span>
+would match QuestionnaireResponses based on Questionnaires with versions lower than <code>2.0.0</code>:
+</p>
+<ul>
+  <li>http://example.org/fhir/questionnaire/patient-intake|0.9.0</li>
+  <li>http://example.org/fhir/questionnaire/patient-intake|1.0.0</li>
+  <li>http://example.org/fhir/questionnaire/patient-intake|1.1.0</li>
+  <li>http://example.org/fhir/questionnaire/patient-intake|1.1.1</li>
+</ul>
+<p>
+It would not match <code>2.0.0</code>, because versions that match the specified search are excluded from <code>:below</code> results.
+</p>
 <p>
 The search:
 <span class="http-search-example">
   <span class='http-verb-selector'>Show as unencoded: <a href='#get'>HTTP GET</a> | <a href='#post'>HTTP POST</a></span>
   <span class="http-verb-display">
-    <span class="http-verb-display-get">GET [base]/QuestionnaireResponse?questionnaire:below=http://example.org/fhir/questionnaire/patient-intake|1</span>
+    <span class="http-verb-display-get">GET [base]/QuestionnaireResponse?questionnaire:above=http://example.org/fhir/questionnaire/patient-intake|1.1.x</span>
     <span class="http-verb-display-post">POST [base]/QuestionnaireResponse/_search
 Content-Type: application/x-www-form-urlencoded
-questionnaire:below=http://example.org/fhir/questionnaire/patient-intake|1</span>
+questionnaire:above=http://example.org/fhir/questionnaire/patient-intake|1.1.x</span>
   </span>
 </span>
-would match QuestionnaireResponses based on Questionnaires with a major version of '1', e.g.:
+uses SemVer wildcard matching for the specified search. It would exclude the matching versions <code>1.1.0</code> and <code>1.1.1</code>,
+and match QuestionnaireResponses based on Questionnaires with higher versions, such as:
+</p>
 <ul>
-  <li>http://example.org/fhir/questionnaire/patient-intake|1.0</li>
-  <li>http://example.org/fhir/questionnaire/patient-intake|1.1</li>
+  <li>http://example.org/fhir/questionnaire/patient-intake|2.0.0</li>
+  <li>http://example.org/fhir/questionnaire/patient-intake|2.0.1</li>
 </ul>
-
+<p>
 When a canonical URL with an appended version (i.e. <code>[canonical]|[version]</code>) is supplied in a search parameter,
-the version portion is matched by the <code>versionAlgorithm</code> of the resource if known (explicit or derived). 
-If the server does not know the algorithm of the versioning scheme, the version matching falls back to an exact-match, equivalent
-to <a href="#token">token</a> search semantics.  If additional version matching behavior is required, the <code>:above</code> and <code>:below</code>
-modifiers can be used.
+the version portion is matched as described in <a href="references.html#matching">Version Matching for Canonical Resources</a>.
+If additional version comparison behavior is required, the <code>:above</code> and <code>:below</code> modifiers can be used.
 </p>
 <p>
 For further information about searching canonical references, see <a href="references.html#canonical-matching">Choosing the right Canonical Reference</a>.
@@ -6930,4 +6956,3 @@ $(function() {
 
 </body>
 </html>
-
