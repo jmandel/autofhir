@@ -83,3 +83,15 @@ bun autofhir/scripts/start-review-refresh.ts \
   --kind issue-fixup-diff \
   --interval-sec 120
 ```
+
+Inspect and reclaim stale run disk usage:
+
+```bash
+bun autofhir/scripts/cleanup-run-space.ts --run-id <run-id>
+bun autofhir/scripts/cleanup-run-space.ts --run-id <run-id> --apply
+```
+
+The cleanup command is dry-run by default and is safe to run during a live run.
+It preserves currently running issue worktrees, removes only stale AutoFHIR
+worktrees/temp publish checkouts when `--apply` is supplied, and prunes git
+worktree metadata.
