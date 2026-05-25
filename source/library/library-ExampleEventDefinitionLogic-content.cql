@@ -26,7 +26,7 @@ define fluent function negative(observations List<Observation>):
 
 define fluent function during(observations List<Observation>, encounter Encounter):
   observations O
-    where O.issued during minute of encounter.period
+    where O.issued during minute of encounter.actualPeriod
 
 define fluent function within(observations List<Observation>, quantity Quantity):
   observations O
