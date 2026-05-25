@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { readRun, repoRoot, runCommand, runPath } from "./lib";
@@ -84,15 +84,19 @@ function copyReviewArtifacts(destRoot: string, includeRootIndex: boolean): void 
 
 function publishArtifactBranch(branch: string, includeRootIndex: boolean): void {
   const tmp = mkdtempSync(path.join(tmpdir(), "autofhir-review-publish-"));
-  copyReviewArtifacts(tmp, includeRootIndex);
-  runCommand(["git", "init", "-b", branch], { cwd: tmp });
-  runCommand(["git", "config", "user.name", "AutoFHIR"], { cwd: tmp });
-  runCommand(["git", "config", "user.email", "autofhir@example.invalid"], { cwd: tmp });
-  runCommand(["git", "add", "."], { cwd: tmp });
-  runCommand(["git", "commit", "-m", `Publish ${runId} review artifacts`], { cwd: tmp });
-  runCommand(["git", "remote", "add", "origin", repoUrl], { cwd: tmp });
-  runCommand(["git", "push", "--force", "origin", `HEAD:refs/heads/${branch}`], { cwd: tmp });
-  console.log(`${branch}=${tmp}`);
+  try {
+    copyReviewArtifacts(tmp, includeRootIndex);
+    runCommand(["git", "init", "-b", branch], { cwd: tmp });
+    runCommand(["git", "config", "user.name", "AutoFHIR"], { cwd: tmp });
+    runCommand(["git", "config", "user.email", "autofhir@example.invalid"], { cwd: tmp });
+    runCommand(["git", "add", "."], { cwd: tmp });
+    runCommand(["git", "commit", "-m", `Publish ${runId} review artifacts`], { cwd: tmp });
+    runCommand(["git", "remote", "add", "origin", repoUrl], { cwd: tmp });
+    runCommand(["git", "push", "--force", "origin", `HEAD:refs/heads/${branch}`], { cwd: tmp });
+    console.log(`${branch}=published`);
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
 }
 
 if (!flag("--skip-export")) {
