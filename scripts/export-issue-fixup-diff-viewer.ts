@@ -409,6 +409,10 @@ const shas = runCommand(["git", "rev-list", "--reverse", `${base}..${run.combine
 const githubRepo = "jmandel/autofhir";
 const githubTreeUrl = `https://github.com/${githubRepo}/tree/${runId}`;
 const githubCompareUrl = `https://github.com/${githubRepo}/compare/${base}...${head}`;
+const reviewArtifactBranch = `review-${runId}`;
+const reviewArtifactDir = runId;
+const reviewRawBaseUrl = `https://raw.githubusercontent.com/${githubRepo}/${reviewArtifactBranch}/${reviewArtifactDir}/`;
+const reviewGithubTreeUrl = `https://github.com/${githubRepo}/tree/${reviewArtifactBranch}/${reviewArtifactDir}`;
 const sourceRunId = run.chunkSource?.kind === "issue-mapping-not-fully-applied" ? run.chunkSource.path : undefined;
 const sourceIssueMappingReportPath = sourceRunId
   ? path.join(runPath(sourceRunId), "review", "issue-mapping-report.json")
@@ -491,6 +495,10 @@ const report = {
     github_repo: githubRepo,
     github_tree_url: githubTreeUrl,
     github_compare_url: githubCompareUrl,
+    review_artifact_branch: reviewArtifactBranch,
+    review_artifact_dir: reviewArtifactDir,
+    review_raw_base_url: reviewRawBaseUrl,
+    review_github_tree_url: reviewGithubTreeUrl,
     source_run_id: sourceRunId,
     artifacts: {
       fixup_review_json: "issue-fixup-diff-report.json",
@@ -543,6 +551,7 @@ textarea { min-height:64px; resize:vertical; }
 button { border:1px solid #aeb9c6; border-radius:6px; padding:7px 10px; background:#fff; color:#17212b; cursor:pointer; }
 button:hover { background:#f1f5f9; }
 button.primary { background:#1f6feb; color:#fff; border-color:#1f6feb; }
+button.copied { background:#176f3d; color:#fff; border-color:#176f3d; }
 .button-link { display:inline-block; border:1px solid #aeb9c6; border-radius:6px; padding:7px 10px; background:#fff; color:#17212b; text-decoration:none; }
 .button-link.primary { background:#1f6feb; color:#fff; border-color:#1f6feb; }
 main { min-width:0; min-height:0; display:grid; grid-template-columns:minmax(360px, 32%) minmax(0, 1fr); overflow:hidden; }
@@ -927,6 +936,19 @@ async function copyText(value) {
     box.remove();
   }
 }
+async function copyWithFeedback(button, value) {
+  await copyText(value);
+  if (!button) return;
+  const original = button.dataset.originalText || button.textContent;
+  button.dataset.originalText = original;
+  button.textContent = 'Copied';
+  button.classList.add('copied');
+  if (button.copyTimer) clearTimeout(button.copyTimer);
+  button.copyTimer = setTimeout(() => {
+    button.textContent = button.dataset.originalText || original;
+    button.classList.remove('copied');
+  }, 1200);
+}
 function reviewPlan() {
   const rows = reviewedRows();
   const payload = decisionPayload(rows);
@@ -934,7 +956,7 @@ function reviewPlan() {
   const reject = rows.filter(c => selectedDecisionValue(c) === 'reject');
   const defer = rows.filter(c => selectedDecisionValue(c) === 'defer');
   const lineFor = c => '- ' + c.sha + ' ' + (c.issue_key || '') + ' ' + c.subject + (stateFor(c.sha).note ? '\\n  Reviewer note: ' + stateFor(c.sha).note : '');
-  const artifactUrl = name => name ? new URL(name, location.href).href : '(not available)';
+  const artifactUrl = name => name ? new URL(name, report.run.review_raw_base_url || location.href).href : '(not available)';
   const artifacts = report.run.artifacts || {};
   return [
     '# AutoFHIR Review Plan',
@@ -946,12 +968,15 @@ function reviewPlan() {
     '- Local branch: ' + report.run.combined_branch,
     '- Base commit: ' + report.run.base,
     '- Current head: ' + report.run.head,
-    '- GitHub compare, after the branch is pushed: ' + (report.run.github_compare_url || '(not available)'),
+    '- GitHub compare: ' + (report.run.github_compare_url || '(not available)'),
+    '- GitHub branch tree: ' + (report.run.github_tree_url || '(not available)'),
+    '- Review app and artifact folder: ' + (report.run.review_github_tree_url || '(not available)'),
     '',
     'Downloadable context artifacts:',
     '- Full source discovery/issue-mapping JSON used as the input to this fixup run: ' + artifactUrl(artifacts.source_issue_mapping_json_gzip),
     '- Full fixup review JSON emitted by this run, which is the data this viewer is built from: ' + artifactUrl(artifacts.fixup_review_json),
     '- Gzipped fixup review JSON, if a smaller download is preferred: ' + artifactUrl(artifacts.fixup_review_json_gzip),
+    '- Standalone review HTML: ' + artifactUrl('index.html'),
     '- Source run id: ' + (report.run.source_run_id || '(unknown)'),
     '',
     'How to apply:',
@@ -1015,7 +1040,7 @@ detail.addEventListener('input', (event) => {
   stateFor(note.dataset.sha).note = note.value;
   saveReviewState();
 });
-document.getElementById('copyReviewPlan').addEventListener('click', () => copyText(reviewPlan()));
+document.getElementById('copyReviewPlan').addEventListener('click', (event) => copyWithFeedback(event.currentTarget, reviewPlan()));
 document.getElementById('clearVisible').addEventListener('click', () => {
   if (!confirm('Clear review decisions and notes for visible commits?')) return;
   for (const c of filtered()) delete reviewState[c.sha];
@@ -1046,7 +1071,7 @@ document.addEventListener('keydown', (event) => {
   else if (key === 'd' || key === 'h') { event.preventDefault(); setReviewDecision(selected, 'defer'); }
   else if (key === 'j' || event.key === 'ArrowDown') { event.preventDefault(); goRelative(1); }
   else if (key === 'k' || event.key === 'ArrowUp') { event.preventDefault(); goRelative(-1); }
-  else if (key === 'c') { event.preventDefault(); copyText(reviewPlan()); }
+  else if (key === 'c') { event.preventDefault(); copyWithFeedback(document.getElementById('copyReviewPlan'), reviewPlan()); }
 });
 rerender();
 </script>
