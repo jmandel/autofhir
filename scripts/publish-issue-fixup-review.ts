@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { readRun, repoRoot, runCommand, runPath } from "./lib";
@@ -41,6 +41,7 @@ const reviewDir = path.join(root, "review");
 const reviewBranch = `review-${runId}`;
 const fhirBranch = runId;
 const pagesBranch = "gh-pages";
+const exportLock = "/tmp/autofhir-review-export.lock";
 
 function requireFile(file: string): void {
   if (!existsSync(file)) throw new Error(`missing required review artifact: ${file}`);
@@ -95,7 +96,24 @@ function publishArtifactBranch(branch: string, includeRootIndex: boolean): void 
 }
 
 if (!flag("--skip-export")) {
-  runCommand(["bun", "autofhir/scripts/export-issue-fixup-diff-viewer.ts", "--run-id", runId], { cwd: repoRoot });
+  while (true) {
+    try {
+      mkdirSync(exportLock);
+      break;
+    } catch {
+      console.log("waiting_for_export_lock");
+      Bun.sleepSync(5000);
+    }
+  }
+  try {
+    runCommand(["bun", "autofhir/scripts/export-issue-fixup-diff-viewer.ts", "--run-id", runId], { cwd: repoRoot });
+  } finally {
+    try {
+      rmdirSync(exportLock);
+    } catch {
+      // Best-effort cleanup.
+    }
+  }
 }
 
 if (!flag("--skip-fhir-branch")) {

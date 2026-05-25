@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, rmdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { repoRoot, runPath } from "./lib";
 
@@ -22,15 +22,28 @@ if (!runId) throw new Error("--run-id or RUN_ID is required");
 
 const intervalSec = Math.max(5, Number(arg("--interval-sec") ?? process.env.REFRESH_INTERVAL_SEC ?? "120"));
 const root = runPath(runId);
+const lock = "/tmp/autofhir-review-export.lock";
 
 while (existsSync(root)) {
   const startedAt = new Date().toISOString();
   console.log(`${startedAt} refreshing issue-fixup diff viewer ${runId}`);
+  try {
+    mkdirSync(lock);
+  } catch {
+    console.log(`${new Date().toISOString()} refresh_skipped=export_lock_held`);
+    Bun.sleepSync(intervalSec * 1000);
+    continue;
+  }
   const proc = spawnSync("bun", ["autofhir/scripts/export-issue-fixup-diff-viewer.ts", "--run-id", runId], {
     cwd: repoRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
+  try {
+    rmdirSync(lock);
+  } catch {
+    // Best-effort cleanup; a later refresh can still skip if another process owns it.
+  }
   if (proc.stdout) process.stdout.write(proc.stdout);
   if (proc.stderr) process.stderr.write(proc.stderr);
   console.log(`${new Date().toISOString()} refresh_exit=${proc.status ?? 1}`);
