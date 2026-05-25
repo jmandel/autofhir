@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { gzipSync } from "node:zlib";
-import { readJson, readRun, runCommand, runPath } from "./lib";
+import { readJson, readRun, repoRoot, runCommand, runPath } from "./lib";
 
 type CommitReport = {
   sequence: number;
@@ -595,15 +595,12 @@ a:hover { text-decoration:underline; }
 .section h3 { margin:0 0 8px; font-size:15px; border-bottom:1px solid var(--line); padding-bottom:4px; }
 pre { margin:0; overflow:auto; white-space:pre; tab-size:2; }
 .commit-message { white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; }
+.review-text { white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
 .box { border:1px solid var(--line); border-radius:6px; background:#f7f9fb; padding:10px; }
 .files { columns:2; column-gap:22px; }
-.diff { border:1px solid var(--line); border-radius:6px; background:#fff; overflow-y:auto; overflow-x:hidden; font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
-.line { display:block; min-height:18px; padding:0 10px; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; }
-.add { background:#e6ffed; color:#116329; }
-.del { background:#ffebe9; color:#82071e; }
-.hunk { background:#ddf4ff; color:#0550ae; }
-.file { background:#f6f8fa; color:#57606a; font-weight:650; }
+.diff { border:1px solid var(--line); border-radius:6px; background:#fff; overflow-y:auto; overflow-x:hidden; padding:10px; font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; word-break:break-word; }
 .empty { padding:30px; color:var(--muted); }
+.render-progress { position:sticky; top:0; z-index:3; border:1px solid #8bb8ff; background:#eaf2ff; color:#084594; border-radius:6px; padding:10px; margin:0 0 12px; font-weight:650; }
 .notice { border:1px solid #e8c46a; background:#fff8db; color:#5f4300; border-radius:6px; padding:10px; }
 .notice.critical { border-color:#d1242f; background:#fff1f1; color:#82071e; font-weight:650; }
 .help { color:var(--muted); font-size:13px; }
@@ -647,6 +644,7 @@ const detail = document.getElementById('detail');
 const reviewCounts = document.getElementById('reviewCounts');
 let selected = null;
 let observer = null;
+let detailRenderToken = 0;
 const storageKey = 'issue-fixup-review:' + report.run.run_id;
 const reviewOptions = [
   ['undecided', 'Undecided'],
@@ -809,14 +807,7 @@ function renderList() {
   }).join('') : '<div class="empty">No commits match.</div>';
 }
 function diffHtml(patch) {
-  return String(patch || '').split('\\n').map(line => {
-    let cls = 'line';
-    if (line.startsWith('+++') || line.startsWith('---') || line.startsWith('diff --git') || line.startsWith('index ')) cls += ' file';
-    else if (line.startsWith('@@')) cls += ' hunk';
-    else if (line.startsWith('+')) cls += ' add';
-    else if (line.startsWith('-')) cls += ' del';
-    return '<span class="' + cls + '">' + esc(line) + '</span>';
-  }).join('');
+  return esc(patch || '');
 }
 function reviewSelectHtml(c) {
   const current = selectedDecisionValue(c);
@@ -850,6 +841,33 @@ function commitCard(c) {
   const omitted = (c.omitted_patch_files || []).length
     ? '<div class="section"><div class="notice critical">Embedded diff is incomplete for this commit. Some very large file diffs were omitted or truncated here; use the GitHub full diff link for complete content.<br>' + (c.omitted_patch_files || []).map(item => esc(item.file + ': ' + item.reason)).join('<br>') + '</div></div>'
     : '';
+  const reviewText = [
+    'Jira Issue: ' + (c.issue_key || '(none)'),
+    'Result: ' + outcomeLabel(c.status || c.decision_status || 'none'),
+    'Work Group: ' + wgTitle(c),
+    'Author: ' + c.author,
+    'Authored: ' + c.authored_at,
+    'SHA: ' + c.sha,
+    c.result_path ? 'Agent report: ' + c.result_path : 'Agent report: none',
+    '',
+    'WHAT CHANGED',
+    displaySummary(c) || '(no summary)',
+    c.commit_context || '',
+    '',
+    c.summary ? 'AGENT SUMMARY\\n' + c.summary + '\\n' : '',
+    c.recommendation ? 'AGENT RECOMMENDATION\\n' + c.recommendation + '\\n' : '',
+    'FILES',
+    ...(c.files || ['(none)']),
+    '',
+    'COMMIT MESSAGE',
+    c.body || '',
+    '',
+    'STAT',
+    c.stat || '',
+    '',
+    'DIFF',
+    c.patch || '(empty commit; no source diff)',
+  ].filter(value => value !== undefined).join('\\n');
   return '<article class="commit-card ' + (c.sha === selected ? 'active' : '') + '" id="commit-' + esc(c.sha) + '" data-sha="' + esc(c.sha) + '">' +
     '<div class="card-head">' +
       '<h2>' + esc(c.short_sha) + ' ' + esc(c.subject) + commitLink(c, c.patch_truncated ? 'Full diff on GitHub (required)' : 'Full diff on GitHub') + '</h2>' +
@@ -858,30 +876,50 @@ function commitCard(c) {
       '<div class="decision-grid"><div>' + reviewSelectHtml(c) + '</div><textarea class="decision-note" data-sha="' + esc(c.sha) + '" placeholder="Optional review note for later apply/exclude context">' + esc(state.note || '') + '</textarea></div>' +
     '</div>' +
     '<div class="card-body">' +
-      '<div class="section"><h3>Jira Issue</h3><p>' + issueLink(c.issue_key) + (c.result_path ? ' · <code>' + esc(c.result_path) + '</code>' : ' · no agent report') + '</p></div>' +
-      '<div class="section"><h3>What Changed</h3><div class="box">' + esc(displaySummary(c) || '(no summary)') + (c.commit_context ? '<p>' + esc(c.commit_context).replaceAll('\\n\\n', '</p><p>') + '</p>' : '') + '</div></div>' +
-      '<div class="section"><h3>Full Commit Message</h3><pre class="box commit-message">' + esc(c.body || '') + '</pre></div>' +
-      wgInferenceHtml(c) +
-      resultJsonContextHtml(c) +
-      '<div class="section"><h3>Files</h3><div class="box files">' + (c.files || []).map(esc).join('<br>') + '</div></div>' +
-      '<details class="section"><summary><strong>Stat</strong></summary><pre class="box">' + esc(c.stat || '') + '</pre></details>' +
+      '<div class="section"><p>' + issueLink(c.issue_key) + (c.result_path ? ' · <code>' + esc(c.result_path) + '</code>' : ' · no agent report') + '</p></div>' +
       omitted +
-      '<div class="section"><h3>Diff ' + commitLink(c, 'Open complete GitHub diff') + '</h3><pre class="diff">' + diffHtml(c.patch) + '</pre></div>' +
+      '<pre class="box review-text">' + esc(reviewText) + '</pre>' +
     '</div>' +
   '</article>';
 }
 function renderDetail() {
+  const token = ++detailRenderToken;
   const rows = filtered();
   if (!rows.length) { detail.innerHTML = '<div class="empty">No commits match.</div>'; return; }
   if (!rows.some(c => c.sha === selected)) selected = rows[0].sha;
+  if (observer) observer.disconnect();
+  observer = null;
+  const progressId = 'render-progress-' + token;
+  detail.innerHTML = '<div class="render-progress" id="' + progressId + '">Rendering searchable diffs 0/' + rows.length + '</div>';
+  let index = 0;
   let lastGroup = null;
-  detail.innerHTML = rows.map(c => {
-    const header = sortSel.value === 'wg' && wgTitle(c) !== lastGroup
-      ? (lastGroup = wgTitle(c), '<div class="detail-group">' + esc(wgTitle(c)) + '</div>')
-      : '';
-    return header + commitCard(c);
-  }).join('');
-  installObserver();
+  const appendBatch = () => {
+    if (token !== detailRenderToken) return;
+    const parts = [];
+    const end = Math.min(rows.length, index + 12);
+    for (; index < end; index++) {
+      const c = rows[index];
+      const header = sortSel.value === 'wg' && wgTitle(c) !== lastGroup
+        ? (lastGroup = wgTitle(c), '<div class="detail-group">' + esc(wgTitle(c)) + '</div>')
+        : '';
+      parts.push(header + commitCard(c));
+    }
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = parts.join('');
+    const fragment = document.createDocumentFragment();
+    while (wrapper.firstChild) fragment.appendChild(wrapper.firstChild);
+    detail.appendChild(fragment);
+    const progress = document.getElementById(progressId);
+    if (index < rows.length) {
+      if (progress) progress.textContent = 'Rendering searchable diffs ' + index + '/' + rows.length;
+      setTimeout(appendBatch, 0);
+    } else {
+      if (progress) progress.remove();
+      installObserver();
+      updateActive(selected, true);
+    }
+  };
+  setTimeout(appendBatch, 0);
 }
 function updateActive(sha, scrollSidebar) {
   selected = sha;
@@ -1087,7 +1125,42 @@ const htmlPath = path.join(outDir, "issue-fixup-diff-viewer.html");
 const indexPath = path.join(outDir, "index.html");
 writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
 writeFileSync(`${reportPath}.gz`, gzipSync(readFileSync(reportPath)));
-const html = viewerHtml(report);
+const appJsPath = path.join(outDir, "review-app.js");
+const appCssPath = path.join(outDir, "review-app.css");
+const build = spawnSync("bun", [
+  "build",
+  path.join(repoRoot, "autofhir/web/review-app/src/main.tsx"),
+  "--target=browser",
+  "--minify",
+  "--outfile",
+  appJsPath,
+], {
+  cwd: repoRoot,
+  encoding: "utf8",
+  stdio: ["ignore", "pipe", "pipe"],
+});
+if (build.status !== 0) {
+  throw new Error([
+    "failed to build review app",
+    build.stdout?.trim(),
+    build.stderr?.trim(),
+  ].filter(Boolean).join("\n"));
+}
+writeFileSync(appCssPath, readFileSync(path.join(repoRoot, "autofhir/web/review-app/src/styles.css")));
+const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AutoFHIR Issue Fixup Diffs</title>
+<link rel="stylesheet" href="review-app.css">
+</head>
+<body>
+<div id="root"><div class="empty">Loading review app.</div></div>
+<script>window.__AUTOFHIR_REPORT_URL__ = "issue-fixup-diff-report.json";</script>
+<script type="module" src="review-app.js"></script>
+</body>
+</html>`;
 writeFileSync(htmlPath, html);
 writeFileSync(indexPath, html);
 writeFileSync(path.join(outDir, ".nojekyll"), "");

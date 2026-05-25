@@ -54,6 +54,8 @@ function copyReviewArtifacts(destRoot: string, includeRootIndex: boolean): void 
     "issue-fixup-diff-viewer.html",
     "issue-fixup-diff-report.json",
     "issue-fixup-diff-report.json.gz",
+    "review-app.js",
+    "review-app.css",
   ]) {
     const source = path.join(reviewDir, name);
     requireFile(source);

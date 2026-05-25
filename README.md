@@ -37,6 +37,8 @@ The exporter writes a standalone HTML app and JSON report to:
 
 ```text
 autofhir/runs/<run-id>/review/index.html
+autofhir/runs/<run-id>/review/review-app.js
+autofhir/runs/<run-id>/review/review-app.css
 autofhir/runs/<run-id>/review/issue-fixup-diff-report.json
 autofhir/runs/<run-id>/review/issue-fixup-diff-report.json.gz
 ```
