@@ -22,6 +22,8 @@ type CommitReport = {
   summary?: string;
   recommendation?: string;
   github_commit_url?: string;
+  previous_issue_commits?: PreviousIssueCommit[];
+  previous_issue_commits_omitted?: number;
   result_path?: string;
   wg?: string;
   wg_label?: string;
@@ -34,6 +36,15 @@ type CommitReport = {
   patch_bytes?: number;
   patch_truncated?: boolean;
   omitted_patch_files?: { file: string; reason: string }[];
+};
+
+type PreviousIssueCommit = {
+  sha: string;
+  short_sha: string;
+  authored_at: string;
+  author: string;
+  subject: string;
+  github_commit_url: string;
 };
 
 type WgEvidence = {
@@ -427,6 +438,7 @@ const shas = runCommand(["git", "rev-list", "--reverse", `${base}..${run.combine
   .split(/\r?\n/)
   .filter(Boolean);
 const githubRepo = "jmandel/autofhir";
+const upstreamGithubRepo = "HL7/fhir";
 const githubTreeUrl = `https://github.com/${githubRepo}/tree/${runId}`;
 const githubCompareUrl = `https://github.com/${githubRepo}/compare/${base}...${head}`;
 const reviewArtifactBranch = `review-${runId}`;
@@ -451,7 +463,7 @@ function writeGzipIfNeeded(source: string, dest: string): void {
 
 if (sourceIssueMappingReportPath) writeGzipIfNeeded(sourceIssueMappingReportPath, sourceIssueMappingReportGzipPath);
 
-const commits: CommitReport[] = shas.map((sha, index) => {
+const commitInputs = shas.map((sha, index) => {
   const meta = zsplit(runCommand([
     "git",
     "show",
@@ -462,6 +474,12 @@ const commits: CommitReport[] = shas.map((sha, index) => {
   const [fullSha, shortSha, author, authoredAt, subject, body = ""] = meta;
   const commitMessage = parsedCommitMessage(subject, body);
   const issueKey = issueKeyFor(body, subject);
+  return { index, sha, fullSha, shortSha, author, authoredAt, subject, body, commitMessage, issueKey };
+});
+
+const previousIssueCommitsByKey = previousIssueCommits(base, new Set(commitInputs.map((commit) => commit.issueKey).filter(Boolean) as string[]));
+
+const commits: CommitReport[] = commitInputs.map(({ index, sha, fullSha, shortSha, author, authoredAt, subject, body, commitMessage, issueKey }) => {
   const result = resultFor(issueKey);
   const resultPath = issueKey && existsSync(path.join(root, "results", `${issueKey}.json`))
     ? path.relative(root, path.join(root, "results", `${issueKey}.json`))
@@ -472,6 +490,11 @@ const commits: CommitReport[] = shas.map((sha, index) => {
   const stat = runCommand(["git", "show", "--format=", "--stat", "--find-renames", sha], { cwd: run.fhirRepo });
   const patch = patchForCommit(sha, files);
   const wg = inferCommitWg(issueKey, files);
+  const previous = issueKey ? previousIssueCommitsByKey.get(issueKey) ?? [] : [];
+  const previousFields = previous.length ? {
+    previous_issue_commits: previous.slice(0, 25),
+    previous_issue_commits_omitted: Math.max(0, previous.length - 25),
+  } : {};
   return {
     sequence: index,
     sha: fullSha,
@@ -488,6 +511,7 @@ const commits: CommitReport[] = shas.map((sha, index) => {
     summary: result?.decision?.summary,
     recommendation: result?.decision?.recommendation,
     github_commit_url: `https://github.com/${githubRepo}/commit/${fullSha}`,
+    ...previousFields,
     result_path: resultPath,
     ...wg,
     files,
@@ -500,6 +524,44 @@ function countBy(values: string[]): Record<string, number> {
   const counts = new Map<string, number>();
   for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
   return Object.fromEntries([...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])));
+}
+
+function previousIssueCommits(ref: string, issueKeys: Set<string>): Map<string, PreviousIssueCommit[]> {
+  const byKey = new Map<string, PreviousIssueCommit[]>();
+  if (!issueKeys.size) return byKey;
+  const output = runCommandBig([
+    "git",
+    "log",
+    "--extended-regexp",
+    "--regexp-ignore-case",
+    "--grep=FHIR-[0-9]+",
+    "--format=%H%x00%h%x00%ai%x00%an%x00%s%x00%B%x1e",
+    ref,
+  ], { cwd: run.fhirRepo, allowFailure: true, maxBuffer: 256 * 1024 * 1024 });
+  const seen = new Set<string>();
+  for (const record of output.split("\x1e")) {
+    if (!record.trim()) continue;
+    const [sha, shortSha, authoredAt, author, subject, body = ""] = record.replace(/^\n/, "").split("\0");
+    if (!sha || !shortSha) continue;
+    const mentioned = new Set((`${subject}\n${body}`.match(/\bFHIR-\d+\b/gi) ?? []).map((key) => key.toUpperCase()));
+    for (const key of mentioned) {
+      if (!issueKeys.has(key)) continue;
+      const dedupe = `${key}:${sha}`;
+      if (seen.has(dedupe)) continue;
+      seen.add(dedupe);
+      const commits = byKey.get(key) ?? [];
+      commits.push({
+        sha,
+        short_sha: shortSha,
+        authored_at: authoredAt,
+        author,
+        subject,
+        github_commit_url: `https://github.com/${upstreamGithubRepo}/commit/${sha}`,
+      });
+      byKey.set(key, commits);
+    }
+  }
+  return byKey;
 }
 
 const report = {

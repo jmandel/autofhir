@@ -21,6 +21,8 @@ type CommitReport = {
   summary?: string;
   recommendation?: string;
   github_commit_url?: string;
+  previous_issue_commits?: PreviousIssueCommit[];
+  previous_issue_commits_omitted?: number;
   result_path?: string;
   wg?: string;
   wg_label?: string;
@@ -32,6 +34,15 @@ type CommitReport = {
   patch_bytes?: number;
   patch_truncated?: boolean;
   omitted_patch_files?: { file: string; reason: string }[];
+};
+
+type PreviousIssueCommit = {
+  sha: string;
+  short_sha: string;
+  authored_at: string;
+  author: string;
+  subject: string;
+  github_commit_url: string;
 };
 
 type Report = {
@@ -142,8 +153,10 @@ function App() {
         return response.json();
       })
       .then((data: Report) => {
+        const hashSha = shaFromHash(data.commits);
         setReport(data);
-        setSelected(data.commits[0]?.sha || null);
+        setSelected(hashSha || data.commits[0]?.sha || null);
+        if (hashSha) window.setTimeout(() => scrollToSha(hashSha), 0);
       })
       .catch((err) => setError(String(err?.message || err)));
   }, []);
@@ -151,10 +164,62 @@ function App() {
   const options = useMemo(() => report ? buildOptions(report, bySha, { status, wg, file, reviewDecision }) : null, [report, bySha, status, wg, file, reviewDecision]);
   const rows = useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, wg, file, reviewDecision })), sort) : [], [report, bySha, status, wg, file, reviewDecision, sort]);
 
+  const selectCommit = useCallback((sha: string, urlMode: "push" | "replace" | "none" = "none") => {
+    setSelected(sha);
+    if (urlMode !== "none") updateUrlForSha(sha, urlMode);
+  }, []);
+
+  const openCommit = useCallback((sha: string, urlMode: "push" | "replace" = "push") => {
+    selectCommit(sha, urlMode);
+    scrollToSha(sha);
+  }, [selectCommit]);
+
   useEffect(() => {
     if (!rows.length) setSelected(null);
-    else if (!selected || !rows.some((commit) => commit.sha === selected)) setSelected(rows[0].sha);
+    else if (!selected || !rows.some((commit) => commit.sha === selected)) {
+      setSelected(rows[0].sha);
+      updateUrlForSha(rows[0].sha, "replace");
+    }
   }, [rows, selected]);
+
+  useEffect(() => {
+    if (!report) return;
+    const onHashChange = () => {
+      const sha = shaFromHash(report.commits);
+      if (!sha) return;
+      setSelected(sha);
+      window.setTimeout(() => scrollToSha(sha), 0);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [report]);
+
+  useEffect(() => {
+    if (!rows.length) return;
+    let frame = 0;
+    const updateFromScroll = () => {
+      frame = 0;
+      const sha = visibleSha(rows);
+      if (!sha) return;
+      setSelected((current) => current === sha ? current : sha);
+      updateUrlForSha(sha, "replace");
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(updateFromScroll);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    window.setTimeout(updateFromScroll, 0);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [rows]);
+
+  useEffect(() => {
+    if (selected) scrollSidebarToSha(selected);
+  }, [selected]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -180,13 +245,11 @@ function App() {
       } else if (key === "j" || event.key === "ArrowDown") {
         event.preventDefault();
         const next = relativeCommit(rows, selected, 1);
-        setSelected(next.sha);
-        scrollToSha(next.sha);
+        openCommit(next.sha, "replace");
       } else if (key === "k" || event.key === "ArrowUp") {
         event.preventDefault();
         const next = relativeCommit(rows, selected, -1);
-        setSelected(next.sha);
-        scrollToSha(next.sha);
+        openCommit(next.sha, "replace");
       } else if (key === "c") {
         event.preventDefault();
         copyPlan(report, rows, bySha, setCopied);
@@ -194,7 +257,7 @@ function App() {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [report, rows, selected, bySha]);
+  }, [report, rows, selected, bySha, openCommit]);
 
   if (error) {
     return <div className="empty">Could not load review data: {error}</div>;
@@ -217,6 +280,7 @@ function App() {
           {report.run.github_compare_url && <a href={report.run.github_compare_url} target="_blank" rel="noreferrer">Full branch diff on GitHub</a>}
         </div>
       </header>
+      <Intro />
       <div className="controls">
         <Facet value={status} onChange={setStatus} label="All results" options={options.statuses} />
         <Facet value={wg} onChange={setWg} label="All work groups" options={options.wgs} />
@@ -238,10 +302,23 @@ function App() {
         </div>
       </div>
       <main>
-        <CommitList rows={rows} selected={selected} onSelect={setSelected} sort={sort} />
-        <CommitDetails rows={rows} selected={selected} onSelect={setSelected} sort={sort} />
+        <CommitList rows={rows} selected={selected} onOpen={openCommit} sort={sort} />
+        <CommitDetails rows={rows} selected={selected} onSelect={selectCommit} sort={sort} />
       </main>
     </>
+  );
+}
+
+function Intro() {
+  return (
+    <section className="intro" aria-label="Review guide">
+      <p>
+        This page reviews proposed commits that reconcile FHIR Jira resolutions with the current spec source. Use the filters to narrow by outcome, work group, file, or your review choice. Open each card's Jira, proposed GitHub commit, and any prior HL7/fhir commits mentioning the same issue before deciding. The colored diff is embedded for scanning; use the full GitHub diff link when a patch is truncated or you need complete context.
+      </p>
+      <p>
+        Example starting points: <a href="#commit-a87868d1c99971648781cb8f157784658e6279a2">source fix</a>, <a href="#commit-e0a9c71f754cff2750a475160e037c5fcb2c4655">no source change needed</a>, <a href="#commit-b2a6724ff6542b1c786150011abb524017952ac7">needs human review</a>, and <a href="#commit-23dcb49d3396d4ec09cce8ca3673adaf77e2f63d">issue with prior commits</a>. Mark each item Approve, Reject, or Defer; notes are saved locally in this browser. Use Copy Review Plan to export your decisions, links, and notes as a prompt that another LLM agent can use to apply or omit the reviewed commits.
+      </p>
+    </section>
   );
 }
 
@@ -254,7 +331,7 @@ function Facet({ label, value, options, onChange }: { label: string; value: stri
   );
 }
 
-function CommitList({ rows, selected, onSelect, sort }: { rows: CommitReport[]; selected: string | null; onSelect: (sha: string) => void; sort: string }) {
+function CommitList({ rows, selected, onOpen, sort }: { rows: CommitReport[]; selected: string | null; onOpen: (sha: string) => void; sort: string }) {
   let lastGroup = "";
   return (
     <div className="list">
@@ -265,7 +342,7 @@ function CommitList({ rows, selected, onSelect, sort }: { rows: CommitReport[]; 
         return (
           <React.Fragment key={commit.sha}>
             {header && <div className="group-header">{group}</div>}
-            <button type="button" className={commit.sha === selected ? "row active" : "row"} onClick={() => { onSelect(commit.sha); scrollToSha(commit.sha); }}>
+            <button id={`row-${commit.sha}`} type="button" className={commit.sha === selected ? "row active" : "row"} onClick={() => onOpen(commit.sha)}>
               <span className="row-title">{commit.short_sha} {commit.subject}</span>
               <span className="row-summary">{displaySummary(commit)}</span>
               <span className="chips">
@@ -313,6 +390,7 @@ const CommitCard = memo(function CommitCard({ commit, selected, onSelect }: { co
       <div className="card-head">
         <h2>
           {commit.short_sha} {commit.subject}
+          <a className="permalink" href={`#commit-${commit.sha}`} title="Permalink to this review item" aria-label={`Permalink to ${commit.issue_key || commit.short_sha}`} onClick={() => onSelect(commit.sha)}>#</a>
           {commit.github_commit_url && <a className="full-link" href={commit.github_commit_url} target="_blank" rel="noreferrer">{commit.patch_truncated ? "Full diff on GitHub (required)" : "Full diff on GitHub"}</a>}
         </h2>
         <div className="chips">
@@ -357,6 +435,7 @@ function CommitOverview({ commit }: { commit: CommitReport }) {
         {commit.github_commit_url ? <a href={commit.github_commit_url} target="_blank" rel="noreferrer">GitHub commit {commit.short_sha}</a> : null}
         {commit.result_path ? <span>Agent report: {commit.result_path}</span> : <span>No agent report JSON</span>}
       </div>
+      <PreviousIssueCommits commit={commit} />
       <dl className="metadata-grid">
         <div><dt>Result</dt><dd>{outcomeLabel(commit.status || commit.decision_status)}</dd></div>
         <div><dt>Work Group</dt><dd>{wgTitle(commit)}</dd></div>
@@ -372,6 +451,26 @@ function CommitOverview({ commit }: { commit: CommitReport }) {
           <p>{commit.recommendation}</p>
         </section>
       ) : null}
+    </section>
+  );
+}
+
+function PreviousIssueCommits({ commit }: { commit: CommitReport }) {
+  const previous = commit.previous_issue_commits || [];
+  if (!previous.length) return null;
+  return (
+    <section className="previous-commits">
+      <h3>Prior HL7/fhir commits mentioning {commit.issue_key}</h3>
+      <ul>
+        {previous.map((prior) => (
+          <li key={prior.sha}>
+            <a href={prior.github_commit_url} target="_blank" rel="noreferrer">{prior.short_sha}</a>
+            <span>{prior.subject}</span>
+            <small>{dateOnly(prior.authored_at)} · {prior.author}</small>
+          </li>
+        ))}
+      </ul>
+      {commit.previous_issue_commits_omitted ? <div className="help">Omitted {commit.previous_issue_commits_omitted} additional matching commits.</div> : null}
     </section>
   );
 }
@@ -520,6 +619,10 @@ function displaySummary(commit: CommitReport) {
   return commit.commit_summary || commit.summary || "";
 }
 
+function dateOnly(value?: string) {
+  return value ? value.slice(0, 10) : "";
+}
+
 function reviewEntry(sha: string, bySha = useReviewStore.getState().bySha) {
   return normalizeEntry(bySha[sha]);
 }
@@ -539,8 +642,55 @@ function relativeCommit(rows: CommitReport[], selected: string, delta: number) {
   return rows[Math.min(rows.length - 1, Math.max(0, index + delta))] || rows[0];
 }
 
+function shaFromHash(commits: CommitReport[]) {
+  const rawHash = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+  if (!rawHash) return null;
+  const token = rawHash.startsWith("commit-") ? rawHash.slice("commit-".length) : rawHash;
+  return commits.find((commit) => commit.sha === token || commit.short_sha === token || commit.issue_key === token)?.sha || null;
+}
+
+function updateUrlForSha(sha: string, mode: "push" | "replace") {
+  const next = new URL(window.location.href);
+  next.hash = `commit-${sha}`;
+  const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const target = `${next.pathname}${next.search}${next.hash}`;
+  if (current === target) return;
+  window.history[mode === "push" ? "pushState" : "replaceState"](null, "", next);
+}
+
+function visibleSha(rows: CommitReport[]) {
+  const offset = stickyBottomOffset() + 8;
+  for (const commit of rows) {
+    const element = document.getElementById(`commit-${commit.sha}`);
+    if (!element) continue;
+    const rect = element.getBoundingClientRect();
+    if (rect.bottom > offset) return commit.sha;
+  }
+  return rows[rows.length - 1]?.sha || null;
+}
+
+function stickyBottomOffset() {
+  const reviewbar = document.querySelector(".reviewbar")?.getBoundingClientRect();
+  if (reviewbar && reviewbar.bottom > 0) return reviewbar.bottom;
+  const controls = document.querySelector(".controls")?.getBoundingClientRect();
+  return controls && controls.bottom > 0 ? controls.bottom : 0;
+}
+
 function scrollToSha(sha: string) {
   window.setTimeout(() => document.getElementById(`commit-${sha}`)?.scrollIntoView({ block: "start", behavior: "auto" }), 0);
+}
+
+function scrollSidebarToSha(sha: string) {
+  const row = document.getElementById(`row-${sha}`);
+  const list = row?.closest(".list") as HTMLElement | null;
+  if (!row || !list || getComputedStyle(list).overflowY === "visible") return;
+  const rowRect = row.getBoundingClientRect();
+  const listRect = list.getBoundingClientRect();
+  if (rowRect.top < listRect.top) {
+    list.scrollTop -= listRect.top - rowRect.top + 8;
+  } else if (rowRect.bottom > listRect.bottom) {
+    list.scrollTop += rowRect.bottom - listRect.bottom + 8;
+  }
 }
 
 function Chip({ value, className }: { value?: string; className?: string }) {
