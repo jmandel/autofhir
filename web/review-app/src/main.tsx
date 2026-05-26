@@ -160,7 +160,6 @@ function App() {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("");
-  const [changeKind, setChangeKind] = useState("");
   const [wg, setWg] = useState("");
   const [file, setFile] = useState("");
   const [reviewDecision, setReviewDecision] = useState("");
@@ -180,15 +179,14 @@ function App() {
       .then((data: Report) => {
         const hashSha = shaFromHash(data.commits);
         setReport(data);
-        setChangeKind(!hashSha && isAuditReport(data) ? "source-change" : "");
         useSelectionStore.getState().setSelected(hashSha || data.commits[0]?.sha || null);
         if (hashSha) window.setTimeout(() => scrollToSha(hashSha), 0);
       })
       .catch((err) => setError(String(err?.message || err)));
   }, []);
 
-  const options = React.useMemo(() => report ? buildOptions(report, bySha, { status, changeKind, wg, file, reviewDecision }) : null, [report, bySha, status, changeKind, wg, file, reviewDecision]);
-  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, changeKind, wg, file, reviewDecision })), sort) : [], [report, bySha, status, changeKind, wg, file, reviewDecision, sort]);
+  const options = React.useMemo(() => report ? buildOptions(report, bySha, { status, wg, file, reviewDecision }) : null, [report, bySha, status, wg, file, reviewDecision]);
+  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, wg, file, reviewDecision })), sort) : [], [report, bySha, status, wg, file, reviewDecision, sort]);
 
   const selectCommit = useCallback((sha: string, urlMode: "push" | "replace" | "none" = "none") => {
     useSelectionStore.getState().setSelected(sha);
@@ -292,7 +290,6 @@ function App() {
       <Intro report={report} />
       <div className="controls">
         <Facet value={status} onChange={setStatus} label={isAuditReport(report) ? "All audit decisions" : "All results"} options={options.statuses} />
-        {isAuditReport(report) ? <Facet value={changeKind} onChange={setChangeKind} label="All commit kinds" options={options.changeKinds} /> : null}
         <Facet value={wg} onChange={setWg} label="All work groups" options={options.wgs} />
         <Facet value={file} onChange={setFile} label="All changed files" options={options.files} />
         <Facet value={reviewDecision} onChange={setReviewDecision} label="All review choices" options={options.reviews} />
@@ -644,7 +641,8 @@ function linkForToken(token: string, key: string) {
     return <a key={key} href={`https://github.com/HL7/fhir/pull/${pr[1]}`} target="_blank" rel="noreferrer">{token}</a>;
   }
   if (/^[a-f0-9]{7,40}$/i.test(token)) {
-    return <a key={key} href={`https://github.com/HL7/fhir/commit/${token}`} target="_blank" rel="noreferrer">{token}</a>;
+    const label = token.length > 7 ? token.slice(0, 7) : token;
+    return <a key={key} href={`https://github.com/HL7/fhir/commit/${token}`} target="_blank" rel="noreferrer" title={token}>{label}</a>;
   }
   return token;
 }
