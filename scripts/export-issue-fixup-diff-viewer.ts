@@ -687,7 +687,14 @@ const fullReport = {
 };
 const webReport = {
   ...report,
-  commits: commits.map(({ patch: _patch, ...commit }) => ({
+  commits: commits.map(({
+    patch: _patch,
+    original_subject: _originalSubject,
+    original_body: _originalBody,
+    audit_reasoning: _auditReasoning,
+    audit_recommended_next_step: _auditRecommendedNextStep,
+    ...commit
+  }) => ({
     ...commit,
     patch_url: patchUrlFor(commit.sha),
     patch_bytes: Buffer.byteLength(_patch || "", "utf8"),

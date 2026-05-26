@@ -663,7 +663,7 @@ function wgTitle(commit: CommitReport) {
 }
 
 function displaySummary(commit: CommitReport) {
-  return commit.audit_recommended_next_step || commit.commit_summary || commit.summary || "";
+  return commit.audit_recommended_next_step || commit.recommendation || commit.commit_summary || commit.summary || "";
 }
 
 function isAuditReport(report: Report) {
