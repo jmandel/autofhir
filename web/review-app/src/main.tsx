@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -70,6 +70,7 @@ type Report = {
     review_pages_url?: string;
     review_github_tree_url?: string;
     review_raw_base_url?: string;
+    github_repo?: string;
     source_run_id?: string;
     source_issue_fixup_run_id?: string;
     audit_run_id?: string;
@@ -96,6 +97,11 @@ type ReviewStore = {
   setDecision: (sha: string, decision: ReviewDecision) => void;
   setNote: (sha: string, note: string) => void;
   clear: (shas: string[]) => void;
+};
+
+type SelectionStore = {
+  selected: string | null;
+  setSelected: (sha: string | null) => void;
 };
 
 const reviewOptions: [ReviewDecision, string][] = [
@@ -133,6 +139,11 @@ const useReviewStore = create<ReviewStore>()(
   ),
 );
 
+const useSelectionStore = create<SelectionStore>()((set) => ({
+  selected: null,
+  setSelected: (sha) => set({ selected: sha }),
+}));
+
 function normalizeEntry(entry?: Partial<ReviewEntry>): ReviewEntry {
   const raw = entry?.decision;
   const decision: ReviewDecision =
@@ -154,13 +165,13 @@ function App() {
   const [file, setFile] = useState("");
   const [reviewDecision, setReviewDecision] = useState("");
   const [sort, setSort] = useState("wg");
-  const [selected, setSelected] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const bySha = useReviewStore((state) => state.bySha);
   const clear = useReviewStore((state) => state.clear);
 
   useEffect(() => {
     const url = window.__AUTOFHIR_REPORT_URL__ || "issue-fixup-diff-report.json";
+    ensureScrollIdleTracker();
     fetch(url)
       .then((response) => {
         if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
@@ -170,17 +181,17 @@ function App() {
         const hashSha = shaFromHash(data.commits);
         setReport(data);
         setChangeKind(!hashSha && isAuditReport(data) ? "source-change" : "");
-        setSelected(hashSha || data.commits[0]?.sha || null);
+        useSelectionStore.getState().setSelected(hashSha || data.commits[0]?.sha || null);
         if (hashSha) window.setTimeout(() => scrollToSha(hashSha), 0);
       })
       .catch((err) => setError(String(err?.message || err)));
   }, []);
 
-  const options = useMemo(() => report ? buildOptions(report, bySha, { status, changeKind, wg, file, reviewDecision }) : null, [report, bySha, status, changeKind, wg, file, reviewDecision]);
-  const rows = useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, changeKind, wg, file, reviewDecision })), sort) : [], [report, bySha, status, changeKind, wg, file, reviewDecision, sort]);
+  const options = React.useMemo(() => report ? buildOptions(report, bySha, { status, changeKind, wg, file, reviewDecision }) : null, [report, bySha, status, changeKind, wg, file, reviewDecision]);
+  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, changeKind, wg, file, reviewDecision })), sort) : [], [report, bySha, status, changeKind, wg, file, reviewDecision, sort]);
 
   const selectCommit = useCallback((sha: string, urlMode: "push" | "replace" | "none" = "none") => {
-    setSelected(sha);
+    useSelectionStore.getState().setSelected(sha);
     if (urlMode !== "none") updateUrlForSha(sha, urlMode);
   }, []);
 
@@ -190,51 +201,32 @@ function App() {
   }, [selectCommit]);
 
   useEffect(() => {
-    if (!rows.length) setSelected(null);
+    const selected = useSelectionStore.getState().selected;
+    if (!rows.length) useSelectionStore.getState().setSelected(null);
     else if (!selected || !rows.some((commit) => commit.sha === selected)) {
-      setSelected(rows[0].sha);
+      useSelectionStore.getState().setSelected(rows[0].sha);
       updateUrlForSha(rows[0].sha, "replace");
     }
-  }, [rows, selected]);
+  }, [rows]);
 
   useEffect(() => {
     if (!report) return;
     const onHashChange = () => {
       const sha = shaFromHash(report.commits);
       if (!sha) return;
-      setSelected(sha);
+      useSelectionStore.getState().setSelected(sha);
       window.setTimeout(() => scrollToSha(sha), 0);
     };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, [report]);
 
-  useEffect(() => {
-    if (!rows.length) return;
-    let frame = 0;
-    const updateFromScroll = () => {
-      frame = 0;
-      const sha = visibleSha(rows);
-      if (!sha) return;
-      setSelected((current) => current === sha ? current : sha);
-      updateUrlForSha(sha, "replace");
-    };
-    const onScroll = () => {
-      if (!frame) frame = window.requestAnimationFrame(updateFromScroll);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    window.setTimeout(updateFromScroll, 0);
-    return () => {
-      if (frame) window.cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, [rows]);
-
-  useEffect(() => {
-    if (selected) scrollSidebarToSha(selected);
-  }, [selected]);
+  useVisibleCommitObserver(rows, (sha) => {
+    if (useSelectionStore.getState().selected !== sha) {
+      useSelectionStore.getState().setSelected(sha);
+      scheduleUrlForSha(sha);
+    }
+  });
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -246,6 +238,7 @@ function App() {
         (document.activeElement as HTMLElement | null)?.blur();
         return;
       }
+      const selected = useSelectionStore.getState().selected;
       if (!report || !selected) return;
       const key = event.key.toLowerCase();
       if (key === "a") {
@@ -272,7 +265,7 @@ function App() {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [report, rows, selected, bySha, openCommit]);
+  }, [report, rows, bySha, openCommit]);
 
   if (error) {
     return <div className="empty">Could not load review data: {error}</div>;
@@ -318,12 +311,23 @@ function App() {
           <button onClick={() => clear(rows.map((commit) => commit.sha))}>Clear Visible Review State</button>
         </div>
       </div>
+      <SelectionSideEffects />
       <main>
-        <CommitList rows={rows} selected={selected} onOpen={openCommit} sort={sort} />
-        <CommitDetails rows={rows} selected={selected} onSelect={selectCommit} sort={sort} />
+        <CommitList rows={rows} onOpen={openCommit} sort={sort} />
+        <CommitDetails rows={rows} onSelect={selectCommit} sort={sort} />
       </main>
     </>
   );
+}
+
+function SelectionSideEffects() {
+  const selected = useSelectionStore((state) => state.selected);
+  useEffect(() => {
+    if (!selected) return;
+    const timer = window.setTimeout(() => scrollSidebarToSha(selected), 120);
+    return () => window.clearTimeout(timer);
+  }, [selected]);
+  return null;
 }
 
 function Intro({ report }: { report: Report }) {
@@ -360,7 +364,7 @@ function Facet({ label, value, options, onChange }: { label: string; value: stri
   );
 }
 
-function CommitList({ rows, selected, onOpen, sort }: { rows: CommitReport[]; selected: string | null; onOpen: (sha: string) => void; sort: string }) {
+function CommitList({ rows, onOpen, sort }: { rows: CommitReport[]; onOpen: (sha: string) => void; sort: string }) {
   let lastGroup = "";
   return (
     <div className="list">
@@ -371,17 +375,7 @@ function CommitList({ rows, selected, onOpen, sort }: { rows: CommitReport[]; se
         return (
           <React.Fragment key={commit.sha}>
             {header && <div className="group-header">{group}</div>}
-            <button id={`row-${commit.sha}`} type="button" className={commit.sha === selected ? "row active" : "row"} onClick={() => onOpen(commit.sha)}>
-              <span className="row-title">{commit.short_sha} {commit.subject}</span>
-              <span className="row-summary">{displaySummary(commit)}</span>
-              <span className="chips">
-                <Chip value={commit.issue_key} />
-                <OutcomeChip value={commit.status || commit.decision_status} />
-                <Chip value={commit.wg || "unknown"} />
-                <Chip value={decisionLabel(reviewEntry(commit.sha).decision)} className={reviewEntry(commit.sha).decision} />
-                <Chip value={`${commit.files?.length || 0} files`} />
-              </span>
-            </button>
+            <CommitRow commit={commit} onOpen={onOpen} />
           </React.Fragment>
         );
       })}
@@ -389,7 +383,26 @@ function CommitList({ rows, selected, onOpen, sort }: { rows: CommitReport[]; se
   );
 }
 
-function CommitDetails({ rows, selected, onSelect, sort }: { rows: CommitReport[]; selected: string | null; onSelect: (sha: string) => void; sort: string }) {
+const CommitRow = memo(function CommitRow({ commit, onOpen }: { commit: CommitReport; onOpen: (sha: string) => void }) {
+  const active = useSelectionStore((state) => state.selected === commit.sha);
+  const rawEntry = useReviewStore((state) => state.bySha[commit.sha]);
+  const entry = normalizeEntry(rawEntry);
+  return (
+    <button id={`row-${commit.sha}`} type="button" className={active ? "row active" : "row"} onClick={() => onOpen(commit.sha)}>
+      <span className="row-title">{commit.short_sha} {commit.subject}</span>
+      <span className="row-summary">{displaySummary(commit)}</span>
+      <span className="chips">
+        <Chip value={commit.issue_key} />
+        <OutcomeChip value={commit.status || commit.decision_status} />
+        <Chip value={commit.wg || "unknown"} />
+        <Chip value={decisionLabel(entry.decision)} className={entry.decision} />
+        <Chip value={`${commit.files?.length || 0} files`} />
+      </span>
+    </button>
+  );
+});
+
+function CommitDetails({ rows, onSelect, sort }: { rows: CommitReport[]; onSelect: (sha: string) => void; sort: string }) {
   let lastGroup = "";
   const selectCommit = useCallback((sha: string) => onSelect(sha), [onSelect]);
   return (
@@ -401,7 +414,7 @@ function CommitDetails({ rows, selected, onSelect, sort }: { rows: CommitReport[
         return (
           <React.Fragment key={commit.sha}>
             {header && <div className="detail-group">{group}</div>}
-            <CommitCard commit={commit} selected={commit.sha === selected} onSelect={selectCommit} />
+            <CommitCard commit={commit} onSelect={selectCommit} />
           </React.Fragment>
         );
       }) : <div className="empty">No commits match the current filters.</div>}
@@ -409,7 +422,8 @@ function CommitDetails({ rows, selected, onSelect, sort }: { rows: CommitReport[
   );
 }
 
-const CommitCard = memo(function CommitCard({ commit, selected, onSelect }: { commit: CommitReport; selected: boolean; onSelect: (sha: string) => void }) {
+const CommitCard = memo(function CommitCard({ commit, onSelect }: { commit: CommitReport; onSelect: (sha: string) => void }) {
+  const selected = useSelectionStore((state) => state.selected === commit.sha);
   const rawEntry = useReviewStore((state) => state.bySha[commit.sha]);
   const entry = normalizeEntry(rawEntry);
   const setDecision = useReviewStore((state) => state.setDecision);
@@ -442,19 +456,22 @@ const CommitCard = memo(function CommitCard({ commit, selected, onSelect }: { co
       <div className="card-body">
         {commit.omitted_patch_files?.length ? <div className="notice critical">Embedded diff is incomplete for this commit. Use the GitHub full diff link for complete content.</div> : null}
         <CommitOverview commit={commit} />
-        <details className="review-details" open>
-          <summary>{commit.audit_decision ? "Audit replacement commit message" : "Git commit message"}</summary>
-          <pre className="commit-message">{commit.body || commit.subject || "(empty commit message)"}</pre>
-        </details>
-        {commit.original_body ? (
+        <CommitMessageNarrative commit={commit} />
+        {!commit.audit_decision ? (
+          <details className="review-details">
+            <summary>Raw git commit message</summary>
+            <pre className="commit-message">{commit.body || commit.subject || "(empty commit message)"}</pre>
+          </details>
+        ) : null}
+        {commit.original_body && !commit.audit_decision ? (
           <details className="review-details">
             <summary>Original generated commit message</summary>
             <pre className="commit-message">{commit.original_body}</pre>
           </details>
         ) : null}
         <details className="review-details">
-          <summary>{commit.audit_decision ? "Audit agent assessment, files, and stats" : "Fixup agent assessment, files, and stats"}</summary>
-          <AgentAssessment commit={commit} />
+          <summary>{commit.audit_decision ? "Files and stats" : "Fixup agent assessment, files, and stats"}</summary>
+          {commit.audit_decision ? <FilesAndStats commit={commit} /> : <AgentAssessment commit={commit} />}
         </details>
         <DiffSection commit={commit} />
       </div>
@@ -477,17 +494,6 @@ function CommitOverview({ commit }: { commit: CommitReport }) {
         {commit.audit_confidence ? <div><dt>Audit Confidence</dt><dd>{commit.audit_confidence}</dd></div> : null}
         <div><dt>Work Group</dt><dd>{wgTitle(commit)}</dd></div>
       </dl>
-      <section className="narrative-section">
-        <h3>What Changed</h3>
-        <p>{displaySummary(commit) || "(no summary)"}</p>
-        {commit.commit_context ? <p>{commit.commit_context}</p> : null}
-      </section>
-      {commit.recommendation ? (
-        <section className="narrative-section">
-          <h3>{commit.audit_decision ? "Audit Recommendation" : "Recommendation"}</h3>
-          <p>{commit.recommendation}</p>
-        </section>
-      ) : null}
       {commit.audit_source_tweaks_needed?.length ? (
         <section className="narrative-section">
           <h3>Source Tweaks Needed</h3>
@@ -498,6 +504,231 @@ function CommitOverview({ commit }: { commit: CommitReport }) {
       ) : null}
     </section>
   );
+}
+
+type MessageSection = { key: string; title: string; text: string };
+
+const commitSectionTitles = [
+  "Issue request",
+  "Initial application",
+  "Additional context",
+  "AutoFHIR fixup",
+  "Recommendation",
+];
+
+function CommitMessageNarrative({ commit }: { commit: CommitReport }) {
+  const sections = React.useMemo(() => parsedMessageSections(commit), [commit.body, commit.subject, commit.commit_summary, commit.commit_context, commit.recommendation]);
+  if (!sections.length) {
+    return (
+      <section className="narrative-card">
+        <h3>Commit message</h3>
+        <p>{displaySummary(commit) || "(no summary)"}</p>
+      </section>
+    );
+  }
+  return (
+    <section className="message-sections" aria-label="Parsed commit message">
+      {sections.map((section) => (
+        <article key={section.key} className={`message-section message-${section.key}`}>
+          <h3>{section.title}</h3>
+          <RichText text={section.text} />
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function parsedMessageSections(commit: CommitReport): MessageSection[] {
+  const fromBody = sectionsFromBody(commit.body || "");
+  if (fromBody.length) return fromBody;
+  const fromExportedFields = sectionsFromExportedFields(commit);
+  if (fromExportedFields.length) return fromExportedFields;
+  return [];
+}
+
+function sectionsFromBody(body: string): MessageSection[] {
+  const lines = body.replace(/\r\n/g, "\n").split("\n");
+  const sections = new Map<string, string[]>();
+  let current: string | null = null;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (current && isCommitMetadataStart(trimmed)) {
+      current = null;
+      continue;
+    }
+    const title = commitSectionTitles.find((candidate) => trimmed === `${candidate}:` || trimmed.startsWith(`${candidate}: `));
+    if (title) {
+      current = title;
+      if (!sections.has(title)) sections.set(title, []);
+      const inline = trimmed.slice(title.length + 1).trim();
+      if (inline) sections.get(title)!.push(inline);
+      continue;
+    }
+    if (current) sections.get(current)!.push(line);
+  }
+  return commitSectionTitles
+    .map((title) => ({ key: sectionKey(title), title, text: (sections.get(title) || []).join("\n").trim() }))
+    .filter((section) => section.text);
+}
+
+function isCommitMetadataStart(trimmed: string) {
+  return /^AutofHIR-Run:/i.test(trimmed)
+    || /^Issue-Fixup-/i.test(trimmed)
+    || /^<\/?(related-jiras|evidence)>$/i.test(trimmed)
+    || /^Verification:/i.test(trimmed);
+}
+
+function sectionsFromExportedFields(commit: CommitReport): MessageSection[] {
+  const sections: MessageSection[] = [];
+  if (commit.commit_summary) {
+    sections.push({ key: "issue-request", title: "Issue request", text: stripSectionPrefix(commit.commit_summary, "Issue request") });
+  }
+  if (commit.commit_context) {
+    sections.push(...sectionsFromBody(`${commit.commit_context}\n`));
+  }
+  if (commit.recommendation && !sections.some((section) => section.key === "recommendation")) {
+    sections.push({ key: "recommendation", title: "Recommendation", text: commit.recommendation });
+  }
+  return sections.filter((section) => section.text.trim());
+}
+
+function stripSectionPrefix(text: string, title: string) {
+  return text.replace(new RegExp(`^${escapeRegExp(title)}:\\s*`, "i"), "").trim();
+}
+
+function sectionKey(title: string) {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function RichText({ text }: { text: string }) {
+  const paragraphs = text.split(/\n{2,}/).map((item) => item.trim()).filter(Boolean);
+  return (
+    <>
+      {paragraphs.map((paragraph, index) => {
+        const bulletLines = paragraph.split("\n").map((line) => line.trim()).filter(Boolean);
+        if (bulletLines.length > 1 && bulletLines.every((line) => /^[-*]\s+/.test(line))) {
+          return (
+            <ul key={index}>
+              {bulletLines.map((line) => <li key={line}><LinkifiedText text={line.replace(/^[-*]\s+/, "")} /></li>)}
+            </ul>
+          );
+        }
+        return <p key={index}><LinkifiedText text={paragraph} /></p>;
+      })}
+    </>
+  );
+}
+
+function LinkifiedText({ text }: { text: string }) {
+  const tokenPattern = /(FHIR-\d+|PR\s+#?\d+|(?<![A-Za-z0-9])[a-f0-9]{7,40}(?![A-Za-z0-9]))/gi;
+  const pieces: React.ReactNode[] = [];
+  let last = 0;
+  for (const match of text.matchAll(tokenPattern)) {
+    const token = match[0];
+    const index = match.index || 0;
+    if (index > last) pieces.push(text.slice(last, index));
+    pieces.push(linkForToken(token, `${index}-${token}`));
+    last = index + token.length;
+  }
+  if (last < text.length) pieces.push(text.slice(last));
+  return <>{pieces}</>;
+}
+
+function linkForToken(token: string, key: string) {
+  const normalized = token.toUpperCase();
+  if (/^FHIR-\d+$/.test(normalized)) {
+    return <a key={key} href={jiraUrl(normalized)} target="_blank" rel="noreferrer">{token}</a>;
+  }
+  const pr = token.match(/^PR\s+#?(\d+)$/i);
+  if (pr) {
+    return <a key={key} href={`https://github.com/HL7/fhir/pull/${pr[1]}`} target="_blank" rel="noreferrer">{token}</a>;
+  }
+  if (/^[a-f0-9]{7,40}$/i.test(token)) {
+    return <a key={key} href={`https://github.com/HL7/fhir/commit/${token}`} target="_blank" rel="noreferrer">{token}</a>;
+  }
+  return token;
+}
+
+function escapeRegExp(text: string) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function useVisibleCommitObserver(rows: CommitReport[], onVisible: (sha: string) => void) {
+  const callbackRef = useRef(onVisible);
+  const pendingShaRef = useRef<string | null>(null);
+  const notifyTimerRef = useRef<number>(0);
+  useEffect(() => {
+    callbackRef.current = onVisible;
+  }, [onVisible]);
+
+  useEffect(() => {
+    if (!rows.length) return;
+    if (!("IntersectionObserver" in window)) {
+      let frame = 0;
+      const updateFromScroll = () => {
+        frame = 0;
+        const sha = visibleSha(rows);
+        if (sha) callbackRef.current(sha);
+      };
+      const onScroll = () => {
+        if (!frame) frame = window.requestAnimationFrame(updateFromScroll);
+      };
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("resize", onScroll);
+      window.setTimeout(updateFromScroll, 0);
+      return () => {
+        if (frame) window.cancelAnimationFrame(frame);
+        window.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", onScroll);
+      };
+    }
+
+    const notify = (sha: string) => {
+      pendingShaRef.current = sha;
+      if (notifyTimerRef.current) window.clearTimeout(notifyTimerRef.current);
+      notifyTimerRef.current = window.setTimeout(() => {
+        notifyTimerRef.current = 0;
+        const pending = pendingShaRef.current;
+        if (!pending) return;
+        waitForScrollIdle().then(() => {
+          if (pendingShaRef.current) callbackRef.current(pendingShaRef.current);
+        });
+      }, 80);
+    };
+    const visible = new Map<string, DOMRectReadOnly>();
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const sha = (entry.target as HTMLElement).dataset.sha;
+        if (!sha) continue;
+        if (entry.isIntersecting) visible.set(sha, entry.boundingClientRect);
+        else visible.delete(sha);
+      }
+      const topOffset = stickyBottomOffset() + 8;
+      const best = [...visible.entries()]
+        .filter(([, rect]) => rect.bottom > topOffset)
+        .sort((a, b) => Math.abs(a[1].top - topOffset) - Math.abs(b[1].top - topOffset))[0];
+      if (best) notify(best[0]);
+    }, {
+      root: null,
+      rootMargin: `-${Math.ceil(stickyBottomOffset() + 8)}px 0px -55% 0px`,
+      threshold: [0, 0.01, 0.1],
+    });
+
+    let cancelled = false;
+    window.requestAnimationFrame(() => {
+      if (cancelled) return;
+      for (const commit of rows) {
+        const element = document.getElementById(`commit-${commit.sha}`);
+        if (element) observer.observe(element);
+      }
+    });
+    return () => {
+      cancelled = true;
+      if (notifyTimerRef.current) window.clearTimeout(notifyTimerRef.current);
+      notifyTimerRef.current = 0;
+      observer.disconnect();
+    };
+  }, [rows]);
 }
 
 function PreviousIssueCommits({ commit }: { commit: CommitReport }) {
@@ -535,6 +766,14 @@ function AgentAssessment({ commit }: { commit: CommitReport }) {
           <p>{commit.recommendation}</p>
         </section>
       ) : null}
+      <FilesAndStats commit={commit} />
+    </div>
+  );
+}
+
+function FilesAndStats({ commit }: { commit: CommitReport }) {
+  return (
+    <div className="assessment">
       <section className="narrative-section">
         <h3>Files</h3>
         <ul className="file-list">
@@ -553,6 +792,7 @@ function DiffSection({ commit }: { commit: CommitReport }) {
   const hasEmbeddedPatch = commit.patch !== undefined;
   const [patch, setPatch] = useState(commit.patch ?? "");
   const [patchState, setPatchState] = useState<"ready" | "loading" | "error">(hasEmbeddedPatch ? "ready" : commit.patch_url ? "loading" : "ready");
+  const preRef = useRef<HTMLPreElement | null>(null);
   useEffect(() => {
     let cancelled = false;
     setPatch(commit.patch ?? "");
@@ -561,10 +801,9 @@ function DiffSection({ commit }: { commit: CommitReport }) {
       return () => { cancelled = true; };
     }
     setPatchState("loading");
-    fetch(assetUrl(commit.patch_url))
-      .then((response) => {
-        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-        return response.text();
+    fetchPatchQueued(assetUrl(commit.patch_url))
+      .then((text) => {
+        return waitForScrollIdle().then(() => text);
       })
       .then((text) => {
         if (!cancelled) {
@@ -579,20 +818,183 @@ function DiffSection({ commit }: { commit: CommitReport }) {
   }, [commit.sha, commit.patch, commit.patch_url]);
   const patchText =
     patch || (patchState === "loading" ? "Loading diff." : patchState === "error" ? "Could not load embedded diff. Use the GitHub full diff link." : "(empty commit; no source diff)");
-  const diffGroups = useMemo(() => groupedDiff(patchText), [patchText]);
+  useEffect(() => {
+    const element = preRef.current;
+    if (!element) return;
+    registerDiffHighlights(commit.sha, element, patchText);
+    return () => unregisterDiffHighlights(commit.sha);
+  }, [commit.sha, patchText]);
   return (
     <section className="diff-section">
       <div className="section-heading">
         <h3>Diff</h3>
       </div>
       {commit.patch_truncated ? <div className="notice critical">Embedded diff is truncated. Use the GitHub full diff link for complete content.</div> : null}
-      <pre className="diff-text" aria-label={`Diff for ${commit.subject}`}>
-        {diffGroups.length ? diffGroups.map((group, index) => (
-          <span key={index} className={`diff-${group.kind}`}>{group.text || " "}</span>
-        )) : <span className="diff-context">(empty commit; no source diff)</span>}
-      </pre>
+      <pre ref={preRef} className="diff-text" aria-label={`Diff for ${commit.subject}`}>{patchText}</pre>
     </section>
   );
+}
+
+type PatchJob = {
+  url: string;
+  resolve: (value: string) => void;
+  reject: (error: unknown) => void;
+};
+
+const patchCache = new Map<string, string>();
+const patchInflight = new Map<string, Promise<string>>();
+const patchQueue: PatchJob[] = [];
+let activePatchLoads = 0;
+const maxPatchLoads = 4;
+let scrollTrackerInstalled = false;
+let scrollIdleTimer = 0;
+let scrollBusyUntil = 0;
+let scrollIdleWaiters: (() => void)[] = [];
+
+function fetchPatchQueued(url: string): Promise<string> {
+  const cached = patchCache.get(url);
+  if (cached !== undefined) return Promise.resolve(cached);
+  const inflight = patchInflight.get(url);
+  if (inflight) return inflight;
+  const promise = new Promise<string>((resolve, reject) => {
+    patchQueue.push({ url, resolve, reject });
+    pumpPatchQueue();
+  });
+  patchInflight.set(url, promise);
+  promise.finally(() => patchInflight.delete(url));
+  return promise;
+}
+
+function pumpPatchQueue() {
+  if (!isScrollIdle()) {
+    scheduleScrollIdleFlush();
+    return;
+  }
+  while (activePatchLoads < maxPatchLoads && patchQueue.length) {
+    const job = patchQueue.shift()!;
+    activePatchLoads++;
+    fetch(job.url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        return response.text();
+      })
+      .then((text) => {
+        patchCache.set(job.url, text);
+        job.resolve(text);
+      })
+      .catch(job.reject)
+      .finally(() => {
+        activePatchLoads--;
+        pumpPatchQueue();
+      });
+  }
+}
+
+function ensureScrollIdleTracker() {
+  if (scrollTrackerInstalled || typeof window === "undefined") return;
+  scrollTrackerInstalled = true;
+  window.addEventListener("scroll", () => {
+    scrollBusyUntil = performance.now() + 250;
+    scheduleScrollIdleFlush();
+  }, { passive: true });
+}
+
+function isScrollIdle() {
+  return typeof performance === "undefined" || performance.now() >= scrollBusyUntil;
+}
+
+function waitForScrollIdle() {
+  ensureScrollIdleTracker();
+  if (isScrollIdle()) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    scrollIdleWaiters.push(resolve);
+    scheduleScrollIdleFlush();
+  });
+}
+
+function scheduleScrollIdleFlush() {
+  if (scrollIdleTimer || typeof window === "undefined") return;
+  const delay = Math.max(16, scrollBusyUntil - performance.now());
+  scrollIdleTimer = window.setTimeout(() => {
+    scrollIdleTimer = 0;
+    if (!isScrollIdle()) {
+      scheduleScrollIdleFlush();
+      return;
+    }
+    const waiters = scrollIdleWaiters;
+    scrollIdleWaiters = [];
+    for (const resolve of waiters) resolve();
+    pumpPatchQueue();
+  }, delay);
+}
+
+type HighlightRangeSet = Record<DiffGroup["kind"], Range[]>;
+
+const diffHighlightRegistry = new Map<string, HighlightRangeSet>();
+let diffHighlightFrame = 0;
+
+function registerDiffHighlights(id: string, element: HTMLPreElement, text: string) {
+  if (!supportsCssHighlights()) return;
+  const node = element.firstChild;
+  if (!node || node.nodeType !== Node.TEXT_NODE) return;
+  const ranges: HighlightRangeSet = { meta: [], hunk: [], add: [], del: [], context: [] };
+  let offset = 0;
+  for (const line of text.split("\n")) {
+    const length = line.length;
+    const kind = diffKind(line);
+    if (length && kind !== "context") {
+      const range = document.createRange();
+      range.setStart(node, offset);
+      range.setEnd(node, offset + length);
+      ranges[kind].push(range);
+    }
+    offset += length + 1;
+  }
+  diffHighlightRegistry.set(id, ranges);
+  scheduleDiffHighlightApply();
+}
+
+function unregisterDiffHighlights(id: string) {
+  if (!supportsCssHighlights()) return;
+  diffHighlightRegistry.delete(id);
+  scheduleDiffHighlightApply();
+}
+
+function scheduleDiffHighlightApply() {
+  if (diffHighlightFrame || typeof window === "undefined") return;
+  diffHighlightFrame = window.requestAnimationFrame(() => {
+    diffHighlightFrame = 0;
+    applyDiffHighlights();
+  });
+}
+
+function applyDiffHighlights() {
+  if (!supportsCssHighlights()) return;
+  const merged: HighlightRangeSet = { meta: [], hunk: [], add: [], del: [], context: [] };
+  for (const ranges of diffHighlightRegistry.values()) {
+    merged.meta.push(...ranges.meta);
+    merged.hunk.push(...ranges.hunk);
+    merged.add.push(...ranges.add);
+    merged.del.push(...ranges.del);
+  }
+  setHighlight("autofhir-diff-meta", merged.meta);
+  setHighlight("autofhir-diff-hunk", merged.hunk);
+  setHighlight("autofhir-diff-add", merged.add);
+  setHighlight("autofhir-diff-del", merged.del);
+}
+
+function setHighlight(name: string, ranges: Range[]) {
+  const highlightApi = (CSS as unknown as { highlights?: HighlightRegistry }).highlights;
+  if (!highlightApi) return;
+  if (!ranges.length) {
+    highlightApi.delete(name);
+    return;
+  }
+  highlightApi.set(name, new Highlight(...ranges));
+}
+
+function supportsCssHighlights() {
+  return typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight !== "undefined";
 }
 
 type FacetOption = { total: number; items: { value: string; label: string; count: number }[] };
@@ -725,6 +1127,19 @@ function updateUrlForSha(sha: string, mode: "push" | "replace") {
   window.history[mode === "push" ? "pushState" : "replaceState"](null, "", next);
 }
 
+let scheduledUrlSha: string | null = null;
+let scheduledUrlTimer = 0;
+
+function scheduleUrlForSha(sha: string) {
+  scheduledUrlSha = sha;
+  if (scheduledUrlTimer) window.clearTimeout(scheduledUrlTimer);
+  scheduledUrlTimer = window.setTimeout(() => {
+    scheduledUrlTimer = 0;
+    if (scheduledUrlSha) updateUrlForSha(scheduledUrlSha, "replace");
+    scheduledUrlSha = null;
+  }, 500);
+}
+
 function visibleSha(rows: CommitReport[]) {
   const offset = stickyBottomOffset() + 8;
   for (const commit of rows) {
@@ -840,7 +1255,7 @@ function reviewPlan(report: Report, visibleRows: CommitReport[], bySha: Record<s
   return [
     "# AutoFHIR Review Plan",
     "",
-    "This whole file can be saved as prompt.md and given to an agent. The agent should use it as the review plan for deciding which commits from the AutoFHIR reconciliation branch to keep, drop, or defer.",
+    "This whole file can be saved as prompt.md and given to an agent. The agent should use it as the review plan for deciding which commits from the AutoFHIR reconciliation branch to keep, drop, or defer. For post-audit review apps, the reconciliation branch is already pruned to the audit-selected source-changing commits and carries the audit replacement commit messages.",
     "",
     "Portable branch and review locations:",
     `- GitHub repository: ${report.run.github_repo ? `https://github.com/${report.run.github_repo}` : "(not available)"}`,
@@ -853,8 +1268,9 @@ function reviewPlan(report: Report, visibleRows: CommitReport[], bySha: Record<s
     "",
     "Downloadable context artifacts:",
     `- Full source discovery/issue-mapping JSON used as the input to this fixup run: ${artifactUrl(report, artifacts.source_issue_mapping_json_gzip)}`,
-    `- Full fixup review JSON used by this app: ${artifactUrl(report, artifacts.fixup_review_json)}`,
+    `- Full review JSON used by this app: ${artifactUrl(report, artifacts.fixup_review_json)}`,
     `- Gzipped fixup review JSON with embedded patches: ${artifactUrl(report, artifacts.fixup_review_full_json_gzip || artifacts.fixup_review_json_gzip)}`,
+    `- Original pre-audit fixup review JSON, when this is a post-audit app: ${artifactUrl(report, artifacts.source_issue_fixup_review_json_gzip)}`,
     `- Per-commit embedded patch files: ${artifactUrl(report, artifacts.fixup_patch_dir)}`,
     `- Standalone review HTML: ${artifactUrl(report, "index.html")}`,
     `- Source run id: ${report.run.source_run_id || "(unknown)"}`,

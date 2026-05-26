@@ -125,6 +125,9 @@ if (!run.fhirRepo) throw new Error(`run ${runId} has no fhirRepo`);
 if (!run.combinedBranch) throw new Error(`run ${runId} has no combinedBranch`);
 const auditRun = auditRunId ? readRun(auditRunId) : undefined;
 if (auditRun && auditRun.workflow !== "issue-fixup-audit") throw new Error(`audit run ${auditRunId} is workflow=${auditRun.workflow ?? "(unset)"}`);
+const branchRun = auditRun ?? run;
+if (!branchRun.fhirRepo) throw new Error(`branch run ${branchRun.runId} has no fhirRepo`);
+if (!branchRun.combinedBranch) throw new Error(`branch run ${branchRun.runId} has no combinedBranch`);
 const artifactRunId = auditRunId ?? runId;
 
 const root = runPath(runId);
@@ -288,7 +291,7 @@ function fileTopic(file: string, workgroups: Map<string, string>): { topic?: str
 }
 
 const workgroups = (() => {
-  const file = path.join(run.fhirRepo!, "source", "fhir.ini");
+  const file = path.join(branchRun.fhirRepo!, "source", "fhir.ini");
   return existsSync(file) ? parseWorkgroups(file) : new Map<string, string>();
 })();
 
@@ -379,7 +382,7 @@ function truncatePatchLines(patch: string): { patch: string; truncatedLineCount:
 }
 
 function patchForCommit(sha: string, files: string[]): Pick<CommitReport, "patch" | "patch_truncated" | "omitted_patch_files"> {
-  const numstat = runCommand(["git", "show", "--format=", "--numstat", "--find-renames", "--find-copies", sha], { cwd: run.fhirRepo });
+  const numstat = runCommand(["git", "show", "--format=", "--numstat", "--find-renames", "--find-copies", sha], { cwd: branchRun.fhirRepo });
   const changedLinesByPath = new Map<string, number>();
   for (const line of numstat.split(/\r?\n/).filter(Boolean)) {
     const parts = line.split("\t");
@@ -417,7 +420,7 @@ function patchForCommit(sha: string, files: string[]): Pick<CommitReport, "patch
       sha,
       "--",
       file,
-    ], { cwd: run.fhirRepo, allowFailure: true, maxBuffer: 32 * 1024 * 1024 });
+    ], { cwd: branchRun.fhirRepo, allowFailure: true, maxBuffer: 32 * 1024 * 1024 });
     const { patch, truncatedLineCount } = truncatePatchLines(rawPatch);
     if (truncatedLineCount) {
       omitted.push({ file, reason: `truncated ${truncatedLineCount} embedded diff line(s) longer than ${maxLineChars} chars` });
@@ -454,14 +457,14 @@ function patchForCommit(sha: string, files: string[]): Pick<CommitReport, "patch
 }
 
 function baseRef(): string {
-  if (run.baseSha) return run.baseSha;
-  if (run.baseRef) return runCommand(["git", "merge-base", run.baseRef, run.combinedBranch], { cwd: run.fhirRepo! }).trim();
-  return runCommand(["git", "merge-base", "master", run.combinedBranch], { cwd: run.fhirRepo! }).trim();
+  if (branchRun.baseSha) return branchRun.baseSha;
+  if (branchRun.baseRef) return runCommand(["git", "merge-base", branchRun.baseRef, branchRun.combinedBranch], { cwd: branchRun.fhirRepo! }).trim();
+  return runCommand(["git", "merge-base", "master", branchRun.combinedBranch], { cwd: branchRun.fhirRepo! }).trim();
 }
 
 const base = baseRef();
-const head = runCommand(["git", "rev-parse", run.combinedBranch], { cwd: run.fhirRepo }).trim();
-const shas = runCommand(["git", "rev-list", "--reverse", `${base}..${run.combinedBranch}`], { cwd: run.fhirRepo })
+const head = runCommand(["git", "rev-parse", branchRun.combinedBranch], { cwd: branchRun.fhirRepo }).trim();
+const shas = runCommand(["git", "rev-list", "--reverse", `${base}..${branchRun.combinedBranch}`], { cwd: branchRun.fhirRepo })
   .split(/\r?\n/)
   .filter(Boolean);
 const githubRepo = "jmandel/autofhir";
@@ -503,7 +506,7 @@ const commitInputs = shas.map((sha, index) => {
     "-s",
     "--format=%H%x00%h%x00%an%x00%ai%x00%s%x00%B",
     sha,
-  ], { cwd: run.fhirRepo }));
+  ], { cwd: branchRun.fhirRepo }));
   const [fullSha, shortSha, author, authoredAt, subject, body = ""] = meta;
   const commitMessage = parsedCommitMessage(subject, body);
   const issueKey = issueKeyFor(body, subject);
@@ -525,10 +528,10 @@ const commits: CommitReport[] = commitInputs.flatMap(({ index, sha, fullSha, sho
   const displayBody = auditResult?.replacement_commit_message ?? body;
   const displaySubject = auditResult?.replacement_commit_message?.split(/\r?\n/, 1)[0]?.trim() || subject;
   const displayCommitMessage = auditResult ? parsedCommitMessage(displaySubject, displayBody) : commitMessage;
-  const files = runCommand(["git", "show", "--format=", "--name-only", sha], { cwd: run.fhirRepo })
+  const files = runCommand(["git", "show", "--format=", "--name-only", sha], { cwd: branchRun.fhirRepo })
     .split(/\r?\n/)
     .filter(Boolean);
-  const stat = runCommand(["git", "show", "--format=", "--stat", "--find-renames", sha], { cwd: run.fhirRepo });
+  const stat = runCommand(["git", "show", "--format=", "--stat", "--find-renames", sha], { cwd: branchRun.fhirRepo });
   const patch = patchForCommit(sha, files);
   const wg = inferCommitWg(issueKey, files);
   const previous = issueKey ? previousIssueCommitsByKey.get(issueKey) ?? [] : [];
@@ -589,7 +592,7 @@ function previousIssueCommits(ref: string, issueKeys: Set<string>): Map<string, 
     "--grep=FHIR-[0-9]+",
     "--format=%H%x00%h%x00%ai%x00%an%x00%s%x00%B%x1e",
     ref,
-  ], { cwd: run.fhirRepo, allowFailure: true, maxBuffer: 256 * 1024 * 1024 });
+  ], { cwd: branchRun.fhirRepo, allowFailure: true, maxBuffer: 256 * 1024 * 1024 });
   const seen = new Set<string>();
   for (const record of output.split("\x1e")) {
     if (!record.trim()) continue;
@@ -623,10 +626,10 @@ const report = {
     run_id: artifactRunId,
     status: auditRun?.status ?? run.status,
     description: auditRun?.description ?? run.description,
-    fhir_repo: run.fhirRepo,
+    fhir_repo: branchRun.fhirRepo,
     base,
     head,
-    combined_branch: run.combinedBranch,
+    combined_branch: branchRun.combinedBranch,
     github_repo: githubRepo,
     github_tree_url: githubTreeUrl,
     github_compare_url: githubCompareUrl,
