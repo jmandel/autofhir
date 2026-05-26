@@ -1,0 +1,151 @@
+<div xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.w3.org/1999/xhtml ../../schema/fhir-xhtml.xsd" xmlns="http://www.w3.org/1999/xhtml">
+
+<a name="notes"> </a>
+<h2>
+Notes
+</h2>
+<ul>
+<li>QuestionnaireResponses can be authored by clinicians, patients, or patients' relatives (or even owners in the case of animals). Clinicians
+may author questionnaire responses, where the answers are provided by others on behalf of the patient. Additionally, information gathered on behalf of a patient may be about the patient's relatives (e.g. in family anamnesis). Therefore, QuestionnaireResponse makes a distinction between the author,
+the subject and the source of information.</li>
+<li>The QuestionnaireResponse's <i>encounter</i> element can be used to link to the encounter when the questionnaire response was authored. This can be relevant since the
+encounter gives context to the answers and can be used to relate information in the QuestionnaireResponse to orders and observations that were done during the same Encounter.</li>
+<li>The QuestionnaireResponse's <i>language</i> element can be used to indicate the language in which the patient completed the survey/questionnaire</li>
+<li>The order of questions within groups, groups within groups and groups within questions is relevant and must be retained for display and capture.  The hierarchy of the items within the QuestionnaireResponse SHALL mirror 
+the hierarchy of the items in the corresponding Questionnaire (if any).</li>
+<li>For use of QuestionnaireResponse.item.definition, see notes on <a href="questionnaire.html#definition">Questionnaire</a></li>
+<li>Because of the lack of explicit support for Questionnaires in <a href="https://www.hl7.org/implement/standards/product_brief.cfm?product_id=186">HL7 v3</a>, 
+<a href="http://www.hl7.org/implement/standards/product_brief.cfm?product_id=7">CDA</a> Documents frequently used named sections with
+Observations to model questionnaires. Such use cases should now utilize the QuestionnaireResponse resource instead.</li>
+</ul>
+
+<p>
+Refer to additional guidance provided in the <a href="questionnaire.html">Questionnaire</a> resource dealing with the design of questionnaires.
+</p>
+
+<a name="link"> </a>
+<h3>
+Links to Questionnaire
+</h3>
+
+<p>
+A <code>QuestionnaireResponse</code> may be stand-alone or may point to the definition of the questions in <a href="questionnaire.html">Questionnaire</a>.  
+If the QuestionnaireResponse refers to a Questionnaire:
+</p>
+<ul>
+ <li>The QuestionnaireResponse structure must be consistent with the Questionnaire (i.e. questions must be organized into the same groups, nested questions must still be nested, etc.</li>
+ <li>The linkage between the questions and groups in the two resources is established using the <code>linkId</code> element</li>
+ <li>LinkIds are unique across all items in a Questionnaire, but can sometimes appear multiple times within a QuestionnaireResponse if the corresponding item (or one of its ancestors) is allowed to repeat.</li>
+ <li>When a QuestionnaireResponse references a Questionnaire, all the items in the questionnaire SHOULD be included in the QuestionnaireResponse 
+   if they are relevant to the interpretation of the  answers, including items of type = <code>display</code>. When the QuestionnaireResponse is not yet marked as 'completed', 
+   this might also include items that are not <a href="questionnaire-definitions.html#Questionnaire.item.enableWhen">enabled</a> based on what answers are currently present.  However, once a 
+   QuestionnaireResponse is marked as "completed", the QuestionnaireResponse SHALL only include items that are 'enabled'.  I.e. stuff that was perhaps answered through populate or user-action but 
+   subsequently got disabled due to other answers must not be included in a final QuestionnaireResponse.</li>
+</ul>
+
+<p>
+<img src="QuestionnaireItems.svg" alt="A diagram showing a Questionnaire with multiple nested groups and items and the corresponding QuestionnaireResponse"/>
+</p>
+
+<p>
+The diagram above shows a Questionnaire with a hierarchy of group and question items, some marked as
+'repeats'=true, and others false and with similar variation in 'required'=true and false.  It also shows a hypothetical QuestionnaireResponse that is valid against that
+questionnaire with appropriate nesting of items and answers and linkIds showing the alignment between the Questionnaire and QuestionnaireResponse items.
+</p>
+
+
+<a name="validation"> </a>
+<h3>
+Validating QuestionnaireResponses
+</h3>
+<p>
+Rules imposed by a Questionnaire about expectations for answers are not expected to be met until a Questionnaire is deemed to be 'completed' (or 'amended').  For example, items
+that are marked as 'required' may be omitted, minimum numbers of answers might not be met, length requirement for answers, co-occurrence constraints, etc. might all be violated when
+the QuestionnaireResponse is still in the process of being completed.  QuestionnaireResponses may be stored in this 'incomplete' state.  Such QuestionnaireResponses might also include
+data for disabled questions, entries and text for non-answered questions, etc.  However, once a QuestionnaireResponse is marked as 'completed' (including if it is subsequently changed
+to 'amended'), all requirements of the associated Questionnaire must be met, all non-answered question items must be removed, all non-enabled items must be removed, etc.  (Display items
+MAY be retained.  Certain extensions on the Questionnaire item may mandate that a display item needed for a human reviewer to interpret the QuestionnaireResponse be retained in a
+completed QuestionnaireResponse.)
+</p>
+
+<a name="nesting"> </a>
+<h3>
+Nested Items
+</h3>
+<p>
+QuestioinnaireResponse has two different mechanisms to support nesting of items - <code>item.item</code> and <code>item.answer.item</code>.  The former is used when nesting items within a
+'group' and the latter is always used when nesting items within a question.  This is because items nested within a question always nest within each <i>answer</i> to the question.  If the
+question allows multiple answers, each will have its own set of nested items.
+</p>
+
+<a name="security"> </a>
+<h3>
+Security
+</h3>
+<p>
+QuestionnaireResponse resources can have answers with values of type Attachment.  These attachments will typically be selected by the user answering the questionnaire and
+this selection may be done in an uncontrolled environment.  Systems should ensure that the attachment is of the desired type and should take precautions before
+rendering or executing any attached content.
+</p>
+
+<a name="access"> </a>
+<h3>
+Access Control
+</h3>
+<p>
+For most resources, the type of information that can be conveyed in the resource is determined by the resource, and the key attributes that
+determine the sensitivity level of the information are also known; e.g., drug, observation type, clinical trial randomization status, etc.  However, for QuestionnaireResponse, the
+sensitivity of an instance is dependent on what type of Questionnaire it is associated with.  And the data elements that determine that
+sensitivity could be the answers to any of the questions.  This makes automatically enforcing access control rules more challenging.  Designers
+should take these challenges into account and may need to place stricter access controls around QuestionnaireResponse to ensure that access to
+information is not granted improperly.
+</p>
+
+<a name="searching"> </a>
+<h3>
+Searching QuestionnaireResponses by answers
+</h3>
+<p>
+Until recently, there were no 'standard' SearchParameters defined to allow searching QuestionnaireResponse based on the answers within the response.  A set of parameters have now been added.  However, implementers using them should pay close attention to the following guidance:
+</p>
+<ul>
+  <li>The meaning of answers in a QuestionnaireResponse is often contextual based on other answers within the form, making it very difficult (and potentially risky) to infer information from the inclusion of a QuestionnaireResponse in response to a search.</li>
+  <li>When searching based on linkId, the search SHOULD also filter by the Questionnaire, and typically a specific version of the Questionnaire because linkIds can be re-used across forms and mean very different things.</li>
+  <li>Searching for data in QuestionnaireResponses behaves in an opaque/proprietary way because Questionnaires are rarely standardized across organization.  The best practice for making data accessible for search is therefore to <a href="https://hl7.org/fhir/uv/sdc/STU3/extraction.html">extract</a> information from completed QuestionnaireResponses into other FHIR resources that are more standardized and can be better understood and searched for across organizations.</li>
+  <li>Because of the complexity of indexing recursive data structures and the potential for large volumes of data elements, search parameters on linkId and answers might not be widely supported.</li>
+  <li>Search on QuestionnaireResponses means that the server is often not aware of the 'meaning' of the data being searched or being returned.  This makes applying access control policies, consent, etc. more difficult or even impossible.</li>
+</ul>
+
+<a name="profiling"> </a>
+<h3>
+Profiling QuestionnaireResponses
+</h3>
+<p>
+It is possible to <a href="profiling.html">profile</a> QuestionnaireResponse in the same way as any other resource.  However, such profiling should not be used to constrain QuestionnaireResponse to only be able to capture the answers associated with a single type of form - that is what the <a href="questionnaire.html">Questionnaire</a> resource is for.  Profiling QuestionnaireResponse is appropriate when there's a need to enforce that certain metadata is always present, to indicate limitations on what types of answers can be handled, etc. - independent of what Questionnaire is being completed.
+</p>
+
+<a name="fhirpath"> </a>
+<h3>
+FHIRPath Additions
+</h3>
+<p>
+When working with QuestionnaireResponses, there may be FHIRPath <a href="metadatatypes.html#Expression">expressions</a> defined on the associated Questionnaire that will be evaluated in the context of the QuestionnaireResponse.  The following additional guidance applies to using FHIRPath with QuestionnaireResponses:
+</p>
+<ul>
+  <li>The <code>%resource</code> variable when it appears in expressions on elements in Questionnaire will be evaluated as the root of the QuestionnaireResponse.
+</li>
+<li>The <code>%context</code> variable will be set to the QuestionnaireResponse if the expression extension is defined on the Questionnaire root. Otherwise, it will be interpreted as the QuestionnaireResponse.item(s) whose linkId matches the linkId of the Questionnaire.item the expression extension was defined in. I.e. while the extensions and expressions are defined in the Questionnaire, they are evaluated in the context of the corresponding item(s) in the QuestionnaireResponse.
+</li>
+<li>
+All expressions that specify a 'name' can be accessed by other expressions appearing on the same item or any descendant item as though that name was part of context. The same is true for the 'name' element in the <a href="https://hl7.org/fhir/uv/sdc/STU3/StructureDefinition-sdc-questionnaire-launchContext.html">launchContext extension</a>. For example, a variable with the name 'score' could be accessed in FHIRPath or CQL using %score.
+</li>
+</ul>
+<p>
+In addition, a couple of additional variables are defined for use with extensions evaluated in the context of a QuestionnaireResponse:
+</p>
+<ul>
+  <li><code>%questionnaire</code> corresponds to the Questionnaire resource resolved to by the QuestionnaireResponse.questionnaire element. It is in scope for all expressions defined in the Questionnaire.</li>
+  <li><code>%qitem</code> is defined as a shortcut to get to the Questionnaire.item that corresponds to the context QuestionnaireResponse.item (based on matching linkId). It is only valid for FHIRPath expressions defined within a Questionnaire item.</li>
+</ul>
+
+</div>

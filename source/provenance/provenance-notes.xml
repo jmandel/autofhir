@@ -1,0 +1,126 @@
+<div xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.w3.org/1999/xhtml ../../schema/fhir-xhtml.xsd" xmlns="http://www.w3.org/1999/xhtml">
+
+<a name="using"> </a>
+<h3>Using the Provenance Resource</h3>
+
+<p>
+The Provenance resource identifies information about another resource (the <i>target</i> element). 
+The Provenance resource MAY be used in several different ways:
+</p>
+<ul>
+ <li>As part of a <a href="bundle.html">Bundle</a> where it identifies the provenance of part or all of the resources in the Bundle (e.g. <a href="documents.html">Documents</a>)</li>
+ <li>On a <a href="http.html">RESTful system</a> where it keeps track of provenance information relating to resources</li>
+</ul>
+<p>
+The resources found in a <a href="bundle.html#bundle-unique">Bundle are often the latest version and don't have a version identified</a>, yet Provenance resources in the Bundle MAY have references (e.g. .target) to version specific resources. When de-referencing resource references that MAY have a version identified one SHOULD look for the non-version resource found in the Bundle.
+</p>
+<p>
+On a RESTful system, the target resource reference SHOULD be version specific, but this
+requires special care: For new resources that need to have a corresponding Provenance resource, the version-specific
+reference is often not knowable until after the target resource has been updated. This can create an 
+integrity problem for the system - what if the Provenance resource cannot be created after the target 
+resource has been updated? To avoid any such integrity problems, the target resource and the Provenance resources SHOULD be submitted 
+as a pair using a <a href="http.html#transaction">transaction</a> (see the <a href="bundle-transaction.html">Transaction Example</a>). 
+Alternatively, the <a href="provenance.html#header">Provenance http header</a> MAY be used if supported. 
+</p>
+
+<a name="element"> </a>
+<h4>Element Level Provenance</h4>
+<p>
+The <i>Provenance.target</i> MAY point at a specific element within the targeted resource using the <a href="[%extensions-location%]StructureDefinition-targetElement.html">target element extension</a> or <a href="[%extensions-location%]StructureDefinition-targetPath.html">target path extension</a>. For example when updating a Patient resource with a new official name, such as shown in <a href="provenance-example1.html">example 1</a>, where the Provenance is indicating that the official name was provided by the Patient themselves.
+</p>
+
+<a name="header"> </a>
+<h4>HTTP Header</h4>
+
+<p>
+The custom header X-Provenance to provide a provenance resource when performing PUT or POST operations
+using the <a href="http.html">RESTful interface</a>:
+</p>
+<pre>
+POST [base]/Observation
+Content-Type: application/fhir+?
+X-Provenance: { "resourceType": "Provenance", "location": { "reference": "Location/1" }," agent" ... }
+
+[body]
+</pre>
+<p>
+The intent is that the server picks up the provenance, fills out the <code>target</code>,
+and then stores the provenance information as it normally would.
+Notes:
+</p>
+<ul>
+ <li>Irrespective of the Content-Type or Accept headers, the Provenance resource is in the <a href="json.html">JSON format</a></li>
+ <li>The provenance SHALL NOT have a specified <code>Provenance.target</code>. The server will fill the <code>target</code> in as it processes 
+     the contents of the POST/PUT and determines the ids of the resource(s) to which the interaction applies</li>
+ <li>Servers MAY ignore the header, but SHOULD process it if they support provenance</li>
+ <li>Some server frameworks impose a length limit on individual HTTP headers, or on the the headers as a whole. Servers MAY reject a request if the X-Provenance header is too long</li>
+ <li>The use of the header is not documented for other HTTP methods (GET etc.)</li>
+ <li>When recording an AuditEvent, one AuditEvent MAY be used to record the create of the resource and provenance</li>
+</ul>
+
+
+<a name="signature"> </a>
+<h3>Signatures</h3>
+
+<p>
+The Provenance resource includes a <i>signature</i> element (digital signature) which can be used for 
+standards based integrity verification and non-repudiation purposes. The <a href="datatypes.html#Signature">Signature</a>  datatype
+provides details on use of the <i>signature</i> element. The Signature.type coded value of "Source" SHOULD be used
+when the signature is for simply proving that the resource content is the same as it was when the resource
+was updated or created.
+</p>
+
+<a name="removal"> </a>
+<h3>Provenance of Removal and Replace</h3>
+<p>
+When a Provenance resource is used to record the removal of a resource, the Provenance.target references the removed resource, and the Provenance.entity indicates the removed resource as well. For example, <a href="provenance-example-delete.html">example delete</a> shows the use of Provenance to record the deletion of a resource. 
+If versioning is supported, 
+the version that was removed is referenced in Provenance.target; if versioning is not supported then 
+Provenance.target contains the non-version reference. 
+</p>
+<p>
+When replacing a Resource, and it is important to track which Resource replaces the removed Resource. One Provenance Resource SHOULD be used to indicate a replace. For a replace the Provenance.target points at both the removed resource and the new resource, and the Provenance.entity indicates the removed resource. For example, <a href="provenance-example-correction-replacement.html">example correction with replacement</a> shows the use of Provenance to record the replacement of an historic immunization with a new immunization resource.
+</p>
+<p>
+Where multiple removal or replacement actions need to be tracked, multiple Provenance resources SHOULD be used.
+</p>
+<a name="import"></a>
+<h3>Use of Provenance to record Import and Transform</h3>
+<p>
+Provenance can be used to record activities of an automaton that transforms input. Such as middleware 
+that extracts information from a HL7 V2 message and creates FHIR resources, or middleware that extracts 
+information from an HL7 CDA document and creates FHIR resources, etc. The Provenance in these cases is 
+recording the activity of the middleware.
+</p><p>
+The middleware in this case would, in addition to creating the target resources, create a <code>Provenance</code> 
+resource that indicates all the target resources (using <code>Provenance.target</code>). The middleware is 
+identified as one of the <code>Provenance.agent</code> elements, with the <code>Provenance.agent.type</code> of <i>assembler</i>.
+</p><p>
+The middleware MAY record the source as another <code>Provenance.agent</code> element.
+</p><p>
+The original content is optionally saved. This might be as a DocumentReference, or Binary. The 
+<code>Provenance.entity</code> would then point at this original content.
+</p><p>
+The original source might include some form of 'provenance' to cover the history of the original 
+content prior to the import transformation. This original source 'provenance' SHOULD be converted 
+into FHIR Provenance records as appropriate.
+</p>
+<p>
+Examples of this activity with Provenance profile can be found in the <a href="http://www.ihe.net">IHE</a> Implementation Guides for
+<ul>
+<li>Query for Existing Data for Mobile - <a href="https://wiki.ihe.net/index.php/Query_for_Existing_Data_for_Mobile">QEDm</a></li>
+<li>Reconciliation of Clinical Content and Care Providers - <a href="https://wiki.ihe.net/index.php/Reconciliation_of_Clinical_Content_and_Care_Providers">RECON</a> </li>
+</ul>
+</p>
+<a name="patients"></a>
+<h3>Multiple Patients Affected</h3>
+<p>
+Where a provenance activity impacts more than one Patient/Subject; multiple Provenance resources SHOULD be recorded, one for each Patient/Subject. This best enables segmentation of the Provenance details so as to limit the Privacy impact. The use of multiple Provenance is a best-practice and SHOULD be driven by a Policy. There will be cases where the use of multiple Provenance resources is not necessary, such as public health reporting.
+</p>
+<a name="relevant"></a>
+<h3>Relevant History Provenance</h3>
+<p>
+Some <a href="event.html">Event</a> pattern or <a href="request.html">Request</a> pattern resources will have a <code>relevantHistory</code> element. These elements would point to a subset of all Provenance about that resource that are considered relevant. For further guidance on <code>relevantHistory</code> see <a href="event.html#history">Event history</a> pattern or  <a href="request.html#history">Request history</a> pattern.
+</p>
+</div>

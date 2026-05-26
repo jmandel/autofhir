@@ -1,0 +1,363 @@
+<div xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.w3.org/1999/xhtml ../../schema/fhir-xhtml.xsd" xmlns="http://www.w3.org/1999/xhtml">
+
+<a name="base"></a>
+<h3>Derived OperationDefinitions</h3>
+
+<p>
+OperationDefinitions can describe entirely new operations, but they can also describe a restricted implementation
+of an existing operation, e.g. when a server implements some but not all the features of an operation defined in 
+another specification. These are called derived operation definitions.
+</p>
+<p>
+An OperationDefinition does by declaring a base as shown in the <a href="operationdefinition-example.html">example</a>:
+</p>
+<pre class="json">
+{
+  "resourceType" : "OperationDefinition",
+  "id" : "example",
+  "url" : "http://hl7.org/fhir/OperationDefinition/example",
+  "name" : "PopulateQuestionnaire",
+  // snip
+  "code" : "populate",
+  "base" : "http://hl7.org/fhir/OperationDefinition/Questionnaire-populate"
+  // snip
+}
+</pre>
+<p>
+When constraining an existing operation like this, operation definitions can make 
+optional parameters required or not used, introduce new parameters (required or optional), 
+clarify documentation, and even change the code for the operation (see next section).
+The derived operation can't change the nature of the operation itself, nor can 
+it change add types to parameters or prohibit mandatory parameters.
+</p>
+
+<p>
+  When deriving from another operation, the following rules SHOULD be followed. Note that these rules
+  are asserted as SHOULD rather than SHALL only because they were introduced after the resource became 
+  normative. Systems that fail to follow these rules are likely to result in unsafe interoperability.
+</p>
+<ul>
+  <li>SHOULD NOT change the value of <code>affectsState</code> from the original OperationDefinition</li>
+  <li>SHOULD have the same <code>kind</code> as the original OperationDefinition</li>
+  <li>SHOULD have the same <code>experimental</code> as the original OperationDefinition</li>
+  <li>SHOULD have a <code>resource</code> that is equivalent to or a subset of the original OperationDefinition <code>target</code></li>
+  <li>SHOULD NOT set <code>system</code>, <code>type</code>, or <code>instance</code> to 'true' if they were false in the original OperationDefinition</li>
+  <li>if the original <code>inputProfile</code> is valued, SHOULD have an <code>inputProfile</code> valued such that:
+    <ul>
+      <li>the <code>inputProfile</code> is the same as, is a profile of, or <a href="http://hl7.org/fhir/StructureDefinition/structuredefinition-imposeProfile">imposes</a> the original <code>inputProfile</code>, or</li>
+      <li>the <code>inputProfile</code> is otherwise compatible with the original <code>inputProfile</code> (all parameters profiled with min cardinality 1 from the original <code>inputProfile</code> are profiled; all parameters profiled in the original <code>inputProfile</code> are profiled with equivalent or tighter constraints)</li>
+    </ul>
+  </li>
+  <li>if the original <code>outputProfile</code> is valued, SHOULD have an <code>outputProfile</code> valued such that:
+    <ul>
+      <li>the outputProfile is the same as, is a profile of, or <a href="http://hl7.org/fhir/StructureDefinition/structuredefinition-imposeProfile">imposes</a> the original outputProfile, or</li>
+      <li>the outputProfile is otherwise compatible with the original outputProfile (all parameters profiled with min cardinality 1 from the original outputProfile are profiled; all parameters profiled in the original outputProfile are profiled with equivalent or tighter constraints)</li>
+    </ul>
+  </li>
+  <li>SHOULD have a <code>parameter</code> with the same <code>name</code> as any <code>parameter</code> of the original OperationDefinition that has a <code>parameter.min</code> value of greater than zero</li>
+  <li>for any <code>parameter</code> with the same <code>parameter.name</code> as a <code>parameter</code> of the original OperationDefinition,
+    <ul>
+      <li>SHOULD have the same <code>use</code> as the original <code>parameter</code></li>
+      <li>SHOULD have the same or greater <code>min</code> value as the original <code>parameter</code></li>
+      <li>SHOULD have the same or lesser <code>max</code> value as the original <code>parameter</code></li>
+      <li>if the original <code>parameter.type</code> is valued, SHOULD have the same <code>type</code> as the original <code>parameter</code></li>
+      <li>if the original <code>parameter.allowedType</code> is valued, SHOULD have an <code>allowedType</code> that is the same or a subset of the original <code>parameter.allowedType</code></li>
+      <li>if the original <code>parameter.targetProfile</code> is valued, SHOULD only include <code>targetProfile</code> that are the same as, or profiles of, original <code>parameter.targetProfile</code> entries. It is also possible to reduce the number of allowed targetProfiles.</li>
+      <li>if the original <code>parameter.searchType</code> is valued, SHOULD have a <code>searchType</code> with the same value as the original <code>parameter.searchType</code></li>
+      <li>if the original <code>parameter.binding</code> is valued, SHOULD have a <code>binding</code> with the same values as, or values meeting the constraints of, the original <code>parameter.binding</code></li>
+      <li>if the original <code>parameter.referencedFrom</code> is valued, SHOULD have a <code>referencedFrom</code> with the same values.</li>
+      <li>if the original <code>parameter.part</code> is valued,
+        <ul>
+          <li>SHOULD have a <code>part</code> with the same <code>name</code> as any <code>part</code> of the original OperationDefinition with a <code>min</code> value of greater than zero</li>
+          <li>for any <code>part</code> with the same <code>name</code> as a <code>part</code> of the original OperationDefinition, SHOULD meet the above derivation rules</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>If parameters are removed, the interpretation is that those parameters SHOULD be ignored, not that they are erroneous to include. Note that unexpected parameters SHOULD generally be ignored by implementations.</li>
+  <li>Additional optional parameters not present in the base observation MAY be added.
+    <ul>
+      <li>Such parameters SHOULD be safe to ignore if the operation is invoked on a system that only supports the base definition.</li>
+      <li>It is discouraged to introduce parameters with the same name as a parameter that was removed as part of a higher-level derivation. Behavior in this situation is undefined.</li>
+    </ul>
+  </li>
+</ul>
+
+<blockquote class="ballot-note" id="bn">
+Request for ballot feedback: We would like the 'SHOULD' assertions above to become 'SHALL' assertions.
+We are invoking our usual implementer outreach process to find out whether anyone else objects, but please file tickets for any rules you do not believe can be enforced that way.
+</blockquote>
+
+
+<a name="renaming"></a>
+<a name="code"></a>
+<h3>OperationDefinition Code</h3>
+
+<p>
+Operations are invoked by their code, not their name. The name is descriptive, for code generation, 
+e.g. <code>ValueSetExpansion</code>, while the code is what is used in a URL e.g. 
+<code>http://example.org/fhir/ValueSet/$expand</code>. When defining operations, 
+for maximum compatibility, use only lowercase ASCII characters. 
+See <a href="https://confluence.hl7.org/display/FHIR/Guide+to+Designing+Resources#GuidetoDesigningResources-NamingRules&amp;Guidelines">Naming Rules &amp; Guidelines</a> 
+for the internal HL7 rules around codes, which are useful additional advice for all implementers.
+</p>
+<p>
+It is possible for two different organizations to create different operation definitions with the same code or, perhaps more likely, to define equivalent operations that have the 
+same code but incompatible approaches in their parameter lists. Note that HL7 will never define multiple operations with the same code. 
+</p>
+<p>
+It is also possible, though unlikely, that a server will be required to support both of 
+these operations. If this is the case, the server is able to do this by giving one of them
+a new code and referring to it by definition in the capability statement. To illustrate
+this, assume that two different organizations, "orgA" and "orgB", both define an operation 
+with a code <code>dothis</code>, and the definitions are incompatible. OrgA publishes its operation
+definition at http://orga.com/fhir/dothis.xml, and OrgB publishes its operation at 
+http://fhir.orgb.com/meta/OperationDefinition/dothis. The server is able to implement
+both. Its capability statement will say:
+</p>
+<pre class="xml">
+&lt;CapabilityStatement xmlns=&quot;http://hl7.org/fhir&quot;&gt;
+  &lt;!-- snip --&gt;
+  &lt;rest&gt;
+    &lt;!-- snip --&gt;
+    &lt;operation&gt;
+      &lt;name value=&quot;dothis&quot;/&gt;
+      &lt;definition&gt;
+        &lt;reference value=&quot;http://orga.com/fhir/dothis.xml&quot;/&gt;
+      &lt;/definition&gt;
+    &lt;/operation&gt;
+    &lt;operation&gt;
+      &lt;name value=&quot;dothis2&quot;/&gt;
+      &lt;definition&gt;
+        &lt;reference value=&quot;http://fhir.orgb.com/meta/OperationDefinition/dothis&quot;/&gt;
+      &lt;/definition&gt;
+    &lt;/operation&gt;
+    &lt;!-- snip --&gt;
+  &lt;/rest&gt;
+  &lt;!-- snip --&gt;
+&lt;/CapabilityStatement&gt;
+</pre>
+<p>
+If a general purpose cross server client is looking for the implementation of the 
+http://fhir.orgb.com/meta/OperationDefinition/dothis operation and wants to be
+robust against this name clash problem, instead of simply executing the <code>$dothis</code>
+operation, it can look at the server's <a href="capabilitystatement.html">CapabilityStatement</a> for the underlying
+definition URI and then execute with the name given in the capability statement.
+</p>
+<p>
+Note to implementers: it would be more consistent if CapabilityStatement.rest.operation.name was 
+actually called "code", since it relates to OperationDefinition.code, but the confusion this 
+can cause wasn't appreciated until the resource was normative. 
+</p>
+
+<a name="desc"></a>
+<h3>Describing Operation Parameters</h3>
+
+<p>
+There are 2 ways to describe the input and output parameters for
+an operation:
+</p>
+<ul>
+  <li>Using <code>OperationDefinition.parameter</code> to describe the parameters</li>
+  <li>Using <code>OperationDefinition.inputProfile</code> and <code>OperationDefinition.outputProfile</code></li>
+</ul>
+<p>
+The parameters is a simple list of possible parameters, along with cardinalities and types.
+The profiles allow a more complete set of validation rules to be provided, such as constraints, 
+additional bindings etc., and to provide a richer set of documentation (examples, mappings, etc.). OperationDefinitions SHALL
+always define the parameters using <code>OperationDefinition.parameter</code> in the resource,
+and MAY also provide profiles for the parameters. If present, the profiles SHALL NOT disagree
+with the parameters defined for the operation.
+</p>
+<p>
+As an example, consider an operation that defines 3 parameters, 2 in and 1 out:
+</p>
+<table class="grid">
+<tr><td colspan="6"><b>In Parameters:</b></td></tr>
+<tr><td><b>Name</b></td><td><b>Cardinality</b></td><td><b>Type</b></td><td><b>Binding</b></td><td><b>Profile</b></td><td><b>Documentation</b></td></tr>
+<tr><td>a</td><td>0..1</td><td><a href="datatypes.html#integer">integer</a></td><td></td><td></td><td><p>An integer parameter</p></td></tr>
+<tr><td>b</td><td>0..1</td><td><a href="patient.html">Patient</a></td><td></td><td></td><td><p>A patient parameter</p></td></tr>
+<tr><td colspan="6"><b>Out Parameters:</b></td></tr>
+<tr><td><b>Name</b></td><td><b>Cardinality</b></td><td><b>Type</b></td><td><b>Binding</b></td><td><b>Profile</b></td><td><b>Documentation</b></td></tr>
+<tr><td>c</td><td>1..1</td><td><a href="datatypes.html#decimal">decimal</a></td><td></td><td></td><td><p>A result parameter</p></td></tr>
+</table>
+<p>
+In addition to specifying the operation parameters directly, an operation definition can also provide a profile:
+</p>
+<pre class="json">
+ "inputProfile" : "http://example.org/StructureDefinition/op.x.in.profile"
+</pre>
+<p>
+This profile would describe a parameters resource with 2 parameters (using slicing), with the same details as the table above.
+The operation definition would still list the parameters directly to save applications consuming the definition (e.g. to produce
+an <a href="https://github.com/OAI/OpenAPI-Specification">OpenAPI document</a>) from parsing and interpreting the profile.
+</p>
+
+<p>
+When profiles are used, they SHALL be profiles on the Parameter resource (even if the expectation is that parameters will often be sent as part of the URL).  The elements must be aligned as follows:
+</p>
+<ul>
+<li>Parameters SHOULD be listed in the same order</li>
+<li>The number of input and output parameters must be the same</li>
+<li>The parameter names must be the same (parameter.name SHALL be the fixed value for the `parameter.name` in
+    the profile and SHOULD be the same as the parameter slice name)</li>
+<li>The parameter.min and max SHALL be the same as the min and max for the corresponding parameter slice.</li>
+<li>If the parameter has a type and no list of allowed types, then the profile on parameter slice value SHALL either
+    have the same type, or be one or more types that are derived from that type.</li>
+<li>If the parameter has a list of allowed types, then then the types of the corresponding parameter slice value SHALL
+    correspond such that every allowed type is either listed explicitly as an allowed type or there are one or more types
+    listed that derive from the operation parameter type.  There SHALL NOT be any types listed in the profile for 'value'
+    that do not correspond to a type in the parameter</li>
+<li>All targetProfiles listed on the OperationDefinition for the parameter SHALL match targetProfiles for at least one of
+    the types for the value element in the corresponding parameter slice and there SHALL NOT be any targetProfiles listed
+    that are not matched in the OperationDefinition parameter.</li>
+<li>The binding in the profile SHALL either be the same, or provide more constraints. The profile may also have additionalBindings.</li>
+<li>Best practice is that the parameter definition only captures <code>required</code> bindings; other binding strengths SHOULD be captured in the profile</li>
+<li>The .documentation SHOULD be the same as the .definition for the parameter slice</li>
+<li>If there are child parameters, then there SHALL be aligned 'part' slices within the parameter
+   following the same rules as above</li>
+</ul>
+
+<a name="exec"></a>
+<h3>Executing Operations</h3>
+<p>
+OperationDefinitions with <code>kind = operation</code> are executed as defined in the <a href="operations.html">Operations Framework</a>.
+</p>
+
+<a name="equeries"></a>
+<h3>Executing Named Queries</h3>
+<p>
+Named queries (OperationDefinitions with <code>kind = query</code>) are executed by performing a <a href="search.html">search</a> 
+with the value of the search parameter "_query" set to the name provided in the definition. 
+Named queries are a kind of search: both client and server must conform to all the requirements of search, 
+including regarding the content of the result bundle. From a client's perspective, it's really just a kind 
+of search, though it may have a completely separate processing pipeline.
+Named queries cannot be invoked using the <code>$[operationname]</code> mechanism.
+</p>
+<p>
+If the named query is to be performed over the RESTful API, all the parameters must be simple search parameters,
+so that they can be represented directly in the URL without tricky encoding issues. Named queries 
+always have a single output parameter named "result" of type Bundle.
+</p>
+<p>
+The order of parameters doesn't matter; a <code>_query</code> parameter anywhere in the query means the entire query will be handled 
+according to the named query OperationDefinition. Parameters may repeat if permitted by the OperationDefinition 
+(or for unlisted common search parameters, as specified in this specification).
+</p>
+<p>
+For named queries, all the standard search parameters are automatically in scope. Specifically, all common search parameters 
+(e.g. _id, _text, _count, _sort, etc.) as well as search parameters that pertain to the resources 
+returned by the operation (e.g. name for Patient or Organization) are allowed. "In scope" doesn't 
+mean all servers will support them. If a server wishes to declare which search parameters it supports 
+for a given named query, it must explicitly list these in its OperationDefinition (which might be a 
+server-specific derived OperationDefinition).
+</p>
+
+<a name="passing"></a>
+<h3>Passing Resources to Operations</h3> 
+
+<p>
+There are two ways to pass resources to an operation: directly or by reference.
+The definition of an operation distinguishes between these two, since they have very different behaviors and consequences.
+</p>
+<p>
+As an example, take the <a href="valueset-operation-expand.html">ValueSet.$expand operation</a>.  
+This operation takes a ValueSet as a direct parameter. The type of the parameter is 
+defined as 'ValueSet'. In a <a href="parameters.html">Parameters</a> resource, it would be represented like this:
+</p>
+<pre class="xml">
+  &lt;parameter&gt;
+    &lt;name value=&quot;valueset&quot;/&gt;
+    &lt;resource&gt;
+      &lt;ValueSet&gt;
+        &lt;!-- ValueSet contents --&gt;
+      &lt;/ValueSet&gt;
+    &lt;/resource&gt;
+  &lt;/parameter&gt; 
+</pre>
+<p>
+or, in JSON:
+</p>
+<pre>
+ "parameter": [
+    {
+      "name": "valueset",
+      "resource": {
+        "resourceType": "ValueSet",
+        // ValueSet contents 
+      }
+    }
+  ]
+</pre>
+
+<p>
+Other parameters are passed by reference. For example, the <a href="plandefinition-operation-apply.html">PlanDefinition.$apply operation</a> 
+takes more than one parameters of type Reference - subject, encounter and organization. The expectation is that the server performing the 
+operation will resolve those references as part of the operation execution.
+In a parameters resource, the subject parameter would be represented like this: 
+</p>
+<pre class="xml">
+  &lt;parameter&gt;
+    &lt;name value=&quot;subject&quot;/&gt;
+    &lt;valueReference&gt;
+      &lt;reference value="Patient/123"/&gt;
+    &lt;/valueReference&gt;
+  &lt;/parameter&gt; 
+</pre>
+<p>
+or, in JSON:
+</p>
+<pre>
+ "parameter": [
+    {
+      "name": "subject",
+      "valueReference" : {
+        "reference" : "Patient/123"
+      }
+    }
+  ]
+</pre>
+
+<p>
+Some operations can take either form; in that case, two distinct parameters
+must be defined: one for a resource as a direct parameter, and one for a reference.
+</p>
+
+<a name="system"></a>
+<h3>Determining System Compatibility</h3>
+
+<p>
+A client can determine the compatibility of the server by processing its capability
+statement and ensuring that the server implements the specific operation definitions and parameters required by the client. The client can then report a useful error to the user rather than allowing mystifying operational errors to occur.
+</p>
+<p>
+However, there are fundamental limitations to this approach because 
+there are many aspects of these operations that are not (or cannot be) defined 
+in a formal fashion using OperationDefinition, for example, co-occurrence constraints among parameters.
+</p>
+<p>
+In the same sense, a 3rd party tool can examine a server's CapabilityStatement and a client's definition of an acceptable server to determine whether
+those two system are interoperable or not.
+</p>
+
+<a name="forms"></a>
+<h3>Dynamically Generating Forms</h3>
+
+<p>
+Finally, it is possible to generate user interface forms automatically from 
+the OperationDefinition. The documentation in the <code>OperationDefinition.description</code> 
+and <code>OperationDefinition.parameter.documentation</code> should be sufficient to allow
+moderately technical users to guess at the correct content of the form.
+For this reason, highly technical documentation should go in <code>OperationDefinition.comment</code>.
+</p>
+<p>
+It is anticipated that this would be used to automate development processes, rather than to generate end-user forms: such users will usually need more support than can be offered in a generated form.
+</p>
+
+<a name="defined"></a>
+<h3>Operations defined as part of this Specification</h3>
+
+<%operationslist%>
+
+
+</div>

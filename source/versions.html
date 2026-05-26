@@ -1,0 +1,823 @@
+<!DOCTYPE HTML>
+
+
+
+[%settitle Version Management Policy%]
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+[%file newheader%]
+</head>
+<body>
+[%file newnavbar%]
+
+
+<table class="colsn"><tr><td id="wg">Responsible Owner: <a _target="blank" href="[%wg fhir%]">[%wgt fhir%]</a> Work Group</td><td id="ballot"><a href="versions.html#std-process">Standards Status</a>:<!--!ns!--><a href="versions.html#std-process">Normative</a></td></tr></table>
+
+<h2>Version Management Policy</h2>
+
+<p>
+This page documents the way version change is handled in FHIR. FHIR is a standard, so the way version change
+is handled is a bit different from an application API. This page describes:
+</p>
+<ul>
+ <li><a href="#std-process">The standards development process</a></li>
+ <li><a href="#maturity">The FHIR Maturity Model</a></li>
+ <li><a href="#versions">How FHIR versions work</a></li>
+ <li><a href="#change">The rules for inter-version change once an artifact is Normative</a></li>
+ <li><a href="#studev">Managing Change during the development process</a></li>
+ <li><a href="#extensions">Extensions for converting between versions</a></li>
+ <li><a href="#plans">Plans for future releases</a></li>
+</ul>
+<p>
+See also <a href="versioning.html">Managing FHIR Versions</a> for additional implementer advice about
+dealing with versions.
+</p>
+
+<a name="std-process"></a>
+<h3>The Standards Development Process</h3>
+
+<p>
+FHIR is a standard.  In order to be useful, standards need to evolve.  At the same time, the evolution of standards
+needs to be predictable and manageable for the implementation community.  This section describes how HL7
+develops a standard so that implementers know what to expect as the standard evolves.
+</p>
+
+<p>
+HL7 has five descriptive terms that describe the level of stability and implementation readiness associated with
+different aspects of the specification.  They are as follows:
+</p>
+<table>
+  <tbody>
+    <tr>
+      <th>Standard Level</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <th style="background-color: #e6ffe6; border: 1px grey solid; padding-left: 3px; padding-right: 3px;"><a name="normative"></a>Normative</th>
+      <td>This content was approved by the <a href="https://ansi.org">ANSI standards process</a>.
+        It has been subject to review and production implementation in a wide variety of environments.
+        The content is considered to be stable and has been 'locked', subjecting it to FHIR
+        <a href="#change">Inter-version Compatibility Rules</a>.  While changes are possible, they are
+        expected to be infrequent and are tightly constrained.
+      </td>
+    </tr><!--
+    <tr>
+      <td colspan="2">
+      For all content marked with one of the following indicators - i.e., not 'Normative', the following statement applies:
+      <blockquote>
+      The information contained in this (portion of a document) is not part of this American National Standard (ANS) and has not been processed in accordance
+      with ANSI’s requirements for an ANSI Standard. As such, this (portion of a document) may contain material that has not been subjected to public review or a
+      consensus process. In addition, it does not contain requirements necessary for formal conformance to the standard.
+      </blockquote>
+      </td>
+    </tr>
+    -->
+    <tr>
+      <th style="background-color: #fff5e6; border: 1px grey solid; padding-left: 3px; padding-right: 3px;"><a name="stu"></a>Trial Use</th>
+      <td>
+      <p>This content has been well reviewed and is considered by the authors to be ready for use in production
+      systems.  It has been subjected to ballot and approved as an official standard.  However, it has not yet
+      seen widespread use in production across the full spectrum of environments it is intended to be used in.  In
+      some cases, there may be documented known issues that require implementation experience to determine appropriate
+      resolutions for.
+      </p>
+      <p>
+      <b>Future versions of FHIR may make significant changes to <i>Trial Use</i> content that are not compatible with
+      previously published content.</b>
+      </p>
+      </td>
+    </tr>
+    <tr>
+      <th style="background-color: #efefef; border: 1px grey solid; padding-left: 3px; padding-right: 3px;"><a name="draft"></a>Draft</th>
+      <td>This portion of the specification is not considered to be complete enough or sufficiently reviewed to be
+      safe for implementation.  It may have known issues or still be in the "in development" stage.  It is included
+      in the publication as a place-holder, to solicit feedback from the implementation community and/or to give
+      implementers some insight as to functionality likely to be included in future versions of the specification.
+      Content at this level should only be implemented by the brave or desperate and is very much "use at your own
+      risk". The content that is <i>Draft</i> that will usually be elevated to <i>Trial Use</i> once review and
+      correction is complete after it has been subjected to ballot
+      <br/>
+      <br/>
+      Some resources with a standards status of 'draft' have an <a href="#maturity">FMM (FHIR Maturity Model)</a> level of 1 or 2 - this means that the committee 
+      responsible for them is ready for them to be tested and balloting, but that balloting has not yet occurred. 
+      Draft resources cannot have a <a href="#maturity">FMM</a> level greater than 2
+    </td>
+    </tr>
+    <tr>
+      <th style="background-color: #ffffe6; border: 1px grey solid; padding-left: 3px; padding-right: 3px;">Informative</th>
+      <td>This portion of the specification is provided for implementer assistance and does not make rules that implementers are required to follow.
+         Typical examples of this content in the FHIR specification are tables of contents, registries, examples, and implementer advice</td>
+    </tr>
+    <tr>
+      <th style="background-color: #ffcccc; border: 1px grey solid; padding-left: 3px; padding-right: 3px;">Deprecated</th>
+      <td>This portion of the specification is outdated and may be withdrawn in a future version.  Implementers who already support it should continue to do so for backward compatibility.  Implementers should avoid adding new uses of this portion of the specification.
+          The specification should include guidance on what implementers should use instead of the deprecated portion</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+Standards status, when found in a specification under ballot or in a Continuous Integration (CI) build reflects the intended
+status of the artifact after balloting is complete and the final publication is released.
+</p>
+
+<a name="levels"></a>
+<a name="maturity"></a>
+<h3>The FHIR Maturity Model</h3>
+<p>
+The content of this release has been subject to significant review through ballot and other HL7 processes and many aspects of it have been
+implemented and subjected to interoperability testing through Connectathons and early adoption.  However, the degree of testing has varied.  Some resources
+have been well tested in a variety of environments.  Others have received relatively little real-world exercise.  In general, the infrastructure should be
+considered to be more stable than the resources themselves.  In some cases, there are issues on which input is specifically requested during the
+<a href="#stu">Trial Use</a> period outstanding Issue List, and known issues will arise after publication (refer to the
+<a href="http://hl7.org/fhir-issues">FHIR Change Request</a> tracker for details.)
+Guidance from early implementation will help address these areas.
+</p>
+
+<p>
+All artifacts in this specification are assigned a "Maturity Level", known as FMM (after the well-known <a href="http://en.wikipedia.org/wiki/Capability_Maturity_Model">CMM</a> grades).
+The FMM level can be used by implementers to judge how advanced - and therefore stable - an artifact is. The following FMM levels are defined:
+</p>
+<table class="lines">
+ <tr><td><b>FMM 0</b></td><td>the artifact has been published on the current build. Artifacts with this level must have a standards status of <a href="#draft">Draft</a>.</td></tr>
+ <tr><td><b>FMM 1</b></td><td>FMM0 + the artifact produces no warnings during the build process and the responsible work group has indicated that they consider the artifact substantially complete and ready for implementation. For resources, profiles and implementation guides, the FHIR Management Group has approved the underlying resource/profile/IG proposal.</td></tr>
+ <tr><td><b>FMM 2</b></td><td>FMM1 + the artifact has been tested and successfully supports interoperability among at least three independently developed systems leveraging most of the scope (e.g., at least 80% of the core data elements) using semi-realistic data and scenarios based on at least one of the declared scopes of the artifact (e.g., at a connectathon). These interoperability results must have been reported to and accepted by the FHIR Management Group.</td></tr>
+ <tr><td><b>FMM 3</b></td><td>FMM2 + the artifact has been verified by the work group as meeting the <a href="https://confluence.hl7.org/display/FHIR/Conformance+QA+Criteria">Conformance Resource Quality Guidelines</a>; has been subject to a round of formal balloting; has at least 10 distinct implementer comments recorded in the tracker drawn from at least 3 organizations resulting in at least one substantive change.</td></tr>
+ <tr><td><b>FMM 4</b></td><td>FMM3 + the artifact has been tested across its scope (see below), published in a formal publication (e.g., <code>STU</code>), and implemented in multiple prototype projects. As well, the responsible work group agrees the artifact is sufficiently stable to require implementer consultation for subsequent non-backward compatible changes.</td></tr>
+ <tr><td><b>FMM 5</b></td><td>FMM4 + the artifact has been published in two formal publication release cycles as <a href="#STU">STU</a> and has been implemented in at least 5 independent production systems in more than one country.</td></tr>
+ <tr><td><b>FMM 6</b> (<a href="versions.html#std-process" title="Normative Content" class="normative-flag">N</a>)</td><td>FMM5 + the responsible work group and the FHIR management group agree the material is ready to lock down according to the <a href="#change">inter-version change</a> rules and the artifact has passed HL7 normative ballot.  This is synonymous with <a href="#normative">Normative</a> standard status.</td></tr>
+</table>
+
+<p>Tested across scope means:</p>
+<ul>
+  <li>The <a href="https://confluence.hl7.org/display/FMG">FMG</a> has signed off on the list of "example contexts" defined for the artifact</li>
+  <li>For each example context, the artifact has either been: reviewed and approved by a domain expert for that scope area, mapped to an existing implemented scope-area-specific standard or tested in an implementation</li>
+</ul>
+<p>
+The Maturity level is strongly related to stability; the higher the maturity level, the more controls are enforced to restrict breaking changes to the resource.
+</p>
+<p>
+The table above represents a frozen snapshot of the maturity levels maintained by the FHIR Management Group on the <a href="https://confluence.hl7.org/display/FHIR/FHIR+Maturity+Model">FHIR Confluence page</a>.  Further information and discussion about these levels can be found there.
+</p>
+<p>
+The maturity model is significantly influenced by the degree and type of implementation activity using an artifact. For this reason, 
+we encourage implementers to <a href="http://fhir.org/implementations/usage">register their implementations</a>.
+A detailed analysis of the basis for the maturity metrics for FHIR artifacts can be found <a href="http://hl7.org/fhir/maturity-metrics">here</a>.
+</p>
+
+<a name="versions"></a>
+<h3>FHIR Releases and Versioning</h3>
+
+<p>
+New versions of FHIR are published in an ongoing basis.  The time between publications is based on the timelines necessary
+to consult with implementers, to develop and review new content, as well as to undertake the formal balloting and reconciliation
+processes required for ANSI-approved standards.  This release cycle also ensures an opportunity to incorporate implementer
+feedback from earlier versions of the specification into subsequent versions. Limited-scope releases on a shorter timeline
+may occur occasionally where necessary to meet implementer needs.
+</p>
+<p>
+Each new release of FHIR is assigned a unique version number. The FHIR version policy is based on
+<a href="http://semver.org/">Semantic versioning</a>, but with some differences due to the
+fact that FHIR is a specification, not a software API.
+</p>
+<p>
+There is a single development version of FHIR. This undergoes cycles of development as
+managed by HL7. Each major cycle of development is concluded by a formal ballot (or more than one),
+and then a new specification is published. In version control terms, each published specification
+is a branch off the development trunk, which may then itself undergo further change as
+HL7 maintains the published specification (though such changes are usually
+minimal, limited to necessary technical corrections or security alerts).
+</p>
+
+<p>
+Each FHIR version is identified by a string composed from 4 parts: major.minor.patch-label.
+</p>
+<table class="lines">
+  <tr>
+   <td valign="top">major</td>
+   <td>
+     <ul>
+       <li>Incremented when HL7 publishes FHIR as a significant new release of the specification, e.g., a <i>Trial Use</i> or <i>Normative</i> version of FHIR</li>
+       <li>The first <i>Trial Use</i> was version 0</li>
+       <li>FHIR Release 2 (DSTU) was version 1</li>
+       <li>FHIR Release 3 (STU) was version 3 (skipped '2' to align the major numbers at implementer request)</li>
+       <li>FHIR Release 4 (Normative + STU) is version 4</li>
+       <li>FHIR Release 5 (STU) is version 5</li>
+       <li>FHIR Release 6 (Normative) is version 6</li>
+     </ul>
+   </td>
+  </tr>
+  <tr>
+   <td valign="top">minor</td>
+   <td>
+     <ul>
+       <li>An update that includes minor substantive changes (potentially including limited breaking changes)</li>
+       <li>NOTE - this allowance for breaking changes differs from traditional <a href="http://semver.org/">SEMVER</a> practice</li>
+       <li>When a new publication is made, this is reset to 0 in the publication, and 1 in the development branch</li>
+       <li>Since HL7 does not make breaking changes as technical corrections to a published specification, these versions of FHIR always have a version number X.n.0</li>
+       <li>Because the development version is the subject of ongoing analysis, debate, ballot and repeated alterations, breaking changes are to be expected in STU content</li>
+       <li>FHIR Release 4B (STU changes only) is version 4.3.0</li>
+     </ul>
+   </td>
+  </tr>
+  <tr>
+   <td valign="top">patch</td>
+   <td>
+     <ul>
+       <li>Indicates an update including only technical corrections to a prior release</li>
+       <li>Resets to 0 any time the minor version changes</li>
+       <li>e.g., 4.0.1 represents the first technical correction on the 4.0.0 release</li>
+     </ul>
+   </td>
+  </tr>
+  <tr>
+   <td valign="top">label</td>
+   <td>
+     <ul>
+       <li>A tag at the end of a release represents a 'working' version of the specification that is building up to the specified release number; e.g., 5.0.0-ballot1, 5.0.0-snapshot3, etc.</li>
+       <li>The content preceding the label indicates the 'intended' release number that will result at the conclusion of ballot, review, etc.</li>
+       <li>label can be any string, however typical labels will be:
+         <ul>
+           <li>"snapshotN" - a frozen release of a specification for connectathon, ballot dependencies or other reasons</li>
+           <li>"ballotN" - a frozen release used in the ballot process</li>
+           <li>"draftN" - a frozen release put out for non-ballot review or QA.</li>
+           <li>"cibuild" - a 'special' release label that refers to a non-stable release that changes with each commit.</li>
+         </ul>
+       </li>
+       <li>Each label is sortable relative to other versions with the same label base (e.g., snapshot &lt; snapshot2), but there is no sortable relationship defined between different labels</li>
+     </ul>
+   </td>
+  </tr>
+</table>
+
+<p>
+Additional notes:
+</p>
+<ul>
+ <li>Changes to a formally published specification (except for minor publishing corrections, such as correcting broken external links) are only made via announced technical corrections</li>
+ <li>Software implementing FHIR typically has 2 versions - the version of the specification that it implements and its own version. Consult the software documentation for policy regarding versioning and version labels.</li>
+</ul>
+
+
+<a name="version-identification"></a>
+<h3>Version identification</h3>
+<p>
+The FHIR version is usually known implicitly, but can be specified/determined by one of three methods:
+</p>
+<ul>
+<li>The <a href="capabilitystatement-definitions.html#CapabilityStatement.fhirVersion">fhirVersion</a> element in the
+   applicable <a href="capabilitystatement-definitions.html">CapabilityStatement</a>, <a href="structuredefinition.html">StructureDefinition</a>,
+    or <a href="implementationguide.html">ImplementationGuide</a></li>
+<li>The <a href="http.html#version-parameter">fhirVersion parameter</a> on the MIME-type that applies to the resource</li>
+<li>Specifying a version specific profile on the resource itself in <a href="resource.html#Meta">Resource.meta</a></li>
+</ul>
+<p>
+For further information, see <a href="versioning.html">Managing Multiple FHIR Versions</a>.
+</p>
+
+<a name="change"></a>
+<h3>Rules for Inter-version change</h3>
+
+<p>
+The following kinds of changes may be made to the specification:
+</p>
+<ul>
+ <li><b>Non-substantive changes</b> should not cause changes in any conformant resource instances. For example, section renumbering, correcting broken links, changing styles, fixing typos, and providing clarifications that do not change the meaning of the specification.
+    In addition, this covers corrections that are judged not to create any expectation of change to a conformant resource instance.</li>
+ <li><b>Substantive changes</b> are changes that introduce new functionality - changes to the specification that create new capabilities - but would not render
+  unchanged existing applications non-conformant</li>
+ <li><b>Breaking changes</b> are changes that mean that previously conformant resource instances are no longer conformant to the updated specification</li>
+</ul>
+
+[%dragons-start%]
+<p>
+The intent of these rules is to ensure that applications that are conformant to an existing
+specification are also conformant to subsequent versions. In practice, there are many subtle
+issues around inter-version change, and the exact rules are subject to further clarification
+based on feedback from implementers.
+</p>
+[%dragons-end%]
+
+<p>
+Content with a status of <i>Draft</i> or <i>Trial Use</i> can change - including Breaking Changes - from
+version to version, subject to the rules described by the <a href="#maturity">Maturity Process</a>.  There are no rules for maintaining any sort of compatibility between versions for content with these statuses, though of course we will only make breaking changes based on feedback from the community.
+</p>
+<p>
+Once an artifact achieves <i>Normative</i> status, specific rules come into play around inter-version compatibility.  These rules have implication for both forward and backward compatibility and are intended to allow implementations to exercise FHIR interfaces and process the content of FHIR resources safely while exchanging data between systems using different versions of FHIR.  These rules do not apply to non-normative content, including STU content within normative artifacts.
+</p>
+<p>
+In rare circumstances, HL7 may approve changes that technically break content with a status of <i>Normative</i> where there is a high level of confidence that the change will not impact existing implementers.  Such deviations from the declared rules will involve broad notification, extensive community consultation and reviews by multiple levels of HL7 governance processes.
+</p>
+[%dragons-start%]
+<p>
+Yes, this this is the second dragon in as many paragraphs.  Inter-version compatibility is complicated...
+</p>
+<p>
+The assertion around non-breaking change does NOT mean that the types of changes permitted here cannot cause existing systems to fail, even if they make allowances for the types of changes permitted.  (Though those that make allowances will hopefully fail more gracefully.)  Because the requirements of healthcare continue to evolve, the rules defined here allow for new content to be introduced - new codes, new elements, etc.  Depending on the design of a receiving system, such new content may cause failure.  A system that relies on schema validation will fail because of a new element.  A system that relies on a select statement iterating through 'status' codes might fail or behave unexpectedly due to incorrect fall-through when a new status code is introduced.  Systems designers are strongly encouraged to consider the types of changes permitted here and consider how these types of changes will impact their ability to safely function when dealing with newer versions of FHIR.
+</p>
+[%dragons-end%]
+
+<p>
+NOTE: The examples provided as part of this specification are never substantive. While every effort is made to ensure that FHIR examples are correct, changes to the examples in the specification are not considered substantive.
+</p>
+
+<p>
+<b>Forward compatibility</b> means that content that is conformant in an old release will remain conformant with future versions.  Once normative, FHIR's rules try to enforce forward compatibility.  However, that doesn't guarantee that all old systems will interoperate with future systems.
+</p>
+<p>
+<b>Backward compatibility</b> means that instances created against future versions of the specification will interoperate with older versions of the specification.  This is not guaranteed by FHIR, though there are strategies systems can adhere to that will increase their chances of such interoperability.  Specifically, when dealing with content from a system supporting an unknown normative version and wishing to maximize backwards compatibility, applications SHOULD:
+</p>
+<ul>
+  <li>Ignore elements that are unexpected (new elements will never be modifier elements)</li>
+  <li>Ignore references to resources that are not recognized</li>
+  <li>Ignore unrecognized codes in required and extensible bindings unless the element they appear on is a modifier (in which case, treat the element as an unrecognized modifier extension)</li>
+  <li>Ignore unrecognized search criteria - see <a href="search.html#errors">Handling Search Errors</a> for further information.</li>
+  <li>Respond to HTTP commands on unexpected URLs with an appropriate error code.</li>
+</ul>
+<p>
+However, in a healthcare context, many implementers are unwilling to
+consider some of these steps because of concerns about clinical risk or
+technical limitations in their software (e.g., schema-based processing).
+</p>
+
+<a name="f-compat"></a>
+<h4>Forward and backward compatible rules</h4>
+The following rules apply once an artifact in the FHIR core specification or in an HL7-international published implementation guide has become normative.
+Note that these rules are not, themselves, normative.  They may evolve as HL7 has more experience with changes to normative content.  As well, the FHIR Management Group
+has a process allowing violation of these rules in <a href="https://confluence.hl7.org/display/FMG/Policy+for+Breaking+Changes">limited and carefully vetted circumstances</a>.
+<table>
+  <tbody>
+    <tr>
+      <th>Category</th><th>Allowed changes</th>
+    </tr>
+    <tr>
+      <td>Resources</td>
+      <td>
+      New artifacts resources may be introduced.  Existing resources will not have their names changed
+      </td>
+    </tr>
+    <tr>
+      <td>Artifacts (resources, profiles, code systems, etc.)</td>
+      <td>
+      New artifacts including new resources and datatypes may be introduced.  Existing artifacts will not have any computable identifiers (e.g., resource names) changed.  Artifacts may be <a href="#deprecation">deprecated</a>.
+      </td>
+    </tr>
+    <tr>
+      <td>Elements</td>
+      <td>
+       New optional elements and/or content (e.g., XML attributes, etc.) may be introduced
+      at any location in resource and datatype structures provided they do not constitute "isModifier" elements.  However, the names, path
+      and meaning of previously existing data elements will not be changed.
+      This means there will be no change to resource names and no changes to names assigned to slices and
+      other elements within profiles.
+      </td>
+    </tr>
+    <tr>
+      <td>Cardinality</td>
+      <td>
+      <a name="f-compat-cardianality"></a>
+      Minimum element cardinalities will not be changed.  Upper cardinality may change from 1 to * only in circumstances
+      where all elements except for the first repetition can be safely ignored. Note that this may change the path to the element in some 
+      syntaxes (e.g., JSON) and may also break FHIRPath expressions that don't allow for the possibility of repetitions.
+      This may mean that an order is assigned to the repeating items or that there is no preference as to which 
+      element is retained.  Systems should follow the <a href="#f-compat">rules above</a> for unexpected elements.
+      Because of the JSON and FHIRPath issues, changes to cardinality for normative elements will be minimized whenever possible, e.g., by defining new 
+      sibling elements.
+      </td>
+    </tr>
+    <tr>
+      <td>Descriptions</td>
+      <td>
+      Descriptive information about a resource - short labels, definitions, usage notes, aliases, examples, rationale,
+      mappings, etc. may be
+      updated or revised to provide additional clarity or guidance, but not in such a manner as to invalidate a
+      reasonable interpretation of the previously documented use of an element.  (This does not preclude fixing
+      obvious errors.)
+      </td>
+    </tr>
+    <tr>
+      <td>Value Sets and Code Systems</td>
+      <td>
+        <p>
+        The definition of any value set that is marked as <a href="valueset-definitions.html#ValueSet.immutable">immutable</a> will never change.  The expansions for
+        immutable value sets may still change if no "stable date" is declared and the value set does not
+        restrict code system and/or value set references to specific versions and the codes in the referenced code system(s)
+        or value set(s) change.
+        </p>
+        <p>
+        For non-immutable value sets:
+        </p>
+        <ul>
+          <li>Value sets with an enumerated list of codes and having a 'fixed' binding may have additional codes
+           introduced but will never have codes removed, though they may be deprecated.</li>
+          <li>Value sets making use of filters may have filters loosened or tightened to accommodate changes to
+          underlying code systems.  StableDates and referenced code system and value set versions may be adjusted
+          to point to newer versions.</li>
+          <li>Definitions and display values for codes may change, but only in a manner that would not change
+          the reasonable interpretation of data captured using the previous definitions or names.</li>
+          <li>Abstract codes may be made concrete.  Concrete codes will not be made abstract.</li>
+        </ul>
+        <p>
+        For both immutable and non-immutable value sets, additional designations may be declared.
+        </p>
+        <p>
+        Normative CodeSystems whose content is generated from a mix of normative and non-normative contents may
+        break these rules.  For example, the code system containing the list of all resources may have codes
+        removed or renamed as non-normative resources are removed or renamed.
+        </p>
+        <p>
+        These expectations only apply to Value Sets and Code Systems maintained as part of the FHIR specification.  HL7
+        cannot enforce these rules on terminology artifacts maintained by other authorities
+        - e.g., UCUM unit codes, ISO language codes, etc.
+        </p>
+      </td>
+    </tr>
+    <tr>
+      <td><a href="terminologies.html#strength">Terminology Bindings</a></td>
+      <td>
+        <ul>
+          <li>Required bindings will remain required and will continue to point to the same value set. If the reference is version-specific, it will not change</li>
+          <li>Extensible bindings will remain extensible and will continue to point to the same value set.  If the reference is version-specific, it will not change.</li>
+          <li>Example bindings and preferred bindings may change to point to different value sets.  Example bindings
+            may be replaced with preferred bindings.</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td>Datatypes</td>
+      <td>
+      Except as described in the preceding paragraph, Datatypes will not be removed or changed except as allowed above for elements.
+      New datatypes may be introduced.  Types declared on existing elements will not be
+      removed or changed, except for the special case that types may be changed where the domain space of both the original and
+      new type is the same.  i.e., All possible values of the original type (with the constraints that were in place for that element) are legal values for the new type and vice versa.  At present, this includes:
+      <ul>
+        <li><code>string</code> may be changed to <code>markdown</code></li>
+        <li><code>code</code> may be changed to <code>uri</code></li>
+      </ul> 
+      Additional datatypes may be added to elements which are already expressed as a choice of datatypes only if those elements are optional (minimum cardinality = 0).
+      </td>
+    </tr>
+    <tr>
+      <td>Value Constraints</td>
+      <td>
+        The allowed list of Datatypes will not be added, removed or changed. Invariants, regular expressions, fixed values and patterns will not be added, removed or changed in a way that could invalidate previous 
+        instances.  New warning or best practice invariants may be added. 'Error' invariants may be added that are tied to newly introduced elements or codes, or existing rules in the specification narrative.
+      </td>
+    </tr>
+    <tr>
+      <td>Flags</td>
+      <td>
+        The <i>Is Modifier</i> and <i>Is Summary</i> flags will not be changed.
+      </td>
+    </tr>
+    <tr>
+      <td>Slicing</td>
+      <td>
+      Slicing rules and aggregation characteristics will not be changed.
+      </td>
+    </tr>
+    <tr>
+      <td>Search Criteria</td>
+      <td>Search criteria may be added but not removed or renamed.  Existing criteria will not have their type or path changed or
+      have their description altered in any way that would invalidate the reasonable behavior of existing systems (except for
+      correcting obvious errors).</td>
+    </tr>
+    <tr>
+      <td>Operations</td>
+      <td>
+      New operations may be defined but operations will not be removed or renamed.  Existing parameters will not be removed or renamed, nor may their type
+      or lower cardinality be changed.  Upper cardinality may be changed from 1 to *.  (Systems should ignore unexpected repetitions.)
+      Additional optional parameters may be introduced.  Changes to operations that would violate the preceding constraints will be handled by defining new operations and, potentially, deprecating the old operations.
+      </td>
+    </tr>
+    <tr>
+      <td>Restful interface</td>
+      <td>
+      Existing endpoints will not be renamed or removed, nor have their expected behavior changed in a manner that would cause reasonable systems designed
+      against prior versions to be non-interoperable.  Additional endpoints and interactions may be introduced.
+      </td>
+    </tr>
+    <tr>
+      <td>Profiles and extension definitions</td>
+      <td>
+      Profile structure, extension definitions and search criteria definitions will not be removed or have their
+      URIs changed.  New profile structures, extension definitions and search criteria definitions may be
+      introduced.  Profiles may have their statuses changed to "retired".  Profiles referenced by data elements
+      for structures or datatypes may be replaced
+      with a reference to a distinct profile that is "compatible" with the previously referenced profile according
+      to these forward and backward compatibility rules.
+      </td>
+    </tr>
+    <tr>
+      <td>Capability Statements</td>
+      <td>
+      Within the CapabilityStatements for defined FHIR Services or 'core' implementation guides, additional
+      operations may be added.  These additions might be optional (MAY/SHOULD) or mandatory (SHALL).  Note that
+      the introduction of mandatory operations would break forwards compatibility and will only occur with
+      community consultation.
+      </td>
+    </tr>
+    <tr>
+      <td>Implementation Guides</td>
+      <td>
+      Additional artifacts can be added, and artifacts can be changed.  The list of global profiles will not change.
+      </td>
+    </tr>
+    <tr>
+      <td>References</td>
+      <td>
+      Where one conformance resource points to another (e.g., CapabilityStatement to profile, profile to profiles, profile to value set, etc.), 
+      the reference may change to point to a newer version of the conformance resource or to a distinct conformance resource so long as the 
+      content of the newly referenced resource adheres to the compatibility rules with respect to the previously referenced version.
+      Additional resources or profiles can also be added to the list of available targets for a reference.
+      Where a reference is to a non-normative resource, the name of the referenced resource may still change between versions until such time 
+      as the referenced resource becomes normative.  In some cases, non-normative resources may be removed in future versions of the FHIR spec.
+      </td>
+    </tr>
+	<tr>
+      <td>Conformance Language</td>
+      <td>
+      SHALL statements cannot be broken (though they can be clarified) and new SHALL statements cannot be introduced unless they are conditional based on version. e.g., "Instances in version x and higher of FHIR SHALL..." Changes of SHOULD to MAY and vice versa as well as introducing new MAY and SHOULD statements are permitted.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<a name="deprecation"></a>
+<h4>Deprecation / Withdrawal of Normative Content</h4>
+
+<p>
+Once content is normative, there is a process for removing it from the standard by marking it as
+<code>deprecated</code> or <code>withdrawn</code> (from the <a href="https://www.w3.org/TR/html4/conform.html">HTML 4.0 Standard</a>):
+</p>
+<table class="grid">
+ <tr><td><b>Deprecated</b></td><td>Systems should continue to support the artifact/feature/concept, but are discouraged from making use of it</td></tr>
+ <tr><td><b>Withdrawn</b></td><td>Documented for historical purposes, no longer supported</td></tr>
+</table>
+<p>
+The specification will provide guidance with deprecated materials showing how to avoid using them.
+<code>Deprecated</code> materials are eligible to be balloted to be <code>withdrawn</code> two years after their <code>deprecated</code> status is published.
+</p>
+<p>
+The computable artifact labels (e.g., codes, element names, urls, etc.) associated with withdrawn materials SHALL not be used in future versions of HL7 specifications.
+Materials marked "deprecated" may have that marking removed as part of a subsequent ballot at a later moment, while withdrawn materials SHALL NOT.
+</p>
+<p>
+The following artifacts are deprecated in this version of FHIR:
+</p>
+<ul>
+ <li><a href="operationoutcome-definitions.html#OperationOutcome.issue.location">OperationOutcome.issue.location</a></li>
+</ul>
+<hr/>
+<p>
+Additional discussion on inter-versioning issues can be found here:
+<a href="https://confluence.hl7.org/display/FHIR/Interversion+Compatibility">https://confluence.hl7.org/display/FHIR/Interversion+Compatibility</a>.
+</p>
+
+
+<a name="studev"></a>
+<h3>Managing Change during the development process</h3>
+
+<p>
+Regardless of the degree of prior implementation, all aspects of the FHIR specification are potentially subject to change while an artifact has a
+status of <i>Draft</i> or <i>Trial Use</i>.  These changes may be minor (clarifications of definitions, etc.) or major (refactoring of
+resources, changes to serialization rules, eliminating or adding datatypes, etc.)  There is no commitment to backward or forward compatibility
+during the trial use process until content is normative.  Changes will not be made without cause, however the interests of long-term
+implementability will generally trump the impact on early adopters when determining what changes should be made.  This balance will
+shift more towards early adopters as maturity levels increase.  i.e., Impact on existing implementations will be weighted more highly
+for an FMM-level 5 artifact than they would for an FMM-level 1 artifact.
+</p>
+<p>
+Implementers who are willing to accept the risk of change (perhaps for the benefit of early implementation experience, first mover advantage and
+the ability to leverage FHIR's intrinsic benefits) are encouraged to implement those parts of FHIR that are early in the maturity cycle in
+real-world systems.  However, those implementers should be aware that local adaptations may be necessary to meet real-world requirements.
+Furthermore, such implementers should architect their solutions to be tolerant of changes to the specification and, where necessary, to
+manage interoperability with systems that may be using different versions of the specification or different local adaptations.
+</p>
+<p>
+During the <i>Trial Use</i> period, requests for change may be submitted using the HL7 issue tracker which can be found
+<a href="http://hl7.org/fhir-issues">here</a>.  Where possible, updates to the
+"development" version of the specification will be made in a timely fashion.  Implementers should be aware that the changes are not
+considered "official" until such time as they are balloted and approved as part of a subsequent <i>Trial Use</i> or <i>Normative</i> publication.
+Change requests might be fixes to allow implementation, clarifications or enhancements.  In addition, HL7 will be developing and
+introducing additional resources and profiles as part of the FHIR specification.
+</p>
+<p>
+SDOs and regulatory bodies that are interested in making use of the FHIR specification should feel free to do so, but should consider and plan for the possibility
+that the specification will evolve and change prior to becoming <i>Normative</i>.
+</p>
+<p>
+A key aspect of the FHIR specification development process is gaining feedback from implementers making
+use of the specification. As well, the process is conditional on real-world implementation in order to
+move through the maturity cycle. For this reason, all FHIR implementers are encouraged to register their
+usage <a href="http://fhir.org/implementations/usage">here</a>, which captures contact and other information
+that will allow HL7 to perform appropriate monitoring of FHIR usage. Survey information is confidential and reported in aggregate only.
+</p>
+<p>
+One type of breaking change that can happen between trial-use versions is that elements that were previously mandatory might
+be removed or made optional.  When converting data from future releases of FHIR, no data will be available for these elements.
+The '1' minimum cardinality can be satisfied by sending a <a href="[%extensions-location%]StructureDefinition-data-absent-reason.html">data-absent-reason</a> extension with a value of "not-applicable".
+Systems SHOULD always check not only for an element but a value for the element when writing their logic.  
+</p>
+<a name="extensions"></a>
+<h3>Extensions for converting between versions</h3>
+
+<p>
+Many implementations need to convert resources from one FHIR version to another. Once resources become
+normative (once sufficiently mature and stable), converting resources forwards from past versions is
+not needed. Converting back to older versions presents a challenge, however, in that the newer version
+may add additional elements that are not present in the older version. In some cases, the elements
+are simply irrelevant since the requirements they represent are not in scope for older applications,
+but in other cases, it is necessary to represent the data in order to cater for round-tripping.
+</p>
+<p>
+A more complex problem arises with resources that are not yet stable (early in the maturity
+process). If applications have implemented less stable resources, not only do they have the
+problem of new elements for new requirements, the specification may change in either compatible
+or incompatible ways, and it may be necessary to carry data elements from past versions forward
+in order to allow seamless round-tripping.
+</p>
+<p>
+  In order to help authors and implementers address this problem, HL7 defines a set of cross-version
+  packages that define extensions for every element that is present in all other major versions of FHIR.
+  These extensions allow data from other versions to be represented in a standard way. In order to make
+  detection of these extensions easier, they are defined with a standard URL pattern:
+</p>
+<pre>
+http://hl7.org/fhir/[defining_version]/StructureDefinition/extension-[Path]
+</pre>
+<p>
+where [defining_version] is taken from this list:
+</p>
+<table class="grid">
+<tr>
+  <td><a href="http://hl7.org/fhir/DSTU2">FHIR DSTU2</a></td>
+  <td>1.0</td>
+</tr>
+<tr>
+  <td><a href="http://hl7.org/fhir/STU3">FHIR R3</a> (STU3, or just R3)</td>
+  <td>3.0</td>
+</tr>
+<tr>
+  <td><a href="http://hl7.org/fhir/r4">FHIR R4</a> (mixed STU/Normative)</td>
+  <td>4.0</td>
+</tr>
+<tr>
+  <td><a href="http://hl7.org/fhir/r4b">FHIR R4B</a> (only STU changes)</td>
+  <td>4.3</td>
+</tr>
+<tr>
+  <td><a href="http://hl7.org/fhir/r5">FHIR R5</a> (this version)</td>
+  <td>5.0</td>
+</tr>
+</table>
+<p>
+  This table includes the formal milestone releases for DSTU2 and on, which are the only releases for which this process is defined.  
+  Older versions than that are not supported.  Technical correction releases are not listed because they will never introduce or change elements. 
+  Ballot and interim releases are not supported for use in implementation environments
+</p>
+<p>
+  Note that not every element will have an extension from a given FHIR version.  Extensions are only
+  defined for elements that do not have a way of representing the data in the target version - e.g.
+  elements that do not exist, elements with types that do not exist, or elements with changes that
+  prevent direct representation (e.g. maximum cardinality changes from <code>1</code> to <code>*</code>).
+</p>
+<p>
+The <code>[Path]</code> is actually the <code>ElementDefinition.id</code> from the relevant <code>StructureDefinition</code> for the element. 
+This leads to URLs <em>like</em> following:
+</p>
+<table class="grid">
+ <tr><td><code>http://hl7.org/fhir/4.0/StructureDefinition/extension-Bundle.signature</code></td><td><a href="http://hl7.org/fhir/4.0/bundle-definitions.html#Bundle.signature">R4 Signature Element on Bundle</a></td></tr>
+ <tr><td><code>http://hl7.org/fhir/3.0/StructureDefinition/extension-Patient.animal.species</code></td><td><a href="http://hl7.org/fhir/STU3/patient-definitions.html#Patient.animal.species">STU3 Species Element on Patient</a></td></tr>
+ <tr><td><code>http://hl7.org/fhir/1.0/StructureDefinition/extension-ValueSet.extensible</code></td><td><a href="http://hl7.org/fhir/DSTU2/valueset-definitions.html#ValueSet.extensible">DSTU2 ValueSet.extensible</a></td></tr>
+</table>
+<p>
+  Further details can be found in the individual cross-version definition packages.
+</p>
+
+
+<a name="extensions-examples-primitive"></a>
+<a name="extensions-examples-complex"></a>
+<a name="extensions-examples-mandatory"></a>
+<a name="extensions-definitions"></a>
+<h4>Formal Definitions for extensions</h4>
+  
+<table class="grid">
+  <tr>
+	  <td>Format:</td>
+		<td>R2 Package</td>
+		<td>R3 Package</td>
+		<td>R4 Package</td>
+		<td>R4B Package</td>
+		<td>R5 Package</td>
+		<td>R6 Package</td>
+	</tr>
+  <tr>
+	  <td>R2 Extensions:</td>
+		<td style="background-color: #EEEEEE">n/a</td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r3.r2/">hl7.fhir.uv.xver-r3.r2</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r4.r2/">hl7.fhir.uv.xver-r4.r2</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r4b.r2/">hl7.fhir.uv.xver-r4b.r2</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r5.r2/">hl7.fhir.uv.xver-r5.r2</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r6.r2/">hl7.fhir.uv.xver-r6.r2</a></td>
+	</tr>
+  <tr>
+	  <td>R3 Extensions:</td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r2.r3/">hl7.fhir.uv.xver-r2.r3</a></td>
+		<td style="background-color: #EEEEEE">n/a</td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r4.r3/">hl7.fhir.uv.xver-r4.r3</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r4b.r3/">hl7.fhir.uv.xver-r4b.r3</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r5.r3/">hl7.fhir.uv.xver-r5.r3</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r6.r3/">hl7.fhir.uv.xver-r6.r3</a></td>
+	</tr>
+  <tr>
+	  <td>R4 Extensions:</td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r2.r4/">hl7.fhir.uv.xver-r2.r4</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r3.r4/">hl7.fhir.uv.xver-r3.r4</a></td>
+		<td style="background-color: #EEEEEE">n/a</td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r4b.r4/">hl7.fhir.uv.xver-r4b.r4</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r5.r4/">hl7.fhir.uv.xver-r5.r4</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r6.r4/">hl7.fhir.uv.xver-r6.r4</a></td>
+	</tr>
+  <tr>
+	  <td>R4B Extensions:</td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r2.r4b/">hl7.fhir.uv.xver-r2.r4b</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r3.r4b/">hl7.fhir.uv.xver-r3.r4b</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r4.r4b/">hl7.fhir.uv.xver-r4.r4b</a></td>
+		<td style="background-color: #EEEEEE">n/a</td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r5.r4b/">hl7.fhir.uv.xver-r5.r4b</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r6.r4b/">hl7.fhir.uv.xver-r6.r4b</a></td>
+	</tr>
+  <tr>
+	  <td>R5 Extensions:</td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r2.r5/">hl7.fhir.uv.xver-r2.r5</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r3.r5/">hl7.fhir.uv.xver-r3.r5</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r4.r5/">hl7.fhir.uv.xver-r4.r5</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r4b.r5/">hl7.fhir.uv.xver-r4b.r5</a></td>
+		<td style="background-color: #EEEEEE">n/a</td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r6.r5/">hl7.fhir.uv.xver-r6.r5</a></td>
+	</tr>
+  <tr>
+	  <td>R6 Extensions:</td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r2.r6/">hl7.fhir.uv.xver-r2.r6</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r3.r6/">hl7.fhir.uv.xver-r3.r6</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r4.r6/">hl7.fhir.uv.xver-r4.r6</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r4b.r6/">hl7.fhir.uv.xver-r4b.r6</a></td>
+		<td><a href="https://hl7.org/fhir/uv/xver-r5.r6/">hl7.fhir.uv.xver-r6.r6</a></td>
+		<td style="background-color: #EEEEEE">n/a</td>
+	</tr>
+</table>
+
+<p>
+Note that some guides linked above will not exist at the time of publication (e.g., extensions based-on or targeting this release). 
+The links will be correct and will resolve once the packages are available.
+</p>
+
+<a name="plans"></a>
+<h3>Plans for future releases</h3>
+<p>
+This specification is the result of fifteen years of work by HL7, its standards, government and implementation partners, 
+along with the wider (huge) FHIR implementation community. This is the first full normative version of the standard - none of the 
+content in this specification is considered trial-use. 
+</p>
+<p>
+The FHIR implementation community and implementation base is now massive and the pace of implementation adoption of
+new versions is slowing. 
+</p>
+<p>
+Note that for this release, the extensions have been moved out into a separate module and updated
+versions will be published regularly. See the 
+<a href="http://hl7.org/fhir/extensions/index.html#policy">Extension Version Policy</a> for further 
+information.
+</p>
+<p>
+Irrespective of the choice around publication speed and whether to publish partial new branch versions,
+HL7's general intent for the Release 6 is to move most of the resources in the Foundation, Base and Clinical layers (see the 
+'Category' tab in the <a href="resourcelist.html">Resources pages</a>) to full Normative status, along with
+a few other resources including e.g., Questionnaire. 
+</p>
+<p>
+Whatever HL7 decides to do with regard to the formal status of the resources, the next release will
+include additional clarifications, resources, profiles and quality enhancements over the current release based on
+implementation experience and ongoing development work. It will also incorporate fixes for issues raised with 
+the <a href="http://hl7.org/fhir-issues">FHIR issue tracker</a>.  It might be useful for implementers
+of this release to review the candidate current release (at <a href="https://build.fhir.org">http://build.fhir.org</a>)
+to get a sense of what changes are likely coming and perhaps to find more robust definitions and guidance than are 
+available in this release.
+</p>
+<p>
+Some implementers who are dependent on content that exists in a draft release might choose to implement based
+on a particular snapshot of the development release, though in doing so, they will limit their potential 
+communication partners. In addition, implementers should be aware that most of the implementation tooling 
+including those provided by HL7 will not support interim versions other than the latest release.
+</p>
+<p>
+ More information on plans for Release 5 can be found on the <a href="https://onfhir.hl7.org/">HL7 product director's blog</a>.
+ (Subscribing to this blog is a good way to keep current on significant events in FHIR development, including ballot and publication timelines).
+</p>
+
+[%file newfooter%]
+
+
+</body>
+</html>

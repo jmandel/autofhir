@@ -1,0 +1,376 @@
+<!DOCTYPE HTML>
+
+[%settitle FHIRPath Patch%]
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+[%file newheader%]
+</head>
+<body>
+[%file newnavbar%]
+
+
+
+<h2>FHIRPath Patch</h2>
+<table class="colsi"><tr><td id="wg">Responsible Owner: <a _target="blank" href="[%wg fhir%]">[%wgt fhir%]</a> Work Group</td><td id="ballot"><a href="versions.html#std-process">Standards Status</a>:<!--!ns!--><a href="versions.html#std-process">Normative</a></td></tr></table>
+
+<p>
+This page defines a FHIR <a href="parameters.html">Parameters</a>-based, syntax-agnostic patch mechanism where elements to be manipulated by the <a href="http.html#patch">patch</a> interaction are described using their <a href="fhirpath.html">FHIRpath</a> names and navigation.
+</p>
+
+<a name="operations"></a>
+<h3>Operations</h3>
+
+<p>
+This table documents the FHIR Patch operations that may be used to specify changes to a resource:
+</p>
+
+<table class="grid">
+ <tr>
+  <td><b>Type</b></td>
+  <td><b>Path</b></td>
+  <td><b>Name</b></td>
+  <td><b>Value</b></td>
+  <td><b>Index</b></td>
+  <td><b>source</b></td>
+  <td><b>destination</b></td>
+  <td><b>Details</b></td>
+ </tr>
+ <tr>
+  <td>add</td>
+  <td>Path at which to add the content</td>
+  <td>Name of the property to add</td>
+  <td>Datatype to add at nominated place</td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td>The content will be appended to the element identified in the path, using the name specified. Add can used for non-repeating elements as long as they do not already exist</td>
+ </tr>
+ <tr>
+  <td>insert</td>
+  <td>Path of the collection in which to insert the content</td>
+  <td></td>
+  <td>value (Datatype) to add at nominated place</td>
+  <td>index at which to insert</td>
+  <td></td>
+  <td></td>
+  <td>The content will be inserted into the nominated list at the index specified (0 based). The index is mandatory and must be equal or less than the number of elements in the list.
+    Note: <code>add</code> is easier than <code>insert</code> at the end of the list</td>
+ </tr>
+ <tr>
+  <td>delete</td>
+  <td>Path of the element to delete (if found)</td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td>Only a single element can be deleted</td>
+ </tr>
+ <tr>
+  <td>replace</td>
+  <td>Path of the element to replace</td>
+  <td></td>
+  <td>value (Datatype) to replace it with</td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td></td>
+ </tr>
+ <tr>
+  <td>move</td>
+  <td>Path of the collection in which to move the content</td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td>list index to move from</td>
+  <td>list index to move to</td>
+  <td>Move an element within a single list</td>
+ </tr>
+</table>
+<p>
+There are a few base rules that apply for all operations:
+</p>
+<ul>
+ <li>The FHIRPath statement must return a single element</li>
+ <li>The FHIRPath statement SHALL NOT cross resources using the <code>resolve()</code> function (e.g., like <code>Observation.subject.resolve().identifier</code>).
+     <code>resolve()</code> SHALL only be used to refer to contained resource within the resource being patched.
+     Servers SHALL NOT allow patch operations to alter other resources than the nominated target, and SHOULD return an error if the patch operation tries</li>
+ <li>The type of the value must be correct for the place at which it will be added/inserted. Servers SHALL return an error if the type is wrong</li>
+ <li>Servers SHALL return an error if the outcome of the patch operation is a not a valid resource</li>
+ <li>Except for the delete operation, it is an error if no element matches the specified path</li>
+ <li>Operations are applied in order, with each operation applied to the result of the previous patch operation</li>
+</ul>
+
+
+<a name="format"></a>
+<h3>Parameters Format</h3>
+
+<p>
+The FHIRPath patch operations are encoded in a <a href="parameters.html">Parameters</a> resource as follows:
+</p>
+<ul>
+ <li>Each operation is a Parameter named "operation"</li>
+ <li>Each operation has a series of parts, using the following parameter names from the table above with these types:</li>
+</ul>
+<p>
+A <a href="fhirpath-patch.html">profile for this has been defined</a> on the <a href="parameters.html">Parameters resource</a>.
+</p>
+<table class="grid">
+ <tr>
+  <td>Parameter</td>
+  <td>Type</td>
+ </tr>
+ <tr>
+  <td>type</td>
+  <td>code</td>
+ </tr>
+ <tr>
+  <td>path</td>
+  <td>string</td>
+ </tr>
+ <tr>
+  <td>name</td>
+  <td>string</td>
+ </tr>
+ <tr>
+  <td>value</td>
+  <td><a href="datatypes.html#open">*</a></td>
+ </tr>
+ <tr>
+  <td>index</td>
+  <td>integer</td>
+ </tr>
+ <tr>
+  <td>source</td>
+  <td>integer</td>
+ </tr>
+ <tr>
+  <td>destination</td>
+  <td>integer</td>
+ </tr>
+</table>
+
+<p>
+Here is an example of adding an element:
+</p>
+<div class="example">
+<pre class="xml">
+&lt;Parameters xmlns=&quot;http://hl7.org/fhir&quot;&gt;
+  &lt;parameter&gt;
+    &lt;name value=&quot;operation&quot;/&gt;
+    &lt;part&gt;
+      &lt;name value=&quot;type&quot;/&gt;
+      &lt;valueCode value=&quot;add&quot;/&gt;
+    &lt;/part&gt;
+    &lt;part&gt;
+      &lt;name value=&quot;path&quot;/&gt;
+      &lt;valueString value=&quot;Patient&quot;/&gt;
+    &lt;/part&gt;
+    &lt;part&gt;
+      &lt;name value=&quot;name&quot;/&gt;
+      &lt;valueString value=&quot;birthDate&quot;/&gt;
+    &lt;/part&gt;
+    &lt;part&gt;
+      &lt;name value=&quot;value&quot;/&gt;
+      &lt;valueDate value=&quot;1930-01-01&quot;/&gt;
+    &lt;/part&gt;
+  &lt;/parameter&gt;
+&lt;/Parameters&gt;
+</pre>
+</div>
+
+<a name="anonymous"></a>
+<h4>Anonymous Types</h4>
+<p>
+Only some named datatypes (see <a href="datatypes.html#open">the list</a>) are allowed to be used
+directly in parameters. In order to add or insert other kinds of types - including anonymous
+elements (e.g., Observation.component, Timing.repeat), the content is defined by defining
+the name as described above, and instead of providing a value, a set of parts that are values
+are provided. Here is an example:
+</p>
+<div class="example">
+<pre class="xml">
+&lt;Parameters xmlns=&quot;http://hl7.org/fhir&quot;&gt;
+  &lt;parameter&gt;
+    &lt;name value=&quot;operation&quot;/&gt;
+    &lt;part&gt;
+      &lt;name value=&quot;type&quot;/&gt;
+      &lt;valueCode value=&quot;add&quot;/&gt;
+    &lt;/part&gt;
+    &lt;part&gt;
+      &lt;name value=&quot;path&quot;/&gt;
+      &lt;valueString value=&quot;Patient&quot;/&gt;
+    &lt;/part&gt;
+    &lt;part&gt;
+      &lt;name value=&quot;name&quot;/&gt;
+      &lt;valueString value=&quot;contact&quot;/&gt;
+    &lt;/part&gt;
+    &lt;part&gt;
+      &lt;name value=&quot;value&quot;/&gt;
+      &lt;part&gt;
+        &lt;name value=&quot;name&quot;/&gt;
+        &lt;valueHumanName&gt;
+          &lt;text value=&quot;a name&quot;/&gt;
+        &lt;/valueHumanName&gt;
+      &lt;/part&gt;
+    &lt;/part&gt;
+  &lt;/parameter&gt;
+&lt;/Parameters&gt;
+</pre>
+</div>
+
+<p>
+This pattern repeats as deep as necessary.
+</p>
+
+
+<a name="choice"></a>
+<h3>Choice Elements</h3>
+
+<p>
+  Note that for elements with a choice of data types, the FHIRPath name in the name of the parameter does not include the data type suffix 
+  (per the rules in the <a href="fhirpath.html">FHIRPath</a> Specification), but the parameter value does. Here's an example:
+</p>
+<pre class="json">
+{
+  "resourceType": "Parameters",
+  "parameter": [{
+    "name": "operation",
+    "part": [{
+      "name": "type",
+      "valueCode": "add"
+    }, {
+      "name": "path",
+      "valueString": "Specimen"
+    }, {
+      "name": "name",
+      "valueString": "processing"
+    }, {
+        "name": "value",
+        "part": [{
+                "name": "description",
+                "valueString": "testProcessing"
+            }, {
+                "name": "time",
+                "valueDateTime": "2021-08-18T11:32:55.6462761+02:00"
+            }]
+            }]
+    }
+  ]
+}
+</pre>
+
+<a name="extension"></a>
+<h3>Extension Example</h3>
+<p>
+  An example of adding an extension:
+</p>
+<pre class="json">
+  &lt;Parameters xmlns="http://hl7.org/fhir"&gt;
+  &lt;parameter&gt;
+      &lt;name value="operation"/&gt;
+      &lt;part&gt;
+        &lt;name value="type"/&gt;
+        &lt;valueString value="add"/&gt;
+      &lt;/part&gt;
+      &lt;part&gt;
+        &lt;name value="path"/&gt;
+        &lt;valueString value="Specimen"/&gt;
+      &lt;/part&gt;
+      &lt;part&gt;
+        &lt;name value="name"/&gt;
+        &lt;valueString value="processing"/&gt;
+      &lt;/part&gt;
+      &lt;part&gt;
+        &lt;name value="value" /&gt;
+        &lt;part&gt;
+          &lt;name value="description" /&gt;
+          &lt;valueString value="test" /&gt;
+        &lt;/part&gt;
+        &lt;part&gt;
+          &lt;name value="time" /&gt;
+          &lt;valueDateTime value="2021-08-13T07:44:38.342+00:00" /&gt;
+        &lt;/part&gt;
+        &lt;part&gt;
+          &lt;name value="extension" /&gt;
+          &lt;part&gt;
+            &lt;name value="url" /&gt;
+            &lt;valueUri value="http://example.org/fhir/DeviceExtension" /&gt;
+          &lt;/part&gt;
+          &lt;part&gt;
+            &lt;name value="value" /&gt;
+            &lt;valueReference&gt;
+              &lt;reference reference="Device/1"&gt;
+            &lt;/valueReference&gt;
+          &lt;/part&gt;
+        &lt;/part&gt;
+      &lt;/part&gt;
+  &lt;/parameter&gt;
+&lt;/Parameters&gt;
+</pre>
+<p>
+Applied to an empty Specimen, this would produce:
+</p>
+<pre class="json">
+  &lt;Specimen xmlns="http://hl7.org/fhir"&gt;
+  &lt;status value="available"/&gt;
+  &lt;processing&gt;
+    &lt;extension url="http://example.org/fhir/DeviceExtension"&gt;
+      &lt;valueReference&gt;
+        &lt;reference reference="Device/1"&gt;
+      &lt;/valueReference&gt;
+    &lt;/extension&gt;
+    &lt;description value="test"/&gt;
+    &lt;timeDateTime value="2021-08-13T07:44:38.342+00:00"/&gt;
+  &lt;/processing&gt;
+&lt;/Specimen&gt;
+</pre>
+<p>
+There is a set of test cases for implementers in the <a href="https://github.com/FHIR/fhir-test-cases/releases">fhir-test-cases</a> repository.
+</p>
+
+<a name="path-example-complex"></a>
+<h3>Complex Path Example</h3>
+<p>
+  Note that the <code>path</code> parameter value is a FHIRPath expression, and not a simple path. For example, in the following patch operation, 
+  the <code>path</code> parameter value is a FHIRPath expression that selects the <code>period</code> element of the <code>identifier</code> element 
+  with a <code>use</code> value of <code>official</code>.
+</p>
+<pre class="json">
+{
+  "resourceType": "Parameters",
+  "parameter": [
+    {
+      "name": "operation",
+      "part": [
+        {
+          "name": "type",
+          "valueCode": "add"
+        },
+        {
+          "name": "path",
+          "valueString": "Patient.identifier.where(use = 'official').period"
+        },
+        {
+          "name": "name",
+          "valueString": "end"
+        },
+        {
+          "name": "value",
+          "valueDate": "2021-12-01"
+        }
+      ]
+    }
+  ]
+}
+</pre>
+<p>
+  There is a set of test cases for implementers in the <a href="https://github.com/FHIR/fhir-test-cases/releases">fhir-test-cases</a> repository.
+</p>
+
+
+[%file newfooter%]
+
+
+</body>
+</html>

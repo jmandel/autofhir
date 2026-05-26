@@ -1,0 +1,116 @@
+trigger:
+- none
+
+pr:
+- master
+- R4B
+
+variables:
+- group: ZULIP_VAR_GROUP
+- group: SSH_UPLOAD
+- name: CI_BRANCH_DIRECTORY
+  value: $[ replace(variables['System.PullRequest.SourceBranch'], '/', '_') ]
+
+jobs:
+- job: buildAndPublishSpecification
+  timeoutInMinutes: 120
+  steps:
+    # Set up the Java environment for the build.
+  - task: Bash@3
+    displayName: 'Download java sdk'
+    inputs:
+      targetType: 'inline'
+      script: 'wget https://builds.openlogic.com/downloadJDK/openlogic-openjdk/17.0.16+8/openlogic-openjdk-17.0.16+8-linux-x64.tar.gz -O $(Build.ArtifactStagingDirectory)/java17.tar.gz'
+  - task: JavaToolInstaller@0
+    inputs:
+      versionSpec: "17"
+      jdkArchitectureOption: x64
+      jdkSourceOption: LocalDirectory
+      jdkFile: "$(Build.ArtifactStagingDirectory)/java17.tar.gz"
+      jdkDestinationDirectory: "$(Build.ArtifactStagingDirectory)/build-jdk"
+  - task: Bash@3
+    displayName: 'Display JAVA_HOME'
+    inputs:
+      targetType: 'inline'
+      script: |
+        echo JAVA_HOME is $JAVA_HOME
+        echo JAVA_HOME_17_X64 is $JAVA_HOME_17_X64
+  - task: Bash@3
+    displayName: 'which java'
+    inputs:
+      targetType: 'inline'
+      script: |
+        which java
+    
+
+  # This task reports the CI_BRANCH_DIRECTORY variable for re-use in caching and
+  # directory naming.
+  - task: Bash@3
+    inputs:
+      targetType: 'inline'
+      script: |    
+        echo "CI_BRANCH_DIRECTORY: $(CI_BRANCH_DIRECTORY)"
+
+  # Trigger a publish to test if all changes produce a valid, publishable java implementation of the specification
+  - task: Cache@2
+    inputs:
+      key: tx-cache | $(CI_BRANCH_DIRECTORY)
+      path: $(HOME)/.fhir/tx-cache/HL7/fhir/$(CI_BRANCH_DIRECTORY)
+    displayName: Cache terminology cache directory
+
+  - task: Gradle@3
+    inputs:
+      gradleWrapperFile: 'gradlew'
+      javaHomeOption: 'JDKVersion'
+      publishJUnitResults: false
+      tasks: 'publish --stacktrace --refresh-dependencies'
+
+  # We need a valid ssh key to upload to build.fhir.org. This is stored in the azure pipelines secure filesystem.
+  # This step downloads the file for use within this job.
+  - task: DownloadSecureFile@1
+    displayName: 'Download ssh key.'
+    inputs:
+      secureFile: deploy.rsa
+  # This task takes the successfully built publish directory produced in the 'buildSpecification' job above and pushes it to
+  # build.fhir.org in a directory named after that branch that triggered this pull request.
+  - task: Bash@3
+    inputs:
+      targetType: 'inline'
+      script: |
+        cd publish
+        chmod 400 $(Agent.TempDirectory)/deploy.rsa
+        echo "Publishing to target $(CI_BRANCH_DIRECTORY)"
+        tar czf - * | ssh -o "StrictHostKeyChecking=no" -i $(Agent.TempDirectory)/deploy.rsa -p 2222 $(BUILD_FHIR_ORG_USERNAME)@build.fhir.org ./publish $(CI_BRANCH_DIRECTORY) || true
+
+  # In the case of a successful build and subsequent publish, we trigger a message to the committers/notifications channel
+  # on Zulip (chat.fhir.org) to let users know that the build is available.
+  - task: Bash@3
+    condition: succeeded()
+    inputs:
+      targetType: 'inline'
+      script: |
+        COMMIT_INFO=$(git log -n 1 --skip 1 --pretty='format:%B (%an)')
+        curl -X POST https://chat.fhir.org/api/v1/messages \
+            -u $(ZULIP_BOT_EMAIL):$(ZULIP_BOT_API_KEY) \
+            -d "type=stream" \
+            -d "to=$(ZULIP_STREAM_ID_COMMITTERS)" \
+            -d "subject=FHIR Build Status" \
+            -d $"content=PR Build success for branch $(CI_BRANCH_DIRECTORY) :thumbs_up:!
+            $COMMIT_INFO
+            [build logs](https://dev.azure.com/fhir-pipelines/fhir-publisher/_build/results?buildId=$(Build.BuildId)) | [published webpage](https://build.fhir.org/branches/$(CI_BRANCH_DIRECTORY))
+            "
+  - task: Bash@3
+    condition: failed()
+    inputs:
+      targetType: 'inline'
+      script: |
+        COMMIT_INFO=$(git log -n 1 --skip 1 --pretty='format:%B (%an)')
+        curl -X POST https://chat.fhir.org/api/v1/messages \
+            -u $(ZULIP_BOT_EMAIL):$(ZULIP_BOT_API_KEY) \
+            -d "type=stream" \
+            -d "to=$(ZULIP_STREAM_ID_COMMITTERS)" \
+            -d "subject=FHIR Build Status" \
+            -d $"content=Build failed for branch $(CI_BRANCH_DIRECTORY) :thumbs_down:!
+            $COMMIT_INFO
+            [build logs](https://dev.azure.com/fhir-pipelines/fhir-publisher/_build/results?buildId=$(Build.BuildId))
+            "
