@@ -51,6 +51,8 @@ Also apply a high correctness threshold. The fixup pipeline is for source change
 
 - Prefer no source change when the current spec already conveys the correct rule through an existing link, included section, generated definition, or nearby normative text.
 - Do not add redundant explanatory prose beside a link simply because the linked target says something useful. Restating linked guidance can create long-term maintenance drift unless the local page is currently misleading without the restatement.
+- When a generated commit both improves a link target and duplicates substantive rule text from the linked page, treat it as a mixed commit. Prefer `tweak`: keep the precise link/anchor when useful, but remove the copied rule text unless the local page would otherwise actively direct implementers toward the wrong mechanism.
+- If a page says "see X for the rules", and X clearly contains the current rule, the local page is usually correct once it links to the right section. It does not need to summarize deprecations, exceptions, or procedural details from X unless the Jira explicitly asked for local summary text or readers would reasonably infer the opposite rule from the local page.
 - Keep or recommend a tweak when the generated commit fixes a real semantic problem: a wrong cardinality, missing constraint, stale contradiction, deprecated mechanism still recommended as current, inconsistent parallel artifacts, broken generated/source relationship, or omitted source location that changes implementer understanding.
 - Drop or send to human review when the generated commit is merely nice-to-have clarification, editorial duplication, or a debatable documentation preference not required by the Jira decision or current source state.
 
@@ -99,7 +101,7 @@ A generated commit changes `source/profiles/example.profile.xml`, but `source/fh
 
 ### Linked guidance already carries the rule
 
-A generated commit changes a module page from "see the digital signatures page" to "see the digital signatures page; mechanism X is deprecated and mechanism Y is preferred." If the linked target already says that, and the local page is not actively recommending the deprecated mechanism, the addition is probably redundant maintenance-prone prose. Prefer `drop` unless the Jira specifically required the local page to carry the warning or the local page is misleading without it.
+A generated commit changes a module page from "see the digital signatures page" to "see the Signing Bundles section; mechanism X is deprecated and mechanism Y is preferred." If the linked target already says that, and the local page is not actively recommending the deprecated mechanism, the direct section link may be useful but the local deprecation/preference prose is probably redundant maintenance-prone text. Prefer `tweak`: keep only the precise link if that materially improves navigation, and drop the duplicate rule summary. Prefer `drop` only if even the link change is unnecessary.
 
 ### Local contradiction needs a source fix
 
