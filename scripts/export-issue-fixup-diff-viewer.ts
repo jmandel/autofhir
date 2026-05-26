@@ -736,7 +736,7 @@ const html = `<!doctype html>
 </head>
 <body>
 <div id="root"><div class="empty">Loading review app.</div></div>
-<script>window.__AUTOFHIR_REPORT_URL__ = "issue-fixup-diff-report.json";</script>
+<script>window.__AUTOFHIR_REPORT_URL__ = ${JSON.stringify(`${reviewRawBaseUrl}issue-fixup-diff-report.json`)};</script>
 <script type="module" src="review-app.js"></script>
 </body>
 </html>`;

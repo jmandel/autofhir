@@ -74,18 +74,21 @@ function requireFile(file: string): void {
 function copyReviewArtifacts(destRoot: string, includeRootIndex: boolean): void {
   const dest = path.join(destRoot, runId);
   mkdirSync(dest, { recursive: true });
-  const requiredNames = [
+  const pageNames = [
     "index.html",
     "issue-fixup-diff-viewer.html",
-    "issue-fixup-diff-report.json",
     "review-app.js",
     "review-app.css",
+  ];
+  const rawRequiredNames = [
+    ...pageNames,
+    "issue-fixup-diff-report.json",
   ];
   const rawArtifactOnlyNames = [
     "issue-fixup-diff-report.json.gz",
     "issue-fixup-diff-report-full.json.gz",
   ];
-  for (const name of includeRootIndex ? requiredNames : [...requiredNames, ...rawArtifactOnlyNames]) {
+  for (const name of includeRootIndex ? pageNames : [...rawRequiredNames, ...rawArtifactOnlyNames]) {
     const source = path.join(reviewDir, name);
     requireFile(source);
     copyFileSync(source, path.join(dest, name));
