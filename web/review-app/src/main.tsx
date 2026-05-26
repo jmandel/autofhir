@@ -158,6 +158,7 @@ function App() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
       const tag = (document.activeElement?.tagName || "").toUpperCase();
       const editing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
       if (editing && event.key !== "Escape") return;
@@ -208,7 +209,7 @@ function App() {
         <h1>AutoFHIR Issue Fixup Diffs</h1>
         <div className="meta">
           <span>Run: {report.run.run_id}</span>
-          <span>Branch: {report.run.combined_branch}</span>
+          <span>Proposed commits: {report.run.github_tree_url ? <a href={report.run.github_tree_url} target="_blank" rel="noreferrer">GitHub branch</a> : report.run.run_id}</span>
           <span>Commits: {report.counts.commits}</span>
           <span>With results: {report.counts.with_result}</span>
           <span>WGs: {Object.keys(report.counts.by_wg || {}).length}</span>
@@ -600,7 +601,11 @@ function reviewPlan(report: Report, visibleRows: CommitReport[], bySha: Record<s
   const payload = {
     schema_version: "issue-fixup-review-decisions-v1",
     run_id: report.run.run_id,
-    combined_branch: report.run.combined_branch,
+    github_repo: report.run.github_repo || null,
+    reconciliation_branch_url: report.run.github_tree_url || null,
+    github_compare_url: report.run.github_compare_url || null,
+    review_app_url: report.run.review_pages_url || null,
+    review_artifact_url: report.run.review_github_tree_url || null,
     base: report.run.base,
     head: report.run.head,
     copied_at: new Date().toISOString(),
@@ -620,13 +625,12 @@ function reviewPlan(report: Report, visibleRows: CommitReport[], bySha: Record<s
     "",
     "This whole file can be saved as prompt.md and given to an agent. The agent should use it as the review plan for deciding which commits from the AutoFHIR reconciliation branch to keep, drop, or defer.",
     "",
-    "Branch location:",
-    `- Local FHIR repository: ${report.run.fhir_repo || "(unknown)"}`,
-    `- Local branch: ${report.run.combined_branch}`,
+    "Portable branch and review locations:",
+    `- GitHub repository: ${report.run.github_repo ? `https://github.com/${report.run.github_repo}` : "(not available)"}`,
+    `- Reconciliation branch with proposed commits: ${report.run.github_tree_url || "(not available)"}`,
     `- Base commit: ${report.run.base}`,
     `- Current head: ${report.run.head}`,
     `- GitHub compare: ${report.run.github_compare_url || "(not available)"}`,
-    `- GitHub branch tree: ${report.run.github_tree_url || "(not available)"}`,
     `- Review app on GitHub Pages: ${report.run.review_pages_url || "(not available)"}`,
     `- Review app and artifact folder: ${report.run.review_github_tree_url || "(not available)"}`,
     "",

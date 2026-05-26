@@ -74,7 +74,7 @@ function arg(name: string): string | undefined {
 }
 
 function usage(): string {
-  return `Usage: bun autofhir/scripts/export-issue-fixup-diff-viewer.ts --run-id ID [--out-dir DIR] [--max-patch-bytes N] [--max-file-diff-lines N]
+  return `Usage: bun autofhir/scripts/export-issue-fixup-diff-viewer.ts --run-id ID [--out-dir DIR] [--max-patch-bytes N] [--max-file-diff-lines N] [--max-line-chars N]
 
 Builds:
   autofhir/runs/<run-id>/review/issue-fixup-diff-report.json
@@ -95,6 +95,7 @@ if (!runId) throw new Error("--run-id or RUN_ID is required");
 
 const maxPatchBytes = Number(arg("--max-patch-bytes") ?? "2500000");
 const maxFileDiffLines = Number(arg("--max-file-diff-lines") ?? "25000");
+const maxLineChars = Number(arg("--max-line-chars") ?? "50000");
 
 const run = readRun(runId);
 if (!run.fhirRepo) throw new Error(`run ${runId} has no fhirRepo`);
@@ -327,6 +328,18 @@ function runCommandBig(args: string[], options: { cwd?: string; allowFailure?: b
   return proc.stdout ?? "";
 }
 
+function truncatePatchLines(patch: string): { patch: string; truncatedLineCount: number } {
+  let truncatedLineCount = 0;
+  const lines = patch.split("\n").map((line) => {
+    if (line.length <= maxLineChars) return line;
+    truncatedLineCount++;
+    const marker = ` ... [AUTOFHIR: embedded diff line truncated from ${line.length} chars at ${maxLineChars}; use the GitHub full diff link for complete content.]`;
+    const keepChars = Math.max(0, maxLineChars - marker.length);
+    return `${line.slice(0, keepChars)}${marker}`;
+  });
+  return { patch: lines.join("\n"), truncatedLineCount };
+}
+
 function patchForCommit(sha: string, files: string[]): Pick<CommitReport, "patch" | "patch_truncated" | "omitted_patch_files"> {
   const numstat = runCommand(["git", "show", "--format=", "--numstat", "--find-renames", "--find-copies", sha], { cwd: run.fhirRepo });
   const changedLinesByPath = new Map<string, number>();
@@ -354,7 +367,7 @@ function patchForCommit(sha: string, files: string[]): Pick<CommitReport, "patch
       truncated = true;
       continue;
     }
-    const patch = runCommandBig([
+    const rawPatch = runCommandBig([
       "git",
       "show",
       "--format=",
@@ -367,6 +380,11 @@ function patchForCommit(sha: string, files: string[]): Pick<CommitReport, "patch
       "--",
       file,
     ], { cwd: run.fhirRepo, allowFailure: true, maxBuffer: 32 * 1024 * 1024 });
+    const { patch, truncatedLineCount } = truncatePatchLines(rawPatch);
+    if (truncatedLineCount) {
+      omitted.push({ file, reason: `truncated ${truncatedLineCount} embedded diff line(s) longer than ${maxLineChars} chars` });
+      truncated = true;
+    }
     if (!patch.trim()) continue;
     if (patch.length > remaining) {
       patches.push(`${patch.slice(0, remaining)}\n\n[EMBEDDED DIFF TRUNCATED: commit patch exceeded ${maxPatchBytes} bytes. Use the GitHub full diff link for complete content.]\n`);
@@ -514,6 +532,7 @@ const report = {
     },
     max_patch_bytes: maxPatchBytes,
     max_file_diff_lines: maxFileDiffLines,
+    max_line_chars: maxLineChars,
   },
   counts: {
     commits: commits.length,
