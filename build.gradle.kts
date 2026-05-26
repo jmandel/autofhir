@@ -81,8 +81,16 @@ task("fixOperationDefinitionReferenceCasing", JavaExec::class) {
     args((project.findProperty("publishDir") ?: file("publish").absolutePath).toString())
 }
 
+task("addJsonNarrativeSkipLinks", JavaExec::class) {
+    dependsOn(":classes")
+    main = "org.hl7.fhir.tools.publisher.JsonNarrativeSkipLinkInjector"
+    classpath = sourceSets["main"].runtimeClasspath
+    args((project.findProperty("publishDir") ?: file("publish").absolutePath).toString())
+}
+
 fun postProcessPublishedArtifacts() {
     tagExamplePackages()
+    addJsonNarrativeSkipLinks()
     fixOperationDefinitionReferenceCasing()
 }
 
@@ -97,6 +105,14 @@ fun tagExamplePackages() {
 fun fixOperationDefinitionReferenceCasing() {
     javaexec {
         main = "org.hl7.fhir.tools.publisher.OperationDefinitionReferenceCaseFixer"
+        classpath = sourceSets["main"].runtimeClasspath
+        args(file("publish").absolutePath)
+    }
+}
+
+fun addJsonNarrativeSkipLinks() {
+    javaexec {
+        main = "org.hl7.fhir.tools.publisher.JsonNarrativeSkipLinkInjector"
         classpath = sourceSets["main"].runtimeClasspath
         args(file("publish").absolutePath)
     }
