@@ -95,8 +95,12 @@ function arg(name: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
 
+function flag(name: string): boolean {
+  return process.argv.includes(name);
+}
+
 function usage(): string {
-  return `Usage: bun autofhir/scripts/export-issue-fixup-diff-viewer.ts --run-id ID [--audit-run-id ID] [--out-dir DIR] [--max-patch-bytes N] [--max-file-diff-lines N] [--max-line-chars N]
+  return `Usage: bun autofhir/scripts/export-issue-fixup-diff-viewer.ts --run-id ID [--audit-run-id ID] [--out-dir DIR] [--max-patch-bytes N] [--max-file-diff-lines N] [--max-line-chars N] [--self-contained-pages] [--pages-base-url URL]
 
 Builds:
   autofhir/runs/<run-id>/review/issue-fixup-diff-report.json
@@ -104,7 +108,11 @@ Builds:
   autofhir/runs/<run-id>/review/index.html
 
 The generated index.html loads a built React/Zustand review app plus the
-JSON report for the run's combined branch.`;
+JSON report for the run's combined branch.
+
+With --self-contained-pages, the HTML and report use relative URLs for the
+report JSON and per-commit patch files. This is intended for a single GitHub
+Pages artifact that contains both the app shell and its data files.`;
 }
 
 if (process.argv.includes("-h") || process.argv.includes("--help")) {
@@ -119,6 +127,8 @@ const auditRunId = arg("--audit-run-id") ?? process.env.AUDIT_RUN_ID;
 const maxPatchBytes = Number(arg("--max-patch-bytes") ?? "2500000");
 const maxFileDiffLines = Number(arg("--max-file-diff-lines") ?? "25000");
 const maxLineChars = Number(arg("--max-line-chars") ?? "50000");
+const selfContainedPages = flag("--self-contained-pages");
+const pagesBaseUrl = arg("--pages-base-url") ?? "https://joshuamandel.com/autofhir/";
 
 const run = readRun(runId);
 if (!run.fhirRepo) throw new Error(`run ${runId} has no fhirRepo`);
@@ -473,9 +483,9 @@ const githubTreeUrl = `https://github.com/${githubRepo}/tree/${artifactRunId}`;
 const githubCompareUrl = `https://github.com/${githubRepo}/compare/${base}...${head}`;
 const reviewArtifactBranch = `review-${artifactRunId}`;
 const reviewArtifactDir = artifactRunId;
-const reviewRawBaseUrl = `https://raw.githubusercontent.com/${githubRepo}/${reviewArtifactBranch}/${reviewArtifactDir}/`;
-const reviewGithubTreeUrl = `https://github.com/${githubRepo}/tree/${reviewArtifactBranch}/${reviewArtifactDir}`;
-const reviewPagesUrl = `https://jmandel.github.io/autofhir/${reviewArtifactDir}/`;
+const reviewRawBaseUrl = selfContainedPages ? "" : `https://raw.githubusercontent.com/${githubRepo}/${reviewArtifactBranch}/${reviewArtifactDir}/`;
+const reviewPagesUrl = new URL(`${reviewArtifactDir}/`, pagesBaseUrl.endsWith("/") ? pagesBaseUrl : `${pagesBaseUrl}/`).href;
+const reviewGithubTreeUrl = selfContainedPages ? reviewPagesUrl : `https://github.com/${githubRepo}/tree/${reviewArtifactBranch}/${reviewArtifactDir}`;
 const sourceRunId = run.chunkSource?.kind === "issue-mapping-not-fully-applied" ? run.chunkSource.path : undefined;
 const sourceIssueMappingReportPath = sourceRunId
   ? path.join(runPath(sourceRunId), "review", "issue-mapping-report.json")
@@ -633,7 +643,8 @@ const report = {
     github_repo: githubRepo,
     github_tree_url: githubTreeUrl,
     github_compare_url: githubCompareUrl,
-    review_artifact_branch: reviewArtifactBranch,
+    review_hosting_mode: selfContainedPages ? "pages-artifact" : "artifact-branch",
+    review_artifact_branch: selfContainedPages ? undefined : reviewArtifactBranch,
     review_artifact_dir: reviewArtifactDir,
     review_raw_base_url: reviewRawBaseUrl,
     review_github_tree_url: reviewGithubTreeUrl,
@@ -679,7 +690,7 @@ mkdirSync(patchDir, { recursive: true });
 for (const commit of commits) {
   writeFileSync(path.join(patchDir, `${commit.sha}.patch`), commit.patch || "(empty commit; no source diff)\n");
 }
-const patchUrlFor = (sha: string) => `${reviewRawBaseUrl}patches/${sha}.patch`;
+const patchUrlFor = (sha: string) => selfContainedPages ? `patches/${sha}.patch` : `${reviewRawBaseUrl}patches/${sha}.patch`;
 const fullReport = {
   ...report,
   commits: commits.map((commit) => ({
@@ -739,7 +750,7 @@ const html = `<!doctype html>
 </head>
 <body>
 <div id="root"><div class="empty">Loading review app.</div></div>
-<script>window.__AUTOFHIR_REPORT_URL__ = ${JSON.stringify(`${reviewRawBaseUrl}issue-fixup-diff-report.json`)};</script>
+<script>window.__AUTOFHIR_REPORT_URL__ = ${JSON.stringify(selfContainedPages ? "issue-fixup-diff-report.json" : `${reviewRawBaseUrl}issue-fixup-diff-report.json`)};</script>
 <script type="module" src="review-app.js"></script>
 </body>
 </html>`;
