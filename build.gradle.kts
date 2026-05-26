@@ -50,7 +50,7 @@ task("publish", JavaExec::class) {
     main = "org.hl7.fhir.tools.publisher.Publisher"
     classpath = sourceSets["main"].runtimeClasspath
     doLast {
-        tagExamplePackages()
+        postProcessPublishedArtifacts()
     }
 }
 
@@ -63,7 +63,7 @@ task("publishFull", JavaExec::class) {
     classpath = sourceSets["main"].runtimeClasspath
     args("-nopartial")
     doLast {
-        tagExamplePackages()
+        postProcessPublishedArtifacts()
     }
 }
 
@@ -74,9 +74,29 @@ task("tagExamplePackages", JavaExec::class) {
     args((project.findProperty("examplePackageDir") ?: file("publish").absolutePath).toString())
 }
 
+task("fixOperationDefinitionReferenceCasing", JavaExec::class) {
+    dependsOn(":classes")
+    main = "org.hl7.fhir.tools.publisher.OperationDefinitionReferenceCaseFixer"
+    classpath = sourceSets["main"].runtimeClasspath
+    args((project.findProperty("publishDir") ?: file("publish").absolutePath).toString())
+}
+
+fun postProcessPublishedArtifacts() {
+    tagExamplePackages()
+    fixOperationDefinitionReferenceCasing()
+}
+
 fun tagExamplePackages() {
     javaexec {
         main = "org.hl7.fhir.tools.publisher.ExamplePackageHTESTTagger"
+        classpath = sourceSets["main"].runtimeClasspath
+        args(file("publish").absolutePath)
+    }
+}
+
+fun fixOperationDefinitionReferenceCasing() {
+    javaexec {
+        main = "org.hl7.fhir.tools.publisher.OperationDefinitionReferenceCaseFixer"
         classpath = sourceSets["main"].runtimeClasspath
         args(file("publish").absolutePath)
     }
