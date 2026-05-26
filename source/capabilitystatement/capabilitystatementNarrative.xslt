@@ -492,9 +492,6 @@
             <br/>
             <br/>
             <h2>Documents</h2>
-            <xsl:for-each select="rest/documentMailbox/@value">
-              <xsl:value-of select="concat('Mailbox: ', .)"/>
-            </xsl:for-each>
             <div class="table-wrapper">
               <table class="grid">
                 <thead>
