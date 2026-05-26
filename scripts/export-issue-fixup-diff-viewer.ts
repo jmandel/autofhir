@@ -21,6 +21,17 @@ type CommitReport = {
   commit_context?: string;
   summary?: string;
   recommendation?: string;
+  original_subject?: string;
+  original_body?: string;
+  fixup_status?: string;
+  fixup_decision_status?: string;
+  fixup_result_path?: string;
+  audit_decision?: string;
+  audit_confidence?: "high" | "medium" | "low";
+  audit_reasoning?: string;
+  audit_recommended_next_step?: string;
+  audit_source_tweaks_needed?: string[];
+  audit_result_path?: string;
   github_commit_url?: string;
   previous_issue_commits?: PreviousIssueCommit[];
   previous_issue_commits_omitted?: number;
@@ -85,7 +96,7 @@ function arg(name: string): string | undefined {
 }
 
 function usage(): string {
-  return `Usage: bun autofhir/scripts/export-issue-fixup-diff-viewer.ts --run-id ID [--out-dir DIR] [--max-patch-bytes N] [--max-file-diff-lines N] [--max-line-chars N]
+  return `Usage: bun autofhir/scripts/export-issue-fixup-diff-viewer.ts --run-id ID [--audit-run-id ID] [--out-dir DIR] [--max-patch-bytes N] [--max-file-diff-lines N] [--max-line-chars N]
 
 Builds:
   autofhir/runs/<run-id>/review/issue-fixup-diff-report.json
@@ -103,6 +114,7 @@ if (process.argv.includes("-h") || process.argv.includes("--help")) {
 
 const runId = arg("--run-id") ?? process.env.RUN_ID;
 if (!runId) throw new Error("--run-id or RUN_ID is required");
+const auditRunId = arg("--audit-run-id") ?? process.env.AUDIT_RUN_ID;
 
 const maxPatchBytes = Number(arg("--max-patch-bytes") ?? "2500000");
 const maxFileDiffLines = Number(arg("--max-file-diff-lines") ?? "25000");
@@ -111,9 +123,13 @@ const maxLineChars = Number(arg("--max-line-chars") ?? "50000");
 const run = readRun(runId);
 if (!run.fhirRepo) throw new Error(`run ${runId} has no fhirRepo`);
 if (!run.combinedBranch) throw new Error(`run ${runId} has no combinedBranch`);
+const auditRun = auditRunId ? readRun(auditRunId) : undefined;
+if (auditRun && auditRun.workflow !== "issue-fixup-audit") throw new Error(`audit run ${auditRunId} is workflow=${auditRun.workflow ?? "(unset)"}`);
+const artifactRunId = auditRunId ?? runId;
 
 const root = runPath(runId);
-const outDir = path.resolve(arg("--out-dir") ?? path.join(root, "review"));
+const artifactRoot = runPath(artifactRunId);
+const outDir = path.resolve(arg("--out-dir") ?? path.join(artifactRoot, "review"));
 mkdirSync(outDir, { recursive: true });
 
 function zsplit(value: string): string[] {
@@ -159,6 +175,17 @@ function parsedCommitMessage(subject: string, body: string): { summary: string; 
 function resultFor(issueKey: string | undefined): any | undefined {
   if (!issueKey) return undefined;
   const file = path.join(root, "results", `${issueKey}.json`);
+  if (!existsSync(file)) return undefined;
+  try {
+    return readJson<any>(file);
+  } catch {
+    return undefined;
+  }
+}
+
+function auditResultFor(issueKey: string | undefined): any | undefined {
+  if (!issueKey || !auditRunId) return undefined;
+  const file = path.join(runPath(auditRunId), "results", `${issueKey}.json`);
   if (!existsSync(file)) return undefined;
   try {
     return readJson<any>(file);
@@ -439,10 +466,10 @@ const shas = runCommand(["git", "rev-list", "--reverse", `${base}..${run.combine
   .filter(Boolean);
 const githubRepo = "jmandel/autofhir";
 const upstreamGithubRepo = "HL7/fhir";
-const githubTreeUrl = `https://github.com/${githubRepo}/tree/${runId}`;
+const githubTreeUrl = `https://github.com/${githubRepo}/tree/${artifactRunId}`;
 const githubCompareUrl = `https://github.com/${githubRepo}/compare/${base}...${head}`;
-const reviewArtifactBranch = `review-${runId}`;
-const reviewArtifactDir = runId;
+const reviewArtifactBranch = `review-${artifactRunId}`;
+const reviewArtifactDir = artifactRunId;
 const reviewRawBaseUrl = `https://raw.githubusercontent.com/${githubRepo}/${reviewArtifactBranch}/${reviewArtifactDir}/`;
 const reviewGithubTreeUrl = `https://github.com/${githubRepo}/tree/${reviewArtifactBranch}/${reviewArtifactDir}`;
 const reviewPagesUrl = `https://jmandel.github.io/autofhir/${reviewArtifactDir}/`;
@@ -452,6 +479,11 @@ const sourceIssueMappingReportPath = sourceRunId
   : undefined;
 const sourceIssueMappingReportGzipName = "source-issue-mapping-report.json.gz";
 const sourceIssueMappingReportGzipPath = path.join(outDir, sourceIssueMappingReportGzipName);
+const sourceIssueFixupReviewReportPath = auditRunId
+  ? path.join(root, "review", "issue-fixup-diff-report.json")
+  : undefined;
+const sourceIssueFixupReviewReportGzipName = "source-issue-fixup-review-report.json.gz";
+const sourceIssueFixupReviewReportGzipPath = path.join(outDir, sourceIssueFixupReviewReportGzipName);
 
 function writeGzipIfNeeded(source: string, dest: string): void {
   if (!existsSync(source)) return;
@@ -462,6 +494,7 @@ function writeGzipIfNeeded(source: string, dest: string): void {
 }
 
 if (sourceIssueMappingReportPath) writeGzipIfNeeded(sourceIssueMappingReportPath, sourceIssueMappingReportGzipPath);
+if (sourceIssueFixupReviewReportPath) writeGzipIfNeeded(sourceIssueFixupReviewReportPath, sourceIssueFixupReviewReportGzipPath);
 
 const commitInputs = shas.map((sha, index) => {
   const meta = zsplit(runCommand([
@@ -479,11 +512,19 @@ const commitInputs = shas.map((sha, index) => {
 
 const previousIssueCommitsByKey = previousIssueCommits(base, new Set(commitInputs.map((commit) => commit.issueKey).filter(Boolean) as string[]));
 
-const commits: CommitReport[] = commitInputs.map(({ index, sha, fullSha, shortSha, author, authoredAt, subject, body, commitMessage, issueKey }) => {
+const commits: CommitReport[] = commitInputs.flatMap(({ index, sha, fullSha, shortSha, author, authoredAt, subject, body, commitMessage, issueKey }) => {
   const result = resultFor(issueKey);
+  const auditResult = auditResultFor(issueKey);
+  if (auditRunId && !auditResult) return [];
   const resultPath = issueKey && existsSync(path.join(root, "results", `${issueKey}.json`))
     ? path.relative(root, path.join(root, "results", `${issueKey}.json`))
     : undefined;
+  const auditResultPath = auditRunId && issueKey && existsSync(path.join(runPath(auditRunId), "results", `${issueKey}.json`))
+    ? path.relative(artifactRoot, path.join(runPath(auditRunId), "results", `${issueKey}.json`))
+    : undefined;
+  const displayBody = auditResult?.replacement_commit_message ?? body;
+  const displaySubject = auditResult?.replacement_commit_message?.split(/\r?\n/, 1)[0]?.trim() || subject;
+  const displayCommitMessage = auditResult ? parsedCommitMessage(displaySubject, displayBody) : commitMessage;
   const files = runCommand(["git", "show", "--format=", "--name-only", sha], { cwd: run.fhirRepo })
     .split(/\r?\n/)
     .filter(Boolean);
@@ -495,29 +536,40 @@ const commits: CommitReport[] = commitInputs.map(({ index, sha, fullSha, shortSh
     previous_issue_commits: previous.slice(0, 25),
     previous_issue_commits_omitted: Math.max(0, previous.length - 25),
   } : {};
-  return {
+  return [{
     sequence: index,
     sha: fullSha,
     short_sha: shortSha,
     author,
     authored_at: authoredAt,
-    subject,
-    body,
+    subject: displaySubject,
+    body: displayBody,
+    original_subject: auditResult ? subject : undefined,
+    original_body: auditResult ? body : undefined,
     issue_key: issueKey,
-    status: result?.status,
-    decision_status: result?.decision?.status,
-    commit_summary: commitMessage.summary,
-    commit_context: commitMessage.context,
-    summary: result?.decision?.summary,
-    recommendation: result?.decision?.recommendation,
+    status: auditResult?.decision ?? result?.status,
+    decision_status: auditResult?.decision ?? result?.decision?.status,
+    fixup_status: result?.status,
+    fixup_decision_status: result?.decision?.status,
+    commit_summary: displayCommitMessage.summary,
+    commit_context: displayCommitMessage.context,
+    summary: auditResult?.reasoning ?? result?.decision?.summary,
+    recommendation: auditResult?.recommended_next_step ?? result?.decision?.recommendation,
+    fixup_result_path: resultPath,
+    audit_decision: auditResult?.decision,
+    audit_confidence: auditResult?.confidence,
+    audit_reasoning: auditResult?.reasoning,
+    audit_recommended_next_step: auditResult?.recommended_next_step,
+    audit_source_tweaks_needed: auditResult?.source_tweaks_needed,
+    audit_result_path: auditResultPath,
     github_commit_url: `https://github.com/${githubRepo}/commit/${fullSha}`,
     ...previousFields,
-    result_path: resultPath,
+    result_path: auditResultPath ?? resultPath,
     ...wg,
     files,
     stat,
     ...patch,
-  };
+  }];
 });
 
 function countBy(values: string[]): Record<string, number> {
@@ -565,12 +617,12 @@ function previousIssueCommits(ref: string, issueKeys: Set<string>): Map<string, 
 }
 
 const report = {
-  schema_version: "issue-fixup-diff-review-v1",
+  schema_version: auditRunId ? "issue-fixup-audit-review-v1" : "issue-fixup-diff-review-v1",
   generated_at: new Date().toISOString(),
   run: {
-    run_id: runId,
-    status: run.status,
-    description: run.description,
+    run_id: artifactRunId,
+    status: auditRun?.status ?? run.status,
+    description: auditRun?.description ?? run.description,
     fhir_repo: run.fhirRepo,
     base,
     head,
@@ -584,6 +636,8 @@ const report = {
     review_github_tree_url: reviewGithubTreeUrl,
     review_pages_url: reviewPagesUrl,
     source_run_id: sourceRunId,
+    source_issue_fixup_run_id: auditRunId ? runId : undefined,
+    audit_run_id: auditRunId,
     artifacts: {
       fixup_review_json: "issue-fixup-diff-report.json",
       fixup_review_json_gzip: "issue-fixup-diff-report.json.gz",
@@ -591,6 +645,8 @@ const report = {
       fixup_patch_dir: "patches/",
       source_issue_mapping_json_gzip: existsSync(sourceIssueMappingReportGzipPath) ? sourceIssueMappingReportGzipName : undefined,
       source_issue_mapping_json_source_path: sourceIssueMappingReportPath,
+      source_issue_fixup_review_json_gzip: existsSync(sourceIssueFixupReviewReportGzipPath) ? sourceIssueFixupReviewReportGzipName : undefined,
+      source_issue_fixup_review_json_source_path: sourceIssueFixupReviewReportPath,
     },
     max_patch_bytes: maxPatchBytes,
     max_file_diff_lines: maxFileDiffLines,
@@ -604,6 +660,7 @@ const report = {
     no_change: commits.filter((commit) => commit.status === "no-change").length,
     ambiguous: commits.filter((commit) => commit.status === "ambiguous").length,
     by_status: countBy(commits.map((commit) => commit.status ?? commit.decision_status ?? "none")),
+    by_audit_decision: countBy(commits.map((commit) => commit.audit_decision ?? "none")),
     by_wg: countBy(commits.map((commit) => commit.wg ?? "unknown")),
   },
   commits,
@@ -619,16 +676,25 @@ mkdirSync(patchDir, { recursive: true });
 for (const commit of commits) {
   writeFileSync(path.join(patchDir, `${commit.sha}.patch`), commit.patch || "(empty commit; no source diff)\n");
 }
-const publishedReport = {
+const patchUrlFor = (sha: string) => `${reviewRawBaseUrl}patches/${sha}.patch`;
+const fullReport = {
   ...report,
   commits: commits.map((commit) => ({
     ...commit,
-    patch_url: `patches/${commit.sha}.patch`,
+    patch_url: patchUrlFor(commit.sha),
     patch_bytes: Buffer.byteLength(commit.patch || "", "utf8"),
   })),
 };
-writeFileSync(fullReportGzipPath, gzipSync(`${JSON.stringify(publishedReport, null, 2)}\n`));
-writeFileSync(reportPath, `${JSON.stringify(publishedReport, null, 2)}\n`);
+const webReport = {
+  ...report,
+  commits: commits.map(({ patch: _patch, ...commit }) => ({
+    ...commit,
+    patch_url: patchUrlFor(commit.sha),
+    patch_bytes: Buffer.byteLength(_patch || "", "utf8"),
+  })),
+};
+writeFileSync(fullReportGzipPath, gzipSync(`${JSON.stringify(fullReport, null, 2)}\n`));
+writeFileSync(reportPath, `${JSON.stringify(webReport, null, 2)}\n`);
 writeFileSync(`${reportPath}.gz`, gzipSync(readFileSync(reportPath)));
 const appJsPath = path.join(outDir, "review-app.js");
 const appCssPath = path.join(outDir, "review-app.css");
@@ -652,12 +718,13 @@ if (build.status !== 0) {
   ].filter(Boolean).join("\n"));
 }
 writeFileSync(appCssPath, readFileSync(path.join(repoRoot, "autofhir/web/review-app/src/styles.css")));
+const pageTitle = auditRunId ? "AutoFHIR Issue Fixup Audit Review" : "AutoFHIR Issue Fixup Diffs";
 const html = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AutoFHIR Issue Fixup Diffs</title>
+<title>${pageTitle}</title>
 <link rel="stylesheet" href="review-app.css">
 </head>
 <body>

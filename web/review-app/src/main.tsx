@@ -20,6 +20,17 @@ type CommitReport = {
   commit_context?: string;
   summary?: string;
   recommendation?: string;
+  original_subject?: string;
+  original_body?: string;
+  fixup_status?: string;
+  fixup_decision_status?: string;
+  fixup_result_path?: string;
+  audit_decision?: string;
+  audit_confidence?: "high" | "medium" | "low";
+  audit_reasoning?: string;
+  audit_recommended_next_step?: string;
+  audit_source_tweaks_needed?: string[];
+  audit_result_path?: string;
   github_commit_url?: string;
   previous_issue_commits?: PreviousIssueCommit[];
   previous_issue_commits_omitted?: number;
@@ -60,6 +71,8 @@ type Report = {
     review_github_tree_url?: string;
     review_raw_base_url?: string;
     source_run_id?: string;
+    source_issue_fixup_run_id?: string;
+    audit_run_id?: string;
     artifacts?: Record<string, string | undefined>;
     max_patch_bytes?: number;
     max_file_diff_lines?: number;
@@ -269,9 +282,10 @@ function App() {
   return (
     <>
       <header>
-        <h1>AutoFHIR Issue Fixup Diffs</h1>
+        <h1>{isAuditReport(report) ? "AutoFHIR Issue Fixup Audit Review" : "AutoFHIR Issue Fixup Diffs"}</h1>
         <div className="meta">
           <span>Run: {report.run.run_id}</span>
+          {isAuditReport(report) ? <span>Audit view</span> : null}
           <span>Proposed commits: {report.run.github_tree_url ? <a href={report.run.github_tree_url} target="_blank" rel="noreferrer">GitHub branch</a> : report.run.run_id}</span>
           <span>Commits: {report.counts.commits}</span>
           <span>With results: {report.counts.with_result}</span>
@@ -280,9 +294,9 @@ function App() {
           {report.run.github_compare_url && <a href={report.run.github_compare_url} target="_blank" rel="noreferrer">Full branch diff on GitHub</a>}
         </div>
       </header>
-      <Intro />
+      <Intro report={report} />
       <div className="controls">
-        <Facet value={status} onChange={setStatus} label="All results" options={options.statuses} />
+        <Facet value={status} onChange={setStatus} label={isAuditReport(report) ? "All audit decisions" : "All results"} options={options.statuses} />
         <Facet value={wg} onChange={setWg} label="All work groups" options={options.wgs} />
         <Facet value={file} onChange={setFile} label="All changed files" options={options.files} />
         <Facet value={reviewDecision} onChange={setReviewDecision} label="All review choices" options={options.reviews} />
@@ -309,7 +323,19 @@ function App() {
   );
 }
 
-function Intro() {
+function Intro({ report }: { report: Report }) {
+  if (isAuditReport(report)) {
+    return (
+      <section className="intro" aria-label="Review guide">
+        <p>
+          This audit view reviews the generated reconciliation commits using the second-pass audit results. Filter by audit decision: Keep, Tweak, Human review, or Drop. Each card shows the audit replacement commit message first, so the text you review is the proposed rewritten message rather than the original generated message.
+        </p>
+        <p>
+          Use the Jira, proposed GitHub commit, prior HL7/fhir commits, audit recommendation, and diff together before marking your review choice. Mark each item Approve, Reject, or Defer; notes are saved locally in this browser. Copy Review Plan exports your choices plus the portable branch/artifact links for an agent to apply the reviewed decisions.
+        </p>
+      </section>
+    );
+  }
   return (
     <section className="intro" aria-label="Review guide">
       <p>
@@ -414,11 +440,17 @@ const CommitCard = memo(function CommitCard({ commit, selected, onSelect }: { co
         {commit.omitted_patch_files?.length ? <div className="notice critical">Embedded diff is incomplete for this commit. Use the GitHub full diff link for complete content.</div> : null}
         <CommitOverview commit={commit} />
         <details className="review-details" open>
-          <summary>Git commit message</summary>
+          <summary>{commit.audit_decision ? "Audit replacement commit message" : "Git commit message"}</summary>
           <pre className="commit-message">{commit.body || commit.subject || "(empty commit message)"}</pre>
         </details>
+        {commit.original_body ? (
+          <details className="review-details">
+            <summary>Original generated commit message</summary>
+            <pre className="commit-message">{commit.original_body}</pre>
+          </details>
+        ) : null}
         <details className="review-details">
-          <summary>Fixup agent assessment, files, and stats</summary>
+          <summary>{commit.audit_decision ? "Audit agent assessment, files, and stats" : "Fixup agent assessment, files, and stats"}</summary>
           <AgentAssessment commit={commit} />
         </details>
         <DiffSection commit={commit} />
@@ -433,11 +465,13 @@ function CommitOverview({ commit }: { commit: CommitReport }) {
       <div className="link-row">
         {commit.issue_key ? <a href={jiraUrl(commit.issue_key)} target="_blank" rel="noreferrer">Jira {commit.issue_key}</a> : <span>No Jira issue</span>}
         {commit.github_commit_url ? <a href={commit.github_commit_url} target="_blank" rel="noreferrer">GitHub commit {commit.short_sha}</a> : null}
-        {commit.result_path ? <span>Agent report: {commit.result_path}</span> : <span>No agent report JSON</span>}
+        {commit.result_path ? <span>{commit.audit_decision ? "Audit report" : "Agent report"}: {commit.result_path}</span> : <span>No agent report JSON</span>}
       </div>
       <PreviousIssueCommits commit={commit} />
       <dl className="metadata-grid">
-        <div><dt>Result</dt><dd>{outcomeLabel(commit.status || commit.decision_status)}</dd></div>
+        <div><dt>{commit.audit_decision ? "Audit Decision" : "Result"}</dt><dd>{outcomeLabel(commit.status || commit.decision_status)}</dd></div>
+        {commit.fixup_status ? <div><dt>Original Fixup Result</dt><dd>{outcomeLabel(commit.fixup_status)}</dd></div> : null}
+        {commit.audit_confidence ? <div><dt>Audit Confidence</dt><dd>{commit.audit_confidence}</dd></div> : null}
         <div><dt>Work Group</dt><dd>{wgTitle(commit)}</dd></div>
       </dl>
       <section className="narrative-section">
@@ -447,8 +481,16 @@ function CommitOverview({ commit }: { commit: CommitReport }) {
       </section>
       {commit.recommendation ? (
         <section className="narrative-section">
-          <h3>Recommendation</h3>
+          <h3>{commit.audit_decision ? "Audit Recommendation" : "Recommendation"}</h3>
           <p>{commit.recommendation}</p>
+        </section>
+      ) : null}
+      {commit.audit_source_tweaks_needed?.length ? (
+        <section className="narrative-section">
+          <h3>Source Tweaks Needed</h3>
+          <ul className="file-list">
+            {commit.audit_source_tweaks_needed.map((item) => <li key={item}>{item}</li>)}
+          </ul>
         </section>
       ) : null}
     </section>
@@ -505,12 +547,13 @@ function AgentAssessment({ commit }: { commit: CommitReport }) {
 }
 
 function DiffSection({ commit }: { commit: CommitReport }) {
-  const [patch, setPatch] = useState(commit.patch || "");
-  const [patchState, setPatchState] = useState<"ready" | "loading" | "error">(commit.patch ? "ready" : commit.patch_url ? "loading" : "ready");
+  const hasEmbeddedPatch = commit.patch !== undefined;
+  const [patch, setPatch] = useState(commit.patch ?? "");
+  const [patchState, setPatchState] = useState<"ready" | "loading" | "error">(hasEmbeddedPatch ? "ready" : commit.patch_url ? "loading" : "ready");
   useEffect(() => {
     let cancelled = false;
-    setPatch(commit.patch || "");
-    if (commit.patch || !commit.patch_url) {
+    setPatch(commit.patch ?? "");
+    if (commit.patch !== undefined || !commit.patch_url) {
       setPatchState("ready");
       return () => { cancelled = true; };
     }
@@ -595,6 +638,10 @@ function statusValue(commit: CommitReport) {
 
 function outcomeLabel(value?: string) {
   return ({
+    keep: "Keep",
+    tweak: "Tweak",
+    "human-review": "Human review",
+    drop: "Drop",
     fixed: "Source change made",
     "no-change": "No source change needed",
     ambiguous: "Needs human review",
@@ -616,7 +663,11 @@ function wgTitle(commit: CommitReport) {
 }
 
 function displaySummary(commit: CommitReport) {
-  return commit.commit_summary || commit.summary || "";
+  return commit.audit_recommended_next_step || commit.commit_summary || commit.summary || "";
+}
+
+function isAuditReport(report: Report) {
+  return report.schema_version === "issue-fixup-audit-review-v1" || Boolean(report.run.audit_run_id);
 }
 
 function dateOnly(value?: string) {
