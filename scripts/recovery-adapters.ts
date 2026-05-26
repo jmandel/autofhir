@@ -19,6 +19,7 @@ import {
 } from "./lib";
 import { validateIssueMappingResult } from "./validate-issue-mapping-result";
 import { validateIssueFixupResult } from "./validate-issue-fixup-result";
+import { validateIssueFixupAuditResult } from "./validate-issue-fixup-audit-result";
 import { validatePlan } from "./validate-plan";
 
 export type RecoveryValidation = {
@@ -466,9 +467,84 @@ export const issueFixupRecoveryAdapter: RecoveryAdapter = {
   },
 };
 
+export const issueFixupAuditRecoveryAdapter: RecoveryAdapter = {
+  workflow: "issue-fixup-audit",
+  itemRoot: "chunks",
+  itemLabel: "issue",
+  coordinatorScript: "autofhir/scripts/issue-fixup-audit-coordinator.ts",
+  keyFromManifest(manifest, file) {
+    return manifest.issueKey ?? manifest.chunkId ?? path.basename(file, ".json");
+  },
+  resultPath(runId, key) {
+    return path.join(runPath(runId), "results", `${key}.json`);
+  },
+  validateResult({ runId, key, resultPath, yes }) {
+    const chunkPath = path.join(runPath(runId), "chunks", "running", `${key}.json`);
+    const fallbackChunkPath = path.join(runPath(runId), "chunks", "pending", `${key}.json`);
+    const doneChunkPath = path.join(runPath(runId), "chunks", "done", `${key}.json`);
+    const failedChunkPath = path.join(runPath(runId), "chunks", "failed", `${key}.json`);
+    const validation = validateIssueFixupAuditResult({
+      runId,
+      issueKey: key,
+      chunkPath: [chunkPath, fallbackChunkPath, doneChunkPath, failedChunkPath].find(existsSync),
+      resultPath,
+      writeResult: yes,
+    });
+    return {
+      ...validation,
+      summary: validation.ok
+        ? `valid issue-fixup-audit ${validation.decision} result`
+        : `invalid issue-fixup-audit result: ${validation.errors.join("; ")}`,
+    };
+  },
+  finalizeValidResult({ runId, key, resultPath, validation, yes }) {
+    const result = readJson<any>(resultPath);
+    if (yes) {
+      setStatus(runId, key, { status: "complete", decision: result.decision });
+      appendJournal(runId, {
+        type: "issue-fixup-audit-complete",
+        issueKey: key,
+        commitSha: result.commit_sha,
+        decision: result.decision,
+        summary: result.recommended_next_step ?? validation.summary,
+      });
+    }
+    return { status: "done", summary: result.recommended_next_step ?? validation.summary };
+  },
+  archiveBeforeRetry({ runId, key, resultPath, state, yes }) {
+    if (!yes) return;
+    const status = statusValues(runId, key);
+    const retryAttempt = nextRetryAttempt(runId, key);
+    writeJson(retryInfoPath(runId, key), {
+      schemaVersion: "1.0",
+      runId,
+      issueKey: key,
+      chunkId: key,
+      retryAttempt,
+      queuedAt: new Date().toISOString(),
+      previousState: state,
+      previous: {
+        worktree: status.worktree,
+        chunk_json: status.chunk_json,
+        result: status.result ?? resultPath,
+        prompt: status.prompt,
+        stdout: status.stdout,
+        stderr: status.stderr,
+        copilot_log_dir: status.copilot_log_dir,
+        exit_code: status.exit_code,
+        finished_at: status.finished_at,
+        status: status.status,
+        error: status.error,
+      },
+    });
+    archiveIfExists(resultPath, state);
+  },
+};
+
 export function recoveryAdapterForWorkflow(workflow: string | undefined): RecoveryAdapter {
   if (workflow === "issue-mapping") return issueMappingRecoveryAdapter;
   if (workflow === "discovery") return discoveryRecoveryAdapter;
   if (workflow === "issue-fixup") return issueFixupRecoveryAdapter;
+  if (workflow === "issue-fixup-audit") return issueFixupAuditRecoveryAdapter;
   return applyRecoveryAdapter;
 }

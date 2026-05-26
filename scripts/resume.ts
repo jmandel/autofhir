@@ -40,7 +40,9 @@ if (process.argv.includes("--start")) {
       ? "autofhir/scripts/discovery-coordinator.ts"
       : run.workflow === "issue-fixup"
         ? "autofhir/scripts/issue-fixup-coordinator.ts"
-        : "autofhir/scripts/coordinator.ts";
+        : run.workflow === "issue-fixup-audit"
+          ? "autofhir/scripts/issue-fixup-audit-coordinator.ts"
+          : "autofhir/scripts/coordinator.ts";
   const stdoutFile = path.join(root, "coordinator.log");
   const stderrFile = path.join(root, "coordinator.err");
   const pid = startDetached(["bun", coordinatorScript, "--run-id", runId], stdoutFile, stderrFile);

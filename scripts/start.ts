@@ -59,7 +59,9 @@ const coordinatorScript = run.workflow === "issue-mapping"
     ? "autofhir/scripts/discovery-coordinator.ts"
     : run.workflow === "issue-fixup"
       ? "autofhir/scripts/issue-fixup-coordinator.ts"
-      : "autofhir/scripts/coordinator.ts";
+      : run.workflow === "issue-fixup-audit"
+        ? "autofhir/scripts/issue-fixup-audit-coordinator.ts"
+        : "autofhir/scripts/coordinator.ts";
 const pid = startDetached(["bun", coordinatorScript, "--run-id", runId], stdoutFile, stderrFile);
 writeFileSync(pidFile, `${pid}\n`);
 console.log("started=true");
