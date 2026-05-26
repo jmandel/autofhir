@@ -102,7 +102,7 @@ for (const commit of commits) {
   const sourcePromptPath = path.join(sourceRoot, "prompts", `${issueKey}.md`);
   const patchPath = commit.patch_url ? path.join(sourceRoot, "review", commit.patch_url) : path.join(sourceRoot, "review", "patches", `${commit.sha}.patch`);
   if (!existsSync(contextPath)) throw new Error(`missing source context for ${issueKey}: ${contextPath}`);
-  if (!existsSync(sourceResultPath)) throw new Error(`missing source result for ${issueKey}: ${sourceResultPath}`);
+  const hasSourceResult = existsSync(sourceResultPath);
 
   const chunk = {
     schemaVersion: "1.0",
@@ -114,7 +114,8 @@ for (const commit of commits) {
     issueKey,
     sourceRunId,
     sourceContextPath: path.relative(repoRoot, contextPath),
-    sourceResultPath: path.relative(repoRoot, sourceResultPath),
+    sourceResultPath: hasSourceResult ? path.relative(repoRoot, sourceResultPath) : undefined,
+    missingSourceResult: !hasSourceResult,
     sourcePromptPath: existsSync(sourcePromptPath) ? path.relative(repoRoot, sourcePromptPath) : undefined,
     sourceReviewReportPath: path.relative(repoRoot, reportPath),
     commitPatchPath: existsSync(patchPath) ? path.relative(repoRoot, patchPath) : undefined,
@@ -148,6 +149,7 @@ for (const commit of commits) {
     files: commit.files ?? [],
     context_path: path.relative(root, contextPath),
     result_path: path.relative(root, sourceResultPath),
+    missing_source_result: !hasSourceResult,
     patch_path: existsSync(patchPath) ? path.relative(root, patchPath) : undefined,
   });
 }

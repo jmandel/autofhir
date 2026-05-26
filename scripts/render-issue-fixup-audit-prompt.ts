@@ -9,7 +9,8 @@ type AuditChunk = {
   issueKey: string;
   sourceRunId: string;
   sourceContextPath: string;
-  sourceResultPath: string;
+  sourceResultPath?: string;
+  missingSourceResult?: boolean;
   commitPatchPath?: string;
   sourcePaths?: string[];
   commit: {
@@ -146,8 +147,13 @@ export function renderIssueFixupAuditPrompt(options: {
   const contextPath = path.resolve(repoRoot, chunk.sourceContextPath);
   const context = readJson<any>(contextPath);
   const contextDir = path.dirname(contextPath);
-  const sourceResultPath = path.resolve(repoRoot, chunk.sourceResultPath);
-  const sourceResult = readJson<any>(sourceResultPath);
+  const sourceResultPath = chunk.sourceResultPath ? path.resolve(repoRoot, chunk.sourceResultPath) : "";
+  const sourceResult = sourceResultPath && existsSync(sourceResultPath)
+    ? readJson<any>(sourceResultPath)
+    : {
+      warning: "No original issue-fixup result JSON was available for this generated commit. Audit from the baked issue context, generated commit, patch, and any additional searches.",
+      missing_source_result: true,
+    };
   const template = readFileSync(path.join(autofhirRoot, "issue-fixup-audit/issue-fixup-audit-agent-prompt.template.md"), "utf8");
   const pipelineBody = stripH1(readFileSync(path.join(autofhirRoot, "issue-fixup-audit/issue-fixup-audit-pipeline.md"), "utf8"));
   const communityBody = communitySearchBody(readFileSync(path.join(repoRoot, "SKILL.md"), "utf8"));
