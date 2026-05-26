@@ -19,7 +19,7 @@ Most commands and prompts still assume they are run from the parent `fhir-commun
 The repository tracks non-run-specific machinery:
 
 - workflow documentation under `workflows/`
-- worker prompt templates under `discovery/`, `issue-mapping/`, and `issue-fixup/`
+- worker prompt templates under `discovery/`, `issue-mapping/`, `issue-fixup/`, and `issue-fixup-audit/`
 - orchestration scripts under `scripts/`
 - operational guidance in `SKILL.md`
 
@@ -52,6 +52,8 @@ autofhir/runs/<run-id>/review/source-issue-mapping-report.json.gz
 The review app is driven by issue-fixup outputs, not the original discovery or issue-mapping rows. Its "What Changed" section is parsed from the actual integrated fixup commit message when available. Its "Agent Assessment" section comes from `autofhir/runs/<run-id>/results/FHIR-XXXXX.json`.
 
 The "Copy Review Plan" button copies a self-contained handoff that can be saved as `prompt.md` for another agent. It includes the local branch, GitHub compare URL, review decisions, and download links for the full issue-mapping input JSON and the full issue-fixup review JSON.
+
+Issue-fixup audit prompts include build-scope hints from `source/fhir.ini`. Audit workers are expected to reject or escalate commits that edit inactive/commented-out profiles, stale generated artifacts, or other files that do not feed the current built spec, and to prefer changes needed for semantic correctness over redundant explanatory prose.
 
 Publish the current review snapshot to GitHub branches and GitHub Pages:
 

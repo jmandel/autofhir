@@ -39,6 +39,21 @@ Check the complete story:
 
 For applied or published Jira issues, do not require a literal wording match to the Jira resolution. Slight wording changes, refactoring, renamed files, or a different representation are acceptable when implementers would understand the same rule. Flag a commit only when there is an important semantic deviation, an obviously missed source location, an inconsistency across related artifacts, a broken generated/source relationship, or a change that lacks support in the issue evidence.
 
+Before deciding to keep a source-changing commit, confirm that the touched artifact is actually part of the current FHIR build or otherwise feeds a built artifact:
+
+- Treat `source/fhir.ini` as the first build-scope authority for resources, profiles, work groups, and many generated artifacts. Active entries matter; commented entries usually indicate retired, disabled, or out-of-build artifacts.
+- A file merely existing under `source/` is not enough. For profile files, look for an active `[profiles]` entry or another active source reference. A commented profile entry such as `;foo=profiles/foo.profile.xml` is strong evidence that edits to that profile are not current-spec fixes.
+- For resource folders listed in active `[resources]`, source files in that folder usually feed the build. For narrative/module pages, confirm they are referenced by the relevant resource/module page machinery or by current source includes when the path is not obviously active.
+- Do not rely on the local `publish/` folder as current evidence. It is generated output and may be stale. Use source/config/git history first; use `build.fhir.org` only as an external verification aid when needed.
+- Checked-in generated artifacts, diagrams, or SVGs may be stale or unused. If a generated-looking artifact is the only file touched, verify that the build actually consumes it before recommending `keep`.
+
+Also apply a high correctness threshold. The fixup pipeline is for source changes needed to make the current built specification correct, not for optional polish:
+
+- Prefer no source change when the current spec already conveys the correct rule through an existing link, included section, generated definition, or nearby normative text.
+- Do not add redundant explanatory prose beside a link simply because the linked target says something useful. Restating linked guidance can create long-term maintenance drift unless the local page is currently misleading without the restatement.
+- Keep or recommend a tweak when the generated commit fixes a real semantic problem: a wrong cardinality, missing constraint, stale contradiction, deprecated mechanism still recommended as current, inconsistent parallel artifacts, broken generated/source relationship, or omitted source location that changes implementer understanding.
+- Drop or send to human review when the generated commit is merely nice-to-have clarification, editorial duplication, or a debatable documentation preference not required by the Jira decision or current source state.
+
 HL7 Jira can contain draft resolution fields before the workflow status is final. Use Jira workflow status as the primary signal:
 
 - `Resolved - change required`, `Applied`, and `Published` are actionable decision states.
@@ -69,9 +84,26 @@ git log --all --fixed-strings --grep=FHIR-XXXXX --format='%H %ad %an %s' --date=
 git log --all -S "exact source text" -- path/to/file
 git show --stat --patch COMMIT -- path/to/file
 git blame -L start,end -- path/to/file
+rg -n "issue-specific-term|resource-name|profile-file-name" source/fhir.ini source -g '!publish/**'
 ```
 
 Do not fish indefinitely. Search broadly enough to validate or reject the generated commit, then stop when additional searches are unlikely to change the audit decision. Prefer precise anchors: Jira key, element path, exact source phrase, commit SHA, resource name, artifact URL, and ballot/comment wording.
+
+## Audit Examples
+
+Use these examples as decision patterns. They are intentionally not real Jira IDs.
+
+### Disabled profile file
+
+A generated commit changes `source/profiles/example.profile.xml`, but `source/fhir.ini` has only `;example=profiles/example.profile.xml` under `[profiles]`, there are no active source references, and the current CI build has no corresponding profile page. The commit should usually be `drop`, because it edits an inactive artifact. The replacement message should explain that the historical requirement may have been valid for an old published profile, but this file is not a live current-build source.
+
+### Linked guidance already carries the rule
+
+A generated commit changes a module page from "see the digital signatures page" to "see the digital signatures page; mechanism X is deprecated and mechanism Y is preferred." If the linked target already says that, and the local page is not actively recommending the deprecated mechanism, the addition is probably redundant maintenance-prone prose. Prefer `drop` unless the Jira specifically required the local page to carry the warning or the local page is misleading without it.
+
+### Local contradiction needs a source fix
+
+A generated commit removes prose saying "use OldElement" from a page that also links to current guidance saying `OldElement` is deprecated. The local page would otherwise continue to tell implementers to use the wrong mechanism. This is a good `keep` or `tweak` candidate because it removes a semantic contradiction, not merely because it adds helpful context.
 
 ## Replacement Commit Message
 

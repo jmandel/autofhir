@@ -18,6 +18,7 @@ Current workflow docs:
 - `workflows/discovery.md` — read-only discovery/planning runs. Workers compute Jira/source plans from chunks generated from the FHIR checkout at run start.
 - `workflows/issue-mapping.md` — Jira-first read-only mapping runs. Workers decide one seed Jira issue at a time and accumulate observations for downstream work-item generation.
 - `workflows/issue-fixup.md` — follow-on source-fix/audit runs. Workers process issue-mapping rows assessed as not fully applied and publish one `Issue-Fixup-Key:` commit per Jira issue.
+- `issue-fixup-audit/issue-fixup-audit-pipeline.md` — read-only second-pass audit of issue-fixup commits. Workers decide keep/tweak/drop/human-review and rewrite commit messages, with explicit checks for current build scope and semantic necessity.
 
 Review app source:
 
@@ -110,6 +111,19 @@ bun autofhir/scripts/monitor.ts --run-id <run-id> --interval-sec 120 --tick
 ```
 
 For issue-fixup runs, `start.ts` dispatches to `autofhir/scripts/issue-fixup-coordinator.ts`. Each successful worker publishes exactly one combined-branch commit with `Issue-Fixup-Key: FHIR-XXXXX`, either a real source fix or an empty audit/no-op commit.
+
+To prepare and run a second-pass issue-fixup audit:
+
+```bash
+bun autofhir/scripts/prepare-issue-fixup-audit-run.ts \
+  --run-id <audit-run-id> \
+  --source-run <issue-fixup-run-id>
+
+bun autofhir/scripts/start.ts --run-id <audit-run-id> --concurrency 15
+bun autofhir/scripts/monitor.ts --run-id <audit-run-id> --interval-sec 120 --tick
+```
+
+For issue-fixup audit runs, `start.ts` dispatches to `autofhir/scripts/issue-fixup-audit-coordinator.ts`. Prompts bake in the original issue context, fixup result, generated commit, previous issue-tagged commits, source patch, and `source/fhir.ini` build-scope hints. Audit workers must verify that touched files feed the current build and that source changes are needed for semantic correctness, not just optional clarification.
 
 ## Core Rules
 

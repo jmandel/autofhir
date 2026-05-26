@@ -81,6 +81,14 @@ Inspect these in `{{WORKTREE}}`, and search beyond them when the issue may affec
 {{SOURCE_PATHS}}
 </source_paths>
 
+## Build Scope Hints
+
+These hints are precomputed from `{{WORKTREE}}/source/fhir.ini` for the likely source files. They are not exhaustive and do not replace source inspection, but they can identify files that are probably not part of the current build. If a touched file appears only in a commented `fhir.ini` entry, or has no active build reference, verify scope before recommending `keep`.
+
+<build_scope_hints>
+{{BUILD_SCOPE_HINTS}}
+</build_scope_hints>
+
 ## Generated Commit Under Audit
 
 <generated_commit>
@@ -117,6 +125,7 @@ bun run zulip:search fts "\"{{ISSUE_KEY}}\""
 cd "{{WORKTREE}}"
 git log --all --fixed-strings --grep="{{ISSUE_KEY}}" --format='%H %ad %an %s' --date=iso
 rg "{{ISSUE_KEY}}" .
+rg -n "issue-specific-term|resource-name|profile-file-name" source/fhir.ini source -g '!publish/**'
 ```
 
-Prefer precise source and community searches over broad fishing. Stop once the audit decision and replacement commit message are well-supported.
+Before keeping a source-changing commit, be sure the changed file feeds the current built spec and the change is needed for semantic correctness. Prefer precise source and community searches over broad fishing. Stop once the audit decision and replacement commit message are well-supported.
