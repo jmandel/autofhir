@@ -45,6 +45,24 @@ For applied or published issues, the central question is not whether the current
 
 Flag a problem only when there is an important semantic deviation that would lead to a different understanding of what the specification means, an obviously forgotten source location, or an inconsistency across related pages/resources/definitions. Do not spend the commit on tiny editorial differences unless they create real ambiguity, broken links, stale normative guidance, or divergent conformance expectations.
 
+## Build Scope and Edit Threshold
+
+Before editing a file, confirm that it is actually part of the current FHIR build or otherwise feeds a built artifact:
+
+- Treat `source/fhir.ini` as the first build-scope authority for resources, profiles, work groups, and many generated artifacts. Active entries matter; commented entries usually indicate retired, disabled, or out-of-build artifacts.
+- A file merely existing under `source/` is not enough. For profile files, look for an active `[profiles]` entry or another active source reference. A commented profile entry such as `;foo=profiles/foo.profile.xml` is strong evidence that edits to that profile are not current-spec fixes.
+- For resource folders listed in active `[resources]`, source files in that folder usually feed the build. For narrative/module pages, confirm they are referenced by the relevant resource/module page machinery or by current source includes when the path is not obviously active.
+- Do not rely on the local `publish/` folder as current evidence. It is generated output and may be stale. Use source/config/git history first; use `build.fhir.org` only as an external verification aid when needed.
+- Checked-in generated artifacts, diagrams, or SVGs may be stale or unused. If a generated-looking artifact is the only source of the apparent problem, verify that the build actually consumes it before editing.
+
+Apply a high correctness threshold. This workflow is for changes needed to make the current built specification correct, not for optional polish:
+
+- Prefer `no-change` when the current spec already conveys the correct rule through an existing link, included section, generated definition, or nearby normative text.
+- Do not add redundant explanatory prose simply because it is accurate or adjacent to the topic. Restating guidance in multiple places can create long-term maintenance drift unless the local page is currently misleading without the restatement.
+- Judge each candidate edit by whether it changes implementer understanding of the current specification in a necessary way. Do not keep a hunk only because it is helpful, tidy, or phrased more nicely.
+- For mixed candidate changes, keep only hunks that fix a real semantic problem. Drop hunks that are redundant, speculative, out of build scope, or broader than the evidence supports.
+- Make source edits for real semantic problems: wrong cardinality, missing constraint, stale contradiction, deprecated mechanism still recommended as current, inconsistent parallel artifacts, broken generated/source relationship, broken link, or omitted source location that changes implementer understanding.
+
 ## Jira Workflow Status
 
 HL7 Jira often contains draft resolution text before the issue is actually resolved. A `resolution` value such as `Persuasive` and a proposed resolution description do not by themselves mean the work group has made a final decision.
@@ -75,12 +93,25 @@ Issue-Fixup-Key: FHIR-XXXXX
 
 For source fixes, use a normal non-empty commit. For `no-change` or `ambiguous`, use `git commit --allow-empty`.
 
-Use this commit message shape:
+Use this commit message shape. Keep the section labels exactly as shown so downstream audit and review tools can parse and compare results:
 
 ```text
 FHIR-XXXXX: Brief imperative or audit summary
 
-Explain what the issue asked for, what the current source now says, and why this commit changes source or intentionally changes nothing.
+Issue request:
+What the Jira asked for, its final workflow status, and the decision/resolution that mattered.
+
+Initial application:
+How the issue appears to have been applied before this fixup, including explicit Jira-tagged commits and implicit git-history discoveries touching the relevant source. If there was no prior application, say so.
+
+Additional context:
+Later or related Jira decisions, source refactors, generated artifacts, branch state, community discussion, build-scope findings, or spec moves that affect how the issue should be interpreted now.
+
+AutoFHIR fixup:
+What this commit did, or why it intentionally made no source change.
+
+Recommendation:
+Whether to keep this commit as-is, revisit with human/work-group review, or do follow-up work, and why.
 
 AutofHIR-Run: <run-id>
 Issue-Fixup-Key: FHIR-XXXXX
@@ -99,7 +130,7 @@ FHIR-YYYYY: relationship - why it matters
 </evidence>
 ```
 
-Do not add Copilot coauthor trailers. Do not mention Jira issues as addressed unless the commit actually resolves or directly audits that issue. Related issues can be listed in `<related-jiras>`.
+For `fixed`, the message should make clear why each edited source file is in build scope and why each hunk is necessary. For `no-change` or `ambiguous`, the message should be a durable audit explanation, not a terse skip note. Do not add Copilot coauthor trailers. Do not mention Jira issues as addressed unless the commit actually resolves or directly audits that issue. Related issues can be listed in `<related-jiras>`.
 
 ## Local Integration
 

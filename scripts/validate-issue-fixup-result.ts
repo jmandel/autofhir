@@ -90,6 +90,35 @@ function validateCommitPatch(runId: string, commitSha: string, errors: string[],
   }
 }
 
+function validateCommitMessageShape(runId: string, commitSha: string, issueKey: string, warnings: string[]): void {
+  const run = readRun(runId);
+  if (!run.fhirRepo) {
+    warnings.push("cannot run commit message checks because run.fhirRepo is missing");
+    return;
+  }
+  const message = runCommand([
+    "git",
+    "show",
+    "-s",
+    "--format=%B",
+    commitSha,
+  ], { cwd: run.fhirRepo, allowFailure: true });
+  const required = [
+    "Issue request:",
+    "Initial application:",
+    "Additional context:",
+    "AutoFHIR fixup:",
+    "Recommendation:",
+    `Issue-Fixup-Key: ${issueKey}`,
+    "Issue-Fixup-Decision:",
+    "<evidence>",
+    "</evidence>",
+  ];
+  for (const needle of required) {
+    if (!message.includes(needle)) warnings.push(`commit message missing ${needle}`);
+  }
+}
+
 function validateDecision(decision: any, issueKey: string, errors: string[]): void {
   if (!decision || typeof decision !== "object") {
     errors.push("decision must be an object");
@@ -211,6 +240,7 @@ export function validateIssueFixupResult(options: {
         warnings.push(`reported commit ${parsed.commit.sha} differs from combined history commit ${commitSha}`);
       }
       if (commitSha) validateCommitPatch(runId, commitSha, errors, warnings);
+      if (commitSha) validateCommitMessageShape(runId, commitSha, issueKey, warnings);
     }
   }
 

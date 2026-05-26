@@ -110,7 +110,7 @@ bun autofhir/scripts/start.ts --run-id <run-id> --concurrency 4
 bun autofhir/scripts/monitor.ts --run-id <run-id> --interval-sec 120 --tick
 ```
 
-For issue-fixup runs, `start.ts` dispatches to `autofhir/scripts/issue-fixup-coordinator.ts`. Each successful worker publishes exactly one combined-branch commit with `Issue-Fixup-Key: FHIR-XXXXX`, either a real source fix or an empty audit/no-op commit.
+For issue-fixup runs, `start.ts` dispatches to `autofhir/scripts/issue-fixup-coordinator.ts`. Each successful worker publishes exactly one combined-branch commit with `Issue-Fixup-Key: FHIR-XXXXX`, either a real source fix or an empty audit/no-op commit. Prompts include `source/fhir.ini` build-scope hints; workers should edit only active build inputs and should prefer no-op audit commits over optional editorial polish or changes to inactive/stale artifacts.
 
 To prepare and run a second-pass issue-fixup audit:
 

@@ -75,6 +75,14 @@ The context generator found these likely source paths. Inspect them in `{{WORKTR
 {{SOURCE_PATHS}}
 </source_paths>
 
+## Build Scope Hints
+
+These hints are precomputed from `{{WORKTREE}}/source/fhir.ini` for the likely source files. They are not exhaustive and do not replace source inspection, but they can identify files that are probably not part of the current build. If a candidate file appears only in a commented `fhir.ini` entry, or has no active build reference, verify scope before editing it. Prefer an empty `no-change` or `ambiguous` audit commit over editing out-of-build source.
+
+<build_scope_hints>
+{{BUILD_SCOPE_HINTS}}
+</build_scope_hints>
+
 ## Idempotency Check
 
 Before editing, check whether `{{COMBINED_BRANCH}}` already contains:

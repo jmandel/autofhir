@@ -53,7 +53,7 @@ The review app is driven by issue-fixup outputs, not the original discovery or i
 
 The "Copy Review Plan" button copies a self-contained handoff that can be saved as `prompt.md` for another agent. It includes the local branch, GitHub compare URL, review decisions, and download links for the full issue-mapping input JSON and the full issue-fixup review JSON.
 
-Issue-fixup audit prompts include build-scope hints from `source/fhir.ini`. Audit workers are expected to reject or escalate commits that edit inactive/commented-out profiles, stale generated artifacts, or other files that do not feed the current built spec, and to prefer changes needed for semantic correctness over redundant explanatory prose.
+Issue-fixup and issue-fixup audit prompts include build-scope hints from `source/fhir.ini`. Workers are expected to reject, skip, or escalate changes that edit inactive/commented-out profiles, stale generated artifacts, or other files that do not feed the current built spec, and to prefer changes needed for semantic correctness over redundant explanatory prose.
 
 Publish the current review snapshot to GitHub branches and GitHub Pages:
 

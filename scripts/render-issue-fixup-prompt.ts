@@ -2,6 +2,7 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { buildScopeHints } from "./build-scope-hints";
 import { autofhirRoot, readJson, readRun, repoRoot, runPath, sanitizeId } from "./lib";
 
 type IssueFixupManifest = {
@@ -169,6 +170,7 @@ export function renderIssueFixupPrompt(options: {
     ZULIP_SNAPSHOTS: readZulipSnapshots(contextDir, context),
     CONFLUENCE_SNAPSHOTS: readConfluenceSnapshots(contextDir),
     SOURCE_PATHS: sourcePathText,
+    BUILD_SCOPE_HINTS: buildScopeHints(options.worktree, [...new Set(sourcePaths)]),
   };
 
   const templatePlaceholders = [...template.matchAll(/\{\{([A-Z][A-Z0-9_]*)\}\}/g)].map((match) => match[1]);
