@@ -15,7 +15,7 @@ function flag(name: string): boolean {
 }
 
 function usage(): string {
-  return `Usage: bun autofhir/scripts/cleanup-run-space.ts --run-id ID [--apply]
+  return `Usage: bun autofhir/scripts/cleanup-run-space.ts --run-id ID [--apply] [--include-agent-logs]
 
 Conservatively reclaims AutoFHIR disk space for a live or completed run.
 
@@ -23,8 +23,10 @@ Dry-run by default. With --apply, removes:
   - stale unregistered run worktree directories under worktrees/tasks,
     worktrees/integration, and worktrees/inspect
   - registered run worktrees whose issue/chunk is no longer running
-  - stale autofhir/<run-id> integration branches for non-running issues
+  - stale autofhir/<run-id> worker/integration branches for non-running issues
   - old /tmp/autofhir-review-publish-* directories
+  - with --include-agent-logs, per-item copilot logs, stdout, and stderr
+    for non-running issues/chunks/seeds
 
 It never removes worktrees for currently running issues.`;
 }
@@ -37,6 +39,7 @@ if (flag("-h") || flag("--help")) {
 const runId = arg("--run-id") ?? process.env.RUN_ID;
 if (!runId) throw new Error("--run-id or RUN_ID is required");
 const apply = flag("--apply");
+const includeAgentLogs = flag("--include-agent-logs");
 const run = readRun(runId);
 const root = runPath(runId);
 if (!run.fhirRepo) throw new Error(`run ${runId} has no fhirRepo`);
@@ -101,6 +104,7 @@ function gitWorktrees(): Map<string, string | undefined> {
 }
 
 const running = listJsonKeys(path.join(root, "chunks/running"));
+for (const key of listJsonKeys(path.join(root, "seeds/running"))) running.add(key);
 const worktrees = gitWorktrees();
 const candidates: Candidate[] = [];
 const retained: Candidate[] = [];
@@ -134,7 +138,7 @@ for (const group of ["tasks", "integration", "inspect"]) {
   }
 }
 
-const branchPrefix = `autofhir/${sanitizeId(runId)}/integrate-`;
+const branchPrefix = `autofhir/${sanitizeId(runId)}/`;
 const branches = runCommand(["git", "branch", "--format=%(refname:short)"], { cwd: run.fhirRepo, allowFailure: true })
   .split("\n")
   .map((line) => line.trim())
@@ -143,6 +147,44 @@ const removableBranches = branches.filter((branch) => {
   const issueKey = issueKeyFromName(branch);
   return !issueKey || !running.has(issueKey);
 });
+
+if (includeAgentLogs) {
+  for (const dir of listDirs(path.join(root, "copilot-logs"))) {
+    const issueKey = issueKeyFromName(path.basename(dir));
+    const entry: Candidate = {
+      kind: "agent/copilot-logs",
+      path: dir,
+      issueKey,
+      bytes: dirSizeBytes(dir),
+      reason: "per-worker Copilot execution logs",
+    };
+    if (issueKey && running.has(issueKey)) retained.push({ ...entry, reason: "issue is currently running" });
+    else candidates.push(entry);
+  }
+
+  for (const group of ["stdout", "stderr"]) {
+    const dir = path.join(root, group);
+    if (!existsSync(dir)) continue;
+    for (const file of readdirSync(dir)) {
+      const fullPath = path.join(dir, file);
+      try {
+        if (!statSync(fullPath).isFile()) continue;
+      } catch {
+        continue;
+      }
+      const issueKey = issueKeyFromName(file);
+      const entry: Candidate = {
+        kind: `agent/${group}`,
+        path: fullPath,
+        issueKey,
+        bytes: dirSizeBytes(fullPath),
+        reason: `per-worker ${group} stream`,
+      };
+      if (issueKey && running.has(issueKey)) retained.push({ ...entry, reason: "issue is currently running" });
+      else candidates.push(entry);
+    }
+  }
+}
 
 for (const dir of listDirs(tmpdir())) {
   const name = path.basename(dir);
