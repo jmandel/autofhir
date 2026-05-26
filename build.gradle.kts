@@ -88,9 +88,17 @@ task("addJsonNarrativeSkipLinks", JavaExec::class) {
     args((project.findProperty("publishDir") ?: file("publish").absolutePath).toString())
 }
 
+task("addProfileDefinitionAnchorAliases", JavaExec::class) {
+    dependsOn(":classes")
+    main = "org.hl7.fhir.tools.publisher.ProfileDefinitionAnchorAliasInjector"
+    classpath = sourceSets["main"].runtimeClasspath
+    args((project.findProperty("publishDir") ?: file("publish").absolutePath).toString())
+}
+
 fun postProcessPublishedArtifacts() {
     tagExamplePackages()
     addJsonNarrativeSkipLinks()
+    addProfileDefinitionAnchorAliases()
     fixOperationDefinitionReferenceCasing()
 }
 
@@ -113,6 +121,14 @@ fun fixOperationDefinitionReferenceCasing() {
 fun addJsonNarrativeSkipLinks() {
     javaexec {
         main = "org.hl7.fhir.tools.publisher.JsonNarrativeSkipLinkInjector"
+        classpath = sourceSets["main"].runtimeClasspath
+        args(file("publish").absolutePath)
+    }
+}
+
+fun addProfileDefinitionAnchorAliases() {
+    javaexec {
+        main = "org.hl7.fhir.tools.publisher.ProfileDefinitionAnchorAliasInjector"
         classpath = sourceSets["main"].runtimeClasspath
         args(file("publish").absolutePath)
     }
