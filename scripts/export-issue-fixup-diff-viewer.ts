@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { gzipSync } from "node:zlib";
@@ -30,6 +30,8 @@ type CommitReport = {
   files: string[];
   stat: string;
   patch: string;
+  patch_url?: string;
+  patch_bytes?: number;
   patch_truncated?: boolean;
   omitted_patch_files?: { file: string; reason: string }[];
 };
@@ -505,6 +507,8 @@ const report = {
     artifacts: {
       fixup_review_json: "issue-fixup-diff-report.json",
       fixup_review_json_gzip: "issue-fixup-diff-report.json.gz",
+      fixup_review_full_json_gzip: "issue-fixup-diff-report-full.json.gz",
+      fixup_patch_dir: "patches/",
       source_issue_mapping_json_gzip: existsSync(sourceIssueMappingReportGzipPath) ? sourceIssueMappingReportGzipName : undefined,
       source_issue_mapping_json_source_path: sourceIssueMappingReportPath,
     },
@@ -525,9 +529,25 @@ const report = {
 };
 
 const reportPath = path.join(outDir, "issue-fixup-diff-report.json");
+const fullReportGzipPath = path.join(outDir, "issue-fixup-diff-report-full.json.gz");
 const htmlPath = path.join(outDir, "issue-fixup-diff-viewer.html");
 const indexPath = path.join(outDir, "index.html");
-writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+const patchDir = path.join(outDir, "patches");
+rmSync(patchDir, { recursive: true, force: true });
+mkdirSync(patchDir, { recursive: true });
+for (const commit of commits) {
+  writeFileSync(path.join(patchDir, `${commit.sha}.patch`), commit.patch || "(empty commit; no source diff)\n");
+}
+const publishedReport = {
+  ...report,
+  commits: commits.map((commit) => ({
+    ...commit,
+    patch_url: `patches/${commit.sha}.patch`,
+    patch_bytes: Buffer.byteLength(commit.patch || "", "utf8"),
+  })),
+};
+writeFileSync(fullReportGzipPath, gzipSync(`${JSON.stringify(publishedReport, null, 2)}\n`));
+writeFileSync(reportPath, `${JSON.stringify(publishedReport, null, 2)}\n`);
 writeFileSync(`${reportPath}.gz`, gzipSync(readFileSync(reportPath)));
 const appJsPath = path.join(outDir, "review-app.js");
 const appCssPath = path.join(outDir, "review-app.css");

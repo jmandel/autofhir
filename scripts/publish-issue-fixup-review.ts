@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import { readRun, repoRoot, runCommand, runPath } from "./lib";
@@ -55,6 +55,7 @@ function copyReviewArtifacts(destRoot: string, includeRootIndex: boolean): void 
     "issue-fixup-diff-viewer.html",
     "issue-fixup-diff-report.json",
     "issue-fixup-diff-report.json.gz",
+    "issue-fixup-diff-report-full.json.gz",
     "review-app.js",
     "review-app.css",
   ]) {
@@ -65,6 +66,10 @@ function copyReviewArtifacts(destRoot: string, includeRootIndex: boolean): void 
   const sourceIssueMapping = path.join(reviewDir, "source-issue-mapping-report.json.gz");
   if (existsSync(sourceIssueMapping)) {
     copyFileSync(sourceIssueMapping, path.join(dest, "source-issue-mapping-report.json.gz"));
+  }
+  const patchDir = path.join(reviewDir, "patches");
+  if (existsSync(patchDir)) {
+    cpSync(patchDir, path.join(dest, "patches"), { recursive: true });
   }
   writeFileSync(path.join(destRoot, ".nojekyll"), "");
   if (includeRootIndex) {

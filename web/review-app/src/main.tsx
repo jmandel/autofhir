@@ -27,7 +27,9 @@ type CommitReport = {
   wg_confidence?: "high" | "medium" | "low";
   files: string[];
   stat: string;
-  patch: string;
+  patch?: string;
+  patch_url?: string;
+  patch_bytes?: number;
   patch_truncated?: boolean;
   omitted_patch_files?: { file: string; reason: string }[];
 };
@@ -211,6 +213,7 @@ function App() {
           <span>With results: {report.counts.with_result}</span>
           <span>WGs: {Object.keys(report.counts.by_wg || {}).length}</span>
           <span>Generated: {report.generated_at}</span>
+          {report.run.github_compare_url && <a href={report.run.github_compare_url} target="_blank" rel="noreferrer">Full branch diff on GitHub</a>}
         </div>
       </header>
       <div className="controls">
@@ -226,10 +229,9 @@ function App() {
       <div className="reviewbar">
         <div>
           <div>{reviewCountText(report.commits, bySha)}</div>
-          <div className="help">Shortcuts: <strong>A</strong> approve, <strong>R</strong> reject, <strong>D</strong> defer, <strong>J/K</strong> next/previous, <strong>C</strong> copy review plan. Browser Ctrl-F searches rendered commit messages and diffs.</div>
+          <div className="help">Shortcuts: <strong>A</strong> approve, <strong>R</strong> reject, <strong>D</strong> defer, <strong>J/K</strong> next/previous, <strong>C</strong> copy review plan. Browser Ctrl-F searches the rendered commit messages and diffs.</div>
         </div>
         <div className="buttons">
-          {report.run.github_compare_url && <a className="button-link primary" href={report.run.github_compare_url} target="_blank" rel="noreferrer">Full Branch Diff on GitHub</a>}
           <button className={copied ? "primary copied" : "primary"} onClick={() => copyPlan(report, rows, bySha, setCopied)}>{copied ? "Copied" : "Copy Review Plan"}</button>
           <button onClick={() => clear(rows.map((commit) => commit.sha))}>Clear Visible Review State</button>
         </div>
@@ -285,7 +287,7 @@ function CommitDetails({ rows, selected, onSelect, sort }: { rows: CommitReport[
   const selectCommit = useCallback((sha: string) => onSelect(sha), [onSelect]);
   return (
     <div className="detail">
-      {rows.map((commit) => {
+      {rows.length ? rows.map((commit) => {
         const group = wgTitle(commit);
         const header = sort === "wg" && group !== lastGroup;
         if (header) lastGroup = group;
@@ -295,7 +297,7 @@ function CommitDetails({ rows, selected, onSelect, sort }: { rows: CommitReport[
             <CommitCard commit={commit} selected={commit.sha === selected} onSelect={selectCommit} />
           </React.Fragment>
         );
-      })}
+      }) : <div className="empty">No commits match the current filters.</div>}
     </div>
   );
 }
@@ -305,7 +307,6 @@ const CommitCard = memo(function CommitCard({ commit, selected, onSelect }: { co
   const entry = normalizeEntry(rawEntry);
   const setDecision = useReviewStore((state) => state.setDecision);
   const setNote = useReviewStore((state) => state.setNote);
-  const text = useMemo(() => reviewText(commit), [commit]);
   return (
     <article id={`commit-${commit.sha}`} data-sha={commit.sha} className={selected ? "commit-card active" : "commit-card"} onFocus={() => onSelect(commit.sha)}>
       <div className="card-head">
@@ -332,14 +333,121 @@ const CommitCard = memo(function CommitCard({ commit, selected, onSelect }: { co
       </div>
       <div className="card-body">
         {commit.omitted_patch_files?.length ? <div className="notice critical">Embedded diff is incomplete for this commit. Use the GitHub full diff link for complete content.</div> : null}
-        <details className="review-details">
-          <summary>Commit message, evidence, and diff</summary>
-          <pre className="review-text">{text}</pre>
+        <CommitOverview commit={commit} />
+        <details className="review-details" open>
+          <summary>Git commit message</summary>
+          <pre className="commit-message">{commit.body || commit.subject || "(empty commit message)"}</pre>
         </details>
+        <details className="review-details">
+          <summary>Fixup agent assessment, files, and stats</summary>
+          <AgentAssessment commit={commit} />
+        </details>
+        <DiffSection commit={commit} />
       </div>
     </article>
   );
 });
+
+function CommitOverview({ commit }: { commit: CommitReport }) {
+  return (
+    <section className="overview">
+      <div className="link-row">
+        {commit.issue_key ? <a href={jiraUrl(commit.issue_key)} target="_blank" rel="noreferrer">Jira {commit.issue_key}</a> : <span>No Jira issue</span>}
+        {commit.github_commit_url ? <a href={commit.github_commit_url} target="_blank" rel="noreferrer">GitHub commit {commit.short_sha}</a> : null}
+        {commit.result_path ? <span>Agent report: {commit.result_path}</span> : <span>No agent report JSON</span>}
+      </div>
+      <dl className="metadata-grid">
+        <div><dt>Result</dt><dd>{outcomeLabel(commit.status || commit.decision_status)}</dd></div>
+        <div><dt>Work Group</dt><dd>{wgTitle(commit)}</dd></div>
+      </dl>
+      <section className="narrative-section">
+        <h3>What Changed</h3>
+        <p>{displaySummary(commit) || "(no summary)"}</p>
+        {commit.commit_context ? <p>{commit.commit_context}</p> : null}
+      </section>
+      {commit.recommendation ? (
+        <section className="narrative-section">
+          <h3>Recommendation</h3>
+          <p>{commit.recommendation}</p>
+        </section>
+      ) : null}
+    </section>
+  );
+}
+
+function AgentAssessment({ commit }: { commit: CommitReport }) {
+  return (
+    <div className="assessment">
+      {commit.summary ? (
+        <section className="narrative-section">
+          <h3>Fixup Agent Summary</h3>
+          <p>{commit.summary}</p>
+        </section>
+      ) : null}
+      {commit.recommendation ? (
+        <section className="narrative-section">
+          <h3>Fixup Agent Recommendation</h3>
+          <p>{commit.recommendation}</p>
+        </section>
+      ) : null}
+      <section className="narrative-section">
+        <h3>Files</h3>
+        <ul className="file-list">
+          {(commit.files?.length ? commit.files : ["(none)"]).map((file) => <li key={file}>{file}</li>)}
+        </ul>
+      </section>
+      <section className="narrative-section">
+        <h3>Stat</h3>
+        <pre className="stat-text">{commit.stat || "(none)"}</pre>
+      </section>
+    </div>
+  );
+}
+
+function DiffSection({ commit }: { commit: CommitReport }) {
+  const [patch, setPatch] = useState(commit.patch || "");
+  const [patchState, setPatchState] = useState<"ready" | "loading" | "error">(commit.patch ? "ready" : commit.patch_url ? "loading" : "ready");
+  useEffect(() => {
+    let cancelled = false;
+    setPatch(commit.patch || "");
+    if (commit.patch || !commit.patch_url) {
+      setPatchState("ready");
+      return () => { cancelled = true; };
+    }
+    setPatchState("loading");
+    fetch(assetUrl(commit.patch_url))
+      .then((response) => {
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        return response.text();
+      })
+      .then((text) => {
+        if (!cancelled) {
+          setPatch(text);
+          setPatchState("ready");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPatchState("error");
+    });
+    return () => { cancelled = true; };
+  }, [commit.sha, commit.patch, commit.patch_url]);
+  const patchText =
+    patch || (patchState === "loading" ? "Loading diff." : patchState === "error" ? "Could not load embedded diff. Use the GitHub full diff link." : "(empty commit; no source diff)");
+  const diffGroups = useMemo(() => groupedDiff(patchText), [patchText]);
+  return (
+    <section className="diff-section">
+      <div className="section-heading">
+        <h3>Diff</h3>
+      </div>
+      {commit.patch_truncated ? <div className="notice critical">Embedded diff is truncated. Use the GitHub full diff link for complete content.</div> : null}
+      <pre className="diff-text" aria-label={`Diff for ${commit.subject}`}>
+        {diffGroups.length ? diffGroups.map((group, index) => (
+          <span key={index} className={`diff-${group.kind}`}>{group.text || " "}</span>
+        )) : <span className="diff-context">(empty commit; no source diff)</span>}
+      </pre>
+    </section>
+  );
+}
 
 type FacetOption = { total: number; items: { value: string; label: string; count: number }[] };
 
@@ -447,39 +555,37 @@ function jiraUrl(key?: string) {
   return key && /^FHIR-\d+$/.test(key) ? `https://jira.hl7.org/browse/${key}` : "";
 }
 
-function reviewText(commit: CommitReport) {
-  return [
-    `Jira Issue: ${commit.issue_key || "(none)"} ${jiraUrl(commit.issue_key)}`,
-    `Result: ${outcomeLabel(commit.status || commit.decision_status)}`,
-    `Work Group: ${wgTitle(commit)}`,
-    `Author: ${commit.author}`,
-    `Authored: ${commit.authored_at}`,
-    `SHA: ${commit.sha}`,
-    commit.github_commit_url ? `GitHub commit: ${commit.github_commit_url}` : "",
-    commit.result_path ? `Agent report: ${commit.result_path}` : "Agent report: none",
-    "",
-    "WHAT CHANGED",
-    displaySummary(commit) || "(no summary)",
-    commit.commit_context || "",
-    "",
-    commit.summary ? `AGENT SUMMARY\n${commit.summary}\n` : "",
-    commit.recommendation ? `AGENT RECOMMENDATION\n${commit.recommendation}\n` : "",
-    "FILES",
-    ...(commit.files?.length ? commit.files : ["(none)"]),
-    "",
-    "COMMIT MESSAGE",
-    commit.body || "",
-    "",
-    "STAT",
-    commit.stat || "",
-    "",
-    "DIFF",
-    commit.patch || "(empty commit; no source diff)",
-  ].filter(Boolean).join("\n");
+type DiffGroup = { kind: "meta" | "hunk" | "add" | "del" | "context"; text: string };
+
+function groupedDiff(patch: string): DiffGroup[] {
+  const lines = patch ? patch.split("\n") : [];
+  const groups: DiffGroup[] = [];
+  for (const line of lines) {
+    const kind = diffKind(line);
+    const last = groups[groups.length - 1];
+    if (last?.kind === kind) last.text += `\n${line}`;
+    else groups.push({ kind, text: line });
+  }
+  return groups;
+}
+
+function diffKind(line: string): DiffGroup["kind"] {
+  if (line.startsWith("diff --git") || line.startsWith("index ") || line.startsWith("--- ") || line.startsWith("+++ ")) return "meta";
+  if (line.startsWith("@@")) return "hunk";
+  if (line.startsWith("+")) return "add";
+  if (line.startsWith("-")) return "del";
+  return "context";
 }
 
 function artifactUrl(report: Report, name?: string) {
   return name ? new URL(name, report.run.review_raw_base_url || location.href).href : "(not available)";
+}
+
+function assetUrl(name: string) {
+  const base = window.__AUTOFHIR_REPORT_URL__
+    ? new URL(window.__AUTOFHIR_REPORT_URL__, location.href).href
+    : location.href;
+  return new URL(name, base).href;
 }
 
 function reviewPlan(report: Report, visibleRows: CommitReport[], bySha: Record<string, ReviewEntry>) {
@@ -526,8 +632,9 @@ function reviewPlan(report: Report, visibleRows: CommitReport[], bySha: Record<s
     "",
     "Downloadable context artifacts:",
     `- Full source discovery/issue-mapping JSON used as the input to this fixup run: ${artifactUrl(report, artifacts.source_issue_mapping_json_gzip)}`,
-    `- Full fixup review JSON emitted by this run, which is the data this viewer is built from: ${artifactUrl(report, artifacts.fixup_review_json)}`,
-    `- Gzipped fixup review JSON, if a smaller download is preferred: ${artifactUrl(report, artifacts.fixup_review_json_gzip)}`,
+    `- Full fixup review JSON used by this app: ${artifactUrl(report, artifacts.fixup_review_json)}`,
+    `- Gzipped fixup review JSON with embedded patches: ${artifactUrl(report, artifacts.fixup_review_full_json_gzip || artifacts.fixup_review_json_gzip)}`,
+    `- Per-commit embedded patch files: ${artifactUrl(report, artifacts.fixup_patch_dir)}`,
     `- Standalone review HTML: ${artifactUrl(report, "index.html")}`,
     `- Source run id: ${report.run.source_run_id || "(unknown)"}`,
     "",
