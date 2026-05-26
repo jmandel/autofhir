@@ -104,6 +104,8 @@ type SelectionStore = {
   setSelected: (sha: string | null) => void;
 };
 
+const EnhancementContext = React.createContext(false);
+
 const reviewOptions: [ReviewDecision, string][] = [
   ["undecided", "Undecided"],
   ["approve", "Approve"],
@@ -159,11 +161,12 @@ function normalizeEntry(entry?: Partial<ReviewEntry>): ReviewEntry {
 function App() {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState("");
   const [wg, setWg] = useState("");
   const [file, setFile] = useState("");
   const [reviewDecision, setReviewDecision] = useState("");
   const [sort, setSort] = useState("wg");
+  const [diffsEnabled, setDiffsEnabled] = useState(false);
+  const [linksEnabled, setLinksEnabled] = useState(false);
   const [copied, setCopied] = useState(false);
   const bySha = useReviewStore((state) => state.bySha);
   const clear = useReviewStore((state) => state.clear);
@@ -179,14 +182,18 @@ function App() {
       .then((data: Report) => {
         const hashSha = shaFromHash(data.commits);
         setReport(data);
+        window.requestAnimationFrame(() => {
+          window.setTimeout(() => setLinksEnabled(true), 250);
+          window.setTimeout(() => setDiffsEnabled(true), 1000);
+        });
         useSelectionStore.getState().setSelected(hashSha || data.commits[0]?.sha || null);
         if (hashSha) window.setTimeout(() => scrollToSha(hashSha), 0);
       })
       .catch((err) => setError(String(err?.message || err)));
   }, []);
 
-  const options = React.useMemo(() => report ? buildOptions(report, bySha, { status, wg, file, reviewDecision }) : null, [report, bySha, status, wg, file, reviewDecision]);
-  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, wg, file, reviewDecision })), sort) : [], [report, bySha, status, wg, file, reviewDecision, sort]);
+  const options = React.useMemo(() => report ? buildOptions(report, bySha, { wg, file, reviewDecision }) : null, [report, bySha, wg, file, reviewDecision]);
+  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { wg, file, reviewDecision })), sort) : [], [report, bySha, wg, file, reviewDecision, sort]);
 
   const selectCommit = useCallback((sha: string, urlMode: "push" | "replace" | "none" = "none") => {
     useSelectionStore.getState().setSelected(sha);
@@ -273,7 +280,7 @@ function App() {
   }
 
   return (
-    <>
+    <EnhancementContext.Provider value={linksEnabled}>
       <header>
         <h1>{isAuditReport(report) ? "AutoFHIR Issue Fixup Audit Review" : "AutoFHIR Issue Fixup Diffs"}</h1>
         <div className="meta">
@@ -289,11 +296,11 @@ function App() {
       </header>
       <Intro report={report} />
       <div className="controls">
-        <Facet value={status} onChange={setStatus} label={isAuditReport(report) ? "All audit decisions" : "All results"} options={options.statuses} />
-        <Facet value={wg} onChange={setWg} label="All work groups" options={options.wgs} />
-        <Facet value={file} onChange={setFile} label="All changed files" options={options.files} />
-        <Facet value={reviewDecision} onChange={setReviewDecision} label="All review choices" options={options.reviews} />
-        <select value={sort} onChange={(event) => setSort(event.target.value)}>
+        {!isAuditReport(report) ? <Facet value="" onChange={() => undefined} label="All results" options={options.statuses} /> : null}
+        <Facet className="control-wg" value={wg} onChange={setWg} label="All work groups" options={options.wgs} />
+        <Facet className="control-file" value={file} onChange={setFile} label="All changed files" options={options.files} />
+        <Facet className="control-review" value={reviewDecision} onChange={setReviewDecision} label="All review choices" options={options.reviews} />
+        <select className="control-sort" value={sort} onChange={(event) => setSort(event.target.value)}>
           <option value="wg">Group by work group</option>
           <option value="branch">Commit order</option>
         </select>
@@ -311,9 +318,9 @@ function App() {
       <SelectionSideEffects />
       <main>
         <CommitList rows={rows} onOpen={openCommit} sort={sort} />
-        <CommitDetails rows={rows} onSelect={selectCommit} sort={sort} />
+        <CommitDetails rows={rows} onSelect={selectCommit} sort={sort} diffsEnabled={diffsEnabled} />
       </main>
-    </>
+    </EnhancementContext.Provider>
   );
 }
 
@@ -352,9 +359,9 @@ function Intro({ report }: { report: Report }) {
   );
 }
 
-function Facet({ label, value, options, onChange }: { label: string; value: string; options: FacetOption[]; onChange: (value: string) => void }) {
+function Facet({ label, value, options, onChange, className }: { label: string; value: string; options: FacetOption[]; onChange: (value: string) => void; className?: string }) {
   return (
-    <select value={value} onChange={(event) => onChange(event.target.value)}>
+    <select className={className} value={value} onChange={(event) => onChange(event.target.value)}>
       <option value="">{label} ({options.total})</option>
       {options.items.map((item) => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}
     </select>
@@ -399,7 +406,7 @@ const CommitRow = memo(function CommitRow({ commit, onOpen }: { commit: CommitRe
   );
 });
 
-function CommitDetails({ rows, onSelect, sort }: { rows: CommitReport[]; onSelect: (sha: string) => void; sort: string }) {
+function CommitDetails({ rows, onSelect, sort, diffsEnabled }: { rows: CommitReport[]; onSelect: (sha: string) => void; sort: string; diffsEnabled: boolean }) {
   let lastGroup = "";
   const selectCommit = useCallback((sha: string) => onSelect(sha), [onSelect]);
   return (
@@ -411,7 +418,7 @@ function CommitDetails({ rows, onSelect, sort }: { rows: CommitReport[]; onSelec
         return (
           <React.Fragment key={commit.sha}>
             {header && <div className="detail-group">{group}</div>}
-            <CommitCard commit={commit} onSelect={selectCommit} />
+            <CommitCard commit={commit} onSelect={selectCommit} diffsEnabled={diffsEnabled} />
           </React.Fragment>
         );
       }) : <div className="empty">No commits match the current filters.</div>}
@@ -419,7 +426,7 @@ function CommitDetails({ rows, onSelect, sort }: { rows: CommitReport[]; onSelec
   );
 }
 
-const CommitCard = memo(function CommitCard({ commit, onSelect }: { commit: CommitReport; onSelect: (sha: string) => void }) {
+const CommitCard = memo(function CommitCard({ commit, onSelect, diffsEnabled }: { commit: CommitReport; onSelect: (sha: string) => void; diffsEnabled: boolean }) {
   const selected = useSelectionStore((state) => state.selected === commit.sha);
   const rawEntry = useReviewStore((state) => state.bySha[commit.sha]);
   const entry = normalizeEntry(rawEntry);
@@ -470,11 +477,22 @@ const CommitCard = memo(function CommitCard({ commit, onSelect }: { commit: Comm
           <summary>{commit.audit_decision ? "Files and stats" : "Fixup agent assessment, files, and stats"}</summary>
           {commit.audit_decision ? <FilesAndStats commit={commit} /> : <AgentAssessment commit={commit} />}
         </details>
-        <DiffSection commit={commit} />
+        {diffsEnabled ? <DiffSection commit={commit} /> : <DeferredDiffSection />}
       </div>
     </article>
   );
 });
+
+function DeferredDiffSection() {
+  return (
+    <section className="diff-section">
+      <div className="section-heading">
+        <h3>Diff</h3>
+      </div>
+      <pre className="diff-text">Loading diff after initial review content.</pre>
+    </section>
+  );
+}
 
 function CommitOverview({ commit }: { commit: CommitReport }) {
   return (
@@ -617,6 +635,8 @@ function RichText({ text }: { text: string }) {
 }
 
 function LinkifiedText({ text }: { text: string }) {
+  const linksEnabled = React.useContext(EnhancementContext);
+  if (!linksEnabled) return <>{text}</>;
   const tokenPattern = /(FHIR-\d+|PR\s+#?\d+|(?<![A-Za-z0-9])[a-f0-9]{7,40}(?![A-Za-z0-9]))/gi;
   const pieces: React.ReactNode[] = [];
   let last = 0;
