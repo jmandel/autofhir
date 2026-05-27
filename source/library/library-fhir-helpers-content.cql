@@ -81,7 +81,6 @@ define function ToString(value FHIR.id): value.value
 define function ToString(value FHIR.FilterOperator): value.value
 define function ToString(value FHIR.NamingSystemType): value.value
 define function ToString(value FHIR.ContractResourceStatusCodes): value.value
-define function ToString(value FHIR.ResearchSubjectStatus): value.value
 define function ToString(value FHIR.StructureMapTransform): value.value
 define function ToString(value FHIR.ResponseType): value.value
 define function ToDecimal(value FHIR.decimal): value.value
