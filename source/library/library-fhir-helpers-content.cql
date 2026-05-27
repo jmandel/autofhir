@@ -185,7 +185,6 @@ define function ToString(value FHIR.EventCapabilityMode): value.value
 define function ToString(value FHIR.CodeSearchSupport): value.value
 define function ToString(value FHIR.ObservationRangeCategory): value.value
 define function ToString(value FHIR.UDIEntryType): value.value
-define function ToString(value FHIR.DeviceMetricCategory): value.value
 define function ToString(value FHIR.TestReportActionResult): value.value
 define function ToString(value FHIR.CapabilityStatementKind): value.value
 define function ToString(value FHIR.EventTiming): value.value
@@ -209,7 +208,6 @@ define function ToString(value FHIR.ActionConditionKind): value.value
 define function ToString(value FHIR.qualityType): value.value
 define function ToString(value FHIR.AdministrativeGender): value.value
 define function ToString(value FHIR.QuestionnaireItemType): value.value
-define function ToString(value FHIR.DeviceMetricCalibrationType): value.value
 define function ToString(value FHIR.EvidenceVariableType): value.value
 define function ToString(value FHIR.code): value.value
 define function ToString(value FHIR.ActionSelectionBehavior): value.value
