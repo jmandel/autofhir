@@ -19,8 +19,9 @@ Most commands and prompts still assume they are run from the parent `fhir-commun
 The repository tracks non-run-specific machinery:
 
 - workflow documentation under `workflows/`
-- worker prompt templates under `discovery/`, `issue-mapping/`, `issue-fixup/`, and `issue-fixup-audit/`
+- worker prompt templates under `discovery/`, `issue-mapping/`, `issue-fixup/`, `issue-fixup-audit/`, and `issue-reconcile/`
 - orchestration scripts under `scripts/`
+- durable run input rosters under `run-inputs/`
 - operational guidance in `SKILL.md`
 
 It does not track run outputs, per-worker worktrees, generated logs, review exports, or copied FHIR source trees.
@@ -54,6 +55,10 @@ The review app is driven by issue-fixup outputs, not the original discovery or i
 The "Copy Review Plan" button copies a self-contained handoff that can be saved as `prompt.md` for another agent. It includes the local branch, GitHub compare URL, review decisions, and download links for the full issue-mapping input JSON and the full issue-fixup review JSON.
 
 Issue-fixup and issue-fixup audit prompts include build-scope hints from `source/fhir.ini`. Workers are expected to reject, skip, or escalate changes that edit inactive/commented-out profiles, stale generated artifacts, or other files that do not feed the current built spec, and to prefer changes needed for semantic correctness over redundant explanatory prose.
+
+The issue-reconcile workflow is a discovery-with-autofix variant. It starts from Jira seeds whose workflow status is `Applied` or `Published` by default, snapshots the seed context, injects the community search guide and build-scope guidance, and lets each worker decide the seed plus a small number of tightly related issues discovered during the same investigation. Each decided issue is represented by its own `Issue-Reconcile-Key: FHIR-XXXXX` commit on the combined branch. Use `--include-resolved-change-required` only for a deliberately broader experiment.
+
+Issue-reconcile prompts also include the FHIR Extension Pack checkout. Use the default `/home/jmandel/work/fhir-extensions`, or set `FHIR_EXTENSIONS_REPO` when rendering/launching workers. Workers treat that checkout as read-only evidence unless the run explicitly targets extension-pack edits.
 
 Publish the current review snapshot to GitHub branches and GitHub Pages:
 

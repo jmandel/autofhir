@@ -19,6 +19,7 @@ Current workflow docs:
 - `workflows/issue-mapping.md` — Jira-first read-only mapping runs. Workers decide one seed Jira issue at a time and accumulate observations for downstream work-item generation.
 - `workflows/issue-fixup.md` — follow-on source-fix/audit runs. Workers process issue-mapping rows assessed as not fully applied and publish one `Issue-Fixup-Key:` commit per Jira issue.
 - `issue-fixup-audit/issue-fixup-audit-pipeline.md` — read-only second-pass audit of issue-fixup commits. Workers decide keep/tweak/drop/human-review and rewrite commit messages, with explicit checks for current build scope and semantic necessity.
+- `issue-reconcile/issue-reconcile-pipeline.md` — discovery-with-autofix runs. Workers start from one `Applied`/`Published` Jira seed by default, explore the related source/community/history neighborhood, and may publish one `Issue-Reconcile-Key:` commit per decided issue.
 
 Review app source:
 
@@ -124,6 +125,28 @@ bun autofhir/scripts/monitor.ts --run-id <audit-run-id> --interval-sec 120 --tic
 ```
 
 For issue-fixup audit runs, `start.ts` dispatches to `autofhir/scripts/issue-fixup-audit-coordinator.ts`. Prompts bake in the original issue context, fixup result, generated commit, previous issue-tagged commits, source patch, and `source/fhir.ini` build-scope hints. Audit workers must verify that touched files feed the current build and that source changes are needed for semantic correctness, not just optional clarification.
+
+To prepare and run a discovery-with-autofix issue reconciliation spike:
+
+```bash
+bun autofhir/scripts/prepare-issue-reconcile-run.ts \
+  --run-id <run-id> \
+  --fhir-repo /home/jmandel/work/fhir \
+  --base-ref master \
+  --cutoff 2018-12-27 \
+  --order random \
+  --limit 35 \
+  --source-run <optional-issue-mapping-run-id>
+
+bun autofhir/scripts/start.ts --run-id <run-id> --concurrency 30
+bun autofhir/scripts/monitor.ts --run-id <run-id> --interval-sec 120 --tick
+```
+
+For issue-reconcile runs, `start.ts` dispatches to `autofhir/scripts/issue-reconcile-coordinator.ts`. Prompts include seed Jira snapshots, optional prior issue-mapping observations, the community search guide, build-scope hints, and explicit instructions for bounded exploration. Workers must decide the seed and may decide tightly related issues discovered during investigation, but each decided issue must get its own `Issue-Reconcile-Key: FHIR-XXXXX` commit and self-contained JSON result entry.
+
+The default seed pool is Jira workflow status `Applied`/`Published` only. Add `--include-resolved-change-required` only for a deliberately broader experiment that may create source-changing work for WG-resolved-but-not-yet-applied issues.
+
+Issue-reconcile prompts include a FHIR Extension Pack checkout for read-only evidence. The default is `/home/jmandel/work/fhir-extensions`; set `FHIR_EXTENSIONS_REPO` if the checkout lives elsewhere. When older core issues mention extensions, workers should search both core FHIR and the Extension Pack before concluding that core source is stale or incomplete.
 
 ## Core Rules
 

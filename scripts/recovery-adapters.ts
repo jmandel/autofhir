@@ -20,6 +20,7 @@ import {
 import { validateIssueMappingResult } from "./validate-issue-mapping-result";
 import { validateIssueFixupResult } from "./validate-issue-fixup-result";
 import { validateIssueFixupAuditResult } from "./validate-issue-fixup-audit-result";
+import { validateIssueReconcileResult } from "./validate-issue-reconcile-result";
 import { validatePlan } from "./validate-plan";
 
 export type RecoveryValidation = {
@@ -198,6 +199,24 @@ function combinedHistoryHasIssueFixup(runId: string, issueKey: string): boolean 
     "log",
     "--fixed-strings",
     `--grep=Issue-Fixup-Key: ${issueKey}`,
+    "--format=%H",
+    "-n",
+    "1",
+    run.combinedBranch,
+  ], {
+    cwd: run.fhirRepo,
+    allowFailure: true,
+  }).trim());
+}
+
+function combinedHistoryHasIssueReconcile(runId: string, issueKey: string): boolean {
+  const run = readRun(runId);
+  if (!run.fhirRepo || !run.combinedBranch) return false;
+  return Boolean(runCommand([
+    "git",
+    "log",
+    "--fixed-strings",
+    `--grep=Issue-Reconcile-Key: ${issueKey}`,
     "--format=%H",
     "-n",
     "1",
@@ -541,10 +560,93 @@ export const issueFixupAuditRecoveryAdapter: RecoveryAdapter = {
   },
 };
 
+export const issueReconcileRecoveryAdapter: RecoveryAdapter = {
+  workflow: "issue-reconcile",
+  itemRoot: "chunks",
+  itemLabel: "seed",
+  coordinatorScript: "autofhir/scripts/issue-reconcile-coordinator.ts",
+  keyFromManifest(manifest, file) {
+    return manifest.seedKey ?? manifest.issueKey ?? manifest.chunkId ?? path.basename(file, ".json");
+  },
+  resultPath(runId, key) {
+    return path.join(runPath(runId), "results", `${key}.json`);
+  },
+  validateResult({ runId, key, resultPath, yes }) {
+    const validation = validateIssueReconcileResult({ runId, seedKey: key, chunkId: key, resultPath, writeResult: yes });
+    return {
+      ...validation,
+      summary: validation.ok
+        ? `valid issue-reconcile ${validation.status} result with ${validation.issueCount ?? 0} issue decisions`
+        : `invalid issue-reconcile result: ${validation.errors.join("; ")}`,
+    };
+  },
+  finalizeValidResult({ runId, key, resultPath, validation, yes }) {
+    const result = readJson<any>(resultPath);
+    if (yes) {
+      for (const entry of result.journal_entries ?? []) {
+        appendJournal(runId, { type: "issue-reconcile-decision", seedKey: key, ...entry });
+      }
+      for (const issueResult of result.issue_results ?? []) {
+        appendJournal(runId, {
+          type: "issue-reconcile-issue",
+          seedKey: key,
+          issueKey: issueResult.issue_key,
+          role: issueResult.role,
+          status: issueResult.status,
+          summary: issueResult.summary,
+        });
+      }
+    }
+    if (result.status === "blocked") {
+      if (yes) {
+        setStatus(runId, key, { status: "blocked" });
+        appendJournal(runId, { type: "issue-reconcile-blocked", seedKey: key, status: "blocked", summary: result.issue_results?.[0]?.summary ?? result.status });
+      }
+      return { status: "blocked", summary: result.issue_results?.[0]?.summary ?? validation.summary };
+    }
+    if (yes) {
+      setStatus(runId, key, { status: "complete", recovered_seed_commit_present: combinedHistoryHasIssueReconcile(runId, key) ? "true" : "false" });
+      appendJournal(runId, { type: "issue-reconcile-integrated", seedKey: key, status: result.status, summary: `${result.issue_results?.length ?? 0} issue decisions` });
+    }
+    return { status: "done", summary: validation.summary };
+  },
+  archiveBeforeRetry({ runId, key, resultPath, state, yes }) {
+    if (!yes) return;
+    const status = statusValues(runId, key);
+    const retryAttempt = nextRetryAttempt(runId, key);
+    writeJson(retryInfoPath(runId, key), {
+      schemaVersion: "1.0",
+      runId,
+      seedKey: key,
+      issueKey: key,
+      chunkId: key,
+      retryAttempt,
+      queuedAt: new Date().toISOString(),
+      previousState: state,
+      previous: {
+        branch: status.branch,
+        worktree: status.worktree,
+        chunk_json: status.chunk_json,
+        result: status.result ?? resultPath,
+        prompt: status.prompt,
+        stdout: status.stdout,
+        stderr: status.stderr,
+        copilot_log_dir: status.copilot_log_dir,
+        exit_code: status.exit_code,
+        finished_at: status.finished_at,
+        status: status.status,
+        error: status.error,
+      },
+    });
+    archiveIfExists(resultPath, state);
+  },
+};
+
 export function recoveryAdapterForWorkflow(workflow: string | undefined): RecoveryAdapter {
   if (workflow === "issue-mapping") return issueMappingRecoveryAdapter;
   if (workflow === "discovery") return discoveryRecoveryAdapter;
   if (workflow === "issue-fixup") return issueFixupRecoveryAdapter;
   if (workflow === "issue-fixup-audit") return issueFixupAuditRecoveryAdapter;
+  if (workflow === "issue-reconcile") return issueReconcileRecoveryAdapter;
   return applyRecoveryAdapter;
 }

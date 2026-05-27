@@ -113,13 +113,15 @@ function validateCommitMessageShape(runId: string, commitSha: string, issueKey: 
     "Issue-Fixup-Decision:",
     "<evidence>",
     "</evidence>",
+    "<evidence-manifest>",
+    "</evidence-manifest>",
   ];
   for (const needle of required) {
     if (!message.includes(needle)) warnings.push(`commit message missing ${needle}`);
   }
 }
 
-function validateDecision(decision: any, issueKey: string, errors: string[]): void {
+function validateDecision(decision: any, issueKey: string, errors: string[], warnings: string[]): void {
   if (!decision || typeof decision !== "object") {
     errors.push("decision must be an object");
     return;
@@ -156,7 +158,12 @@ function validateDecision(decision: any, issueKey: string, errors: string[]): vo
       if (!evidenceKinds.has(row.kind)) errors.push(`${prefix}.kind is invalid`);
       if (!isString(row.locator)) errors.push(`${prefix}.locator is required`);
       if (row.url !== undefined && typeof row.url !== "string") errors.push(`${prefix}.url must be a string`);
+      if (row.snapshot_path !== undefined && typeof row.snapshot_path !== "string") errors.push(`${prefix}.snapshot_path must be a string`);
+      if (row.command !== undefined && typeof row.command !== "string") errors.push(`${prefix}.command must be a string`);
+      if (row.query !== undefined && typeof row.query !== "string") errors.push(`${prefix}.query must be a string`);
+      if (row.result_count !== undefined && typeof row.result_count !== "number") errors.push(`${prefix}.result_count must be a number`);
       if (!isString(row.summary)) errors.push(`${prefix}.summary is required`);
+      if (!isString(row.learned)) warnings.push(`${prefix}.learned should explain what this evidence proves or rules out`);
       if (!Array.isArray(row.supports) || !row.supports.every(isString)) errors.push(`${prefix}.supports must be a string array`);
       if (row.ref !== undefined && (!row.ref || typeof row.ref !== "object" || Array.isArray(row.ref))) {
         errors.push(`${prefix}.ref must be an object when present`);
@@ -206,7 +213,7 @@ export function validateIssueFixupResult(options: {
   if (!statuses.has(parsed.status)) errors.push("status is invalid");
   if (!isString(parsed.branch)) errors.push("branch is required");
 
-  validateDecision(parsed.decision, issueKey, errors);
+  validateDecision(parsed.decision, issueKey, errors, warnings);
   if (parsed.decision?.status !== undefined && parsed.status !== parsed.decision.status) {
     errors.push("status must match decision.status");
   }

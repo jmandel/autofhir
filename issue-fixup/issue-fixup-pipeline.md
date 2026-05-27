@@ -122,15 +122,93 @@ FHIR-YYYYY: relationship - why it matters
 </related-jiras>
 
 <evidence>
-- Jira: FHIR-XXXXX status/resolution and what it establishes.
-- Source: repo-relative file path and what was checked or changed.
-- Git: commit(s), blame, or pickaxe result and what it establishes.
-- Community: Zulip/Confluence evidence if relevant.
-- Verification: command(s) run and relevant outcome.
+- E1 Jira FHIR-XXXXX: brief status/resolution summary. Learned: what this establishes for the decision.
+- E2 Source path/to/file.ext:line: brief source summary. Learned: why this source check matters.
+- E3 Git abc1234: brief commit/history summary. Learned: what changed before this fixup.
+- E4 Community Zulip/Confluence locator: brief discussion/minutes summary, or explicit negative search summary. Learned: whether community evidence changes the conclusion.
+- E5 Verification command/query: brief result. Learned: what confidence it provides.
 </evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-XXXXX",
+    "url": "https://jira.hl7.org/browse/FHIR-XXXXX",
+    "snapshot_path": "contexts/FHIR-XXXXX/jira/FHIR-XXXXX.md",
+    "ref": { "jira_key": "FHIR-XXXXX" },
+    "summary": "One-sentence summary of what the issue says.",
+    "learned": "One-sentence explanation of what this proves or rules out.",
+    "supports": ["issue_request", "fixup"]
+  },
+  {
+    "id": "E2",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-XXXXX plus key terms",
+    "command": "bun run zulip:search fts 'FHIR-XXXXX key terms' --limit 10; bun run confluence:search refs jira FHIR-XXXXX",
+    "summary": "No directly relevant or conflicting community hits were found.",
+    "learned": "There is no discovered community record that changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>
 ```
 
 For `fixed`, the message should make clear why each edited source file is in build scope and why each hunk is necessary. For `no-change` or `ambiguous`, the message should be a durable audit explanation, not a terse skip note. Do not add Copilot coauthor trailers. Do not mention Jira issues as addressed unless the commit actually resolves or directly audits that issue. Related issues can be listed in `<related-jiras>`.
+
+The `<evidence>` block is for human scanning. The `<evidence-manifest>` block must be valid JSON and should mirror the important result JSON evidence items. Keep it concise, but include enough to link back to the original Jira/Zulip/Confluence/source/git/command evidence. Use `snapshot_path` for pre-baked or worker-saved snapshots when available. If you searched Zulip or Confluence and found nothing relevant, include a `kind: "command"` evidence row with the query, result summary, and what the absence of evidence means. If community evidence was relevant, cite the original URL and snapshot path if one exists.
+
+Use these fictional examples for consistent evidence population:
+
+```json
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-90001",
+    "url": "https://jira.hl7.org/browse/FHIR-90001",
+    "snapshot_path": "contexts/FHIR-90001/jira/FHIR-90001.md",
+    "ref": { "jira_key": "FHIR-90001" },
+    "summary": "Applied/Persuasive with Modification issue requiring ResourceX.status to use a required binding to Example Status.",
+    "learned": "This is final WG intent and establishes the target binding strength for the current source check.",
+    "supports": ["issue_request", "fixup"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2025-05-20 page 123456789",
+    "url": "https://confluence.hl7.org/display/FHIRI/2025-05-20+FHIR-I+Minutes",
+    "snapshot_path": "contexts/FHIR-90001/confluence/123456789.md",
+    "ref": { "confluence_page_id": 123456789 },
+    "summary": "Minutes record a 7-0-0 motion to accept FHIR-90001 and clarify that ResourceY should not be changed.",
+    "learned": "This confirms the approved scope is ResourceX only and prevents an overbroad edit.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "zulip",
+    "locator": "#implementers > ResourceX status binding",
+    "url": "https://chat.fhir.org/#narrow/stream/179166-implementers/topic/ResourceX.20status.20binding",
+    "snapshot_path": "contexts/FHIR-90001/zulip/implementers--ResourceX-status-binding.md",
+    "ref": { "stream": "implementers", "topic": "ResourceX status binding", "message_id": 123456789 },
+    "summary": "The responsible editor explains that the base resource remains extensible because local codes must still be possible.",
+    "learned": "This supports leaving the base binding unchanged and fixing only the profile-specific text.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-90001 and ResourceX status binding",
+    "command": "bun run zulip:search fts 'FHIR-90001 ResourceX status binding' --limit 10; bun run confluence:search refs jira FHIR-90001",
+    "query": "FHIR-90001 ResourceX status binding",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source conclusion, so confidence depends on Jira, source, and git evidence.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+```
 
 ## Local Integration
 
@@ -174,8 +252,13 @@ interface IssueFixupResult {
       kind: "jira" | "zulip" | "confluence" | "source" | "git" | "published-spec" | "command" | "web";
       locator: string;
       url?: string;
+      snapshot_path?: string;
+      command?: string;
+      query?: string;
+      result_count?: number;
       ref?: Record<string, string | number>;
       summary: string;
+      learned: string;
       supports: string[];
     }[];
     checks: string[];

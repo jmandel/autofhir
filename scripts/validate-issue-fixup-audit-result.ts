@@ -53,7 +53,7 @@ function validationOutputPath(resultPath: string): string {
   return path.join(parsed.dir, `${parsed.name}.validation.json`);
 }
 
-function validateEvidenceItems(value: unknown, errors: string[]): void {
+function validateEvidenceItems(value: unknown, errors: string[], warnings: string[]): void {
   if (!Array.isArray(value) || value.length === 0) {
     errors.push("evidence_items must be a non-empty array");
     return;
@@ -68,7 +68,12 @@ function validateEvidenceItems(value: unknown, errors: string[]): void {
     if (!evidenceKinds.has(row.kind)) errors.push(`${prefix}.kind is invalid`);
     if (!isString(row.locator)) errors.push(`${prefix}.locator is required`);
     if (row.url !== undefined && typeof row.url !== "string") errors.push(`${prefix}.url must be a string`);
+    if (row.snapshot_path !== undefined && typeof row.snapshot_path !== "string") errors.push(`${prefix}.snapshot_path must be a string`);
+    if (row.command !== undefined && typeof row.command !== "string") errors.push(`${prefix}.command must be a string`);
+    if (row.query !== undefined && typeof row.query !== "string") errors.push(`${prefix}.query must be a string`);
+    if (row.result_count !== undefined && typeof row.result_count !== "number") errors.push(`${prefix}.result_count must be a number`);
     if (!isString(row.summary)) errors.push(`${prefix}.summary is required`);
+    if (!isString(row.learned)) warnings.push(`${prefix}.learned should explain what this evidence proves or rules out`);
     if (!Array.isArray(row.supports) || !row.supports.every(isString)) errors.push(`${prefix}.supports must be a string array`);
     if (row.ref !== undefined && (!row.ref || typeof row.ref !== "object" || Array.isArray(row.ref))) errors.push(`${prefix}.ref must be an object when present`);
   });
@@ -110,6 +115,9 @@ function validateReplacementMessage(message: unknown, issueKey: string, errors: 
   ];
   for (const needle of required) {
     if (!message.includes(needle)) errors.push(`replacement_commit_message missing ${needle}`);
+  }
+  for (const needle of ["<evidence-manifest>", "</evidence-manifest>"]) {
+    if (!message.includes(needle)) warnings.push(`replacement_commit_message missing ${needle}`);
   }
   if (message.includes("Complicating context:")) errors.push("replacement_commit_message must use Additional context, not Complicating context");
   if (/message-rewrite-/i.test(message)) errors.push("replacement_commit_message must not use message-rewrite-prefixed decisions");
@@ -167,7 +175,7 @@ export function validateIssueFixupAuditResult(options: {
   if (!confidences.has(parsed.confidence)) errors.push("confidence is invalid");
 
   if (isKey(issueKey)) validateReplacementMessage(parsed.replacement_commit_message, issueKey, errors, warnings);
-  validateEvidenceItems(parsed.evidence_items, errors);
+  validateEvidenceItems(parsed.evidence_items, errors, warnings);
   validateRelatedJiras(parsed.related_jiras, errors);
 
   const result: ValidationResult = {
