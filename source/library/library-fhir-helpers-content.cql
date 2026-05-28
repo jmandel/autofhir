@@ -136,7 +136,7 @@ define function ToString(value FHIR.RelatedArtifactType): value.value
 define function ToString(value FHIR.oid): value.value
 define function ToString(value FHIR.CompartmentType): value.value
 define function ToString(value FHIR.medicationrequestStatus): value.value
-define function ToString(value FHIR.InvoicePriceComponentType): value.value
+define function ToString(value FHIR.PriceComponentType): value.value
 define function ToString(value FHIR.DeviceMetricCalibrationState): value.value
 define function ToString(value FHIR.GroupType): value.value
 define function ToString(value FHIR.EnableWhenBehavior): value.value
