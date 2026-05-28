@@ -86,7 +86,7 @@
   <!-- CONTENT CONTENT -->
 
 
-<div class="col-9">
+<div class="col-12">
 
 <h2>Search FHIR</h2>
 <p>
