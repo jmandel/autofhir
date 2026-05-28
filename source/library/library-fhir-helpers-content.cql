@@ -75,7 +75,7 @@ define function ToString(value FHIR.TestReportParticipantType): value.value
 define function ToString(value FHIR.BindingStrength): value.value
 define function ToString(value FHIR.RequestPriority): value.value
 define function ToString(value FHIR.ParticipantRequired): value.value
-define function ToString(value FHIR.XPathUsageType): value.value
+define function ToString(value FHIR.SearchProcessingModeType): value.value
 define function ToString(value FHIR.id): value.value
 define function ToString(value FHIR.FilterOperator): value.value
 define function ToString(value FHIR.NamingSystemType): value.value
