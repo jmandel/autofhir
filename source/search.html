@@ -75,6 +75,7 @@ search declarations</a></span>, and clients are encouraged to do this too.
           <li><a href="#identifierslogical">Logical Identifiers</a></li>
           <li><a href="#membership">Searching by Membership</a></li>
           <li><a href="#identifierreferences">Identifiers and References</a></li>
+          <li><a href="#identifierresource">Resource Identifiers</a></li>
           <li><a href="#identifiercanonical">Canonical Identifiers</a></li>
         </ul>
       </li>
@@ -104,6 +105,7 @@ search declarations</a></span>, and clients are encouraged to do this too.
         <ul>
           <li><a href="#_include">Inline Requests (_include, _revinclude)</a></li>
           <li><a href="#external">External References</a></li>
+          <li><a href="#includecanonical">Canonical References</a></li>
           <li><a href="#_graph">Graph Definitions (_graph)</a></li>
           <li><a href="#contained">Contained Resources (_contained)</a></li>
           <li><a href="#paging">Paging and Other Resources</a></li>
@@ -3346,9 +3348,9 @@ subject:Patient=23</span>
 </p>
 <p>
 This has the same effect as the previous search. The modifier becomes useful when used with chaining
-as explained in the next section. Note: The <code>[type]</code> modifier can't be used with a reference to a resource found on another server,
-since the server would not usually know what type that resource has.  However, since external references are always absolute references,
-there can be no ambiguity about the type.
+as explained in the next section. Note that servers can impose restrictions on the use of the <code>[type]</code>
+modifier based on instance contents, such as requiring explicit <code>Reference.reference</code> values, explicit
+<code>Reference.type</code> information, local (relative) references, or including/excluding canonical references.
 </p>
 <p>
 In some cases, search parameters are defined with an implicitly limited scope. For example,
@@ -3380,12 +3382,10 @@ The :identifier modifier is not supported on canonical elements since they do no
 separate from the reference itself.
 </p>
 <p>
-Chaining is not supported when using the :identifier modifier, nor are chaining, includes
-or reverse includes supported for reference search parameters that target elements without 
-a <code>reference</code> element.  For example, a search parameter that targets an element 
-with the <a href="references.html#Reference">Reference</a> FHIR type can be chained through,
-but a search parameter that targets a <a href="references.html#canonical">canonical</a> element
-cannot.
+Chaining is not defined when using the <code>:identifier</code> modifier, nor are chaining, includes,
+or reverse includes defined for reference search parameters that target elements without an explicit
+reference value, though servers MAY choose to implement any or all of them. For more information,
+see <a href="#chaining">Chaining (chained parameters)</a>.
 </p>
 <p>
 The reference search parameter type is mostly used for resource elements of type <code>Reference</code> or <code>canonical</code>.
@@ -4113,8 +4113,8 @@ value-range-values=le20$ge30</span>
   <a href="#modifieridentifier"><code>identifier</code></a> search modifier.
 </p>
 
-<a name="identifiercanonical"></a>
-<h5>Canonical Identifiers</h5>
+<a name="identifierresource"></a>
+<h5>Resource Identifiers</h5>
 <p>
   Chaining functions by resolving a resource reference and then searching inside it.  In this case, requesting:
   <span class="http-search-example">
@@ -4161,6 +4161,8 @@ patient:identifier=http://example.org/facilityA|1234</span>
   represents a chained search and the <code>:</code> (colon) in the second indicates the use of a search modifier.
 </p>
 
+<a name="identifiercanonical"></a>
+<h5>Canonical Identifiers</h5>
 <p>
   <a href="canonicalresource.html">Canonical Resources</a> are identified by their 
   <a href="canonicalresource-definitions.html#CanonicalResource.url">url</a> and possibly a version.  Similarly, references
@@ -4398,17 +4400,26 @@ some reference parameters may be "chained" by appending them with
 a period (<code>.</code>) followed by the name of a search parameter defined for the target
 resource. This can be done recursively, following a logical path
 through a graph of related resources, separated by <code>.</code>.  Note that chaining is only
-defined for <a href="#reference">reference</a> type search parameters that target <a href="references.html#Reference">Reference</a> 
-FHIR type elements and <a href="#resource">resource</a> type search parameters.
-Server implementers have discretion regarding additional requirements in content (e.g., 
-whether external references are allowed) and behavior in extended scenarios (e.g.,
-if canonical resolution is performed, etc.).
+defined for <a href="#reference">reference</a> type search parameters and <a href="#resource">resource</a> type search parameters.
 </p>
-<p>
-  When chaining through references, it is possible that a resolved resource does not match the expected type.  In this case, the reference
-  is considered to not match the search parameter. <span class="fhir-conformance">If a reference resolves to a type different than allowed via the reference,
-  a server SHOULD consider if it is appropriate to include the issue via an <code>OperationOutcome</code> in the response.</span>
-</p>
+<ul>
+  <li>
+    Server implementers have discretion regarding additional requirements in content (e.g., whether external references are allowed)
+    and behavior in extended scenarios (e.g., if canonical resolution is performed). If a reference cannot be resolved, the search
+    test is considered a match failure. <span class="fhir-conformance">Servers SHOULD consider whether to include this type of
+    failure as an item in an <code>OperationOutcome</code> in the response.</span>
+  </li>
+  <li>
+    When attempting to chain through references that are not of the <a href="references.html#Reference">Reference</a> FHIR type
+    (e.g., <code>canonical</code> or <code>uri</code>), the resolved content may not match the expected content type. If a resolved
+    resource does not match the expected type, it is considered a match failure.
+  </li>
+  <li>
+    When resolving references through <code>canonical</code> references, servers are expected to perform resolution as a
+    <a href="#identifiercanonical">Canonical Identifier</a>. Server implementers may impose additional restrictions on canonicals
+    resolved in this way (e.g., only resolving canonicals pre-loaded into a server, from specific packages, or within certain namespaces).
+  </li>
+</ul>
 <p>
 For instance, given that the resource <a href="diagnosticreport.html">DiagnosticReport</a>
 has a search parameter named <i>subject</i>, which is usually a
@@ -4439,6 +4450,21 @@ subject:Patient.name=peter</span>
 This request returns all the lab reports that have a subject which is a patient, whose name includes "peter".
 </p>
 <p>
+On servers that support chaining through a <code>canonical</code> reference, for example:
+<span class="http-search-example">
+  <span class='http-verb-selector'>Show as unencoded: <a href='#get'>HTTP GET</a> | <a href='#post'>HTTP POST</a></span>
+  <span class="http-verb-display">
+    <span class="http-verb-display-get">GET [base]/QuestionnaireResponse?questionnaire.status=active</span>
+    <span class="http-verb-display-post">POST [base]/QuestionnaireResponse/_search
+Content-Type: application/x-www-form-urlencoded
+questionnaire.status=active</span>
+  </span>
+</span>
+requests <a href="questionnaireresponse.html">QuestionnaireResponse</a> resources where the
+<code>QuestionnaireResponse.questionnaire</code> canonical reference resolves to a <a href="questionnaire.html">Questionnaire</a>
+resource whose <code>status</code> matches <code>active</code>.
+</p>
+<p>
 Note that chained parameters are applied independently to the target resource. For example,
 <span class="http-search-example">
   <span class='http-verb-selector'>Show as unencoded: <a href='#get'>HTTP GET</a> | <a href='#post'>HTTP POST</a></span>
@@ -4458,20 +4484,20 @@ Following the logic, an implementation will:
 </ul>
 E.g., the chains are evaluated separately. For use cases where the joins must be evaluated in groups, implementers can use either <a href="#composite">Composite</a> search parameters or the <a href="#filter">_filter</a> parameter.
 </p>
-<p>
-  Note that chained search parameters are not intended to work with <a href="#modifiers">search modifiers</a>.
-  While their use is not prohibited, searches requiring advanced matching across resources are encouraged
-  to use <a href="#advanced">Named Queries</a> or <a href="#_filter">Advanced filtering</a>.
-</p>
-<p>
-Advanced Search Note:
-Where a chained parameter searches a resource reference that may have more than one
-type of resource as its target, the parameter chain may end up referring
-to search parameters with the same name on more than one kind of resource at once.
-<span class="fhir-conformance">Servers SHOULD fail a search where the logical id of a reference refers to 
-more than one matching resource across different types.</span> In those scenarios, the client has to specify the type explicitly
-using the syntax in the second example above.
-</p>
+<ul>
+  <li>
+    Chained search parameters are not intended to work with <a href="#modifiers">search modifiers</a>. While their use is not
+    prohibited, searches requiring advanced matching across resources are encouraged to use <a href="#advanced">Named Queries</a>
+    or <a href="#_filter">Advanced filtering</a>.
+  </li>
+  <li>
+    Where a chained parameter searches a resource reference that may have more than one type of resource as its target, the parameter
+    chain may end up referring to search parameters with the same name on more than one kind of resource at once.
+    <span class="fhir-conformance">Servers SHOULD fail a search where the logical id of a reference refers to more than one
+    matching resource across different types.</span> In those scenarios, the client has to specify the type explicitly using the
+    syntax in the second example above.
+  </li>
+</ul>
 
 <a name="has"></a>
 <h4>Reverse Chaining</h4>
