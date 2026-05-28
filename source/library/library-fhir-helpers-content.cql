@@ -28,7 +28,6 @@ define function ToConcept(concept FHIR.CodeableConcept):
 define function ToString(value FHIR.uuid): value.value
 define function ToString(value FHIR.TestScriptRequestMethodCode): value.value
 define function ToString(value FHIR.SortDirection): value.value
-define function ToString(value FHIR.BiologicallyDerivedProductStatus): value.value
 define function ToString(value FHIR.UnitsOfTime): value.value
 define function ToString(value FHIR.AddressType): value.value
 define function ToString(value FHIR.AllergyIntoleranceCategory): value.value
