@@ -221,7 +221,6 @@ define function ToString(value FHIR.ExpressionLanguage): value.value
 define function ToString(value FHIR.AddressUse): value.value
 define function ToString(value FHIR.ContactPointUse): value.value
 define function ToString(value FHIR.DeviceMetricOperationalStatus): value.value
-define function ToString(value FHIR.ContributorType): value.value
 define function ToString(value FHIR.ReferenceVersionRules): value.value
 define function ToString(value FHIR.MeasureReportStatus): value.value
 define function ToString(value FHIR.SearchEntryMode): value.value
