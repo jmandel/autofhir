@@ -152,9 +152,35 @@ upperBound
   ;
 
 qualifiedIdentifier
-  : (ID | IDENTIFIER | 'imports' | 'source' | 'target' | 'group' | 'prefix' | 'map' | 'uses' | 'let' | 'types' | 'extends' | 'where' | 'check' | 'alias' | 'div' | 'contains' | 'as' | 'is' | 'asc' | 'desc' | 'first' | 'last' | 'sort' ) 
-    ('.' (ID | IDENTIFIER | 'imports' | 'source' | 'target' | 'group' | 'prefix' | 'map' | 'uses' | 'let' | 'types' | 'extends' | 'where' | 'check' | 'alias' | 'div' | 'contains' | 'as' | 'is' | 'asc' | 'desc' | 'first' | 'last' | 'sort'))*
-  // : identifier ('.' identifier '[x]'?)*
+  : qualifiedIdentifierPart ('.' qualifiedIdentifierPart)*
+  ;
+
+qualifiedIdentifierPart
+  : ID
+  | IDENTIFIER
+  | DELIMITEDIDENTIFIER
+  | 'imports'
+  | 'source'
+  | 'target'
+  | 'group'
+  | 'prefix'
+  | 'map'
+  | 'uses'
+  | 'let'
+  | 'types'
+  | 'extends'
+  | 'where'
+  | 'check'
+  | 'alias'
+  | 'div'
+  | 'contains'
+  | 'as'
+  | 'is'
+  | 'asc'
+  | 'desc'
+  | 'first'
+  | 'last'
+  | 'sort'
   ;
 
 sourceDefault
@@ -163,7 +189,7 @@ sourceDefault
   ;
 
 alias
-  : 'as' identifier
+  : 'as' ID
   ;
 
 whereClause
@@ -194,7 +220,7 @@ transform
   ;
 
 groupInvocation
-  : identifier '(' groupParamList? ')'
+  : ID '(' groupParamList? ')'
   ;
 
 groupParamList
