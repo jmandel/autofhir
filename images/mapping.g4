@@ -88,7 +88,7 @@ parameter
   ;
 
 mapRules
-  : '{' mapRule* '}'
+  : '{' mapIdentityCopy? mapRule* '}'
   ;
 
 typeMode
@@ -107,6 +107,10 @@ mapRule
   : qualifiedIdentifier '->' qualifiedIdentifier ruleName? ';'  #mapSimpleCopy
   | mapTransformationRule ';'                                 #mapFhirMarkup
  	;
+
+mapIdentityCopy
+  : qualifiedIdentifier '->' qualifiedIdentifier ':' qualifiedIdentifier (',' qualifiedIdentifier)* ';'
+  ;
 
 mapTransformationRule
   : ruleSources ('->' ruleTargets)? dependentExpression? ruleName?
