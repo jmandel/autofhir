@@ -141,7 +141,6 @@ define function ToString(value FHIR.DeviceMetricCalibrationState): value.value
 define function ToString(value FHIR.GroupType): value.value
 define function ToString(value FHIR.EnableWhenBehavior): value.value
 define function ToString(value FHIR.TaskIntent): value.value
-define function ToString(value FHIR.ImmunizationEvaluationStatusCodes): value.value
 define function ToString(value FHIR.ExampleScenarioActorType): value.value
 define function ToString(value FHIR.ProvenanceEntityRole): value.value
 define function ToString(value FHIR.SpecimenStatus): value.value
