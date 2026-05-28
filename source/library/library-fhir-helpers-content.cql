@@ -189,7 +189,6 @@ define function ToString(value FHIR.SearchParamType): value.value
 define function ToString(value FHIR.ActionGroupingBehavior): value.value
 define function ToString(value FHIR.StructureMapModelMode): value.value
 define function ToString(value FHIR.TaskStatus): value.value
-define function ToString(value FHIR.BiologicallyDerivedProductStorageScale): value.value
 define function ToString(value FHIR.GraphCompartmentRule): value.value
 define function ToString(value FHIR.SlicingRules): value.value
 define function ToString(value FHIR.ExplanationOfBenefitStatus): value.value
