@@ -27,6 +27,7 @@ Review app source:
 - The app uses reviewer-facing labels such as "Source change made", "Needs human review", and "Likely Owning Work Group"; avoid exposing pipeline-internal names unless they are needed for debugging.
 - The app's "Copy Review Plan" button should stay self-contained for external agents: include where the reconciliation branch can be found, what KEEP/DROP/DEFER mean, how to apply the selected commits, and links to download the full issue-mapping input JSON plus the full issue-fixup review JSON.
 - Use `bun autofhir/scripts/publish-issue-fixup-review.ts --run-id <run-id>` to publish the current review snapshot to `jmandel/autofhir`. It updates the FHIR reconciliation branch, the raw review artifact branch, and the GitHub Pages review app.
+- For issue-reconcile runs, use `bun autofhir/scripts/publish-issue-reconcile-review.ts --run-id <run-id>`. It rebuilds the run's decided commits as an orphan FHIR source branch pushed to `refs/heads/<run-id>` (one commit per `Issue-Reconcile-Key` on top of a single base snapshot, so HL7/fhir history is not pushed), re-exports the viewer with a commit map so each issue card links to the matching commit on that branch, and pushes the review app, JSON report, and gzip to `refs/heads/pages-<run-id>/<run-id>/`. Add `--deploy-pages` to also rebuild and dispatch the GitHub Pages deployment.
 
 The rest of this file describes the currently implemented apply workflow.
 

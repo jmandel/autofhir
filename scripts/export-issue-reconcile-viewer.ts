@@ -81,7 +81,7 @@ function truncateLongLines(value: string, maxLineChars: number): { text: string;
 }
 
 function usage(): string {
-  return `Usage: bun autofhir/scripts/export-issue-reconcile-viewer.ts --run-id ID [--out-dir DIR] [--max-patch-bytes N] [--max-line-chars N] [--github-repo OWNER/REPO] [--upstream-github-repo OWNER/REPO] [--self-contained-pages] [--pages-base-url URL]
+  return `Usage: bun autofhir/scripts/export-issue-reconcile-viewer.ts --run-id ID [--out-dir DIR] [--max-patch-bytes N] [--max-line-chars N] [--github-repo OWNER/REPO] [--upstream-github-repo OWNER/REPO] [--self-contained-pages] [--pages-base-url URL] [--commit-map FILE]
 
 The generated web UI links each issue card to its commit in the orphan FHIR
 source branch (refs/heads/<run-id>) on jmandel/autofhir, and links the run to
@@ -89,7 +89,13 @@ the run-specific artifacts branch (refs/heads/pages-<run-id>/<run-id>) that
 holds the gzipped report and other downloadable context.
 
 With --self-contained-pages, the gzip/artifact links resolve relative to the
-deployed Pages folder instead of the artifacts branch on github.com.`;
+deployed Pages folder instead of the artifacts branch on github.com.
+
+With --commit-map FILE, commit SHAs read from the local combined branch are
+translated to the SHAs that exist on the published orphan source branch so that
+"GitHub commit" links, anchors, and the branch-diff range resolve on github.com.
+The file is written by publish-issue-reconcile-review.ts and has the shape
+{ "base_sha": "<orphan root>", "head_sha": "<orphan head>", "map": { "<combined sha>": "<orphan sha>" } }.`;
 }
 
 if (process.argv.includes("-h") || process.argv.includes("--help")) {
@@ -105,6 +111,13 @@ const githubRepo = arg("--github-repo") ?? "jmandel/autofhir";
 const upstreamGithubRepo = arg("--upstream-github-repo") ?? "HL7/fhir";
 const selfContainedPages = flag("--self-contained-pages");
 const pagesBaseUrl = arg("--pages-base-url") ?? "https://joshuamandel.com/autofhir/";
+type CommitMap = { base_sha?: string; head_sha?: string; map: Record<string, string> };
+const commitMapPath = arg("--commit-map");
+const commitMap: CommitMap | undefined = commitMapPath ? readJson<CommitMap>(commitMapPath) : undefined;
+function publishedSha(sha: string | undefined): string | undefined {
+  if (!sha) return undefined;
+  return commitMap?.map?.[sha] ?? sha;
+}
 const run = readRun(runId);
 if (run.workflow !== "issue-reconcile") throw new Error(`run ${runId} is workflow=${run.workflow ?? "(unset)"}; expected issue-reconcile`);
 if (!run.fhirRepo) throw new Error(`run ${runId} has no fhirRepo`);
@@ -180,27 +193,35 @@ for (const file of resultFiles) {
   for (const issue of result.issue_results ?? []) {
     const info = commitInfo(issue.commit?.sha);
     const branchIndex = info.commit_sha ? commitOrder.get(info.commit_sha) : undefined;
+    const mappedSha = publishedSha(info.commit_sha);
     const anchorIndex = branchIndex !== undefined ? String(branchIndex + 1).padStart(5, "0") : "xxxxx";
-    const anchor = info.commit_sha
-      ? `commit-${anchorIndex}-${info.commit_sha}-${issue.issue_key}`
+    const anchor = mappedSha
+      ? `commit-${anchorIndex}-${mappedSha}-${issue.issue_key}`
       : `commit-no-commit-${issue.issue_key}`;
     items.push({
       seed_key: result.seed_key,
       result_path: path.relative(root, fullPath),
       ...issue,
       ...info,
+      commit_sha: mappedSha ?? info.commit_sha,
+      short_sha: mappedSha ? mappedSha.slice(0, 10) : info.short_sha,
       branch_index: branchIndex,
-      github_commit_url: commitUrl(info.commit_sha),
+      github_commit_url: commitUrl(mappedSha),
       anchor,
     });
   }
 }
 
 items.sort((a, b) => {
-  const aOrder = commitOrder.get(a.commit_sha ?? "") ?? Number.MAX_SAFE_INTEGER;
-  const bOrder = commitOrder.get(b.commit_sha ?? "") ?? Number.MAX_SAFE_INTEGER;
+  // branch_index is the commit's position on the combined branch (set above from
+  // commitOrder); sort by it so cards follow branch order even after SHA mapping.
+  const aOrder = a.branch_index ?? Number.MAX_SAFE_INTEGER;
+  const bOrder = b.branch_index ?? Number.MAX_SAFE_INTEGER;
   return aOrder - bOrder || a.seed_key.localeCompare(b.seed_key) || a.issue_key.localeCompare(b.issue_key);
 });
+
+const combinedHead = commitMap?.head_sha ?? runCommand(["git", "rev-parse", run.combinedBranch], { cwd: run.fhirRepo }).trim();
+const displayBaseSha = commitMap?.base_sha ?? run.baseSha ?? "";
 
 const report = {
   schema_version: "issue-reconcile-review-report-v1",
@@ -209,13 +230,13 @@ const report = {
   generated_at: new Date().toISOString(),
   fhir_repo: run.fhirRepo,
   base_ref: run.baseRef,
-  base_sha: run.baseSha,
+  base_sha: displayBaseSha,
   combined_branch: run.combinedBranch,
-  combined_head: runCommand(["git", "rev-parse", run.combinedBranch], { cwd: run.fhirRepo }).trim(),
+  combined_head: combinedHead,
   github_repo: githubRepo,
   source_branch: sourceBranch,
   source_branch_tree_url: sourceBranchTreeUrl,
-  github_compare_url: `${githubRepoUrl}/compare/${run.baseSha}...${runCommand(["git", "rev-parse", run.combinedBranch], { cwd: run.fhirRepo }).trim()}`,
+  github_compare_url: `${githubRepoUrl}/compare/${displayBaseSha}...${combinedHead}`,
   artifact_branch: artifactBranch,
   artifact_branch_tree_url: artifactBranchTreeUrl,
   artifacts: {
@@ -366,7 +387,7 @@ const html = `<!doctype html>
     <div class="runmeta">
       <span>Run: ${escapeHtml(runId)}</span>
       <span>Branch: <a href="${escapeHtml(sourceBranchTreeUrl)}" target="_blank" rel="noreferrer">${escapeHtml(run.combinedBranch)}</a></span>
-      <span>Base: ${escapeHtml(run.baseSha ?? "")}</span>
+      <span>Base: ${escapeHtml(displayBaseSha)}</span>
       <span>Head: ${escapeHtml(report.combined_head.slice(0, 12))}</span>
       <span>Items: ${items.length}</span>
       <span>Seeds: ${resultFiles.length}</span>
@@ -380,7 +401,7 @@ const html = `<!doctype html>
       <p class="muted">Each issue card links to its commit in the orphan FHIR source branch on GitHub. Use "Copy Review Plan" to copy a prompt for an LLM agent that includes the portable branch and artifact links below.</p>
       <ul>
         <li>FHIR source branch (one commit per decided issue): <a href="${escapeHtml(sourceBranchTreeUrl)}" target="_blank" rel="noreferrer">${escapeHtml(githubRepo)}/tree/${escapeHtml(sourceBranch)}</a></li>
-        <li>Full branch diff: <a href="${escapeHtml(report.github_compare_url)}" target="_blank" rel="noreferrer">${escapeHtml(run.baseSha ?? "")}...${escapeHtml(report.combined_head.slice(0, 12))}</a></li>
+        <li>Full branch diff: <a href="${escapeHtml(report.github_compare_url)}" target="_blank" rel="noreferrer">${escapeHtml(displayBaseSha)}...${escapeHtml(report.combined_head.slice(0, 12))}</a></li>
         <li>Run artifacts branch (review app, JSON, gzip): <a href="${escapeHtml(artifactBranchTreeUrl)}" target="_blank" rel="noreferrer">${escapeHtml(githubRepo)}/tree/${escapeHtml(artifactBranch)}/${escapeHtml(artifactDir)}</a></li>
         <li>Report JSON: <a href="${escapeHtml(report.artifacts.report_json)}" target="_blank" rel="noreferrer">${escapeHtml(reportJsonName)}</a></li>
         <li>Report JSON (gzip): <a href="${escapeHtml(report.artifacts.report_json_gzip)}" target="_blank" rel="noreferrer">${escapeHtml(reportGzipName)}</a></li>
@@ -404,7 +425,7 @@ const html = `<!doctype html>
       github_repo: githubRepo,
       source_branch_tree_url: sourceBranchTreeUrl,
       github_compare_url: report.github_compare_url,
-      base: run.baseSha ?? "",
+      base: displayBaseSha,
       head: report.combined_head,
       artifact_branch_tree_url: artifactBranchTreeUrl,
       report_json: report.artifacts.report_json,
