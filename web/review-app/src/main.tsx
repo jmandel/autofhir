@@ -161,6 +161,7 @@ function normalizeEntry(entry?: Partial<ReviewEntry>): ReviewEntry {
 function App() {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [changeKind, setChangeKind] = useState("source-change");
   const [wg, setWg] = useState("");
   const [file, setFile] = useState("");
   const [reviewDecision, setReviewDecision] = useState("");
@@ -182,6 +183,7 @@ function App() {
       .then((data: Report) => {
         const hashSha = shaFromHash(data.commits);
         setReport(data);
+        if (hashSha) setChangeKind("");
         window.requestAnimationFrame(() => {
           window.setTimeout(() => setLinksEnabled(true), 250);
           window.setTimeout(() => setDiffsEnabled(true), 1000);
@@ -192,8 +194,8 @@ function App() {
       .catch((err) => setError(String(err?.message || err)));
   }, []);
 
-  const options = React.useMemo(() => report ? buildOptions(report, bySha, { wg, file, reviewDecision }) : null, [report, bySha, wg, file, reviewDecision]);
-  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { wg, file, reviewDecision })), sort) : [], [report, bySha, wg, file, reviewDecision, sort]);
+  const options = React.useMemo(() => report ? buildOptions(report, bySha, { changeKind, wg, file, reviewDecision }) : null, [report, bySha, changeKind, wg, file, reviewDecision]);
+  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { changeKind, wg, file, reviewDecision })), sort) : [], [report, bySha, changeKind, wg, file, reviewDecision, sort]);
 
   const selectCommit = useCallback((sha: string, urlMode: "push" | "replace" | "none" = "none") => {
     useSelectionStore.getState().setSelected(sha);
@@ -297,6 +299,7 @@ function App() {
       <Intro report={report} />
       <div className="controls">
         {!isAuditReport(report) ? <Facet value="" onChange={() => undefined} label="All results" options={options.statuses} /> : null}
+        <Facet className="control-change-kind" value={changeKind} onChange={setChangeKind} label="All commit kinds" options={options.changeKinds} />
         <Facet className="control-wg" value={wg} onChange={setWg} label="All work groups" options={options.wgs} />
         <Facet className="control-file" value={file} onChange={setFile} label="All changed files" options={options.files} />
         <Facet className="control-review" value={reviewDecision} onChange={setReviewDecision} label="All review choices" options={options.reviews} />
