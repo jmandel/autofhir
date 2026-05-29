@@ -68,6 +68,28 @@ bun autofhir/scripts/publish-issue-fixup-review.ts --run-id <run-id>
 
 That command updates the reconciliation branch at `jmandel/autofhir:<run-id>`, the raw artifact branch at `review-<run-id>`, and the rendered review app under GitHub Pages.
 
+For an issue-reconcile run, publish the review snapshot with:
+
+```bash
+bun autofhir/scripts/publish-issue-reconcile-review.ts --run-id <run-id>
+```
+
+That command:
+
+- rebuilds the run's decided commits as an orphan FHIR source branch and pushes it to `jmandel/autofhir:<run-id>` (one commit per `Issue-Reconcile-Key` on top of a single base-snapshot root, so HL7/fhir history is not pushed). Each commit reuses the original tree, so its per-commit diff on GitHub matches the local combined branch.
+- re-exports the review viewer with a commit map so every issue card links to the matching commit on the orphan branch.
+- pushes the review app, JSON report, and gzip to `jmandel/autofhir:pages-<run-id>` under `<run-id>/`, which is where the viewer's agent instructions point for downloadable artifacts.
+
+Add `--deploy-pages` to also rebuild the combined Pages site and dispatch the Deploy Review Site workflow.
+
+The static GitHub Pages site itself is built and deployed separately. `build:review-pages-site` assembles a self-contained site directory from local review exports, and `deploy:review-pages-site` pushes it to a staging branch and dispatches the Deploy Review Site workflow:
+
+```bash
+bun run build:review-pages-site --out-dir /tmp/review-site
+bun run deploy:review-pages-site --site-dir /tmp/review-site --wait
+```
+
+
 ## Common Commands
 
 Check a run:
