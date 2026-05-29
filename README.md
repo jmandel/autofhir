@@ -82,6 +82,8 @@ That command:
 
 Add `--deploy-pages` to also rebuild the combined Pages site and dispatch the Deploy Review Site workflow.
 
+If a run has already been published but its report is missing the GitHub link fields (no per-card "Full diff on GitHub" links, "(not available)" branch/compare/artifact links in the copied review plan), repair it without the original machine by running the **Republish Issue Reconcile Review** workflow from the GitHub Actions tab. It backfills the links into the report on `pages-<run-id>` and redeploys that run to Pages, using only data already on GitHub. The same backfill is available locally as `bun autofhir/scripts/backfill-issue-reconcile-report-links.ts --report <report.json> --run-id <run-id>`.
+
 The static GitHub Pages site itself is built and deployed separately. `build:review-pages-site` assembles a self-contained site directory from local review exports, and `deploy:review-pages-site` pushes it to a staging branch and dispatches the Deploy Review Site workflow:
 
 ```bash
