@@ -59,7 +59,7 @@ const commitMapPath = path.join(reviewDir, "commit-map.json");
 
 const NUL = "\u0000";
 
-function git(args: string[], options: { cwd: string; input?: string; env?: Record<string, string>; allowFailure?: boolean } = { cwd: fhirRepo }): string {
+function git(args: string[], options: { cwd: string; input?: string; env?: Record<string, string>; allowFailure?: boolean }): string {
   const proc = spawnSync("git", args, {
     cwd: options.cwd,
     input: options.input,

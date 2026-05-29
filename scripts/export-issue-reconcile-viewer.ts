@@ -115,7 +115,7 @@ type CommitMap = { base_sha?: string; head_sha?: string; map: Record<string, str
 const commitMapPath = arg("--commit-map");
 const commitMap: CommitMap | undefined = commitMapPath ? readJson<CommitMap>(commitMapPath) : undefined;
 function publishedSha(sha: string | undefined): string | undefined {
-  if (!sha) return sha;
+  if (!sha) return undefined;
   return commitMap?.map?.[sha] ?? sha;
 }
 const run = readRun(runId);
@@ -213,6 +213,8 @@ for (const file of resultFiles) {
 }
 
 items.sort((a, b) => {
+  // branch_index is the commit's position on the combined branch (set above from
+  // commitOrder); sort by it so cards follow branch order even after SHA mapping.
   const aOrder = a.branch_index ?? Number.MAX_SAFE_INTEGER;
   const bOrder = b.branch_index ?? Number.MAX_SAFE_INTEGER;
   return aOrder - bOrder || a.seed_key.localeCompare(b.seed_key) || a.issue_key.localeCompare(b.issue_key);
