@@ -5,7 +5,10 @@ name: Republish Issue Reconcile Review
 # committed, but the published report under the pages-<run-id> branch already
 # contains every issue and commit SHA, and those commits are reachable in this
 # repo (the orphan source branch <run-id> has them). This backfills the GitHub
-# link fields the review app reads, then deploys the fixed per-run site to Pages.
+# link fields the review app reads, rebuilds the review app bundle
+# (review-app.js/review-app.css) from the current web/review-app source so UI
+# changes ship without re-running the data pipeline, then deploys the fixed
+# per-run site to Pages.
 
 on:
   workflow_dispatch:
@@ -57,6 +60,9 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
       - name: Backfill GitHub link fields in the published report
         run: |
           bun scripts/backfill-issue-reconcile-report-links.ts \
@@ -65,16 +71,25 @@ jobs:
             --github-repo "${{ inputs.github_repo }}" \
             --pages-base-url "${{ inputs.pages_base_url }}"
 
+      - name: Rebuild review app bundle from current source
+        run: |
+          bun build web/review-app/src/main.tsx \
+            --target=browser \
+            --production \
+            --outfile "site/${{ inputs.run_id }}/review-app.js"
+          cp web/review-app/src/styles.css "site/${{ inputs.run_id }}/review-app.css"
+
       - name: Commit and push repaired artifacts
         working-directory: site
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "${{ inputs.run_id }}/issue-reconcile-report.json" "${{ inputs.run_id }}/issue-reconcile-report.json.gz"
+          git add "${{ inputs.run_id }}/issue-reconcile-report.json" "${{ inputs.run_id }}/issue-reconcile-report.json.gz" \
+            "${{ inputs.run_id }}/review-app.js" "${{ inputs.run_id }}/review-app.css"
           if git diff --cached --quiet; then
-            echo "No report changes to commit; links were already present."
+            echo "No artifact changes to commit; report links and review app bundle were already up to date."
           else
-            git commit -m "Backfill GitHub links in ${{ inputs.run_id }} issue-reconcile report"
+            git commit -m "Backfill GitHub links and rebuild review app for ${{ inputs.run_id }}"
             git push origin "HEAD:refs/heads/pages-${{ inputs.run_id }}"
           fi
 
