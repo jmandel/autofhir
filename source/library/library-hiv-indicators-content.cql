@@ -16,7 +16,7 @@ codesystem "SNOMED-CT": 'http://snomed.info/sct/900000000000207008'
 // LOINC, 2.63+
 codesystem "LOINC": 'http://loinc.org'
 
-codesystem "ISO-8601-Derived Periods": 'http://ohie.org/ValueSet/iso-8601-derived-periods' // { 'P0Y--P1Y', 'P1Y--P5Y', ... }
+codesystem "Time Period Ranges": 'http://terminology.hl7.org/CodeSystem/time-period-ranges' // { 'P0Y--P1Y', 'P1Y--P5Y', ... }
 codesystem "PMTCT HIV Status Codes": 'TBD' // { 'known-positive', 'newly-identified-positive', 'newly-identified-negative' }
 codesystem "PMTCT ART Status Codes": 'TBD' // { 'already-on-art', 'new-on-art' }
 
@@ -43,17 +43,17 @@ code "HIV 1 and 2 tests - Meaningful Use set": '75622-1' from "LOINC" display 'H
 code "History of antiretroviral therapy (situation)": '432101000124108' from "SNOMED-CT" display 'History of antiretroviral therapy (situation)'
 
 // Age Groups
-code "P0Y--P1Y": 'P0Y--P1Y' from "ISO-8601-Derived Periods" display '< 1 year'
-code "P1Y--P5Y": 'P1Y--P5Y' from "ISO-8601-Derived Periods" display '1-4 years'
-code "P5Y--P10Y": 'P5Y--P10Y' from "ISO-8601-Derived Periods" display '5-9 year'
-code "P10Y--P15Y": 'P10Y--P15Y' from "ISO-8601-Derived Periods" display '10-14 year'
-code "P15Y--P20Y": 'P15Y--P20Y' from "ISO-8601-Derived Periods" display '15-19 year'
-code "P20Y--P25Y": 'P20Y--P25Y' from "ISO-8601-Derived Periods" display '20-24 year'
-code "P25Y--P30Y": 'P25Y--P30Y' from "ISO-8601-Derived Periods" display '25-29 year'
-code "P30Y--P35Y": 'P30Y--P35Y' from "ISO-8601-Derived Periods" display '30-34 year'
-code "P35Y--P40Y": 'P35Y--P40Y' from "ISO-8601-Derived Periods" display '35-39 year'
-code "P40Y--P50Y": 'P40Y--P50Y' from "ISO-8601-Derived Periods" display '40-49 year'
-code "P50Y--P9999Y": 'P50Y--P9999Y' from "ISO-8601-Derived Periods" display '50+ years'
+code "P0Y--P1Y": 'P0Y--P1Y' from "Time Period Ranges" display '< 1 year'
+code "P1Y--P5Y": 'P1Y--P5Y' from "Time Period Ranges" display '1-4 years'
+code "P5Y--P10Y": 'P5Y--P10Y' from "Time Period Ranges" display '5-9 year'
+code "P10Y--P15Y": 'P10Y--P15Y' from "Time Period Ranges" display '10-14 year'
+code "P15Y--P20Y": 'P15Y--P20Y' from "Time Period Ranges" display '15-19 year'
+code "P20Y--P25Y": 'P20Y--P25Y' from "Time Period Ranges" display '20-24 year'
+code "P25Y--P30Y": 'P25Y--P30Y' from "Time Period Ranges" display '25-29 year'
+code "P30Y--P35Y": 'P30Y--P35Y' from "Time Period Ranges" display '30-34 year'
+code "P35Y--P40Y": 'P35Y--P40Y' from "Time Period Ranges" display '35-39 year'
+code "P40Y--P50Y": 'P40Y--P50Y' from "Time Period Ranges" display '40-49 year'
+code "P50Y--P9999Y": 'P50Y--P9999Y' from "Time Period Ranges" display '50+ years'
 
 // PMTCT ART status
 code "Already on ART": 'already-on-art' from "PMTCT ART Status Codes" display 'Already on ART'
