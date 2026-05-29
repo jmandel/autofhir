@@ -112,6 +112,8 @@ for (const commit of report.commits ?? []) backfillCommit(commit);
 for (const item of report.items ?? []) backfillCommit(item);
 
 writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+// Match export-issue-reconcile-viewer.ts: the .json is pretty-printed for diffability
+// while the .gz stores the compact form. Both encode identical parsed content.
 writeFileSync(gzipPath, gzipSync(JSON.stringify(report)));
 
 console.log(`report=${path.resolve(reportPath)}`);
