@@ -65,6 +65,8 @@ for (const runId of runIds) {
     "issue-fixup-diff-report.json",
     "issue-fixup-diff-report.json.gz",
     "issue-fixup-diff-report-full.json.gz",
+    "issue-reconcile-report.json",
+    "issue-reconcile-report.json.gz",
     "source-issue-mapping-report.json.gz",
     "source-issue-fixup-review-report.json.gz",
   ]) {

@@ -44,6 +44,9 @@ type ReportItem = IssueResult & {
   commit_body?: string;
   commit_author?: string;
   commit_date?: string;
+  github_commit_url?: string;
+  branch_index?: number;
+  anchor: string;
   files: string[];
   stat: string;
   patch: string;
@@ -53,6 +56,10 @@ type ReportItem = IssueResult & {
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
   return i >= 0 ? process.argv[i + 1] : undefined;
+}
+
+function flag(name: string): boolean {
+  return process.argv.includes(name);
 }
 
 function escapeHtml(value: unknown): string {
@@ -74,7 +81,15 @@ function truncateLongLines(value: string, maxLineChars: number): { text: string;
 }
 
 function usage(): string {
-  return `Usage: bun autofhir/scripts/export-issue-reconcile-viewer.ts --run-id ID [--out-dir DIR] [--max-patch-bytes N] [--max-line-chars N]`;
+  return `Usage: bun autofhir/scripts/export-issue-reconcile-viewer.ts --run-id ID [--out-dir DIR] [--max-patch-bytes N] [--max-line-chars N] [--github-repo OWNER/REPO] [--upstream-github-repo OWNER/REPO] [--self-contained-pages] [--pages-base-url URL]
+
+The generated web UI links each issue card to its commit in the orphan FHIR
+source branch (refs/heads/<run-id>) on jmandel/autofhir, and links the run to
+the run-specific artifacts branch (refs/heads/pages-<run-id>/<run-id>) that
+holds the gzipped report and other downloadable context.
+
+With --self-contained-pages, the gzip/artifact links resolve relative to the
+deployed Pages folder instead of the artifacts branch on github.com.`;
 }
 
 if (process.argv.includes("-h") || process.argv.includes("--help")) {
@@ -86,6 +101,10 @@ const runId = arg("--run-id") ?? process.env.RUN_ID;
 if (!runId) throw new Error("--run-id or RUN_ID is required");
 const maxPatchBytes = Number(arg("--max-patch-bytes") ?? "2500000");
 const maxLineChars = Number(arg("--max-line-chars") ?? "50000");
+const githubRepo = arg("--github-repo") ?? "jmandel/autofhir";
+const upstreamGithubRepo = arg("--upstream-github-repo") ?? "HL7/fhir";
+const selfContainedPages = flag("--self-contained-pages");
+const pagesBaseUrl = arg("--pages-base-url") ?? "https://joshuamandel.com/autofhir/";
 const run = readRun(runId);
 if (run.workflow !== "issue-reconcile") throw new Error(`run ${runId} is workflow=${run.workflow ?? "(unset)"}; expected issue-reconcile`);
 if (!run.fhirRepo) throw new Error(`run ${runId} has no fhirRepo`);
@@ -94,6 +113,25 @@ if (!run.combinedBranch) throw new Error(`run ${runId} has no combinedBranch`);
 const root = runPath(runId);
 const outDir = path.resolve(arg("--out-dir") ?? path.join(root, "review"));
 mkdirSync(outDir, { recursive: true });
+
+const reportJsonName = "issue-reconcile-report.json";
+const reportGzipName = "issue-reconcile-report.json.gz";
+const sourceBranch = runId;
+const artifactBranch = `pages-${runId}`;
+const artifactDir = runId;
+const githubRepoUrl = `https://github.com/${githubRepo}`;
+const sourceBranchTreeUrl = `${githubRepoUrl}/tree/${sourceBranch}`;
+const artifactBranchTreeUrl = `${githubRepoUrl}/tree/${artifactBranch}/${artifactDir}`;
+const artifactRawBaseUrl = selfContainedPages
+  ? ""
+  : `https://raw.githubusercontent.com/${githubRepo}/${artifactBranch}/${artifactDir}/`;
+const pagesUrl = new URL(`${artifactDir}/`, pagesBaseUrl.endsWith("/") ? pagesBaseUrl : `${pagesBaseUrl}/`).href;
+function artifactUrl(name: string): string {
+  return artifactRawBaseUrl ? `${artifactRawBaseUrl}${name}` : new URL(name, pagesUrl).href;
+}
+function commitUrl(sha: string | undefined): string | undefined {
+  return sha ? `${githubRepoUrl}/commit/${sha}` : undefined;
+}
 
 function commitInfo(sha: string | undefined): Pick<ReportItem, "commit_sha" | "short_sha" | "commit_subject" | "commit_body" | "commit_author" | "commit_date" | "files" | "stat" | "patch" | "patch_truncated"> {
   if (!sha) return { files: [], stat: "", patch: "" };
@@ -140,11 +178,20 @@ for (const file of resultFiles) {
   const fullPath = path.join(root, "results", file);
   const result = readJson<ResultFile>(fullPath);
   for (const issue of result.issue_results ?? []) {
+    const info = commitInfo(issue.commit?.sha);
+    const branchIndex = info.commit_sha ? commitOrder.get(info.commit_sha) : undefined;
+    const anchorIndex = branchIndex !== undefined ? String(branchIndex + 1).padStart(5, "0") : "xxxxx";
+    const anchor = info.commit_sha
+      ? `commit-${anchorIndex}-${info.commit_sha}-${issue.issue_key}`
+      : `commit-no-commit-${issue.issue_key}`;
     items.push({
       seed_key: result.seed_key,
       result_path: path.relative(root, fullPath),
       ...issue,
-      ...commitInfo(issue.commit?.sha),
+      ...info,
+      branch_index: branchIndex,
+      github_commit_url: commitUrl(info.commit_sha),
+      anchor,
     });
   }
 }
@@ -165,13 +212,24 @@ const report = {
   base_sha: run.baseSha,
   combined_branch: run.combinedBranch,
   combined_head: runCommand(["git", "rev-parse", run.combinedBranch], { cwd: run.fhirRepo }).trim(),
+  github_repo: githubRepo,
+  source_branch: sourceBranch,
+  source_branch_tree_url: sourceBranchTreeUrl,
+  github_compare_url: `${githubRepoUrl}/compare/${run.baseSha}...${runCommand(["git", "rev-parse", run.combinedBranch], { cwd: run.fhirRepo }).trim()}`,
+  artifact_branch: artifactBranch,
+  artifact_branch_tree_url: artifactBranchTreeUrl,
+  artifacts: {
+    report_json: artifactUrl(reportJsonName),
+    report_json_gzip: artifactUrl(reportGzipName),
+    review_html: artifactUrl("index.html"),
+  },
   item_count: items.length,
   seed_count: resultFiles.length,
   items,
 };
 
-writeFileSync(path.join(outDir, "issue-reconcile-report.json"), `${JSON.stringify(report, null, 2)}\n`);
-writeFileSync(path.join(outDir, "issue-reconcile-report.json.gz"), gzipSync(JSON.stringify(report)));
+writeFileSync(path.join(outDir, reportJsonName), `${JSON.stringify(report, null, 2)}\n`);
+writeFileSync(path.join(outDir, reportGzipName), gzipSync(JSON.stringify(report)));
 
 function optionCounts(field: keyof ReportItem): string {
   const counts = new Map<string, number>();
@@ -185,7 +243,7 @@ function optionCounts(field: keyof ReportItem): string {
 function linkifyText(value: string): string {
   return escapeHtml(value)
     .replace(/\b(FHIR-\d+)\b/g, '<a href="https://jira.hl7.org/browse/$1" target="_blank" rel="noreferrer">$1</a>')
-    .replace(/\b([0-9a-f]{12,40})\b/g, (_match, sha) => `<a href="https://github.com/HL7/fhir/commit/${sha}" target="_blank" rel="noreferrer">${sha.slice(0, 12)}</a>`);
+    .replace(/\b([0-9a-f]{12,40})\b/g, (_match, sha) => `<a href="https://github.com/${upstreamGithubRepo}/commit/${sha}" target="_blank" rel="noreferrer">${sha.slice(0, 12)}</a>`);
 }
 
 function renderList(values: string[]): string {
@@ -212,16 +270,21 @@ function renderPatch(patch: string): string {
 }
 
 function renderCard(item: ReportItem): string {
-  const anchor = `${item.issue_key}-${item.short_sha ?? "no-commit"}`;
-  return `<article class="card" id="${escapeHtml(anchor)}" data-status="${escapeHtml(item.status)}" data-role="${escapeHtml(item.role)}" data-confidence="${escapeHtml(item.confidence)}">
+  const anchor = item.anchor;
+  const commitLink = item.github_commit_url
+    ? `<a class="full-link" href="${escapeHtml(item.github_commit_url)}" target="_blank" rel="noreferrer">${item.patch_truncated ? "Full commit on GitHub (required)" : "Full commit on GitHub"}</a>`
+    : "";
+  return `<article class="card" id="${escapeHtml(anchor)}" data-sha="${escapeHtml(item.commit_sha ?? "")}" data-status="${escapeHtml(item.status)}" data-role="${escapeHtml(item.role)}" data-confidence="${escapeHtml(item.confidence)}">
     <header>
       <h2><a href="#${escapeHtml(anchor)}" class="anchor">#</a> ${escapeHtml(item.short_sha ?? "no-commit")} ${escapeHtml(item.issue_key)}: ${escapeHtml(item.commit_subject ?? item.summary)}</h2>
       <div class="meta">
         <a href="https://jira.hl7.org/browse/${escapeHtml(item.issue_key)}" target="_blank" rel="noreferrer">Jira ${escapeHtml(item.issue_key)}</a>
+        ${item.github_commit_url ? `<a href="${escapeHtml(item.github_commit_url)}" target="_blank" rel="noreferrer">GitHub commit ${escapeHtml(item.short_sha ?? "")}</a>` : ""}
         <span class="pill ${escapeHtml(item.status)}">${escapeHtml(item.status)}</span>
         <span class="pill">${escapeHtml(item.role)}</span>
         <span class="pill">${escapeHtml(item.confidence)}</span>
         <span class="pill">seed ${escapeHtml(item.seed_key)}</span>
+        ${commitLink}
       </div>
     </header>
     <section>
@@ -257,6 +320,9 @@ const html = `<!doctype html>
     header.top { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #cad4df; padding: 18px 24px; }
     h1 { margin: 0 0 8px; font-size: 28px; }
     .runmeta { display: flex; flex-wrap: wrap; gap: 16px; color: #526579; }
+    details.agent { margin-top: 12px; border: 1px solid #cad4df; border-radius: 6px; padding: 8px 12px; background: #fbfdff; }
+    details.agent summary { cursor: pointer; font-weight: 700; }
+    details.agent ul { margin: 8px 0 0; }
     .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
     select, button { font: inherit; padding: 8px 10px; border: 1px solid #b9c7d5; border-radius: 6px; background: #fff; }
     main { max-width: 1500px; margin: 0 auto; padding: 20px; }
@@ -299,17 +365,33 @@ const html = `<!doctype html>
     <h1>AutoFHIR Issue Reconcile Review</h1>
     <div class="runmeta">
       <span>Run: ${escapeHtml(runId)}</span>
-      <span>Branch: ${escapeHtml(run.combinedBranch)}</span>
+      <span>Branch: <a href="${escapeHtml(sourceBranchTreeUrl)}" target="_blank" rel="noreferrer">${escapeHtml(run.combinedBranch)}</a></span>
       <span>Base: ${escapeHtml(run.baseSha ?? "")}</span>
       <span>Head: ${escapeHtml(report.combined_head.slice(0, 12))}</span>
       <span>Items: ${items.length}</span>
       <span>Seeds: ${resultFiles.length}</span>
+      <a href="${escapeHtml(sourceBranchTreeUrl)}" target="_blank" rel="noreferrer">FHIR source branch</a>
+      <a href="${escapeHtml(report.github_compare_url)}" target="_blank" rel="noreferrer">Full branch diff on GitHub</a>
+      <a href="${escapeHtml(artifactBranchTreeUrl)}" target="_blank" rel="noreferrer">Run artifacts branch</a>
+      <a href="${escapeHtml(report.artifacts.report_json_gzip)}" target="_blank" rel="noreferrer">Download report (gzip)</a>
     </div>
+    <details class="agent">
+      <summary>Source branch, downloadable artifacts, and agent instructions</summary>
+      <p class="muted">Each issue card links to its commit in the orphan FHIR source branch on GitHub. Use "Copy Review Plan" to copy a prompt for an LLM agent that includes the portable branch and artifact links below.</p>
+      <ul>
+        <li>FHIR source branch (one commit per decided issue): <a href="${escapeHtml(sourceBranchTreeUrl)}" target="_blank" rel="noreferrer">${escapeHtml(githubRepo)}/tree/${escapeHtml(sourceBranch)}</a></li>
+        <li>Full branch diff: <a href="${escapeHtml(report.github_compare_url)}" target="_blank" rel="noreferrer">${escapeHtml(run.baseSha ?? "")}...${escapeHtml(report.combined_head.slice(0, 12))}</a></li>
+        <li>Run artifacts branch (review app, JSON, gzip): <a href="${escapeHtml(artifactBranchTreeUrl)}" target="_blank" rel="noreferrer">${escapeHtml(githubRepo)}/tree/${escapeHtml(artifactBranch)}/${escapeHtml(artifactDir)}</a></li>
+        <li>Report JSON: <a href="${escapeHtml(report.artifacts.report_json)}" target="_blank" rel="noreferrer">${escapeHtml(reportJsonName)}</a></li>
+        <li>Report JSON (gzip): <a href="${escapeHtml(report.artifacts.report_json_gzip)}" target="_blank" rel="noreferrer">${escapeHtml(reportGzipName)}</a></li>
+      </ul>
+    </details>
     <div class="filters">
       <select id="status"><option value="">All statuses (${items.length})</option>${optionCounts("status")}</select>
       <select id="role"><option value="">All roles (${items.length})</option>${optionCounts("role")}</select>
       <select id="confidence"><option value="">All confidences (${items.length})</option>${optionCounts("confidence")}</select>
       <button id="copy">Copy Visible Summary</button>
+      <button id="copyplan">Copy Review Plan</button>
       <span id="count" class="muted"></span>
     </div>
   </header>
@@ -317,6 +399,18 @@ const html = `<!doctype html>
     ${items.map(renderCard).join("\n")}
   </main>
   <script>
+    const AGENT_LINKS = ${JSON.stringify({
+      run_id: runId,
+      github_repo: githubRepo,
+      source_branch_tree_url: sourceBranchTreeUrl,
+      github_compare_url: report.github_compare_url,
+      base: run.baseSha ?? "",
+      head: report.combined_head,
+      artifact_branch_tree_url: artifactBranchTreeUrl,
+      report_json: report.artifacts.report_json,
+      report_json_gzip: report.artifacts.report_json_gzip,
+      review_html: report.artifacts.review_html,
+    })};
     const filters = ["status", "role", "confidence"];
     function applyFilters() {
       const values = Object.fromEntries(filters.map((id) => [id, document.getElementById(id).value]));
@@ -329,6 +423,11 @@ const html = `<!doctype html>
       document.getElementById("count").textContent = visible + " visible";
     }
     filters.forEach((id) => document.getElementById(id).addEventListener("change", applyFilters));
+    function flash(button, label) {
+      const old = button.textContent;
+      button.textContent = label;
+      setTimeout(() => button.textContent = old, 1200);
+    }
     document.getElementById("copy").addEventListener("click", async () => {
       const rows = [...document.querySelectorAll(".card:not(.hidden)")].map((card) => {
         const h2 = card.querySelector("h2")?.innerText.trim() ?? "";
@@ -336,10 +435,37 @@ const html = `<!doctype html>
         return h2 + "\\n" + rec;
       }).join("\\n\\n");
       await navigator.clipboard.writeText(rows);
-      const button = document.getElementById("copy");
-      const old = button.textContent;
-      button.textContent = "Copied";
-      setTimeout(() => button.textContent = old, 1200);
+      flash(document.getElementById("copy"), "Copied");
+    });
+    document.getElementById("copyplan").addEventListener("click", async () => {
+      const items = [...document.querySelectorAll(".card:not(.hidden)")].map((card) => {
+        const sha = card.dataset.sha || "";
+        const h2 = card.querySelector("h2")?.innerText.trim() ?? "";
+        const url = card.querySelector(".meta a[href*='/commit/']")?.getAttribute("href") || "";
+        return "- " + h2 + (url ? "\\n  Commit: " + url : "");
+      });
+      const lines = [
+        "# AutoFHIR Issue Reconcile Review Plan",
+        "",
+        "Give this file to an agent to review and apply the reconciliation commits.",
+        "",
+        "Portable branch and artifact locations:",
+        "- GitHub repository: https://github.com/" + AGENT_LINKS.github_repo,
+        "- FHIR source branch with one commit per decided issue: " + AGENT_LINKS.source_branch_tree_url,
+        "- Base commit: " + AGENT_LINKS.base,
+        "- Current head: " + AGENT_LINKS.head,
+        "- Full branch diff on GitHub: " + AGENT_LINKS.github_compare_url,
+        "- Run artifacts branch (review app, JSON, gzip): " + AGENT_LINKS.artifact_branch_tree_url,
+        "- Report JSON: " + AGENT_LINKS.report_json,
+        "- Report JSON (gzip, with embedded patches): " + AGENT_LINKS.report_json_gzip,
+        "- Standalone review HTML: " + AGENT_LINKS.review_html,
+        "",
+        "Visible review items (" + items.length + "):",
+        ...(items.length ? items : ["(none)"]),
+        "",
+      ];
+      await navigator.clipboard.writeText(lines.join("\\n"));
+      flash(document.getElementById("copyplan"), "Copied");
     });
     applyFilters();
   </script>
@@ -351,5 +477,7 @@ writeFileSync(path.join(outDir, "index.html"), html);
 console.log(`run_id=${runId}`);
 console.log(`items=${items.length}`);
 console.log(`seeds=${resultFiles.length}`);
-console.log(`report=${path.join(outDir, "issue-reconcile-report.json")}`);
+console.log(`source_branch=${sourceBranchTreeUrl}`);
+console.log(`artifact_branch=${artifactBranchTreeUrl}`);
+console.log(`report=${path.join(outDir, reportJsonName)}`);
 console.log(`html=${path.join(outDir, "index.html")}`);
