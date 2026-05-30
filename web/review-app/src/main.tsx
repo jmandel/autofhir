@@ -161,7 +161,7 @@ function normalizeEntry(entry?: Partial<ReviewEntry>): ReviewEntry {
 function App() {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [changeKind, setChangeKind] = useState("source-change");
+  const [status, setStatus] = useState("");
   const [wg, setWg] = useState("");
   const [file, setFile] = useState("");
   const [reviewDecision, setReviewDecision] = useState("");
@@ -183,7 +183,7 @@ function App() {
       .then((data: Report) => {
         const hashSha = shaFromHash(data.commits);
         setReport(data);
-        if (hashSha) setChangeKind("");
+        if (!hashSha && !isAuditReport(data)) setStatus(sourceChangingStatus(data.commits));
         window.requestAnimationFrame(() => {
           window.setTimeout(() => setLinksEnabled(true), 250);
           window.setTimeout(() => setDiffsEnabled(true), 1000);
@@ -194,8 +194,8 @@ function App() {
       .catch((err) => setError(String(err?.message || err)));
   }, []);
 
-  const options = React.useMemo(() => report ? buildOptions(report, bySha, { changeKind, wg, file, reviewDecision }) : null, [report, bySha, changeKind, wg, file, reviewDecision]);
-  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { changeKind, wg, file, reviewDecision })), sort) : [], [report, bySha, changeKind, wg, file, reviewDecision, sort]);
+  const options = React.useMemo(() => report ? buildOptions(report, bySha, { status, wg, file, reviewDecision }) : null, [report, bySha, status, wg, file, reviewDecision]);
+  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, wg, file, reviewDecision })), sort) : [], [report, bySha, status, wg, file, reviewDecision, sort]);
 
   const selectCommit = useCallback((sha: string, urlMode: "push" | "replace" | "none" = "none") => {
     useSelectionStore.getState().setSelected(sha);
@@ -298,8 +298,7 @@ function App() {
       </header>
       <Intro report={report} />
       <div className="controls">
-        {!isAuditReport(report) ? <Facet value="" onChange={() => undefined} label="All results" options={options.statuses} /> : null}
-        <Facet className="control-change-kind" value={changeKind} onChange={setChangeKind} label="All commit kinds" options={options.changeKinds} />
+        <Facet className="control-status" value={status} onChange={setStatus} label="All commit types" options={options.statuses} />
         <Facet className="control-wg" value={wg} onChange={setWg} label="All work groups" options={options.wgs} />
         <Facet className="control-file" value={file} onChange={setFile} label="All changed files" options={options.files} />
         <Facet className="control-review" value={reviewDecision} onChange={setReviewDecision} label="All review choices" options={options.reviews} />
@@ -1023,7 +1022,6 @@ type FacetOption = { total: number; items: { value: string; label: string; count
 function buildOptions(report: Report, bySha: Record<string, ReviewEntry>, filters: Record<string, string>) {
   return {
     statuses: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, status: "" })), (c) => [statusValue(c)], outcomeLabel),
-    changeKinds: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, changeKind: "" })), (c) => [changeKindValue(c)], changeKindLabel),
     wgs: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, wg: "" })), (c) => [wgCode(c)], (value) => {
       const sample = report.commits.find((c) => wgCode(c) === value);
       return `${value} · ${sample ? wgName(sample) : value}`;
@@ -1044,7 +1042,6 @@ function facet(rows: CommitReport[], valuesFor: (commit: CommitReport) => string
 
 function passes(commit: CommitReport, bySha: Record<string, ReviewEntry>, filters: Record<string, string>) {
   return (!filters.status || statusValue(commit) === filters.status)
-    && (!filters.changeKind || changeKindValue(commit) === filters.changeKind)
     && (!filters.wg || wgCode(commit) === filters.wg)
     && (!filters.file || (commit.files || []).includes(filters.file))
     && (!filters.reviewDecision || reviewEntry(commit.sha, bySha).decision === filters.reviewDecision);
@@ -1064,6 +1061,31 @@ function statusValue(commit: CommitReport) {
   return commit.status || commit.decision_status || "none";
 }
 
+function isSourceChanging(commit: CommitReport) {
+  return (commit.files || []).length > 0;
+}
+
+// Default the combined "commit types" filter to the status shared by the
+// source-changing commits (e.g. "fixed"), so reviewers land on source changes
+// first while still being able to pick any other commit type from the dropdown.
+function sourceChangingStatus(commits: CommitReport[]) {
+  const counts = new Map<string, number>();
+  for (const commit of commits) {
+    if (!isSourceChanging(commit)) continue;
+    const value = statusValue(commit);
+    counts.set(value, (counts.get(value) || 0) + 1);
+  }
+  let best = "";
+  let bestCount = 0;
+  for (const [value, count] of counts) {
+    if (count > bestCount) {
+      best = value;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
 function outcomeLabel(value?: string) {
   return ({
     keep: "Keep",
@@ -1072,21 +1094,11 @@ function outcomeLabel(value?: string) {
     drop: "Drop",
     fixed: "Source change made",
     "no-change": "No source change needed",
+    "external-repo": "External repo",
     ambiguous: "Needs human review",
     blocked: "Blocked",
     none: "Missing review data",
   } as Record<string, string>)[value || "none"] || value || "Missing review data";
-}
-
-function changeKindValue(commit: CommitReport) {
-  return (commit.files || []).length ? "source-change" : "no-source-change";
-}
-
-function changeKindLabel(value?: string) {
-  return ({
-    "source-change": "Source-changing commits",
-    "no-source-change": "No source changes",
-  } as Record<string, string>)[value || ""] || value || "Unknown";
 }
 
 function wgCode(commit: CommitReport) {
