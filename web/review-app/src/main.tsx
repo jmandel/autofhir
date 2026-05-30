@@ -12,7 +12,8 @@ type CommitReport = {
   author: string;
   authored_at: string;
   subject: string;
-  body: string;
+  body?: string;
+  body_url?: string;
   issue_key?: string;
   status?: string;
   decision_status?: string;
@@ -22,6 +23,7 @@ type CommitReport = {
   recommendation?: string;
   original_subject?: string;
   original_body?: string;
+  original_body_url?: string;
   fixup_status?: string;
   fixup_decision_status?: string;
   fixup_result_path?: string;
@@ -434,6 +436,8 @@ const CommitCard = memo(function CommitCard({ commit, onSelect, diffsEnabled }: 
   const entry = normalizeEntry(rawEntry);
   const setDecision = useReviewStore((state) => state.setDecision);
   const setNote = useReviewStore((state) => state.setNote);
+  const body = useLazyText(commit.sha, commit.body, commit.body_url);
+  const originalBody = useLazyText(commit.sha, commit.original_body, commit.original_body_url);
   return (
     <article id={`commit-${commit.sha}`} data-sha={commit.sha} className={selected ? "commit-card active" : "commit-card"} onFocus={() => onSelect(commit.sha)}>
       <div className="card-head">
@@ -462,17 +466,17 @@ const CommitCard = memo(function CommitCard({ commit, onSelect, diffsEnabled }: 
       <div className="card-body">
         {commit.omitted_patch_files?.length ? <div className="notice critical">Embedded diff is incomplete for this commit. Use the GitHub full diff link for complete content.</div> : null}
         <CommitOverview commit={commit} />
-        <CommitMessageNarrative commit={commit} />
+        <CommitMessageNarrative commit={commit} body={body} />
         {!commit.audit_decision ? (
           <details className="review-details">
             <summary>Raw git commit message</summary>
-            <pre className="commit-message">{commit.body || commit.subject || "(empty commit message)"}</pre>
+            <pre className="commit-message">{body || commit.subject || "(empty commit message)"}</pre>
           </details>
         ) : null}
-        {commit.original_body && !commit.audit_decision ? (
+        {originalBody && !commit.audit_decision ? (
           <details className="review-details">
             <summary>Original generated commit message</summary>
-            <pre className="commit-message">{commit.original_body}</pre>
+            <pre className="commit-message">{originalBody}</pre>
           </details>
         ) : null}
         <details className="review-details">
@@ -530,11 +534,37 @@ const commitSectionTitles = [
   "Initial application",
   "Additional context",
   "AutoFHIR fixup",
+  "AutoFHIR reconciliation",
   "Recommendation",
 ];
 
-function CommitMessageNarrative({ commit }: { commit: CommitReport }) {
-  const sections = React.useMemo(() => parsedMessageSections(commit), [commit.body, commit.subject, commit.commit_summary, commit.commit_context, commit.recommendation]);
+// Loads commit text that the report may inline (`inline`) or externalize behind a
+// side-file URL (`url`, e.g. messages/<id>.txt). Mirrors the patch_url lazy load so
+// large reports stay small while the full commit message still renders into the DOM.
+function useLazyText(sha: string, inline: string | undefined, url: string | undefined): string {
+  const [text, setText] = useState(inline ?? "");
+  useEffect(() => {
+    let cancelled = false;
+    if (inline !== undefined) {
+      setText(inline);
+      return () => { cancelled = true; };
+    }
+    if (!url) {
+      setText("");
+      return () => { cancelled = true; };
+    }
+    setText("");
+    fetchPatchQueued(assetUrl(url))
+      .then((value) => waitForScrollIdle().then(() => value))
+      .then((value) => { if (!cancelled) setText(value); })
+      .catch(() => { if (!cancelled) setText(""); });
+    return () => { cancelled = true; };
+  }, [sha, inline, url]);
+  return text;
+}
+
+function CommitMessageNarrative({ commit, body }: { commit: CommitReport; body: string }) {
+  const sections = React.useMemo(() => parsedMessageSections(commit, body), [body, commit.subject, commit.commit_summary, commit.commit_context, commit.recommendation]);
   if (!sections.length) {
     return (
       <section className="narrative-card">
@@ -555,8 +585,8 @@ function CommitMessageNarrative({ commit }: { commit: CommitReport }) {
   );
 }
 
-function parsedMessageSections(commit: CommitReport): MessageSection[] {
-  const fromBody = sectionsFromBody(commit.body || "");
+function parsedMessageSections(commit: CommitReport, body: string): MessageSection[] {
+  const fromBody = sectionsFromBody(body || "");
   if (fromBody.length) return fromBody;
   const fromExportedFields = sectionsFromExportedFields(commit);
   if (fromExportedFields.length) return fromExportedFields;
@@ -591,6 +621,7 @@ function sectionsFromBody(body: string): MessageSection[] {
 function isCommitMetadataStart(trimmed: string) {
   return /^AutofHIR-Run:/i.test(trimmed)
     || /^Issue-Fixup-/i.test(trimmed)
+    || /^Issue-Reconcile-/i.test(trimmed)
     || /^<\/?(related-jiras|evidence)>$/i.test(trimmed)
     || /^Verification:/i.test(trimmed);
 }
