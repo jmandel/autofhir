@@ -586,7 +586,7 @@ function CommitMessageNarrative({ commit, body }: { commit: CommitReport; body: 
 }
 
 function parsedMessageSections(commit: CommitReport, body: string): MessageSection[] {
-  const fromBody = sectionsFromBody(body || commit.body || "");
+  const fromBody = sectionsFromBody(body || "");
   if (fromBody.length) return fromBody;
   const fromExportedFields = sectionsFromExportedFields(commit);
   if (fromExportedFields.length) return fromExportedFields;
