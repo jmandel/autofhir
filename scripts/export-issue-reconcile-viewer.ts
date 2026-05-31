@@ -37,6 +37,7 @@ type ResultFile = {
 
 type ReportItem = IssueResult & {
   seed_key: string;
+  seed_decisions: { issue_key: string; role: string; status: string; commit_sha?: string; summary: string }[];
   result_path: string;
   commit_sha?: string;
   short_sha?: string;
@@ -190,6 +191,13 @@ const items: ReportItem[] = [];
 for (const file of resultFiles) {
   const fullPath = path.join(root, "results", file);
   const result = readJson<ResultFile>(fullPath);
+  const seedDecisions = (result.issue_results ?? []).map((issue) => ({
+    issue_key: issue.issue_key,
+    role: issue.role,
+    status: issue.status,
+    commit_sha: publishedSha(issue.commit?.sha),
+    summary: issue.summary,
+  }));
   for (const issue of result.issue_results ?? []) {
     const info = commitInfo(issue.commit?.sha);
     const branchIndex = info.commit_sha ? commitOrder.get(info.commit_sha) : undefined;
@@ -200,6 +208,7 @@ for (const file of resultFiles) {
       : `commit-no-commit-${issue.issue_key}`;
     items.push({
       seed_key: result.seed_key,
+      seed_decisions: seedDecisions,
       result_path: path.relative(root, fullPath),
       ...issue,
       ...info,
@@ -244,6 +253,53 @@ const report = {
     report_json_gzip: artifactUrl(reportGzipName),
     review_html: artifactUrl("index.html"),
   },
+  run: {
+    run_id: runId,
+    fhir_repo: run.fhirRepo,
+    base: displayBaseSha,
+    head: combinedHead,
+    combined_branch: run.combinedBranch,
+    github_repo: githubRepo,
+    github_tree_url: sourceBranchTreeUrl,
+    github_compare_url: `${githubRepoUrl}/compare/${displayBaseSha}...${combinedHead}`,
+    review_pages_url: pagesUrl,
+    review_github_tree_url: artifactBranchTreeUrl,
+    review_raw_base_url: artifactRawBaseUrl,
+    artifacts: {
+      fixup_review_json: reportJsonName,
+      fixup_review_json_gzip: reportGzipName,
+      fixup_patch_dir: "patches/",
+    },
+  },
+  counts: {
+    commits: items.length,
+    with_result: items.length,
+  },
+  commits: items.map((item, index) => ({
+    sequence: index + 1,
+    review_id: item.anchor.replace(/^commit-/, ""),
+    sha: item.anchor.replace(/^commit-/, ""),
+    commit_sha: item.commit_sha,
+    short_sha: item.short_sha,
+    author: item.commit_author,
+    authored_at: item.commit_date,
+    subject: item.commit_subject || `${item.issue_key}: ${item.summary}`,
+    body: item.commit_body,
+    issue_key: item.issue_key,
+    seed_key: item.seed_key,
+    seed_decisions: item.seed_decisions,
+    role: item.role,
+    status: item.status,
+    decision_status: item.status,
+    summary: item.summary,
+    recommendation: item.recommendation,
+    result_path: item.result_path,
+    github_commit_url: item.github_commit_url,
+    files: item.files,
+    stat: item.stat,
+    patch: item.patch,
+    patch_truncated: item.patch_truncated,
+  })),
   item_count: items.length,
   seed_count: resultFiles.length,
   items,
@@ -305,6 +361,7 @@ function renderCard(item: ReportItem): string {
         <span class="pill">${escapeHtml(item.role)}</span>
         <span class="pill">${escapeHtml(item.confidence)}</span>
         <span class="pill">seed ${escapeHtml(item.seed_key)}</span>
+        ${item.seed_decisions.length > 1 ? `<span class="pill">${item.seed_decisions.length} decided from seed</span>` : ""}
         ${commitLink}
       </div>
     </header>
@@ -320,6 +377,7 @@ function renderCard(item: ReportItem): string {
     <details open><summary>Initial application</summary><p>${linkifyText(item.initial_application)}</p></details>
     <details open><summary>Additional context</summary><p>${linkifyText(item.additional_context)}</p></details>
     <details open><summary>Reconciliation</summary><p>${linkifyText(item.reconciliation)}</p></details>
+    ${item.seed_decisions.length > 1 ? `<details open><summary>All issues decided from seed ${escapeHtml(item.seed_key)}</summary><ul>${item.seed_decisions.map((decision) => `<li><a href="https://jira.hl7.org/browse/${escapeHtml(decision.issue_key)}" target="_blank" rel="noreferrer">${escapeHtml(decision.issue_key)}</a> <span class="pill">${escapeHtml(decision.role)}</span> <span class="pill ${escapeHtml(decision.status)}">${escapeHtml(decision.status)}</span> ${linkifyText(decision.summary)}</li>`).join("")}</ul></details>` : ""}
     <details><summary>Source changes</summary>${renderList(item.source_changes)}</details>
     <details><summary>Related Jiras</summary>${renderIssueLinks(item.related_jiras)}</details>
     <details><summary>Evidence</summary>${renderEvidence(item.evidence_items)}</details>

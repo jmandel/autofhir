@@ -3,13 +3,29 @@ name: Deploy Review Site
 on:
   workflow_dispatch:
     inputs:
-      site_ref:
-        description: Git ref containing the complete static Pages site
-        required: true
-      site_path:
-        description: Path inside site_ref to deploy
+      registry:
+        description: Review run registry path on main
         required: false
-        default: .
+        default: review-runs.json
+      github_repo:
+        description: OWNER/REPO containing source and artifact branches
+        required: false
+        default: jmandel/autofhir
+      pages_base_url:
+        description: Base URL for generated review links
+        required: false
+        default: https://joshuamandel.com/autofhir/
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/review-app.yml"
+      - "review-runs.json"
+      - "scripts/build-review-pages-site.ts"
+      - "scripts/backfill-issue-reconcile-report-links.ts"
+      - "web/review-app/**"
+      - "package.json"
+      - "bun.lock"
 
 permissions:
   contents: read
@@ -27,12 +43,30 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out main
+        uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
         with:
-          ref: ${{ inputs.site_ref }}
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build Pages site from review registry
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          bun scripts/build-review-pages-site.ts \
+            --out-dir publish \
+            --registry "${{ inputs.registry || 'review-runs.json' }}" \
+            --fetch-artifacts \
+            --github-repo "${{ inputs.github_repo || 'jmandel/autofhir' }}" \
+            --pages-base-url "${{ inputs.pages_base_url || 'https://joshuamandel.com/autofhir/' }}"
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: ${{ inputs.site_path }}
+          path: publish
       - id: deployment
         uses: actions/deploy-pages@v4

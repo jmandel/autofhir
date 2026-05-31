@@ -4,8 +4,12 @@ import { spawn, spawnSync } from "node:child_process";
 
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
-export const repoRoot = path.resolve(import.meta.dir, "../..");
-export const autofhirRoot = path.join(repoRoot, "autofhir");
+const standaloneRoot = path.resolve(import.meta.dir, "..");
+const nestedRepoRoot = path.resolve(import.meta.dir, "../..");
+export const autofhirRoot = existsSync(path.join(standaloneRoot, "package.json")) && existsSync(path.join(standaloneRoot, "scripts", "lib.ts"))
+  ? standaloneRoot
+  : path.join(nestedRepoRoot, "autofhir");
+export const repoRoot = autofhirRoot === standaloneRoot ? standaloneRoot : nestedRepoRoot;
 export const runsRoot = path.join(autofhirRoot, "runs");
 
 export type RunManifest = {

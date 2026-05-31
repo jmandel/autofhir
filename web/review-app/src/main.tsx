@@ -15,6 +15,8 @@ type CommitReport = {
   body?: string;
   body_url?: string;
   issue_key?: string;
+  seed_key?: string;
+  seed_decisions?: SeedDecision[];
   status?: string;
   decision_status?: string;
   commit_summary?: string;
@@ -47,6 +49,14 @@ type CommitReport = {
   patch_bytes?: number;
   patch_truncated?: boolean;
   omitted_patch_files?: { file: string; reason: string }[];
+};
+
+type SeedDecision = {
+  issue_key: string;
+  role?: string;
+  status?: string;
+  commit_sha?: string;
+  summary?: string;
 };
 
 type PreviousIssueCommit = {
@@ -509,6 +519,7 @@ function CommitOverview({ commit }: { commit: CommitReport }) {
         {commit.result_path ? <span>{commit.audit_decision ? "Audit report" : "Agent report"}: {commit.result_path}</span> : <span>No agent report JSON</span>}
       </div>
       <PreviousIssueCommits commit={commit} />
+      <SeedDecisions commit={commit} />
       <dl className="metadata-grid">
         <div><dt>{commit.audit_decision ? "Audit Decision" : "Result"}</dt><dd>{outcomeLabel(commit.status || commit.decision_status)}</dd></div>
         {commit.fixup_status ? <div><dt>Original Fixup Result</dt><dd>{outcomeLabel(commit.fixup_status)}</dd></div> : null}
@@ -523,6 +534,26 @@ function CommitOverview({ commit }: { commit: CommitReport }) {
           </ul>
         </section>
       ) : null}
+    </section>
+  );
+}
+
+function SeedDecisions({ commit }: { commit: CommitReport }) {
+  const decisions = commit.seed_decisions || [];
+  if (!commit.seed_key || decisions.length <= 1) return null;
+  return (
+    <section className="previous-commits seed-decisions">
+      <h3>Issues Decided From Seed {commit.seed_key}</h3>
+      <ul>
+        {decisions.map((decision) => (
+          <li key={decision.issue_key}>
+            <a href={jiraUrl(decision.issue_key)} target="_blank" rel="noreferrer">{decision.issue_key}</a>
+            {decision.role ? <span className="chip">{decision.role}</span> : null}
+            {decision.status ? <span className={`chip ${decision.status}`}>{outcomeLabel(decision.status)}</span> : null}
+            <span>{decision.summary || ""}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

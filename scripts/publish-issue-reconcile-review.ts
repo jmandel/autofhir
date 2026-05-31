@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { readRun, repoRoot, runCommand, runPath } from "./lib";
+import { autofhirRoot, readRun, repoRoot, runCommand, runPath } from "./lib";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -25,14 +25,15 @@ review app, its commit links, and its agent instructions resolve on github.com:
     of a single base-snapshot root, so HL7/fhir history is not pushed)
   - re-exports the review viewer with a commit map so each issue card links to
     the matching commit on the orphan branch
-  - pushes the review app, JSON report, and gzip to
+  - force-pushes the review app, JSON report, and gzip to
     refs/heads/pages-<run-id>/<run-id>/
 
 The orphan branch reuses each decided commit's exact tree, so its per-commit
 diffs on github.com match the local combined branch.
 
-With --deploy-pages, also rebuilds and dispatches the GitHub Pages deployment
-via build-review-pages-site.ts and deploy-review-pages-site.ts.`);
+With --deploy-pages, dispatches the main-branch GitHub Pages workflow. The
+workflow rebuilds the web app from main, reads review-runs.json, fetches
+artifact branches, uploads a Pages artifact, and deploys it.`);
   process.exit(0);
 }
 
@@ -147,13 +148,7 @@ function pushArtifactBranch(): void {
     git(["config", "user.email", "autofhir@example.invalid"], { cwd: tmp });
     git(["remote", "add", "origin", repoUrl], { cwd: tmp });
     const remoteRef = `refs/heads/${artifactBranch}`;
-    const remoteSha = git(["ls-remote", repoUrl, remoteRef], { cwd: tmp, allowFailure: true }).trim().split(/\s+/)[0];
-    if (remoteSha) {
-      git(["fetch", "--depth=1", "origin", remoteRef], { cwd: tmp });
-      git(["checkout", "-B", artifactBranch, "FETCH_HEAD"], { cwd: tmp });
-    } else {
-      git(["checkout", "-B", artifactBranch], { cwd: tmp });
-    }
+    git(["checkout", "--orphan", artifactBranch], { cwd: tmp });
     const dest = path.join(tmp, runId);
     rmSync(dest, { recursive: true, force: true });
     mkdirSync(dest, { recursive: true });
@@ -162,13 +157,9 @@ function pushArtifactBranch(): void {
     }
     writeFileSync(path.join(tmp, ".nojekyll"), "");
     git(["add", "."], { cwd: tmp });
-    if (remoteSha && !git(["diff", "--cached", "--name-only"], { cwd: tmp }).trim()) {
-      console.log(`artifact_branch=unchanged`);
-    } else {
-      git(["commit", "-m", `Publish ${runId} issue-reconcile review artifacts`], { cwd: tmp });
-      git(["push", "--force", "origin", `HEAD:${remoteRef}`], { cwd: tmp });
-      console.log(`artifact_branch=https://github.com/${githubRepo}/tree/${artifactBranch}/${runId}`);
-    }
+    git(["commit", "--quiet", "-m", `Publish ${runId} issue-reconcile review artifacts`], { cwd: tmp });
+    git(["push", "--force", "origin", `HEAD:${remoteRef}`], { cwd: tmp });
+    console.log(`artifact_branch=https://github.com/${githubRepo}/tree/${artifactBranch}/${runId}`);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
@@ -177,8 +168,8 @@ function pushArtifactBranch(): void {
 function deployPages(): void {
   const siteDir = mkdtempSync(path.join(tmpdir(), "autofhir-reconcile-site-"));
   try {
-    runCommand(["bun", "autofhir/scripts/build-review-pages-site.ts", "--out-dir", siteDir], { cwd: repoRoot });
-    runCommand(["bun", "autofhir/scripts/deploy-review-pages-site.ts", "--site-dir", siteDir, "--wait"], { cwd: repoRoot });
+    runCommand(["bun", path.join(autofhirRoot, "scripts/build-review-pages-site.ts"), "--out-dir", siteDir, "--registry", path.join(autofhirRoot, "review-runs.json"), "--fetch-artifacts"], { cwd: repoRoot });
+    runCommand(["bun", path.join(autofhirRoot, "scripts/deploy-review-pages-site.ts"), "--registry", path.join(autofhirRoot, "review-runs.json"), "--wait"], { cwd: repoRoot });
   } finally {
     rmSync(siteDir, { recursive: true, force: true });
   }
@@ -198,7 +189,7 @@ if (!flag("--skip-source-branch")) {
 if (!flag("--skip-export")) {
   runCommand([
     "bun",
-    "autofhir/scripts/export-issue-reconcile-viewer.ts",
+    path.join(autofhirRoot, "scripts/export-issue-reconcile-viewer.ts"),
     "--run-id",
     runId,
     "--commit-map",
