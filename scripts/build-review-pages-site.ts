@@ -164,6 +164,8 @@ function copyReviewExport(reviewDir: string, dest: string): void {
     "issue-fixup-diff-report-full.json.gz",
     "issue-reconcile-report.json",
     "issue-reconcile-report.json.gz",
+    "review-text-bundle.json",
+    "review-text-bundle.json.gz",
     "source-issue-mapping-report.json.gz",
     "source-issue-fixup-review-report.json.gz",
   ]) {

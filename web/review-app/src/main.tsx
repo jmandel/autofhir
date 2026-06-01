@@ -98,6 +98,18 @@ type Report = {
   commits: CommitReport[];
 };
 
+type TextBundle = {
+  schema_version: string;
+  generated_at?: string;
+  assets: Record<string, string>;
+};
+
+type TextBundleState = {
+  assets: Record<string, string>;
+  ready: boolean;
+  failed: boolean;
+};
+
 type ReviewEntry = {
   decision: ReviewDecision;
   note: string;
@@ -117,6 +129,7 @@ type SelectionStore = {
 };
 
 const EnhancementContext = React.createContext(false);
+const TextBundleContext = React.createContext<TextBundleState>({ assets: {}, ready: false, failed: false });
 
 const reviewOptions: [ReviewDecision, string][] = [
   ["undecided", "Undecided"],
@@ -180,21 +193,31 @@ function App() {
   const [sort, setSort] = useState("wg");
   const [diffsEnabled, setDiffsEnabled] = useState(false);
   const [linksEnabled, setLinksEnabled] = useState(false);
+  const [textBundle, setTextBundle] = useState<TextBundleState>({ assets: {}, ready: false, failed: false });
   const [copied, setCopied] = useState(false);
   const bySha = useReviewStore((state) => state.bySha);
   const clear = useReviewStore((state) => state.clear);
 
   useEffect(() => {
     const url = window.__AUTOFHIR_REPORT_URL__ || "issue-fixup-diff-report.json";
+    const textBundlePromise = window.__AUTOFHIR_TEXT_BUNDLE_URL__
+      ? loadTextBundleUrl(window.__AUTOFHIR_TEXT_BUNDLE_URL__)
+      : undefined;
     ensureScrollIdleTracker();
     fetch(url)
       .then((response) => {
         if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-        return response.json();
+        return jsonResponse(response, url) as Promise<Report>;
       })
       .then((data: Report) => {
         const hashSha = shaFromHash(data.commits);
         setReport(data);
+        (textBundlePromise ?? loadTextBundle(data))
+          .then((bundle) => setTextBundle({ assets: bundle.assets || {}, ready: true, failed: false }))
+          .catch((err) => {
+            console.error("Failed to load text bundle", err);
+            setTextBundle({ assets: {}, ready: true, failed: true });
+          });
         if (!hashSha && !isAuditReport(data)) setStatus(sourceChangingStatus(data.commits));
         setDiffsEnabled(true);
         window.requestAnimationFrame(() => {
@@ -294,7 +317,8 @@ function App() {
   }
 
   return (
-    <EnhancementContext.Provider value={linksEnabled}>
+    <TextBundleContext.Provider value={textBundle}>
+      <EnhancementContext.Provider value={linksEnabled}>
       <header>
         <h1>{isAuditReport(report) ? "AutoFHIR Issue Fixup Audit Review" : "AutoFHIR Issue Fixup Diffs"}</h1>
         <div className="meta">
@@ -334,8 +358,40 @@ function App() {
         <CommitList rows={rows} onOpen={openCommit} sort={sort} />
         <CommitDetails rows={rows} onSelect={selectCommit} sort={sort} diffsEnabled={diffsEnabled} />
       </main>
-    </EnhancementContext.Provider>
+      </EnhancementContext.Provider>
+    </TextBundleContext.Provider>
   );
+}
+
+function loadTextBundle(report: Report): Promise<TextBundle> {
+  const gzipPath = report.run.artifacts?.text_bundle_gzip;
+  const plainPath = report.run.artifacts?.text_bundle || "review-text-bundle.json";
+  const bundlePath = gzipPath && supportsGzipStream() ? gzipPath : plainPath;
+  return loadTextBundleUrl(bundlePath);
+}
+
+function loadTextBundleUrl(bundlePath: string): Promise<TextBundle> {
+  return fetch(assetUrl(bundlePath))
+    .then((response) => {
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      return jsonResponse(response, bundlePath) as Promise<TextBundle>;
+    });
+}
+
+function supportsGzipStream() {
+  return typeof DecompressionStream !== "undefined";
+}
+
+function jsonResponse(response: Response, url: string): Promise<unknown> {
+  if (url.endsWith(".gz")) return gzipJson(response);
+  return response.json();
+}
+
+async function gzipJson(response: Response): Promise<unknown> {
+  if (!response.body) throw new Error("gzip response has no body");
+  const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
+  const text = await new Response(stream).text();
+  return JSON.parse(text);
 }
 
 function SelectionSideEffects() {
@@ -441,7 +497,9 @@ function CommitDetails({ rows, onSelect, sort, diffsEnabled }: { rows: CommitRep
 }
 
 const CommitCard = memo(function CommitCard({ commit, onSelect, diffsEnabled }: { commit: CommitReport; onSelect: (sha: string) => void; diffsEnabled: boolean }) {
+  const cardRef = useRef<HTMLElement | null>(null);
   const selected = useSelectionStore((state) => state.selected === commit.sha);
+  const nearViewport = useNearViewport(cardRef);
   const rawEntry = useReviewStore((state) => state.bySha[commit.sha]);
   const entry = normalizeEntry(rawEntry);
   const setDecision = useReviewStore((state) => state.setDecision);
@@ -449,7 +507,7 @@ const CommitCard = memo(function CommitCard({ commit, onSelect, diffsEnabled }: 
   const body = useLazyText(commit.sha, commit.body, commit.body_url);
   const originalBody = useLazyText(commit.sha, commit.original_body, commit.original_body_url);
   return (
-    <article id={`commit-${commit.sha}`} data-sha={commit.sha} className={selected ? "commit-card active" : "commit-card"} onFocus={() => onSelect(commit.sha)}>
+    <article ref={cardRef} id={`commit-${commit.sha}`} data-sha={commit.sha} className={selected ? "commit-card active" : "commit-card"} onFocus={() => onSelect(commit.sha)}>
       <div className="card-head">
         <h2>
           {commit.short_sha} {commit.subject}
@@ -476,7 +534,7 @@ const CommitCard = memo(function CommitCard({ commit, onSelect, diffsEnabled }: 
       <div className="card-body">
         {commit.omitted_patch_files?.length ? <div className="notice critical">Embedded diff is incomplete for this commit. Use the GitHub full diff link for complete content.</div> : null}
         <CommitOverview commit={commit} />
-        <CommitMessageNarrative commit={commit} body={body} />
+        <CommitMessageNarrative commit={commit} body={body} pretty={selected || nearViewport} />
         {!commit.audit_decision ? (
           <details className="review-details">
             <summary>Raw git commit message</summary>
@@ -493,7 +551,7 @@ const CommitCard = memo(function CommitCard({ commit, onSelect, diffsEnabled }: 
           <summary>{commit.audit_decision ? "Files and stats" : "Fixup agent assessment, files, and stats"}</summary>
           {commit.audit_decision ? <FilesAndStats commit={commit} /> : <AgentAssessment commit={commit} />}
         </details>
-        {diffsEnabled ? <DiffSection commit={commit} /> : <DeferredDiffSection />}
+        {diffsEnabled ? <DiffSection commit={commit} pretty={selected || nearViewport} /> : <DeferredDiffSection />}
       </div>
     </article>
   );
@@ -573,6 +631,7 @@ const commitSectionTitles = [
 // side-file URL (`url`, e.g. messages/<id>.txt). Mirrors the patch_url lazy load so
 // large reports stay small while the full commit message still renders into the DOM.
 function useLazyText(sha: string, inline: string | undefined, url: string | undefined): string {
+  const textBundle = React.useContext(TextBundleContext);
   const [text, setText] = useState(inline ?? "");
   useEffect(() => {
     let cancelled = false;
@@ -584,17 +643,30 @@ function useLazyText(sha: string, inline: string | undefined, url: string | unde
       setText("");
       return () => { cancelled = true; };
     }
+    if (Object.prototype.hasOwnProperty.call(textBundle.assets, url)) {
+      setText(textBundle.assets[url] || "");
+      return () => { cancelled = true; };
+    }
+    if (!textBundle.ready && !textBundle.failed) return () => { cancelled = true; };
     setText("");
-    fetchPatchQueued(assetUrl(url))
+    fetchTextAsset(url)
       .then((value) => { if (!cancelled) setText(value); })
       .catch(() => { if (!cancelled) setText(""); });
     return () => { cancelled = true; };
-  }, [sha, inline, url]);
+  }, [sha, inline, url, textBundle]);
   return text;
 }
 
-function CommitMessageNarrative({ commit, body }: { commit: CommitReport; body: string }) {
-  const sections = React.useMemo(() => parsedMessageSections(commit, body), [body, commit.subject, commit.commit_summary, commit.commit_context, commit.recommendation]);
+function CommitMessageNarrative({ commit, body, pretty }: { commit: CommitReport; body: string; pretty: boolean }) {
+  const sections = React.useMemo(() => pretty ? parsedMessageSections(commit, body) : [], [pretty, body, commit.subject, commit.commit_summary, commit.commit_context, commit.recommendation]);
+  if (!pretty) {
+    return (
+      <section className="narrative-card">
+        <h3>Commit message</h3>
+        <p>{displaySummary(commit) || "(no summary)"}</p>
+      </section>
+    );
+  }
   if (!sections.length) {
     return (
       <section className="narrative-card">
@@ -812,6 +884,24 @@ function useVisibleCommitObserver(rows: CommitReport[], onVisible: (sha: string)
   }, [rows]);
 }
 
+function useNearViewport(ref: React.RefObject<Element | null>) {
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    if (!("IntersectionObserver" in window)) {
+      setNear(true);
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      setNear(entries.some((entry) => entry.isIntersecting));
+    }, { root: null, rootMargin: "1200px 0px", threshold: 0 });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
+  return near;
+}
+
 function PreviousIssueCommits({ commit }: { commit: CommitReport }) {
   const previous = commit.previous_issue_commits || [];
   if (!previous.length) return null;
@@ -869,7 +959,8 @@ function FilesAndStats({ commit }: { commit: CommitReport }) {
   );
 }
 
-function DiffSection({ commit }: { commit: CommitReport }) {
+function DiffSection({ commit, pretty }: { commit: CommitReport; pretty: boolean }) {
+  const textBundle = React.useContext(TextBundleContext);
   const hasEmbeddedPatch = commit.patch !== undefined;
   const [patch, setPatch] = useState(commit.patch ?? "");
   const [patchState, setPatchState] = useState<"ready" | "loading" | "error">(hasEmbeddedPatch ? "ready" : commit.patch_url ? "loading" : "ready");
@@ -880,8 +971,17 @@ function DiffSection({ commit }: { commit: CommitReport }) {
       setPatchState("ready");
       return () => { cancelled = true; };
     }
+    if (Object.prototype.hasOwnProperty.call(textBundle.assets, commit.patch_url)) {
+      setPatch(textBundle.assets[commit.patch_url] || "");
+      setPatchState("ready");
+      return () => { cancelled = true; };
+    }
+    if (!textBundle.ready && !textBundle.failed) {
+      setPatchState("loading");
+      return () => { cancelled = true; };
+    }
     setPatchState("loading");
-    fetchPatchQueued(assetUrl(commit.patch_url))
+    fetchTextAsset(commit.patch_url)
       .then((text) => {
         if (!cancelled) {
           setPatch(text);
@@ -892,7 +992,7 @@ function DiffSection({ commit }: { commit: CommitReport }) {
         if (!cancelled) setPatchState("error");
     });
     return () => { cancelled = true; };
-  }, [commit.sha, commit.patch, commit.patch_url]);
+  }, [commit.sha, commit.patch, commit.patch_url, textBundle]);
   const patchText =
     patch || (patchState === "loading" ? "Loading diff." : patchState === "error" ? "Could not load embedded diff. Use the GitHub full diff link." : "(empty commit; no source diff)");
   return (
@@ -901,9 +1001,24 @@ function DiffSection({ commit }: { commit: CommitReport }) {
         <h3>Diff</h3>
       </div>
       {commit.patch_truncated ? <div className="notice critical">Embedded diff is truncated. Use the GitHub full diff link for complete content.</div> : null}
-      <pre className="diff-text diff-rows" aria-label={`Diff for ${commit.subject}`}>{renderDiffRows(patchText)}</pre>
+      {pretty ? (
+          <pre className="diff-text diff-rows" aria-label={`Diff for ${commit.subject}`}>{renderDiffRows(patchText)}</pre>
+      ) : (
+        <>
+          <div className="help">Diff text is loaded for browser find; detailed rendering activates near the viewport.</div>
+          <UntilFoundPre className="diff-text raw-diff-search" ariaLabel={`Diff for ${commit.subject}`} text={patchText} />
+        </>
+      )}
     </section>
   );
+}
+
+function UntilFoundPre({ className, ariaLabel, text }: { className: string; ariaLabel: string; text: string }) {
+  const ref = useRef<HTMLPreElement | null>(null);
+  useEffect(() => {
+    ref.current?.setAttribute("hidden", "until-found");
+  }, []);
+  return <pre ref={ref} className={className} aria-label={ariaLabel}>{text}</pre>;
 }
 
 type InlineSegment = { text: string; changed: boolean };
@@ -980,47 +1095,47 @@ type PatchJob = {
   reject: (error: unknown) => void;
 };
 
-const patchCache = new Map<string, string>();
-const patchInflight = new Map<string, Promise<string>>();
-const patchQueue: PatchJob[] = [];
-let activePatchLoads = 0;
-const maxPatchLoads = 24;
+const textAssetCache = new Map<string, string>();
+const textAssetInflight = new Map<string, Promise<string>>();
+const textAssetQueue: PatchJob[] = [];
+let activeTextAssetLoads = 0;
+const maxTextAssetLoads = 24;
 let scrollTrackerInstalled = false;
 let scrollIdleTimer = 0;
 let scrollBusyUntil = 0;
 let scrollIdleWaiters: (() => void)[] = [];
 
-function fetchPatchQueued(url: string): Promise<string> {
-  const cached = patchCache.get(url);
+function fetchTextAsset(url: string): Promise<string> {
+  const cached = textAssetCache.get(url);
   if (cached !== undefined) return Promise.resolve(cached);
-  const inflight = patchInflight.get(url);
+  const inflight = textAssetInflight.get(url);
   if (inflight) return inflight;
   const promise = new Promise<string>((resolve, reject) => {
-    patchQueue.push({ url, resolve, reject });
-    pumpPatchQueue();
+    textAssetQueue.push({ url: assetUrl(url), resolve, reject });
+    pumpTextAssetQueue();
   });
-  patchInflight.set(url, promise);
-  promise.finally(() => patchInflight.delete(url));
+  textAssetInflight.set(url, promise);
+  promise.finally(() => textAssetInflight.delete(url));
   return promise;
 }
 
-function pumpPatchQueue() {
-  while (activePatchLoads < maxPatchLoads && patchQueue.length) {
-    const job = patchQueue.shift()!;
-    activePatchLoads++;
+function pumpTextAssetQueue() {
+  while (activeTextAssetLoads < maxTextAssetLoads && textAssetQueue.length) {
+    const job = textAssetQueue.shift()!;
+    activeTextAssetLoads++;
     fetch(job.url)
       .then((response) => {
         if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
         return response.text();
       })
       .then((text) => {
-        patchCache.set(job.url, text);
+        textAssetCache.set(job.url, text);
         job.resolve(text);
       })
       .catch(job.reject)
       .finally(() => {
-        activePatchLoads--;
-        pumpPatchQueue();
+        activeTextAssetLoads--;
+        pumpTextAssetQueue();
       });
   }
 }
@@ -1059,7 +1174,7 @@ function scheduleScrollIdleFlush() {
     const waiters = scrollIdleWaiters;
     scrollIdleWaiters = [];
     for (const resolve of waiters) resolve();
-    pumpPatchQueue();
+    pumpTextAssetQueue();
   }, delay);
 }
 
@@ -1472,6 +1587,7 @@ async function copyPlan(report: Report, rows: CommitReport[], bySha: Record<stri
 declare global {
   interface Window {
     __AUTOFHIR_REPORT_URL__?: string;
+    __AUTOFHIR_TEXT_BUNDLE_URL__?: string;
   }
 }
 

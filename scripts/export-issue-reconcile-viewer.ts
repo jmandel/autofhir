@@ -155,6 +155,8 @@ mkdirSync(outDir, { recursive: true });
 
 const reportJsonName = "issue-reconcile-report.json";
 const reportGzipName = "issue-reconcile-report.json.gz";
+const textBundleName = "review-text-bundle.json";
+const textBundleGzipName = "review-text-bundle.json.gz";
 const sourceBranch = runId;
 const artifactBranch = `pages-${runId}`;
 const artifactDir = runId;
@@ -264,20 +266,24 @@ function sideFileName(index: number, issueKey: string, shortSha: string | undefi
   return `${seq}-${cleanKey}-${cleanSha}.${extension}`;
 }
 
-const messagesDir = path.join(outDir, "messages");
-const patchesDir = path.join(outDir, "patches");
 const detailsDir = path.join(outDir, "details");
 rmSync(detailsDir, { recursive: true, force: true });
-for (const dir of [messagesDir, patchesDir]) {
-  rmSync(dir, { recursive: true, force: true });
-  mkdirSync(dir, { recursive: true });
-}
+rmSync(path.join(outDir, "messages"), { recursive: true, force: true });
+rmSync(path.join(outDir, "patches"), { recursive: true, force: true });
+
+const textBundle: { schema_version: string; generated_at: string; assets: Record<string, string> } = {
+  schema_version: "autofhir-review-text-bundle-v1",
+  generated_at: new Date().toISOString(),
+  assets: {},
+};
 
 const compactCommits: SideFileCommit[] = items.map((item, index) => {
   const messageName = sideFileName(index, item.issue_key, item.short_sha, "txt");
   const patchName = sideFileName(index, item.issue_key, item.short_sha, "patch");
-  if (item.commit_body) writeFileSync(path.join(messagesDir, messageName), item.commit_body);
-  if (item.patch) writeFileSync(path.join(patchesDir, patchName), item.patch);
+  const bodyUrl = item.commit_body ? `messages/${messageName}` : undefined;
+  const patchUrl = item.patch ? `patches/${patchName}` : undefined;
+  if (bodyUrl) textBundle.assets[bodyUrl] = item.commit_body;
+  if (patchUrl) textBundle.assets[patchUrl] = item.patch;
   return {
     sequence: index + 1,
     review_id: item.anchor.replace(/^commit-/, ""),
@@ -287,7 +293,7 @@ const compactCommits: SideFileCommit[] = items.map((item, index) => {
     author: item.commit_author,
     authored_at: item.commit_date,
     subject: item.commit_subject || `${item.issue_key}: ${item.summary}`,
-    body_url: item.commit_body ? `messages/${messageName}` : undefined,
+    body_url: bodyUrl,
     issue_key: item.issue_key,
     seed_key: item.seed_key,
     seed_decisions: item.seed_decisions,
@@ -300,7 +306,7 @@ const compactCommits: SideFileCommit[] = items.map((item, index) => {
     github_commit_url: item.github_commit_url,
     files: item.files,
     stat: item.stat,
-    patch_url: item.patch ? `patches/${patchName}` : undefined,
+    patch_url: patchUrl,
     patch_truncated: item.patch_truncated,
   };
 });
@@ -341,6 +347,8 @@ const report = {
     artifacts: {
       fixup_review_json: reportJsonName,
       fixup_review_json_gzip: reportGzipName,
+      text_bundle: textBundleName,
+      text_bundle_gzip: textBundleGzipName,
       fixup_patch_dir: "patches/",
     },
   },
@@ -355,6 +363,8 @@ const report = {
 
 writeFileSync(path.join(outDir, reportJsonName), `${JSON.stringify(report, null, 2)}\n`);
 writeFileSync(path.join(outDir, reportGzipName), gzipSync(JSON.stringify(report)));
+writeFileSync(path.join(outDir, textBundleName), `${JSON.stringify(textBundle)}\n`);
+writeFileSync(path.join(outDir, textBundleGzipName), gzipSync(JSON.stringify(textBundle)));
 
 const html = `<!doctype html>
 <html>
@@ -363,7 +373,10 @@ const html = `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AutoFHIR Issue Reconcile Review - ${escapeHtml(runId)}</title>
   <link rel="stylesheet" href="review-app.css">
-  <script>window.__AUTOFHIR_REPORT_URL__ = "issue-reconcile-report.json";</script>
+  <script>
+    window.__AUTOFHIR_REPORT_URL__ = "issue-reconcile-report.json.gz";
+    window.__AUTOFHIR_TEXT_BUNDLE_URL__ = "review-text-bundle.json.gz";
+  </script>
   <script type="module" src="review-app.js"></script>
 </head>
 <body>

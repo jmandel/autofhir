@@ -135,19 +135,12 @@ function pushArtifactBranch(): void {
     "index.html",
     "issue-reconcile-report.json",
     "issue-reconcile-report.json.gz",
-  ];
-  const artifactDirs = [
-    "messages",
-    "patches",
+    "review-text-bundle.json",
+    "review-text-bundle.json.gz",
   ];
   for (const name of artifactFiles) {
     if (!existsSync(path.join(reviewDir, name))) {
       throw new Error(`missing required review artifact: ${path.join(reviewDir, name)} (run the export first)`);
-    }
-  }
-  for (const name of artifactDirs) {
-    if (!existsSync(path.join(reviewDir, name))) {
-      throw new Error(`missing required review artifact directory: ${path.join(reviewDir, name)} (run the export first)`);
     }
   }
   const tmp = mkdtempSync(path.join(tmpdir(), "autofhir-reconcile-publish-"));
@@ -163,9 +156,6 @@ function pushArtifactBranch(): void {
     mkdirSync(dest, { recursive: true });
     for (const name of artifactFiles) {
       cpSync(path.join(reviewDir, name), path.join(dest, name));
-    }
-    for (const name of artifactDirs) {
-      cpSync(path.join(reviewDir, name), path.join(dest, name), { recursive: true });
     }
     writeFileSync(path.join(tmp, ".nojekyll"), "");
     git(["add", "."], { cwd: tmp });
