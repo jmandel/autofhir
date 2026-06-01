@@ -196,9 +196,9 @@ function App() {
         const hashSha = shaFromHash(data.commits);
         setReport(data);
         if (!hashSha && !isAuditReport(data)) setStatus(sourceChangingStatus(data.commits));
+        setDiffsEnabled(true);
         window.requestAnimationFrame(() => {
           window.setTimeout(() => setLinksEnabled(true), 250);
-          window.setTimeout(() => setDiffsEnabled(true), 1000);
         });
         useSelectionStore.getState().setSelected(hashSha || data.commits[0]?.sha || null);
         if (hashSha) window.setTimeout(() => scrollToSha(hashSha), 0);
@@ -586,7 +586,6 @@ function useLazyText(sha: string, inline: string | undefined, url: string | unde
     }
     setText("");
     fetchPatchQueued(assetUrl(url))
-      .then((value) => waitForScrollIdle().then(() => value))
       .then((value) => { if (!cancelled) setText(value); })
       .catch(() => { if (!cancelled) setText(""); });
     return () => { cancelled = true; };
@@ -884,9 +883,6 @@ function DiffSection({ commit }: { commit: CommitReport }) {
     setPatchState("loading");
     fetchPatchQueued(assetUrl(commit.patch_url))
       .then((text) => {
-        return waitForScrollIdle().then(() => text);
-      })
-      .then((text) => {
         if (!cancelled) {
           setPatch(text);
           setPatchState("ready");
@@ -988,7 +984,7 @@ const patchCache = new Map<string, string>();
 const patchInflight = new Map<string, Promise<string>>();
 const patchQueue: PatchJob[] = [];
 let activePatchLoads = 0;
-const maxPatchLoads = 4;
+const maxPatchLoads = 24;
 let scrollTrackerInstalled = false;
 let scrollIdleTimer = 0;
 let scrollBusyUntil = 0;
@@ -1009,10 +1005,6 @@ function fetchPatchQueued(url: string): Promise<string> {
 }
 
 function pumpPatchQueue() {
-  if (!isScrollIdle()) {
-    scheduleScrollIdleFlush();
-    return;
-  }
   while (activePatchLoads < maxPatchLoads && patchQueue.length) {
     const job = patchQueue.shift()!;
     activePatchLoads++;
