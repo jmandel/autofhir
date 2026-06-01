@@ -127,7 +127,10 @@ function buildCurrentReviewApp(tmp: string): { js: string; css: string } {
 function authCloneArgs(repo: string, branch: string, dest: string): string[] {
   const token = process.env.GITHUB_TOKEN;
   const args = ["git"];
-  if (token) args.push("-c", `http.https://github.com/.extraheader=AUTHORIZATION: bearer ${token}`);
+  if (token) {
+    const auth = Buffer.from(`x-access-token:${token}`, "utf8").toString("base64");
+    args.push("-c", `http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}`);
+  }
   args.push("clone", "--depth=1", "--branch", branch, `https://github.com/${repo}.git`, dest);
   return args;
 }

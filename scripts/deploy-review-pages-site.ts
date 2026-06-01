@@ -33,7 +33,8 @@ if (!existsSync(path.resolve(registry))) throw new Error(`registry not found: ${
 const wait = flag("--wait");
 const before = new Date(Date.now() - 5000).toISOString();
 
-runCommand(["gh", "api", "--method", "PUT", `repos/${githubRepo}/pages`, "-f", "build_type=workflow"], { cwd: repoRoot });
+const pagesConfig = runCommand(["gh", "api", "--method", "PUT", `repos/${githubRepo}/pages`, "-f", "build_type=workflow"], { cwd: repoRoot, allowFailure: true });
+if (pagesConfig.trim()) console.log(pagesConfig.trim());
 runCommand([
   "gh",
   "workflow",
