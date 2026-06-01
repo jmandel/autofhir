@@ -30,6 +30,7 @@ const githubRepo = "jmandel/autofhir";
 const workflowName = "Deploy Review Site";
 const registry = arg("--registry") ?? "review-runs.json";
 if (!existsSync(path.resolve(registry))) throw new Error(`registry not found: ${registry}`);
+const registryInput = path.relative(repoRoot, path.resolve(registry)) || path.basename(registry);
 const wait = flag("--wait");
 const before = new Date(Date.now() - 5000).toISOString();
 
@@ -45,7 +46,7 @@ runCommand([
   "--ref",
   "main",
   "-f",
-  `registry=${registry}`,
+  `registry=${registryInput}`,
 ], { cwd: repoRoot });
 
 console.log("pages_source=workflow");
