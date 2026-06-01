@@ -874,7 +874,6 @@ function DiffSection({ commit }: { commit: CommitReport }) {
   const hasEmbeddedPatch = commit.patch !== undefined;
   const [patch, setPatch] = useState(commit.patch ?? "");
   const [patchState, setPatchState] = useState<"ready" | "loading" | "error">(hasEmbeddedPatch ? "ready" : commit.patch_url ? "loading" : "ready");
-  const preRef = useRef<HTMLPreElement | null>(null);
   useEffect(() => {
     let cancelled = false;
     setPatch(commit.patch ?? "");
@@ -900,21 +899,83 @@ function DiffSection({ commit }: { commit: CommitReport }) {
   }, [commit.sha, commit.patch, commit.patch_url]);
   const patchText =
     patch || (patchState === "loading" ? "Loading diff." : patchState === "error" ? "Could not load embedded diff. Use the GitHub full diff link." : "(empty commit; no source diff)");
-  useEffect(() => {
-    const element = preRef.current;
-    if (!element) return;
-    registerDiffHighlights(commit.sha, element, patchText);
-    return () => unregisterDiffHighlights(commit.sha);
-  }, [commit.sha, patchText]);
   return (
     <section className="diff-section">
       <div className="section-heading">
         <h3>Diff</h3>
       </div>
       {commit.patch_truncated ? <div className="notice critical">Embedded diff is truncated. Use the GitHub full diff link for complete content.</div> : null}
-      <pre ref={preRef} className="diff-text" aria-label={`Diff for ${commit.subject}`}>{patchText}</pre>
+      <pre className="diff-text diff-rows" aria-label={`Diff for ${commit.subject}`}>{renderDiffRows(patchText)}</pre>
     </section>
   );
+}
+
+type InlineSegment = { text: string; changed: boolean };
+type RenderedDiffLine = { text: string; kind: DiffGroup["kind"]; segments?: InlineSegment[] };
+
+function renderDiffRows(text: string) {
+  return diffRows(text).map((line, index) => (
+    <div key={index} className={`diff-line ${line.kind}`}>
+      {line.segments ? (
+        <>
+          <span className="diff-marker">{line.text.slice(0, 1)}</span>
+          {line.segments.map((segment, segmentIndex) => (
+            <span key={segmentIndex} className={segment.changed ? "diff-token changed" : undefined}>{segment.text}</span>
+          ))}
+        </>
+      ) : line.text || " "}
+    </div>
+  ));
+}
+
+function diffRows(text: string): RenderedDiffLine[] {
+  const lines = text.split("\n");
+  const rows: RenderedDiffLine[] = lines.map((line) => ({ text: line, kind: diffKind(line) }));
+  for (let index = 0; index < rows.length;) {
+    if (rows[index]?.kind !== "del") {
+      index += 1;
+      continue;
+    }
+    const delStart = index;
+    while (rows[index]?.kind === "del") index += 1;
+    const addStart = index;
+    while (rows[index]?.kind === "add") index += 1;
+    const pairCount = Math.min(addStart - delStart, index - addStart);
+    for (let offset = 0; offset < pairCount; offset += 1) {
+      const del = rows[delStart + offset];
+      const add = rows[addStart + offset];
+      const [delSegments, addSegments] = inlineDiffSegments(del.text.slice(1), add.text.slice(1));
+      del.segments = delSegments;
+      add.segments = addSegments;
+    }
+  }
+  return rows;
+}
+
+function inlineDiffSegments(oldText: string, newText: string): [InlineSegment[], InlineSegment[]] {
+  let prefix = 0;
+  const maxPrefix = Math.min(oldText.length, newText.length);
+  while (prefix < maxPrefix && oldText[prefix] === newText[prefix]) prefix += 1;
+
+  let oldSuffix = oldText.length;
+  let newSuffix = newText.length;
+  while (oldSuffix > prefix && newSuffix > prefix && oldText[oldSuffix - 1] === newText[newSuffix - 1]) {
+    oldSuffix -= 1;
+    newSuffix -= 1;
+  }
+
+  return [
+    changedSegments(oldText, prefix, oldSuffix),
+    changedSegments(newText, prefix, newSuffix),
+  ];
+}
+
+function changedSegments(text: string, changeStart: number, changeEnd: number): InlineSegment[] {
+  const segments: InlineSegment[] = [];
+  if (changeStart > 0) segments.push({ text: text.slice(0, changeStart), changed: false });
+  if (changeEnd > changeStart) segments.push({ text: text.slice(changeStart, changeEnd), changed: true });
+  if (changeEnd < text.length) segments.push({ text: text.slice(changeEnd), changed: false });
+  return segments.length ? segments : [{ text, changed: false }];
 }
 
 type PatchJob = {
