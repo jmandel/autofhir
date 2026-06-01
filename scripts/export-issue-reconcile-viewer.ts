@@ -347,7 +347,6 @@ const report = {
     artifacts: {
       fixup_review_json: reportJsonName,
       fixup_review_json_gzip: reportGzipName,
-      text_bundle: textBundleName,
       text_bundle_gzip: textBundleGzipName,
       fixup_patch_dir: "patches/",
     },

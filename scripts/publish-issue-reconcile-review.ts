@@ -135,7 +135,6 @@ function pushArtifactBranch(): void {
     "index.html",
     "issue-reconcile-report.json",
     "issue-reconcile-report.json.gz",
-    "review-text-bundle.json",
     "review-text-bundle.json.gz",
   ];
   for (const name of artifactFiles) {
