@@ -82,9 +82,31 @@ That command:
 
 Add `--deploy-pages` to also rebuild the combined Pages site and dispatch the Deploy Review Site workflow.
 
-If a run has already been published but its report is missing the GitHub link fields (no per-card "Full diff on GitHub" links, "(not available)" branch/compare/artifact links in the copied review plan), repair it without the original machine by running the **Republish Issue Reconcile Review** workflow from the GitHub Actions tab. It backfills the links into the report on `pages-<run-id>` and redeploys that run to Pages, using only data already on GitHub. The same backfill is available locally as `bun autofhir/scripts/backfill-issue-reconcile-report-links.ts --report <report.json> --run-id <run-id>`.
+Current published issue-reconcile v3 state:
 
-The static GitHub Pages site itself is built and deployed separately. `build:review-pages-site` assembles a self-contained site directory from local review exports, and `deploy:review-pages-site` pushes it to a staging branch and dispatches the Deploy Review Site workflow:
+- public review URL: `https://joshuamandel.com/autofhir/issue-reconcile-v3/`
+- source branch with reviewed commits: `issue-reconcile-full-clean-balanced-v2-pruned-no-avoid-files-branch-complete-v2source`
+- artifact branch: `pages-issue-reconcile-full-clean-balanced-v2-pruned-no-avoid-files-branch-complete-v2source`
+- Pages alias directory: `issue-reconcile-v3`
+
+Keep these concepts separate when updating the viewer:
+
+- `main` tracks the scripts, viewer source, run registry, and GitHub Actions workflow. UI fixes should be committed here.
+- the source branch tracks the FHIR source-tree commits being reviewed.
+- the `pages-*` branch tracks one run's exported report artifacts.
+- the deployed GitHub Pages site is rebuilt from `main` plus the published review artifacts by the **Deploy Review Site** workflow.
+
+If the nested `autofhir/` checkout has local run or branch-rewrite work, create a clean worktree from `origin/main` for viewer/source-code edits instead of committing from a dirty operational checkout:
+
+```bash
+cd /home/jmandel/work/fhir-community-search/autofhir
+git fetch origin main
+git worktree add ../autofhir-viewer-main -b viewer-main origin/main
+```
+
+If a run has already been published but its report is missing or has stale GitHub link fields (no per-card "Full diff on GitHub" links, wrong branch/compare/artifact links in the copied review plan), repair it without the original machine by running the **Republish Issue Reconcile Review** workflow from the GitHub Actions tab. It backfills the links into the report on `pages-<run-id>` and redeploys that run to Pages, using only data already on GitHub. The same backfill is available locally as `bun autofhir/scripts/backfill-issue-reconcile-report-links.ts --report <report.json> --run-id <run-id>`.
+
+The static GitHub Pages site itself is built and deployed separately. `build:review-pages-site` assembles a self-contained site directory from local review exports, and `deploy:review-pages-site` dispatches the Deploy Review Site workflow:
 
 ```bash
 bun run build:review-pages-site --out-dir /tmp/review-site

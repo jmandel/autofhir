@@ -249,6 +249,7 @@ function App() {
   const [triageCategory, setTriageCategory] = useState("");
   const [triagePath, setTriagePath] = useState("");
   const [reviewDecision, setReviewDecision] = useState("");
+  const [fileQuery, setFileQuery] = useState("");
   const [sort, setSort] = useState("wg");
   const [diffsEnabled, setDiffsEnabled] = useState(false);
   const [linksEnabled, setLinksEnabled] = useState(false);
@@ -277,8 +278,8 @@ function App() {
       .catch((err) => setError(String(err?.message || err)));
   }, []);
 
-  const options = React.useMemo(() => report ? buildOptions(report, bySha, { status, wg, file, triagePreset, triageCategory, triagePath, reviewDecision }) : null, [report, bySha, status, wg, file, triagePreset, triageCategory, triagePath, reviewDecision]);
-  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, wg, file, triagePreset, triageCategory, triagePath, reviewDecision })), sort) : [], [report, bySha, status, wg, file, triagePreset, triageCategory, triagePath, reviewDecision, sort]);
+  const options = React.useMemo(() => report ? buildOptions(report, bySha, { status, wg, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision }) : null, [report, bySha, status, wg, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision]);
+  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, wg, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision })), sort) : [], [report, bySha, status, wg, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision, sort]);
 
   const selectCommit = useCallback((sha: string, urlMode: "push" | "replace" | "none" = "none") => {
     useSelectionStore.getState().setSelected(sha);
@@ -376,6 +377,7 @@ function App() {
       <div className="controls">
         <Facet className="control-triage-preset" value={triagePreset} onChange={setTriagePreset} label="All" options={options.triagePresets} />
         <Facet className="control-wg" value={wg} onChange={setWg} label="All work groups" options={options.wgs} />
+        <input className="control-file-query" value={fileQuery} onChange={(event) => setFileQuery(event.target.value)} placeholder="File path contains" />
         <Facet className="control-file" value={file} onChange={setFile} label="All changed files" options={options.files} />
         <Facet className="control-review" value={reviewDecision} onChange={setReviewDecision} label="All review choices" options={options.reviews} />
         <select className="control-sort" value={sort} onChange={(event) => setSort(event.target.value)}>
@@ -1432,7 +1434,7 @@ function buildOptions(report: Report, bySha: Record<string, ReviewEntry>, filter
       const sample = report.commits.find((c) => wgCode(c) === value);
       return `${value} · ${sample ? wgName(sample) : value}`;
     }),
-    files: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, file: "" })), (c) => c.files || [], (value) => value),
+    files: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, file: "" })), (c) => c.files || [], (value) => value, "label"),
     triagePresets: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, triagePreset: "" })), (c) => [triagePresetValue(c)], triagePresetLabel),
     triageCategories: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, triageCategory: "" })), (c) => [triageCategoryValue(c)], triageCategoryLabel),
     triagePaths: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, triagePath: "" })), (c) => [triagePathValue(c)], triagePathLabel),
@@ -1440,12 +1442,15 @@ function buildOptions(report: Report, bySha: Record<string, ReviewEntry>, filter
   };
 }
 
-function facet(rows: CommitReport[], valuesFor: (commit: CommitReport) => string[], labelFor: (value: string) => string): FacetOption {
+function facet(rows: CommitReport[], valuesFor: (commit: CommitReport) => string[], labelFor: (value: string) => string, sort: "count" | "label" = "count"): FacetOption {
   const counts = new Map<string, number>();
   for (const row of rows) for (const value of valuesFor(row).filter(Boolean)) counts.set(value, (counts.get(value) || 0) + 1);
+  const sorter = sort === "label"
+    ? (a: [string, number], b: [string, number]) => labelFor(a[0]).localeCompare(labelFor(b[0])) || b[1] - a[1]
+    : (a: [string, number], b: [string, number]) => b[1] - a[1] || labelFor(a[0]).localeCompare(labelFor(b[0]));
   return {
     total: rows.length,
-    items: [...counts.entries()].sort((a, b) => b[1] - a[1] || labelFor(a[0]).localeCompare(labelFor(b[0]))).map(([value, count]) => ({ value, label: labelFor(value), count })),
+    items: [...counts.entries()].sort(sorter).map(([value, count]) => ({ value, label: labelFor(value), count })),
   };
 }
 
@@ -1454,10 +1459,18 @@ function passes(commit: CommitReport, bySha: Record<string, ReviewEntry>, filter
     && (!filters.changeKind || changeKindValue(commit) === filters.changeKind)
     && (!filters.wg || wgCode(commit) === filters.wg)
     && (!filters.file || (commit.files || []).includes(filters.file))
+    && (!filters.fileQuery || fileQueryMatches(commit, filters.fileQuery))
     && (!filters.triagePreset || triagePresetValue(commit) === filters.triagePreset)
     && (!filters.triageCategory || triageCategoryValue(commit) === filters.triageCategory)
     && (!filters.triagePath || triagePathValue(commit) === filters.triagePath)
     && (!filters.reviewDecision || reviewEntry(reviewKey(commit), bySha).decision === filters.reviewDecision);
+}
+
+function fileQueryMatches(commit: CommitReport, query: string) {
+  const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return true;
+  const files = (commit.files || []).map((file) => file.toLowerCase());
+  return tokens.every((token) => files.some((file) => file.includes(token)));
 }
 
 function ordered(rows: CommitReport[], sort: string) {
