@@ -1,0 +1,107 @@
+FHIR-13065: Enforce modifier reason scope
+
+Issue request:
+FHIR-13065 was Published/Persuasive with Modification for DSTU2 and asked that modifier elements be documented with why they are modifiers. The approved resolution added ElementDefinition.isModifierReason (0..1 string) and required an invariant that isModifierReason must be present when isModifier=true and may only be present when isModifier=true.
+
+Initial application:
+The issue was initially applied in svn revision 13068, represented in git as 2923983143, which added ElementDefinition.isModifierReason and a one-way invariant requiring a reason when isModifier is true. That initial application did not enforce the reciprocal "may only be present" half of the Jira resolution.
+
+Additional context:
+ElementDefinition is in the current build scope through source/fhir.ini, including the active datatype page mapping, normative marker, and short code. FHIR-20331 later corrected the original FHIRPath expression from the unsafe bare isModifier form to the current `(isModifier.exists() and isModifier)` form, but it only addressed the one-way syntax issue and did not supersede FHIR-13065's reciprocal requirement. Zulip discussion after GF#13065 confirms the new element triggered a sweep for missing modifier reasons, with no discovered community or Confluence evidence changing the invariant semantics.
+
+AutoFHIR reconciliation:
+Updated source/datatypes/elementdefinition.xml invariant 18 so the human-readable text, FHIRPath, and XPath require isModifierReason exactly when isModifier is true. The edit preserves the FHIR-20331 corrected true test and adds the missing reciprocal guard that rejects a reason when isModifier is absent or false.
+
+Recommendation:
+Keep this source fix as-is. Regenerated build artifacts should pick up the stricter ElementDefinition invariant; no separate related issue should be marked resolved by this commit.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13065
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-20331: later-change - corrected the ElementDefinition invariant's FHIRPath syntax after FHIR-13065; this commit preserves that correction while completing the original reciprocal condition.
+FHIR-15580: same-change-family - part of the post-GF#13065 sweep to populate missing modifier reasons; it supports the interpretation that FHIR-13065 introduced a conformance requirement but is not decided by this commit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13065: Published/Persuasive with Modification; resolution added ElementDefinition.isModifierReason and required it only with isModifier=true. Learned: this establishes the final target behavior for the source invariant.
+- E2 Source source/datatypes/elementdefinition.xml:2508 and source/datatypes/elementdefinition.xml:4755: ElementDefinition.isModifierReason is present and invariant 18 now enforces both directions. Learned: the active source now matches the published resolution.
+- E3 Git 2923983143: svn revision 13068 added ElementDefinition.isModifierReason and a one-way invariant. Learned: the original application was real but incomplete for the reciprocal condition.
+- E4 Jira FHIR-20331: Published technical correction changed the one-way FHIRPath to use `(isModifier.exists() and isModifier)`. Learned: later history requires preserving the corrected true-test form, not dropping the reciprocal FHIR-13065 requirement.
+- E5 Source source/fhir.ini:88,1015,1146: ElementDefinition is actively mapped, normative, and assigned short code eld. Learned: source/datatypes/elementdefinition.xml is in current build scope.
+- E6 Zulip #committers > GF#13065 added isModifierReason and Confluence searches: Zulip records the post-addition missing-reason sweep; Confluence has no FHIR-13065 references. Learned: community evidence supports application history and reveals no conflicting decision.
+- E7 Verification command/query: XML parse, modifier-reason consistency scan, and CRLF-aware git diff check succeeded. Learned: the stricter invariant is syntactically valid and current XML element blocks with reasons already have isModifier=true.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13065",
+    "url": "https://jira.hl7.org/browse/FHIR-13065",
+    "snapshot_path": "contexts/FHIR-13065/jira/FHIR-13065.md",
+    "ref": { "jira_key": "FHIR-13065" },
+    "summary": "Published/Persuasive with Modification issue adding ElementDefinition.isModifierReason and requiring it only when isModifier=true.",
+    "learned": "This is the final WG decision and establishes both halves of the invariant that current source must enforce.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:2508,4755-4763",
+    "ref": { "path": "source/datatypes/elementdefinition.xml", "line": 4755 },
+    "summary": "ElementDefinition.isModifierReason exists and invariant 18 now requires a reason iff isModifier is true.",
+    "learned": "The authoritative datatype source now implements the complete FHIR-13065 constraint.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "2923983143",
+    "ref": { "commit": "292398314311cb4026b7620e7b6d7ce00a3c356a" },
+    "summary": "Original svn r13068 application added isModifierReason and a one-way invariant.",
+    "learned": "FHIR-13065 had been applied, but the original invariant omitted the reciprocal may-only-be-present condition.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-20331",
+    "url": "https://jira.hl7.org/browse/FHIR-20331",
+    "ref": { "jira_key": "FHIR-20331" },
+    "summary": "Published technical correction changed the ElementDefinition FHIRPath from a bare isModifier test to `(isModifier.exists() and isModifier)`.",
+    "learned": "The later correction affects syntax for the true branch but does not remove FHIR-13065's reciprocal condition.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:88,1015,1146",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "ElementDefinition is actively mapped to elementdefinition, marked normative, and assigned short code eld.",
+    "learned": "The edited datatype spreadsheet is part of the current FHIR build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#committers > GF#13065 added isModifierReason",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/GF%2313065%20added%20isModifierReason",
+    "ref": { "stream": "committers", "topic": "GF#13065 added isModifierReason" },
+    "summary": "A 2018 thread announces the new isModifierReason element and coordinates resource-specific missing-reason follow-up trackers.",
+    "learned": "This supports the application history and does not provide a conflicting interpretation of the invariant.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Validation commands for ElementDefinition invariant edit",
+    "command": "python3 XML parse of source/datatypes/elementdefinition.xml; Python scan of XML element blocks with isModifierReason; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The spreadsheet XML parses, 167 XML element blocks with isModifierReason all also have isModifier=true, and whitespace checks passed.",
+    "learned": "The source edit is syntactically safe and does not conflict with current modifier-reason data.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,130 @@
+FHIR-19640: Audit MedicationRequest informationSource
+
+Issue request:
+FHIR-19640 was a Published Pharmacy change request, resolved Persuasive with Modification for R5, asking to add MedicationRequest.informationSource back as a standalone element for the source of information when different from the requester. The request also replaced the prior reported[x] reference choice with a standalone reporting boolean and said the missing/default reporting value should be false.
+
+Initial application:
+The issue appears to have been initially applied in commit cdb9b154325715da80c5913ec7939955b7d52105, merged by ec284380a4c273eeee93dc77e0ead3366dddec01. That commit changed the then-authoritative MedicationRequest spreadsheet from reported[x] boolean|Reference to a boolean reported element and added MedicationRequest.informationSource as 0..1 Reference(Patient, Practitioner, PractitionerRole, RelatedPerson, Organization) with the requested reporter/source wording.
+
+Additional context:
+MedicationRequest is an active resource in source/fhir.ini, and the current authoritative source is source/medicationrequest/structuredefinition-MedicationRequest.xml. Current source defines MedicationRequest.informationSource with the original target profiles, plus Group from later Applied issue FHIR-41408, and with cardinality 0..* from later Published issue FHIR-35847. Later Applied issue FHIR-47855 clarified that informationSource is the reporter of the MedicationRequest rather than the original requester. The current reporting boolean is MedicationRequest.isRecordOfRequest after the later FHIR-49863 rename, and the missing-value/default-false semantics are already encoded by the existing FHIR-34195 reconciliation commit on the combined branch.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change. The current build input already contains the informationSource element requested by FHIR-19640, the obsolete reportedReference/reported[x] reference choice is absent, and later decisions explain why the current cardinality, target list, wording, and reporting element name no longer exactly match the 2019 request text.
+
+Recommendation:
+Keep this no-change audit commit. Do not narrow MedicationRequest.informationSource back to 0..1 or remove Group as part of FHIR-19640; those differences reflect later Jira decisions. Any remaining questions about isRecordOfRequest modifier behavior belong with FHIR-49863 or a future Pharmacy WG decision, not this seed.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19640
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-35847: later-change - Published Pharmacy issue changed informationSource cardinality to 0..* on MedicationUsage and MedicationRequest, explaining why current source is broader than the original FHIR-19640 0..1 request.
+FHIR-41408: later-change - Applied Pharmacy issue added Group to performer and informationSource references on medication resources, explaining the current extra Group targetProfile.
+FHIR-47855: later-change - Applied Pharmacy technical correction clarified MedicationRequest.informationSource as the reporter of a MedicationRequest rather than the original requester.
+FHIR-49863: later-change - Resolved - change required issue renamed MedicationRequest.reported to MedicationRequest.isRecordOfRequest in current source; it is context only and is not independently decided here.
+FHIR-34195: same-change-family - Published issue supplied the missing-value/default-false semantics for the MedicationRequest reporting boolean and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19640: Published/Persuasive with Modification issue requested adding MedicationRequest.informationSource and replacing reported[x] reference choice with a reporting boolean/default false semantics. Learned: establishes the seed's final WG intent.
+- E2 Source source/fhir.ini:203,1908,1914: MedicationRequest is an active resource, informationSource is tracked as an added element, and old reported[x] maps to current isRecordOfRequest. Learned: the checked StructureDefinition source is in current build scope and carries the issue forward under current names.
+- E3 Source source/medicationrequest/structuredefinition-MedicationRequest.xml:491-506,628-637: current source defines informationSource and isRecordOfRequest, with requested original target profiles, later Group, 0..* cardinality, and missing-value reporting semantics. Learned: current source already implements the seed after later decisions.
+- E4 Git cdb9b154325715da80c5913ec7939955b7d52105 / ec284380a4c273eeee93dc77e0ead3366dddec01: original Pharmacy batch changed reported[x] to boolean reported and added informationSource in the spreadsheet. Learned: the seed was previously applied to authoritative source.
+- E5 Jira FHIR-35847 and Git 26e2a822594c064e06e61e26e5d1d2560c2c9fda: later Published issue resolved to make MedicationRequest.informationSource 0..*, and the source patch changed the max from 1 to *. Learned: the current broader cardinality is intentional.
+- E6 Jira FHIR-41408 and Git 5b9b499ca8d59ee01ee716b6938398f6bfba8922: later Applied issue resolved to add Group to medication-resource informationSource references, and the patch added Group to MedicationRequest.informationSource. Learned: the current extra targetProfile is intentional.
+- E7 Jira FHIR-47855, FHIR-49863, and FHIR-34195: later decisions clarified the informationSource definition, renamed reported to isRecordOfRequest in current source, and encoded missing-value semantics for the reporting boolean. Learned: current wording and reporting element name should be preserved for this seed audit.
+- E8 Community search: focused Zulip and Confluence searches for FHIR-19640 found no direct references, and broader MedicationRequest.informationSource hits did not reveal conflicting guidance. Learned: no discovered community record changes the Jira/source/git conclusion.
+- E9 Verification command/query: idempotency grep found no existing FHIR-19640 reconcile commit on the combined branch, and focused rg/view/git checks confirmed the relevant current source and history. Learned: publishing one no-change audit commit is appropriate and non-duplicative.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19640",
+    "url": "https://jira.hl7.org/browse/FHIR-19640",
+    "snapshot_path": "contexts/FHIR-19640/jira/FHIR-19640.md",
+    "ref": { "jira_key": "FHIR-19640" },
+    "summary": "Published/Persuasive with Modification Pharmacy issue requesting MedicationRequest.informationSource and replacement of reported[x] reference choice with a reporting boolean/default false semantics.",
+    "learned": "This establishes the seed issue's final WG intent and the elements to check in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:203,1908,1914",
+    "summary": "MedicationRequest is active in the build, informationSource is recorded as an added element, and the old reported[x] maps to current MedicationRequest.isRecordOfRequest.",
+    "learned": "The current MedicationRequest StructureDefinition is in build scope and should be interpreted using current element names.",
+    "supports": ["source_change_scope", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationrequest/structuredefinition-MedicationRequest.xml:491-506,628-637",
+    "summary": "Current source defines MedicationRequest.informationSource with the requested original references plus Group, and defines the reporting boolean as isRecordOfRequest with missing-value semantics.",
+    "learned": "The current source already conveys the seed issue's requirement after later decisions, so no edit is needed.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "cdb9b154325715da80c5913ec7939955b7d52105 / ec284380a4c273eeee93dc77e0ead3366dddec01",
+    "ref": { "commit": "cdb9b154325715da80c5913ec7939955b7d52105" },
+    "summary": "Original Pharmacy batch changed MedicationRequest.reported[x] to a boolean reported element and added MedicationRequest.informationSource to the spreadsheet.",
+    "learned": "FHIR-19640 was previously applied to then-authoritative source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-35847 / 26e2a822594c064e06e61e26e5d1d2560c2c9fda",
+    "url": "https://jira.hl7.org/browse/FHIR-35847",
+    "ref": { "jira_key": "FHIR-35847", "commit": "26e2a822594c064e06e61e26e5d1d2560c2c9fda" },
+    "summary": "Later Published issue resolved that informationSource should be 0..* on MedicationUsage and MedicationRequest; the source patch changed MedicationRequest.informationSource max from 1 to *.",
+    "learned": "The current 0..* cardinality is an intentional later change, not an incomplete FHIR-19640 application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-41408 / 5b9b499ca8d59ee01ee716b6938398f6bfba8922",
+    "url": "https://jira.hl7.org/browse/FHIR-41408",
+    "ref": { "jira_key": "FHIR-41408", "commit": "5b9b499ca8d59ee01ee716b6938398f6bfba8922" },
+    "summary": "Later Applied issue resolved to add Group to medication-resource performer and informationSource references; the patch added Group to MedicationRequest.informationSource.",
+    "learned": "The current Group targetProfile is an intentional later change and should not be removed for this seed.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-47855, FHIR-49863, FHIR-34195",
+    "url": "https://jira.hl7.org/browse/FHIR-47855",
+    "ref": { "jira_key": "FHIR-47855" },
+    "summary": "Later issues clarified informationSource wording, renamed reported to isRecordOfRequest in current source, and supplied missing-value semantics for the reporting boolean.",
+    "learned": "Current wording and element naming are explained by later context and should be preserved in this audit.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-19640 and MedicationRequest.informationSource",
+    "command": "bun run zulip:search fts '\"FHIR-19640\"' --limit 10; bun run zulip:search fts '\"MedicationRequest.informationSource\"' --limit 20; bun run confluence:search refs jira FHIR-19640; bun run confluence:search fts '\"MedicationRequest.informationSource\" \"FHIR-19640\"' --limit 10",
+    "query": "FHIR-19640 MedicationRequest.informationSource",
+    "summary": "No direct FHIR-19640 Zulip or Confluence references were found; broader informationSource hits did not reveal conflicting guidance.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Focused source/history/idempotency checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-19640' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n 'informationSource|reportedReference|reportedBoolean|reported\\[x\\]' source/medicationrequest/structuredefinition-MedicationRequest.xml; git show cdb9b154325715da80c5913ec7939955b7d52105 -- source/medicationrequest/medicationrequest-spreadsheet.xml",
+    "summary": "No existing FHIR-19640 reconcile commit was present, and source/history checks confirmed the element exists and the old reference choice is absent from current StructureDefinition source.",
+    "learned": "A single empty audit commit is appropriate and non-duplicative.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

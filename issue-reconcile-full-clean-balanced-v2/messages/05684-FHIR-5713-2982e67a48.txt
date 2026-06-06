@@ -1,0 +1,104 @@
+FHIR-5713: Audit Appointment proposed status support
+
+Issue request:
+FHIR-5713 was Published/Persuasive for DSTU1 and asked to add a new Appointment.status code "proposed" because "pending" represented a later appointment lifecycle state. The final resolution said to add the proposed status, update Appointment usage notes, and add invariants so optional start/end date-times could be handled.
+
+Initial application:
+The change appears to have been applied by historical commit 44a2cf49ea, which added the proposed status, changed Appointment.start and Appointment.end to 0..1, added the app-2/app-3 invariants, and updated Appointment usage notes as part of the Appointment/AppointmentResponse reconciliation. Commit 8db2dceb19 then corrected app-3 for tracker 6938 so the missing start/end exception used proposed and cancelled rather than the earlier planned/pending wording.
+
+Additional context:
+FHIR-5702 is background only: it requested a proposed Encounter status but was later closed no-change, supporting the decision to model planned follow-up through Appointment rather than Encounter. FHIR-6938 is the same change family and relied on FHIR-5713's proposed status to support unscheduled planned encounters. FHIR-18824 later added waitlist as another status allowed to omit start/end, so the current app-3 text and expression properly include waitlist in addition to the original proposed/cancelled rule.
+
+AutoFHIR reconciliation:
+No source change was made. Current build-scope Appointment source already has the proposed status code and definition, Appointment.status short text includes proposed, current Appointment workflow notes and the proposed example show proposed usage, and app-3/start/end cardinalities still support appointments whose date-times are not yet known.
+
+Recommendation:
+Keep this no-change audit commit. The current source satisfies FHIR-5713 after later same-family refinements; future changes to planned or waitlisted appointment semantics should be handled under their own trackers rather than by re-opening this DSTU1 proposed-status issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5713
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-5702: background - proposed Encounter was discussed but closed no-change, supporting use of Appointment for proposed/planned scheduling rather than adding an Encounter status here.
+FHIR-6938: same-change-family - later DSTU1 issue depended on the proposed Appointment status and optional start/end behavior to cover unscheduled planned encounters.
+FHIR-18824: later-change - added waitlist as another Appointment status allowed to omit start/end and explains the current app-3 wording beyond the original FHIR-5713 scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5713: Published/Persuasive issue requested adding Appointment.status=proposed, updating usage notes, and adding optional start/end invariants. Learned: this is the final PA decision for the proposed-status change.
+- E2 Source source/fhir.ini:190,230: Encounter and Appointment are active resources in the current build. Learned: source/appointment files are authoritative current-spec inputs for this reconciliation.
+- E3 Source source/appointment/codesystem-appointmentstatus.xml:51-53 and source/appointment/structuredefinition-Appointment.xml:184-196: proposed is present in Appointment.status terminology and in the status element's short text/conditions. Learned: the requested status is applied in current source.
+- E4 Source source/appointment/structuredefinition-Appointment.xml:103-113,601-679 and source/appointment/appointment-notes.xml:287-296: app-3 permits missing start/end for proposed/cancelled/waitlist, app-2 keeps start/end paired, start/end are 0..1, minutesDuration remains available, and the narrative uses status=proposed for an appointment request. Learned: current source preserves the requested lifecycle and unscheduled-appointment behavior.
+- E5 Source source/appointment/appointment-example-request.xml:12,45-56: the request example uses status=proposed with minutesDuration, requestedPeriod, and note. Learned: example source reinforces the intended proposed appointment pattern.
+- E6 Git 44a2cf49ea and 8db2dceb19: historical tracker commits added proposed/status-note/start-end support and corrected app-3 for the same Appointment change family. Learned: the issue was applied historically and survives current source refactors.
+- E7 Community search: quoted Zulip/Confluence searches for FHIR-5713 and Appointment proposed status found no directly relevant or conflicting records. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5713",
+    "url": "https://jira.hl7.org/browse/FHIR-5713",
+    "snapshot_path": "contexts/FHIR-5713/jira/FHIR-5713.md",
+    "ref": { "jira_key": "FHIR-5713" },
+    "summary": "Published/Persuasive DSTU1 issue requested adding Appointment.status=proposed, updating usage notes, and adding invariants for optional start/end date-times.",
+    "learned": "This is the final PA decision establishing the proposed Appointment status and optional-date support.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:190,230",
+    "summary": "The active resource list includes encounter=Encounter and appointment=Appointment.",
+    "learned": "Appointment is in current build scope and is the authoritative place to check FHIR-5713.",
+    "supports": ["source_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/appointment/codesystem-appointmentstatus.xml:51-53; source/appointment/structuredefinition-Appointment.xml:184-196",
+    "summary": "The proposed code is defined and Appointment.status lists proposed among the allowed lifecycle codes.",
+    "learned": "The requested proposed status is present in current source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/appointment/structuredefinition-Appointment.xml:103-113,601-679; source/appointment/appointment-notes.xml:287-296",
+    "summary": "Current app-3, start/end cardinalities, minutesDuration, and workflow notes support proposed appointments without known start/end times.",
+    "learned": "The current Appointment definition preserves the optional-date behavior requested by FHIR-5713.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/appointment/appointment-example-request.xml:12,45-56",
+    "summary": "The request example uses status=proposed with minutesDuration, requestedPeriod, and note text.",
+    "learned": "The example source demonstrates the proposed appointment request pattern remains represented.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "44a2cf49ea; 8db2dceb19",
+    "ref": { "commits": "44a2cf49ea,8db2dceb19" },
+    "summary": "Historical tracker commits added proposed Appointment support and corrected the app-3 invariant for proposed/cancelled optional dates.",
+    "learned": "The issue was applied historically and the current source still reflects that application.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-5713 Appointment proposed status",
+    "command": "bun run zulip:search fts '\"FHIR-5713\" Appointment proposed' --limit 10; bun run confluence:search refs jira FHIR-5713; bun run confluence:search fts '\"FHIR-5713\" Appointment proposed' --limit 10",
+    "query": "FHIR-5713 Appointment proposed",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found for the issue key and proposed Appointment terms.",
+    "learned": "There is no discovered community record that conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

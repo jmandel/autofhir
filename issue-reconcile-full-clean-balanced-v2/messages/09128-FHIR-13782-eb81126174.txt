@@ -1,0 +1,109 @@
+FHIR-13782: Audit snapshot-only eld-10 application
+
+Issue request:
+FHIR-13782 was Published with resolution Persuasive. It said the old ElementDefinition.binding eld-10 invariant, "provide either a reference or a description (or both)", was intended only for snapshots but also affected differentials, preventing a differential from raising only binding.strength. The accepted resolution was to make the invariant apply only to snapshot.
+
+Initial application:
+The Jira comment records svn revision 12818. In the git-svn history, commit f57d0e635ba214885a60127ad55ad9b1f0b7f7f5 implements GF#13782 by removing invariant 10 from source/datatypes/elementdefinition.xml and removing its conditions from ElementDefinition.binding.description and ElementDefinition.binding.valueSet. Later source rework carries the binding-target rule as StructureDefinition-specific sdf-10 on StructureDefinition.snapshot.element rather than on StructureDefinition.differential.element.
+
+Additional context:
+source/fhir.ini keeps ElementDefinition as an active normative datatype and StructureDefinition as an active resource, so these are current build-scope sources. Current source/structuredefinition/structuredefinition-StructureDefinition.xml has sdf-10 only under StructureDefinition.snapshot.element, while StructureDefinition.differential.element has no matching resource-level condition or constraint. Current source/datatypes/elementdefinition.xml does contain ElementDefinition.binding invariant 23, but that was added later by FHIR-26892 as a separate R5 normative binding-target decision; FHIR-26892, FHIR-22712, and FHIR-48325 are already represented on the combined branch and should not be duplicated here.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The original FHIR-13782 defect is not present in current StructureDefinition source: the resource-level binding target rule is snapshot-scoped, not differential-scoped. Removing or narrowing the later ElementDefinition.binding invariant 23 would reverse FHIR-26892 rather than complete FHIR-13782.
+
+Recommendation:
+Keep this audit commit as-is. If the work group wants the later eld-23 datatype invariant to stop applying to differential ElementDefinitions, raise or apply a new focused FHIR-I issue; do not use FHIR-13782 to undo the later published FHIR-26892 decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13782
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-22712: same-change-family - later STU3/R3 backport request for the same eld-10 behavior; already has a combined-branch no-change audit.
+FHIR-26892: later-change - later R5 issue added the current ElementDefinition.binding invariant 23 requiring valueSet or description; already has a combined-branch no-change audit.
+FHIR-48325: later-change - later binding-strength work refined descriptive bindings without superseding FHIR-26892; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13782: Published/Persuasive FHIR-I issue requested making old eld-10 apply only to snapshot, with svn revision 12818. Learned: this is a final issue and establishes the requested source behavior.
+- E2 Git f57d0e635b: GF#13782 commit removed old invariant 10 and its element conditions from source/datatypes/elementdefinition.xml. Learned: the historical source application removed the differential-breaking datatype invariant.
+- E3 Source source/fhir.ini:61,1015,1241 and source/structuredefinition/structuredefinition-StructureDefinition.xml:943-1040: ElementDefinition and StructureDefinition are active build-scope artifacts; sdf-10 appears on snapshot.element and not on differential.element. Learned: current resource source preserves the snapshot-only rule requested by the issue.
+- E4 Source/Git source/datatypes/elementdefinition.xml:4806-4813 and 8c5984683a: current ElementDefinition.binding invariant 23 was added by later FHIR-26892. Learned: the remaining generic datatype invariant is a later final decision, not an unapplied FHIR-13782 defect.
+- E5 Community search: Zulip and Confluence searches for "FHIR-13782" found no direct discussion, while terms search surfaced the later FHIR-26892 Zulip thread where differential concerns were acknowledged. Learned: no discovered community evidence conflicts with the Jira/source/history conclusion.
+- E6 Published spec check: STU3 and R4 ElementDefinition profile JSON did not contain the old eld-10 text. Learned: the old differential-breaking invariant is absent from relevant publication surfaces checked for this audit.
+- E7 Combined branch idempotency checks: no prior FHIR-13782 reconcile commit existed, while FHIR-22712, FHIR-26892, and FHIR-48325 already existed. Learned: the bounded publication is one seed audit commit and no related duplicate commits.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13782",
+    "url": "https://jira.hl7.org/browse/FHIR-13782",
+    "snapshot_path": "contexts/FHIR-13782/jira/FHIR-13782.md",
+    "ref": { "jira_key": "FHIR-13782" },
+    "summary": "Published/Persuasive issue saying old ElementDefinition.binding eld-10 should only apply to snapshots and recording svn revision 12818.",
+    "learned": "This establishes the final requested behavior for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "f57d0e635ba214885a60127ad55ad9b1f0b7f7f5",
+    "ref": { "commit": "f57d0e635ba214885a60127ad55ad9b1f0b7f7f5" },
+    "summary": "The GF#13782/git-svn r12818 commit removed invariant 10 from the ElementDefinition datatype source and removed its binding child conditions.",
+    "learned": "The historical application removed the old generic datatype invariant that caused differential false errors.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:61,1015,1241; source/structuredefinition/structuredefinition-StructureDefinition.xml:943-1040",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml" },
+    "summary": "ElementDefinition and StructureDefinition are active build-scope artifacts; current StructureDefinition source places sdf-10 on snapshot.element and not on differential.element.",
+    "learned": "The current resource source matches FHIR-13782's snapshot-only requested behavior.",
+    "supports": ["source_change_scope", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "8c5984683a9fd3c608c393868231833ffd36f89d and source/datatypes/elementdefinition.xml:4806-4813",
+    "ref": { "commit": "8c5984683a9fd3c608c393868231833ffd36f89d", "path": "source/datatypes/elementdefinition.xml" },
+    "summary": "Later FHIR-26892 added current ElementDefinition.binding invariant 23 requiring description or valueSet.",
+    "learned": "The remaining generic ElementDefinition binding invariant is a later final decision and should not be removed for FHIR-13782.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Community searches for FHIR-13782 and binding differential terms",
+    "command": "bun run zulip:search fts '\"FHIR-13782\"' --limit 10; bun run confluence:search fts '\"FHIR-13782\"' --limit 10; bun run zulip:search fts 'ElementDefinition binding differential snapshot' --limit 10; bun run confluence:search refs jira FHIR-13782",
+    "query": "FHIR-13782; ElementDefinition binding differential snapshot",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence hits for FHIR-13782 were found; term search found only later related FHIR-26892 discussion.",
+    "learned": "No discovered community record changes the Jira/source conclusion for this seed.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "STU3 and R4 ElementDefinition profile JSON",
+    "url": "https://hl7.org/fhir/STU3/elementdefinition.profile.json",
+    "command": "curl -fsSL https://hl7.org/fhir/STU3/elementdefinition.profile.json; curl -fsSL https://hl7.org/fhir/R4/elementdefinition.profile.json; rg 'eld-10|provide either a reference or a description|valueSet.exists\\(\\) or description.exists\\(\\)'",
+    "summary": "The old eld-10 text was not found in the STU3 or R4 ElementDefinition profile JSON checked during this audit.",
+    "learned": "The old differential-breaking invariant is absent from the relevant publication surfaces checked.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Combined-branch issue idempotency checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13782' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-22712' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-26892' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-48325' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "No prior FHIR-13782 commit existed before this audit; related FHIR-22712, FHIR-26892, and FHIR-48325 commits already existed on the combined branch.",
+    "learned": "This worker should publish only one seed audit and no duplicate related issue commits.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

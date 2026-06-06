@@ -1,0 +1,119 @@
+FHIR-39243: Audit Device association relocation
+
+Issue request:
+FHIR-39243 was a Published/Persuasive OO change request, applied for R5, asking to move patient association out of Device and explicitly resolving by linking to the FHIR-38904 disposition. The concern was that the R5 ballot Device.association[0..*].humanSubject approach could retain multiple patients' identifying information in a Device instance and leak PHI through the Device patient compartment.
+
+Initial application:
+No source commit was found that mentions FHIR-39243 directly. The linked FHIR-38904 work appears to have applied the change: 620b8fa10c added the draft DeviceAssociation resource, 97e59d026d commented out Device.association and the Device subject/patient search parameters, and 7a135eb348 applied QA changes to DeviceAssociation. Current source still contains some old Device association XML inside comments, but those comments are ignored by the build and do not define active elements or search parameters.
+
+Additional context:
+FHIR-38637 and FHIR-39009 were also resolved by the FHIR-38904 disposition, and FHIR-39226 is a companion ballot issue with the same request. The OO Device Association project page and the #devices WGM tracker thread group FHIR-39243 with FHIR-38904 and the other Device association tickets. Current source/fhir.ini lists Device and DeviceAssociation as active resources, classifies Device as business and DeviceAssociation as patient, and records the R4-to-current mapping that Device.patient moved to DeviceAssociation. Later DeviceAssociation work changed details of the new resource, but did not reintroduce an active Device patient association.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Comment-stripped checks of source/device/structuredefinition-Device.xml and source/device/bundle-Device-search-params.xml found no active Device.association, Device.association.humanSubject, Device-subject, or Device-patient definitions. Active DeviceAssociation source provides the subject, period, and patient/subject search-parameter surface needed for the FHIR-38904/FHIR-39243 model, and Device's narrative points ownership/custodianship relationships to DeviceAssociation.
+
+Recommendation:
+Keep this no-change audit as-is for FHIR-39243. Any future cleanup of ignored historical XML comments or generated-looking diagrams should be handled separately because the authoritative current source already implements this issue's required Device-to-DeviceAssociation relocation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-39243
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-38904: supporting-decision - the seed explicitly adopts this disposition, which created DeviceAssociation and removed the active Device patient association.
+FHIR-38637: same-change-family - the period-on-Device.association request was overcome by DeviceAssociation under FHIR-38904.
+FHIR-39009: same-change-family - the Device subject reference conflict was linked to the same FHIR-38904 disposition.
+FHIR-39226: same-change-family - companion ballot issue with the same request and same FHIR-38904-linked resolution.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-39243: Published/Persuasive seed says to move patient association out of Device and links the resolution to FHIR-38904. Learned: the seed is final and inherits the FHIR-38904 disposition.
+- E2 Jira FHIR-38904: Published/Persuasive with Modification issue approved adding DeviceAssociation and removing Device.association from Device to avoid patient-identifying data in Device. Learned: this is the controlling work-group disposition for the seed.
+- E3 Source source/fhir.ini:681-683,1664: Device is active but classified as business, DeviceAssociation is active and classified as patient, and Device.patient maps to DeviceAssociation. Learned: current build scope routes patient association through DeviceAssociation rather than Device.
+- E4 Source source/device/structuredefinition-Device.xml:1231-1297 and source/device/bundle-Device-search-params.xml:233-271: the old Device association element and Device subject/patient search parameters are present only inside XML comments. Learned: the legacy definitions are not active build content.
+- E5 Source source/deviceassociation/structuredefinition-DeviceAssociation.xml:185-255 and source/deviceassociation/bundle-DeviceAssociation-search-params.xml:27-59: DeviceAssociation has active subject/period elements and subject/patient search parameters. Learned: the new resource carries the patient association surface requested by the issue family.
+- E6 Git 620b8fa10c, 97e59d026d, 7a135eb348: history added DeviceAssociation, commented out Device association/search parameters, and QA-adjusted DeviceAssociation for FHIR-38904. Learned: the source application path matches the Jira-linked disposition.
+- E7 Community Confluence 144965839 and Zulip #devices WGM tracker: community records group FHIR-39243 with FHIR-38904, FHIR-38637, FHIR-39009, and FHIR-39226 as the Device Association work. Learned: no community evidence was found that changes the Jira/source conclusion.
+- E8 Verification command/query: stripped XML comments from current Device source and searched for Device.association, humanSubject, Device-patient, and Device-subject. Learned: none of those patient-association definitions are active.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-39243",
+    "url": "https://jira.hl7.org/browse/FHIR-39243",
+    "snapshot_path": "contexts/FHIR-39243/jira/FHIR-39243.md",
+    "ref": { "jira_key": "FHIR-39243" },
+    "summary": "Published/Persuasive seed asks to move patient association out of Device and resolves by linking to FHIR-38904.",
+    "learned": "The issue is final and should be interpreted through the FHIR-38904 disposition.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-38904",
+    "url": "https://jira.hl7.org/browse/FHIR-38904",
+    "snapshot_path": "contexts/FHIR-39243/jira/FHIR-38904.md",
+    "ref": { "jira_key": "FHIR-38904" },
+    "summary": "Published/Persuasive with Modification issue approved adding DeviceAssociation and removing Device.association from Device.",
+    "learned": "This is the controlling work-group decision for how the seed was to be applied.",
+    "supports": ["issue_request", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:681-683,1664",
+    "summary": "Device and DeviceAssociation are active resources; Device is classified as business, DeviceAssociation as patient, and Device.patient maps to DeviceAssociation.",
+    "learned": "Build-scope configuration supports the current model where patient association is no longer on Device.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:1231-1297; source/device/bundle-Device-search-params.xml:233-271",
+    "summary": "Legacy Device.association and Device subject/patient search-parameter definitions are present only inside XML comments.",
+    "learned": "The stale-looking text is ignored by XML parsing and does not define current spec content.",
+    "supports": ["source_current_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/deviceassociation/structuredefinition-DeviceAssociation.xml:185-255; source/deviceassociation/bundle-DeviceAssociation-search-params.xml:27-59",
+    "summary": "DeviceAssociation actively defines subject and period and exposes subject/patient search parameters.",
+    "learned": "The association-over-time patient surface requested by the issue family exists on DeviceAssociation.",
+    "supports": ["source_current_state", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "620b8fa10c; 97e59d026d; 7a135eb348",
+    "summary": "Git history added DeviceAssociation, commented out Device association/search parameters, and applied FHIR-38904 QA updates.",
+    "learned": "There is a concrete source-application trail for the FHIR-38904 disposition adopted by FHIR-39243.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "OO Device Association page 144965839",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/144965839/Device+Association",
+    "snapshot_path": "contexts/FHIR-39243/confluence/144965839-Device-Association.md",
+    "ref": { "confluence_page_id": 144965839 },
+    "summary": "Project page groups FHIR-39243 with FHIR-38904, FHIR-38637, FHIR-39009, and FHIR-39226 and compares current Device association with a new association resource.",
+    "learned": "Community planning context supports treating the seed as part of the FHIR-38904 DeviceAssociation change family.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Comment-stripped Device source check plus Zulip WGM tracker search",
+    "command": "perl -0ne 's/<!--.*?-->//gs; print if /Device\\.association|Device\\.patient|humanSubject/s' source/device/structuredefinition-Device.xml; bun run zulip:search snapshot devices 'Possible 2023-01 WGM Trackers for discussion Wed Q3'",
+    "query": "Device.association Device.patient humanSubject FHIR-39243 FHIR-38904",
+    "result_count": 0,
+    "summary": "Comment-stripped Device structure and search-parameter files had no active patient-association definitions; the Zulip hit was only a WGM tracker list grouping the related issues.",
+    "learned": "No active source or community conflict was found that requires a FHIR-39243 source edit.",
+    "supports": ["verification", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,123 @@
+FHIR-10023: Audit Goal progress application
+
+Issue request:
+FHIR-10023 was a Published/Persuasive with Modification Patient Care change request for the Goal resource. It asked to represent goal progress by adding on-target, ahead-of-target, and behind-target to the then-current Goal status value set, and to add Goal.statusReason as a 0..* CodeableConcept with an example set including not-attainable and barrier reasons.
+
+Initial application:
+The issue was explicitly applied by eda8809625 ([#10023] Updated goal status codes, and goal.statusReason cardinality and value set for goal.statusReason), which added the requested progress codes to the old Goal status spreadsheet source and added the requested status-reason codes. No current source edit is needed merely to recreate that old DSTU2 shape because the Goal model was later reworked by final Jira decisions.
+
+Additional context:
+Goal is an active current-build resource in source/fhir.ini. Later published/applied decisions changed how the same semantics are represented: FHIR-17756 split the old Goal.status into Goal.lifecycleStatus and Goal.achievementStatus, moving progress/achievement semantics out of lifecycle status; FHIR-10615 removed the original FHIR-specific status-reason value set by changing statusReason to string; FHIR-44978 then restored statusReason as 0..* CodeableConcept with a SNOMED example value set; and FHIR-53981 renamed statusReason to lifecycleStatusReason. The current authoritative StructureDefinition has Goal.achievementStatus bound to GoalAchievementStatus and Goal.lifecycleStatusReason as 0..* CodeableConcept with an example GoalStatusReason binding.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source is correct for FHIR-10023 after the later Goal status-family decisions: progress is represented by achievementStatus rather than the lifecycle status code list, and lifecycle status reasons are represented by lifecycleStatusReason with the current example value set.
+
+Recommendation:
+Keep this audit commit as-is. Re-adding the exact DSTU2 on-target/ahead-of-target/behind-target codes to Goal.lifecycleStatus would reverse FHIR-17756's split; changing the current status-reason value set back to the FHIR-10023 example codes would conflict with FHIR-10615 and FHIR-44978.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-10023
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-10613: same-change-family - early cleanup of the old Goal.status hierarchy after FHIR-10023, before the later lifecycle/achievement split.
+FHIR-10615: later-change - changed Goal.statusReason away from the original FHIR-specific example value set.
+FHIR-17756: supersedes - split Goal.status into lifecycleStatus and achievementStatus, superseding the old placement of progress codes in Goal.status.
+FHIR-43544: supporting-decision - clarified that statusDate applied to achievement status and statusReason to lifecycle status.
+FHIR-44978: later-change - made Goal.statusReason 0..* CodeableConcept with a SNOMED example binding.
+FHIR-53981: later-change - renamed statusReason to lifecycleStatusReason and statusDate to achievementStatusDate.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-10023: Published/Persuasive with Modification request to add Goal progress codes and 0..* statusReason with example reasons. Learned: establishes the seed's final requested semantics.
+- E2 Source source/fhir.ini:169-192: Goal is listed as an active current-build resource. Learned: source/goal/structuredefinition-Goal.xml and related Goal terminology files are in scope.
+- E3 Source source/goal/structuredefinition-Goal.xml:153-192: Goal.lifecycleStatusReason is 0..* CodeableConcept with example GoalStatusReason binding and Goal.achievementStatus is bound to GoalAchievementStatus. Learned: current authoritative source represents both requested concept areas, though with later element names/modeling.
+- E4 Source source/goal/valueset-goal-achievement.xml:28-32 and source/goal/valueset-goal-status-reason.xml:37-61: achievement status uses the THO goal-achievement code system and status reason uses a current SNOMED example value set. Learned: current terminology follows later decisions rather than the original DSTU2 code list.
+- E5 Git eda8809625: explicit [#10023] application added old Goal status progress codes and statusReason cardinality/value-set changes. Learned: the seed was originally applied, not missed.
+- E6 Jira/Git FHIR-17756 and bb582cddb3: Published decision and implementation split Goal.status into lifecycleStatus and achievementStatus. Learned: later final intent supersedes keeping progress codes in lifecycle status.
+- E7 Jira/Git FHIR-10615, FHIR-44978, FHIR-53981 with df58ee3f55, c20e948ac6, and 7c5f0e11de: statusReason changed to string, then back to 0..* CodeableConcept with SNOMED example binding, then renamed lifecycleStatusReason. Learned: current status-reason shape is governed by later decisions.
+- E8 Community search: quoted FHIR-10023 and Goal/statusReason/achievementStatus Zulip and Confluence searches found no directly relevant or conflicting hits. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-10023",
+    "url": "https://jira.hl7.org/browse/FHIR-10023",
+    "snapshot_path": "contexts/FHIR-10023/jira/FHIR-10023.md",
+    "ref": { "jira_key": "FHIR-10023" },
+    "summary": "Published/Persuasive with Modification Patient Care request to add Goal progress codes and a 0..* statusReason CodeableConcept with example reasons.",
+    "learned": "This establishes the seed's final requested semantics and confirms it is in scope for an audit decision.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-192",
+    "ref": { "path": "source/fhir.ini", "start_line": 169, "end_line": 192 },
+    "summary": "The active resources list includes goal=Goal.",
+    "learned": "Goal source files are part of the current build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/goal/structuredefinition-Goal.xml:153-192",
+    "ref": { "path": "source/goal/structuredefinition-Goal.xml", "start_line": 153, "end_line": 192 },
+    "summary": "Goal.lifecycleStatusReason is 0..* CodeableConcept with example GoalStatusReason binding, and Goal.achievementStatus is bound to GoalAchievementStatus.",
+    "learned": "The current authoritative definition represents lifecycle-status reasons and goal progress/achievement using the later model.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/goal/valueset-goal-achievement.xml:28-32; source/goal/valueset-goal-status-reason.xml:37-61",
+    "ref": { "paths": "source/goal/valueset-goal-achievement.xml; source/goal/valueset-goal-status-reason.xml" },
+    "summary": "Goal achievement includes the THO goal-achievement code system, while Goal status reason now composes selected SNOMED CT concepts.",
+    "learned": "Current terminology intentionally differs from the original FHIR-10023 DSTU2 examples because later decisions changed the value-set approach.",
+    "supports": ["current_source", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "eda8809625",
+    "ref": { "commit": "eda88096258fe1be7939bb74293dd38f10f70f40" },
+    "summary": "Explicit [#10023] commit added the old Goal status progress codes and statusReason cardinality/value-set changes.",
+    "learned": "FHIR-10023 was initially applied in source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-17756",
+    "url": "https://jira.hl7.org/browse/FHIR-17756",
+    "ref": { "jira_key": "FHIR-17756", "commit": "bb582cddb3fe3b2ec2101a823051fdfaf4ae604f" },
+    "summary": "Published decision split Goal.status into lifecycleStatus and achievementStatus and was implemented by bb582cddb3.",
+    "learned": "This later final decision supersedes storing goal progress codes in lifecycle status.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-10615; FHIR-44978; FHIR-53981",
+    "url": "https://jira.hl7.org/browse/FHIR-53981",
+    "ref": { "jira_keys": "FHIR-10615,FHIR-44978,FHIR-53981", "commits": "df58ee3f55,c20e948ac6,7c5f0e11de" },
+    "summary": "Later final Goal decisions changed statusReason to string, then 0..* CodeableConcept with SNOMED example binding, then renamed it lifecycleStatusReason.",
+    "learned": "The current status-reason element and value set are governed by later decisions, not by the original DSTU2 code list.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-10023 and Goal status/progress terms",
+    "command": "bun run zulip:search fts '\"FHIR-10023\" Goal progress statusReason achievementStatus' --limit 10; bun run zulip:search fts '\"Goal\" \"statusReason\" \"achievementStatus\"' --limit 10; bun run confluence:search fts '\"FHIR-10023\" Goal progress' --limit 10; bun run confluence:search refs jira FHIR-10023",
+    "query": "FHIR-10023 Goal progress statusReason achievementStatus",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

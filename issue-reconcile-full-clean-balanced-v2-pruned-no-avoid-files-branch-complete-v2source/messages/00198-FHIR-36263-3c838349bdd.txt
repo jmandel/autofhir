@@ -1,0 +1,95 @@
+FHIR-36263: Add abandoned to Consent.status
+
+Issue request:
+FHIR-36263 was Published/Persuasive for FHIR-core Consent in R5. It requested adding the Resource Status `abandoned` code to the Consent.status value set for consent requests that expire without ever being accepted or declined.
+
+Initial application:
+The request was initially applied in commit 27635dd16f, which added an abandoned-state Consent status concept but used a local code value instead of `abandoned`. Commit e757a816b1 then corrected that concept to `not-done`, updated the Consent.status short description, and updated status-codes.xml; commit 91ff45e541 later normalized the source. The current source and R5 publication therefore conveyed the abandoned state as `not-done` with display `Abandoned`, but did not include the requested `abandoned` code in the Consent state code system.
+
+Additional context:
+Consent is active in the current build via source/fhir.ini. The ValueSet/consent-state-codes source includes the whole Consent state CodeSystem, so adding the code system concept adds the code to the value set. The current `not-done` code is already published and is retained; this reconciliation is additive to avoid removing an existing published code. Searches found no later Jira, Zulip, or Confluence decision reversing or narrowing FHIR-36263.
+
+AutoFHIR reconciliation:
+Added `abandoned` to source/consent/codesystem-consent-state-codes.xml with the same abandoned-consent definition used by the existing concept, aligned the active Consent.status short text, Consent status search parameter description, Event mapping exception, and status-codes matrix so the current build surfaces the requested code consistently.
+
+Recommendation:
+Keep this additive fix. It satisfies the Published Jira request while preserving the published `not-done` code; if the work group later wants only one code for this state, that cleanup should be a separate terminology decision because removing or renaming `not-done` would be breaking.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36263
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36263: Published/Persuasive R5 Consent issue voted 8-0-0 to add `abandoned` to Consent.status. Learned: this is final WG intent for adding the code.
+- E2 Source source/fhir.ini:265 and source/consent/*: Consent is an active resource; Consent.status binds to ValueSet/consent-state-codes, whose source includes the full Consent state CodeSystem. Learned: the edited Consent code system and companion resource files are in current build scope.
+- E3 Git 27635dd16f/e757a816b1/91ff45e541: historical application added an abandoned-state concept, corrected it to `not-done`, and later normalized the source. Learned: the issue was applied conceptually but the literal requested `abandoned` code was not present.
+- E4 Published spec R5/build.fhir.org Consent state CodeSystem: published/current surfaces showed `not-done` with display `Abandoned` and no `abandoned` Consent code. Learned: preserving `not-done` while adding `abandoned` is the compatible reconciliation.
+- E5 Community search command: Jira search found only FHIR-36263 for Consent/status abandoned, and Zulip/Confluence searches found no relevant discussion or reversal. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E6 Verification command: `git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check` and `xmllint --noout` on edited XML sources succeeded. Learned: the edited XML sources are well-formed and the diff has no whitespace errors under the repository CRLF policy.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36263",
+    "url": "https://jira.hl7.org/browse/FHIR-36263",
+    "snapshot_path": "contexts/FHIR-36263/jira/FHIR-36263.md",
+    "ref": { "jira_key": "FHIR-36263" },
+    "summary": "Published/Persuasive R5 Consent issue requesting that `abandoned` be added to the Consent.status value set.",
+    "learned": "This establishes final WG intent to add the abandoned code for consents that expire before being accepted or declined.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:265; source/consent/codesystem-consent-state-codes.xml; source/consent/structuredefinition-Consent.xml",
+    "ref": { "paths": "source/fhir.ini, source/consent/codesystem-consent-state-codes.xml, source/consent/structuredefinition-Consent.xml" },
+    "summary": "Consent is active in fhir.ini, Consent.status is required-bound to ValueSet/consent-state-codes, and the value set includes the Consent state CodeSystem.",
+    "learned": "The Consent CodeSystem concept addition and related source list updates are in current build scope and affect the built conformance surface.",
+    "supports": ["build_scope", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "27635dd16f; e757a816b1; 91ff45e541",
+    "ref": { "commits": "27635dd16f,e757a816b1,91ff45e541" },
+    "summary": "Historical application added an abandoned-state Consent status concept, corrected its code to `not-done`, and later normalized the source.",
+    "learned": "The prior application preserved the abandoned concept but did not add the literal `abandoned` code requested by Jira.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "R5 and current build Consent state CodeSystem",
+    "url": "https://hl7.org/fhir/R5/codesystem-consent-state-codes.html",
+    "summary": "The published R5/current build code system exposed `not-done` with display `Abandoned` but no `abandoned` code.",
+    "learned": "The existing published code should be retained while adding `abandoned` as a compatible correction.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative related/community search for FHIR-36263 and Consent.status abandoned",
+    "command": "bun run jira:search fts '\"Consent.status\" abandoned' --limit 20; bun run jira:search fts '\"consent-state-codes\" abandoned' --limit 20; bun run zulip:search fts '\"Consent.status\" abandoned' --limit 10; bun run confluence:search refs jira FHIR-36263",
+    "query": "Consent.status abandoned; consent-state-codes abandoned; FHIR-36263",
+    "result_count": 1,
+    "summary": "Jira search returned only FHIR-36263 and no relevant Zulip or Confluence references were found.",
+    "learned": "No later or community evidence was discovered that reverses, narrows, or supersedes the Published Jira request.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Whitespace and XML validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check && xmllint --noout source/consent/codesystem-consent-state-codes.xml source/consent/valueset-consent-state-codes.xml source/consent/structuredefinition-Consent.xml source/consent/bundle-Consent-search-params.xml source/consent/consent-event-mapping-exceptions.xml source/status-codes.xml",
+    "summary": "Whitespace and XML well-formedness checks succeeded for the edited source set.",
+    "learned": "The source edits are syntactically safe for the current XML inputs.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,116 @@
+FHIR-25419: Fix Appointment date-or-req-period search
+
+Issue request:
+FHIR-25419 is Published/Persuasive with Modification for Appointment search. The request was to support one search for booked appointments with Appointment.start and proposed appointments with Appointment.requestedPeriod; the approved resolution introduced a new date-or-req-period search parameter using (start | requestedPeriod.start).first(), introduced a requestedPeriod/requested-period search parameter, and explicitly left the existing date search parameter unchanged.
+
+Initial application:
+Git commit ab4f934ab55e8d49013bee2756041fa2c6078d53 applied FHIR-25419 by changing the existing Appointment-date expression from Appointment.start to (start | requestedPeriod.start).first(), which conflicted with the resolution's instruction to leave date unchanged. The requested-period search parameter was then added by the tightly related FHIR-20532 commit 6879287a594dd95d4c49d2962b1791dc0fdd4824, leaving the combined date-or-req-period search parameter missing.
+
+Additional context:
+Appointment is active in source/fhir.ini, and source/appointment/bundle-Appointment-search-params.xml is the current Appointment search parameter source. The origin Zulip thread records the implementer need to search booked and proposed appointments together. PA WGM minutes record the FHIR-25419 persuasive-with-modification vote. A later requested-period Zulip thread described date as comparing to Appointment.start and requested-period as comparing to Appointment.requestedPeriod, with no conflicting later Jira decision found in bounded searches.
+
+AutoFHIR reconciliation:
+This commit restores Appointment-date to Appointment.start and adds the missing Appointment-date-or-req-period search parameter with code date-or-req-period and the approved expression over Appointment.start and Appointment.requestedPeriod.start. The existing requested-period search parameter remains unchanged because it already satisfies the related requestedPeriod search need.
+
+Recommendation:
+Keep this source fix. It aligns the current build-scope Appointment search parameter bundle with the final PA decision without changing unrelated Appointment search parameters.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25419
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-20532: same-change-family - independently approved and applied the requested-period Appointment search parameter that FHIR-25419 also referenced.
+FHIR-41397: later-change - added multipleOr and multipleAnd flags to Appointment search parameters, so the new parameter follows that established current-source pattern.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25419: Published/Persuasive with Modification issue requested a new date-or-req-period search parameter and said existing date remains unchanged. Learned: this establishes the final target semantics for the seed.
+- E2 Source source/fhir.ini:231: Appointment is listed as an active resource. Learned: the Appointment search parameter source is in current build scope.
+- E3 Source source/appointment/bundle-Appointment-search-params.xml:71-106: Appointment-date now uses Appointment.start and Appointment-date-or-req-period uses (start | requestedPeriod.start).first(). Learned: the source now matches the approved split between the existing and new search parameters.
+- E4 Git ab4f934ab5: the original FHIR-25419 implementation changed Appointment-date to the combined expression. Learned: the issue was applied to the wrong search parameter rather than as the approved new parameter.
+- E5 Git 6879287a59: FHIR-20532 added Appointment-requested-period/requested-period. Learned: the separate requestedPeriod search need is already present and should not be duplicated.
+- E6 Zulip #implementers > Appointment search parameter: Kathy Pickering described the need to search booked and proposed appointments together, leading to FHIR-25419. Learned: community context matches the Jira request.
+- E7 Confluence PA 2020 Feb WGM Minutes page 76153672: Thursday Q4 records FHIR-25419 Persuasive with mod, 8-0-0. Learned: the PA minutes support the Jira disposition.
+- E8 Command validation: XML parsing and CRLF-aware git diff --check passed. Learned: the edited search-parameter bundle remains well formed and whitespace-clean.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25419",
+    "url": "https://jira.hl7.org/browse/FHIR-25419",
+    "snapshot_path": "contexts/FHIR-25419/jira/FHIR-25419.md",
+    "ref": { "jira_key": "FHIR-25419" },
+    "summary": "Published/Persuasive with Modification Appointment issue requesting date-or-req-period plus requestedPeriod search support while leaving existing date unchanged.",
+    "learned": "This establishes that the current date parameter must stay on Appointment.start and the combined start/requestedPeriod.start behavior belongs in a separate search parameter.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:231",
+    "ref": { "path": "source/fhir.ini", "line": 231 },
+    "summary": "Appointment is listed as an active resource in the current build configuration.",
+    "learned": "The Appointment source and search-parameter bundle are in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/appointment/bundle-Appointment-search-params.xml:71-106",
+    "ref": { "path": "source/appointment/bundle-Appointment-search-params.xml", "line": 92 },
+    "summary": "Appointment-date now uses Appointment.start, and the new Appointment-date-or-req-period search parameter uses (start | requestedPeriod.start).first().",
+    "learned": "The current source now implements the approved separate search-parameter behavior.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "ab4f934ab55e8d49013bee2756041fa2c6078d53",
+    "ref": { "commit": "ab4f934ab55e8d49013bee2756041fa2c6078d53" },
+    "summary": "The original FHIR-25419 commit changed Appointment-date from Appointment.start to the combined requestedPeriod expression.",
+    "learned": "The previous application conflicted with the resolution's instruction to leave the existing date parameter unchanged.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "6879287a594dd95d4c49d2962b1791dc0fdd4824",
+    "ref": { "commit": "6879287a594dd95d4c49d2962b1791dc0fdd4824" },
+    "summary": "FHIR-20532 added the Appointment-requested-period/requested-period search parameter.",
+    "learned": "The separate requestedPeriod search capability exists already, so the remaining FHIR-25419 gap was the missing date-or-req-period parameter and restored date expression.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Appointment search parameter",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Appointment%20search%20parameter",
+    "summary": "The thread records the implementer need to search booked appointments by Appointment.start and proposed appointments by Appointment.requestedPeriod in one request, then links to FHIR-25419.",
+    "learned": "The community context supports the combined new search parameter rather than removing requested-period support.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "PA 2020 Feb WGM Minutes page 76153672",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/76153672/2020+Feb+WGM+Minutes",
+    "ref": { "confluence_page_id": 76153672 },
+    "summary": "The minutes record FHIR-25419 as Persuasive with mod with an 8-0-0 PA vote.",
+    "learned": "The formal work-group minutes align with the Jira final disposition.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "xmllint --noout source/appointment/bundle-Appointment-search-params.xml || ruby -r rexml/document -e 'REXML::Document.new(File.read(ARGV[0]))' source/appointment/bundle-Appointment-search-params.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The edited XML parsed successfully and the diff had no whitespace errors.",
+    "learned": "The targeted source edit is syntactically safe.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

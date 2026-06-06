@@ -1,0 +1,95 @@
+FHIR-16955: Audit Excel whitespace normalization
+
+Issue request:
+FHIR-16955 was Published/Persuasive for the STU3 FHIR-core tooling request to convert non-breaking spaces and tabs into ordinary whitespace when processing Excel spreadsheet content, rather than allowing those hidden characters to interfere with trimming and parsing.
+
+Initial application:
+The Jira comment records svn 14523. In git history that is commit 6e138bd162989d4af9bc146155f9f69e1eed13e8, which changed the old in-repository XLSXmlParser.getColumn implementation from a plain trim() to trim().replace("\\t", "  ").replace("\\u00A0", " "). The adjacent commit 213590de6f6e23bd8d14f05cee02fe6e9272f0be also used GF#16955 for a spreadsheet comment correction, but the parser commit is the substantive application of this issue.
+
+Additional context:
+The current FHIR checkout no longer contains Java publisher/parser sources or XLSXmlParser.java. Current source delegates the build to the external org.hl7.fhir:kindling dependency in build.gradle.kts, with kindlingVersion=1.25.5-SNAPSHOT in gradle.properties. The current external org.hl7.fhir.utilities XLSXmlParser in hapifhir/org.hl7.fhir.core still contains the requested tab and U+00A0 replacement in getColumn. Confluence minutes from the 2018-07-30 FHIR Infrastructure call list tracker 16955 as Persuasive, and no conflicting Zulip or Confluence rationale was found.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The source-owned parser that FHIR-16955 modified was removed from this repository during later Java tooling refactors, and the active external parser used by the build retains the applied normalization behavior. Editing current spreadsheet XML or build configuration would not improve conformance to this issue.
+
+Recommendation:
+Keep this no-change audit commit. If future review wants broader Excel normalization beyond the original applied getColumn behavior, that follow-up belongs in the external Java tooling repositories (Kindling/org.hl7.fhir.core), not as a FHIR core source edit.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-16955
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-16955: Published/Persuasive FHIR-core tooling issue asking to ignore non-breaking spaces and tabs in Excel content, with comment "svn 14523". Learned: this is a final WG decision and identifies the historical implementation revision.
+- E2 Confluence 40743522: FHIR Infrastructure Minutes CC 20180730 list tracker 16955 as Persuasive. Learned: the meeting record corroborates the Jira disposition.
+- E3 Git 6e138bd162989d4af9bc146155f9f69e1eed13e8: changed XLSXmlParser.getColumn from trim() to replacing tabs and U+00A0 after trim. Learned: the requested parser behavior was applied in source history.
+- E4 Source build.gradle.kts:47 and gradle.properties:2: current FHIR source depends on org.hl7.fhir:kindling version 1.25.5-SNAPSHOT and contains no Java source files or XLSXmlParser.java. Learned: the parser is no longer source-owned by this checkout.
+- E5 Web hapifhir/org.hl7.fhir.core XLSXmlParser.java: current external parser returns s.trim().replace("\\t", "  ").replace("\\u00A0", " ") from getColumn. Learned: the active external utility still preserves the applied normalization.
+- E6 Command community/source search: Jira FTS found only FHIR-16955 for the exact NBSP/tab Excel wording; Zulip term search and Confluence refs found no conflicting discussion; Confluence FTS found the 2018-07-30 persuasive minutes. Learned: no discovered later decision reverses or broadens this issue for current core source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-16955",
+    "url": "https://jira.hl7.org/browse/FHIR-16955",
+    "snapshot_path": "contexts/FHIR-16955/jira/FHIR-16955.md",
+    "ref": { "jira_key": "FHIR-16955" },
+    "summary": "Published/Persuasive FHIR-core tooling issue asking to convert non-breaking spaces and tabs into regular whitespace when processing Excel files.",
+    "learned": "This establishes the final issue request and links the applied work to svn 14523.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20180730 page 40743522",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/40743522/FHIR+Infrastructure+Minutes+CC+20180730",
+    "ref": { "confluence_page_id": 40743522 },
+    "summary": "The minutes list tracker 16955 as Persuasive during the 2018-07-30 FHIR Infrastructure call.",
+    "learned": "This corroborates the Jira vote/disposition for the whitespace-normalization request.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "6e138bd162989d4af9bc146155f9f69e1eed13e8",
+    "ref": { "commit": "6e138bd162989d4af9bc146155f9f69e1eed13e8" },
+    "summary": "GF#16955 changed implementations/java/org.hl7.fhir.utilities/.../XLSXmlParser.java so getColumn replaces tabs and U+00A0 after trimming.",
+    "learned": "The historical in-repository parser received the requested substantive fix.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "build.gradle.kts:47; gradle.properties:2; current tree Java absence",
+    "summary": "The current source depends on org.hl7.fhir:kindling 1.25.5-SNAPSHOT and has no checked-in Java source files or XLSXmlParser.java.",
+    "learned": "The current FHIR checkout no longer owns the parser source changed by FHIR-16955.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "web",
+    "locator": "hapifhir/org.hl7.fhir.core XLSXmlParser.java",
+    "url": "https://github.com/hapifhir/org.hl7.fhir.core/blob/master/org.hl7.fhir.utilities/src/main/java/org/hl7/fhir/utilities/xls/XLSXmlParser.java",
+    "ref": { "repository": "hapifhir/org.hl7.fhir.core", "path": "org.hl7.fhir.utilities/src/main/java/org/hl7/fhir/utilities/xls/XLSXmlParser.java", "sha": "a6b6b05d727bec06ae427e9e2d05a4003e614068" },
+    "summary": "The external utility parser still replaces tab and U+00A0 characters after trimming in getColumn.",
+    "learned": "The active external parser preserves the behavior requested by FHIR-16955, so no core source correction is needed.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community and source searches for FHIR-16955 Excel whitespace normalization",
+    "command": "bun run jira:search fts '\"non-breaking spaces\" tabs Excel content' --limit 10; bun run zulip:search fts '\"non-breaking spaces\" tabs Excel spreadsheet' --limit 10; bun run confluence:search refs jira FHIR-16955; bun run confluence:search fts 'FHIR 16955' --limit 10; rg -n 'kindlingVersion|implementation\\(\"org\\.hl7\\.fhir:kindling' build.gradle.kts gradle.properties; find . -path './.git' -prune -o -name '*.java' -print | head -5; git ls-tree -r --name-only HEAD | grep 'XLSXmlParser.java' || true",
+    "query": "FHIR-16955 non-breaking spaces tabs Excel spreadsheet",
+    "summary": "Searches found the seed Jira and 2018 FHIR-I persuasive minutes, no conflicting community guidance, and confirmed the parser source is absent from the current core checkout.",
+    "learned": "There is no discovered later decision requiring a FHIR source edit for this issue.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

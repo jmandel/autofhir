@@ -1,0 +1,107 @@
+FHIR-35778: Audit IG Publisher tool definitions outside core
+
+Issue request:
+FHIR-35778 was Published/Persuasive for R5 after reporting that IG Publisher-generated R4 ImplementationGuide resources referenced non-existing tool extensions, including http://hl7.org/fhir/tools/StructureDefinition/ig-parameter and http://hl7.org/fhir/tools/StructureDefinition/resource-information, and used tool-specific parameter codes such as copyrightyear and releaselabel that were not in the R4 guide-parameter-code value set. The accepted resolution was that IGs are authored using R5 and that the IG Publisher package conversion process must ensure packaged IG instances are valid for the target FHIR version.
+
+Initial application:
+No commit explicitly mentioning FHIR-35778 was found in core history. The related core model change was applied by FHIR-20018 in commit 493ea99d47628ab5c056aed42faff4b36ecdb638, which changed ImplementationGuide.definition.parameter.code from string to Coding and added an extensible binding to guide-parameter-code; follow-up commits fixed the guide-parameter-code terminology metadata. That makes the current core resource model a generic hook for tool-specific parameter systems rather than a closed list of IG Publisher parameters.
+
+Additional context:
+FHIR-I minutes for the January 2022 WGM recorded the issue as a tools-folder / FHIR-Tool-IG task, and the current published hl7.fhir.uv.tools package provides the R4 compatibility extension http://hl7.org/fhir/tools/StructureDefinition/ig-parameter plus the complete CodeSystem http://hl7.org/fhir/tools/CodeSystem/ig-parameters containing the requested parameter codes. Current core source still quotes external IG examples that use the older resource-information URL, and current external packages can still contain that URL, but that artifact belongs to the Tools IG / IG Publisher package output rather than the core build source.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no core source change. The active core ImplementationGuide definition already supports external tool-specific parameter codings, while the formal IG Publisher parameter definitions and any remaining resource-information cleanup are maintained outside this FHIR core checkout.
+
+Recommendation:
+Keep this audit commit as an external-repo decision for core. If validators still report missing http://hl7.org/fhir/tools/StructureDefinition/resource-information in current IG packages, follow up in the HL7 Tools Extension IG or HL7/fhir-ig-publisher so that the external package either defines that extension or stops emitting it; do not add IG Publisher-specific tool internals to core merely to satisfy generated package output.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-35778
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-20018: supporting-decision - changed ImplementationGuide.definition.parameter.code to Coding with an extensible guide-parameter-code binding, enabling external tool-specific code systems in core.
+FHIR-53083: background - later clinical reasoning page update copied a CPG ImplementationGuide fragment that still shows the external resource-information URL; that does not make core the owner of the tool extension definition.
+FHIR-35775: background - related tooling/package discussion about implicit package resources, but it requires a separate issue decision and was not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-35778: Published/Persuasive R4 issue requesting formal definitions for IG Publisher tool extensions and parameter codes, with resolution assigning validity of down-converted package IG resources to the conversion process. Learned: the final decision is about tool/package output validity, not adding a closed IG Publisher parameter list to core.
+- E2 Source source/fhir.ini:197 and source/implementationguide/structuredefinition-ImplementationGuide.xml:855: active ImplementationGuide resource source has parameter.code as Coding with extensible binding to guide-parameter-code. Learned: current core has the generic model needed for tool-specific parameter coding.
+- E3 Git 493ea99d47628ab5c056aed42faff4b36ecdb638: FHIR-20018 changed ImplementationGuide.definition.parameter.code from string to Coding and added the extensible binding. Learned: the relevant core-side model change is already present and was not a FHIR-35778-specific missing edit.
+- E4 External package hl7.fhir.uv.tools 1.1.2: package metadata and resources define StructureDefinition/ig-parameter and CodeSystem/ig-parameters, including copyrightyear, releaselabel, path-expansion-params, active-tables, apply-contact, apply-jurisdiction, apply-publisher, apply-version, show-inherited-invariants, usage-stats-opt-out, generate, excludexml, excludejson, excludettl, and excludemap. Learned: the requested IG Publisher parameter definitions live in the Tools IG outside core.
+- E5 Confluence FHIR Infrastructure Minutes WGM 202201: minutes reference FHIR-35778 and record that Grahame had a todo list to add the items under the tools folder / FHIR-Tool-IG grouping. Learned: WG context supports treating this as tools-IG scope rather than a core source fix.
+- E6 Zulip #conformance > Resolving IG parameter and page canonicals resources: the linked reporter thread shows the original concern with unknown tool extensions in IG Publisher output. Learned: the issue arose from generated package/tooling output consumed by validators.
+- E7 Command search of current Tools package and CPG IG: hl7.fhir.uv.tools current package contains ig-parameter and ig-parameters definitions; current CPG package output still contains resource-information references. Learned: any remaining resource-information cleanup is external package/tooling work, not a core source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-35778",
+    "url": "https://jira.hl7.org/browse/FHIR-35778",
+    "snapshot_path": "contexts/FHIR-35778/jira/FHIR-35778.md",
+    "ref": { "jira_key": "FHIR-35778" },
+    "summary": "Published/Persuasive issue reporting IG Publisher-generated R4 ImplementationGuide resources with unknown tool extensions and parameter codes outside the R4 guide-parameter-code value set.",
+    "learned": "The accepted resolution assigns validity of generated target-version package IG instances to the IG Publisher conversion process.",
+    "supports": ["issue_request", "reconciliation", "external_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/implementationguide/structuredefinition-ImplementationGuide.xml:855 and source/fhir.ini:197",
+    "ref": { "path": "source/implementationguide/structuredefinition-ImplementationGuide.xml", "line": 855 },
+    "summary": "ImplementationGuide is an active core resource, and definition.parameter.code is a Coding with an extensible guide-parameter-code binding.",
+    "learned": "Current core provides a generic extensible hook for tool-specific parameter systems and does not need to enumerate IG Publisher internals.",
+    "supports": ["current_source", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "493ea99d47628ab5c056aed42faff4b36ecdb638",
+    "ref": { "commit": "493ea99d47628ab5c056aed42faff4b36ecdb638" },
+    "summary": "FHIR-20018 made ImplementationGuide.definition.parameter.code a Coding and added an extensible guide-parameter-code binding.",
+    "learned": "The relevant core-side model change is already in history and was not missing from the current checkout.",
+    "supports": ["initial_application", "current_source"]
+  },
+  {
+    "id": "E4",
+    "kind": "web",
+    "locator": "hl7.fhir.uv.tools 1.1.2 package",
+    "url": "https://packages2.fhir.org/packages/hl7.fhir.uv.tools",
+    "summary": "The current Tools IG package is published with canonical http://hl7.org/fhir/tools and contains StructureDefinition-ig-parameter plus CodeSystem-ig-parameters with the requested IG Publisher codes.",
+    "learned": "The formal IG Publisher parameter definitions are maintained outside the core FHIR source checkout.",
+    "supports": ["additional_context", "external_scope", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes WGM 202201 page 81028096",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/81028096/FHIR+Infrastructure+Minutes+WGM+202201",
+    "ref": { "confluence_page_id": 81028096 },
+    "summary": "Minutes reference FHIR-35778 and record the plan to add the items under the tools folder / FHIR-Tool-IG grouping.",
+    "learned": "Work-group context confirms the requested formal definitions were intended for tooling IG scope, not core resource source.",
+    "supports": ["additional_context", "external_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#conformance > Resolving IG parameter and page canonicals resources",
+    "url": "https://chat.fhir.org/#narrow/stream/conformance/topic/Resolving%20IG%20parameter%20and%20page%20canonicals%20resources",
+    "summary": "The linked reporter thread describes unknown IG Publisher tool extensions in generated ImplementationGuide package resources.",
+    "learned": "The problem originated in generated package/tooling output consumed by validators.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Tools package and CPG IG checks",
+    "command": "curl -fsSL https://packages2.fhir.org/web/hl7.fhir.uv.tools-1.1.2.tgz; jq/rg for ig-parameter, ig-parameters, and resource-information; curl -fsSL https://hl7.org/fhir/uv/cpg/ImplementationGuide-chf-ig.xml",
+    "summary": "The Tools package defines ig-parameter and ig-parameters, while current external CPG IG output still contains resource-information references.",
+    "learned": "Any remaining resource-information validation issue is external package/tooling work rather than a core source change.",
+    "supports": ["verification", "recommendation", "external_scope"]
+  }
+]
+</evidence-manifest>

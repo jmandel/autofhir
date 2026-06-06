@@ -1,0 +1,89 @@
+FHIR-17275: Audit duplicate CodeSystem code checks
+
+Issue request:
+FHIR-17275 was a Published/Persuasive STU3 FHIR-core CodeSystem issue asking that the FHIR IG publication tooling report an error when a CodeSystem definition repeats the same Concept.code. The recorded resolution was to check this condition.
+
+Initial application:
+The original application appears in git commit a06e73eadfbf7ebc7c4bc51e679c40e43eb93a2a, which explicitly references GF#17275 and svn revision 14846. That commit added CodeSystemValidator duplicate-code checking and wired Publisher to process CodeSystem resources, along with unrelated path and FMG-page changes. The Java tooling paths from that historical application are no longer present in the current core checkout.
+
+Additional context:
+The current build-scoped CodeSystem resource is active in source/fhir.ini, and source/codesystem/structuredefinition-CodeSystem.xml contains csd-1 as an error-level invariant: "Within a code system definition, all the codes SHALL be unique." CodeSystem.concept.code is also defined as uniquely identifying the concept and carries condition csd-1. Later Jira decisions did not remove this rule: FHIR-16750 and FHIR-18600 were no-change dispositions involving csd-1 placement/meaning, and FHIR-37450 treated duplicate CodeSystem codes as a csd-1 violation. No directly relevant Zulip or Confluence evidence was found for FHIR-17275.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current core specification already expresses the duplicate-code requirement in the build-scoped CodeSystem StructureDefinition, while the historical IG Publisher implementation code is outside this current checkout.
+
+Recommendation:
+Keep this audit commit as-is for the core reconciliation. If someone needs to re-verify runtime IG Publisher or validator behavior, that follow-up belongs in the current external tooling repository; no FHIR core source change is indicated by this issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17275
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-16750: supporting-decision - Resolved No Change issue confirming csd-1 is not invalidated by hierarchyMeaning concerns.
+FHIR-18600: supporting-decision - Resolved No Change issue leaving csd-1 where invariants are generated/displayed.
+FHIR-37450: later-change - Published correction treated duplicate CodeSystem codes as a csd-1 violation, confirming the rule remains active.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17275: Published/Persuasive issue requesting that duplicate CodeSystem concept codes be checked by the IG publication tool. Learned: this is the final seed decision and target behavior.
+- E2 Source source/fhir.ini:269 and source/codesystem/structuredefinition-CodeSystem.xml:92-95,897-909: CodeSystem is an active resource and csd-1 requires all CodeSystem codes to be unique, with CodeSystem.concept.code conditioned by csd-1. Learned: the current build-scoped source already carries the required conformance rule.
+- E3 Git a06e73eadfbf7ebc7c4bc51e679c40e43eb93a2a: GF#17275/svn r14846 added CodeSystemValidator duplicate-code checking and Publisher wiring for CodeSystem validation. Learned: the issue was historically applied to tooling when that tooling lived in this repository.
+- E4 Jira FHIR-16750/FHIR-18600/FHIR-37450: later CodeSystem issues left csd-1 in place or relied on it to correct duplicate codes. Learned: later decisions support retaining the current uniqueness rule rather than changing it.
+- E5 Community search: quoted Zulip and Confluence searches for FHIR-17275 plus CodeSystem duplicate terms found no directly relevant or conflicting records. Learned: no discovered community evidence changes the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17275",
+    "url": "https://jira.hl7.org/browse/FHIR-17275",
+    "snapshot_path": "contexts/FHIR-17275/jira/FHIR-17275.md",
+    "ref": { "jira_key": "FHIR-17275" },
+    "summary": "Published/Persuasive issue requesting duplicate Concept.code checking for CodeSystem definitions in the FHIR IG publication tool.",
+    "learned": "This establishes the final seed issue request and expected duplicate-code behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:269; source/codesystem/structuredefinition-CodeSystem.xml:92-95,897-909",
+    "ref": { "file": "source/codesystem/structuredefinition-CodeSystem.xml", "lines": "92-95,897-909" },
+    "summary": "CodeSystem is active in the build, csd-1 is an error invariant requiring all codes to be unique, and CodeSystem.concept.code is conditioned by csd-1.",
+    "learned": "The current core source already contains the build-scoped duplicate-code rule requested by the issue.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "a06e73eadfbf7ebc7c4bc51e679c40e43eb93a2a",
+    "ref": { "commit": "a06e73eadfbf7ebc7c4bc51e679c40e43eb93a2a" },
+    "summary": "Commit GF#17275 / svn r14846 added CodeSystemValidator duplicate-code checking and Publisher wiring for CodeSystem validation.",
+    "learned": "The issue was historically applied to tooling when the relevant Java publisher code lived in this repository.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-16750; FHIR-18600; FHIR-37450",
+    "url": "https://jira.hl7.org/browse/FHIR-37450",
+    "ref": { "jira_keys": "FHIR-16750,FHIR-18600,FHIR-37450" },
+    "summary": "Later CodeSystem issues left csd-1 in place or relied on it to correct duplicate codes.",
+    "learned": "No later Jira decision found in this trail reverses the CodeSystem code uniqueness rule.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-17275 and CodeSystem duplicate codes",
+    "command": "bun run zulip:search fts '\"FHIR-17275\" \"CodeSystem\" \"duplicate\"' --limit 10; bun run confluence:search refs jira FHIR-17275; bun run confluence:search fts '\"FHIR-17275\" \"CodeSystem\" \"duplicate\"' --limit 10",
+    "query": "FHIR-17275 CodeSystem duplicate",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence records were found for the seed issue.",
+    "learned": "No discovered community record changes the conclusion drawn from Jira, current source, and git history.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

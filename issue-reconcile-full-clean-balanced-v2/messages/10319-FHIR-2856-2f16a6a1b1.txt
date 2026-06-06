@@ -1,0 +1,105 @@
+FHIR-2856: Audit ElementDefinition type disjunction representation
+
+Issue request:
+FHIR-2856 was a Published/Persuasive DSTU1 FHIR-core StructureDefinition change request asking whether old Profile.structure.element.definition.type examples that encoded disjunctions as Resource(Patient|Group|Device|Location) were equivalent to repeated type entries, and expecting the profile type representation to use repeats for disjunctions.
+
+Initial application:
+No current git commit explicitly mentions FHIR-2856. The Jira comments record that the ProfileGenerator and validators were adjusted in 2014 and that the issue was fixed before being marked applied. Git history in the same window shows untagged Profile/profile-generation work, including the snapshot/profile display changes and the Resource()/ResourceReference-to-Reference rename that preserved the then-current guidance that each allowed target resource had a separate type/code pair.
+
+Additional context:
+The current build no longer uses the DSTU1 Profile.structure.element.definition.type model. The active ElementDefinition datatype is in build scope through source/fhir.ini, has ElementDefinition.type as 0..*, and separately models profile and targetProfile as repeatable canonical constraints with "one must apply" semantics. Checked-in generated StructureDefinition XML uses repeated type entries for distinct data type choices and repeated targetProfile entries for Reference target choices; compact Resource(A|B) syntax is absent from current source and compact Reference(A|B) syntax is absent from generated StructureDefinition XML.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current specification already conveys the corrected disjunction model through ElementDefinition.type, ElementDefinition.type.profile, ElementDefinition.type.targetProfile, and generated StructureDefinition source examples.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up source edit is recommended in core unless a future work group decision changes how authoring-spreadsheet shorthand should be represented; the built conformance source already avoids the ambiguous old Profile.structure encoding.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-2856
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-2856: Published/Persuasive change request for Profile.structure.element.definition.type disjunction representation, with 2014 comments saying ProfileGenerator/validator handling was fixed and marking the issue applied. Learned: the final WG/application intent was to avoid ambiguous Resource(A|B) profile type encodings.
+- E2 Source source/fhir.ini:88 and source/fhir.ini:258: elementdefinition and structuredefinition are active build-scope entries. Learned: the inspected ElementDefinition and StructureDefinition sources feed the current build.
+- E3 Source source/datatypes/elementdefinition.xml:1610 and source/datatypes/elementdefinition.xml:1668: ElementDefinition.type is 0..* TypeRef, and ElementDefinition.type.profile is 0..* with one-must-apply semantics. Learned: the current model supports repeated type alternatives and repeatable profile constraints.
+- E4 Source source/datatypes/elementdefinition.xml:1697 and source/account/structuredefinition-Account.xml:210: ElementDefinition.type.targetProfile is 0..* with one-must-apply semantics, and generated Account.subject uses a Reference type with repeated targetProfile entries. Learned: current generated conformance source expresses reference target disjunction explicitly rather than as Resource(A|B).
+- E5 Source source/structuredefinition/structuredefinition-StructureDefinition.xml:331: StructureDefinition.versionAlgorithm[x] has separate type entries for string and Coding. Learned: distinct data type disjunctions are represented by repeated type elements in current generated source.
+- E6 Git c2ef24dd533bcd9d1960834f5b5ce54f8e1eab89 and command history search: 2014 untagged history renamed Resource()/ResourceReference to Reference and retained guidance for separate allowed target handling; no commit explicitly grep-matches FHIR-2856. Learned: the Jira application was historical and untagged, but the same source area was migrated away from the old ambiguous encoding.
+- E7 Command searches for compact disjunction/community context: no Resource(A|B) pattern was found in current source, no compact Reference(A|B) pattern was found in generated StructureDefinition XML, and Zulip/Confluence searches for FHIR-2856 or the disjunction terms found no conflicting discussion. Learned: no current built-source or community evidence contradicts the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-2856",
+    "url": "https://jira.hl7.org/browse/FHIR-2856",
+    "snapshot_path": "contexts/FHIR-2856/jira/FHIR-2856.md",
+    "ref": { "jira_key": "FHIR-2856" },
+    "summary": "Published/Persuasive DSTU1 change request asking whether Resource(A|B) profile type syntax was equivalent to repeated type entries, with comments saying the generator and validators were fixed and the issue applied.",
+    "learned": "This establishes the final intent to remove ambiguity in profile type disjunction representation.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:88 and source/fhir.ini:258",
+    "ref": { "path": "source/fhir.ini", "lines": "88,258" },
+    "summary": "The current build configuration actively includes elementdefinition and structuredefinition.",
+    "learned": "The inspected ElementDefinition datatype and StructureDefinition resource sources are in current build scope.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:1610 and source/datatypes/elementdefinition.xml:1668",
+    "ref": { "path": "source/datatypes/elementdefinition.xml", "lines": "1610-1682" },
+    "summary": "ElementDefinition.type is 0..* TypeRef and ElementDefinition.type.profile is 0..* with text saying one profile must apply when profiles are specified.",
+    "learned": "The current ElementDefinition model preserves repeated type alternatives and explicit profile disjunction semantics.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:1697 and source/account/structuredefinition-Account.xml:210",
+    "ref": { "paths": "source/datatypes/elementdefinition.xml; source/account/structuredefinition-Account.xml", "lines": "1697-1711; 210-217" },
+    "summary": "ElementDefinition.type.targetProfile is repeatable with one-must-apply semantics, and generated Account.subject uses Reference with repeated targetProfile entries.",
+    "learned": "Reference target choices are explicit repeatable constraints in current generated conformance source, not old Resource(A|B) shorthand.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/structuredefinition/structuredefinition-StructureDefinition.xml:331",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml", "lines": "331-343" },
+    "summary": "StructureDefinition.versionAlgorithm[x] is represented with separate type entries for string and Coding.",
+    "learned": "Current generated source demonstrates repeated type entries for distinct data type choices.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "c2ef24dd533bcd9d1960834f5b5ce54f8e1eab89 and git log searches",
+    "ref": { "commit": "c2ef24dd533bcd9d1960834f5b5ce54f8e1eab89" },
+    "summary": "No commit explicitly mentions FHIR-2856, but 2014 source history in the same area migrated Resource()/ResourceReference wording to Reference and retained separate allowed-target guidance.",
+    "learned": "The original application was historical and untagged, while later source history confirms the old ambiguous representation was superseded.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source and community negative searches",
+    "command": "rg -n 'Resource\\([^)]*\\|' source; rg -n 'Reference\\([^)]*\\|' source --glob 'structuredefinition-*.xml'; bun run zulip:search sql \"... content LIKE '%FHIR-2856%' ...\"; bun run zulip:search fts 'Profile structure element definition type disjunction'; bun run confluence:search refs jira FHIR-2856; bun run confluence:search fts 'Profile structure element definition type disjunction'",
+    "query": "FHIR-2856 / Profile structure element definition type disjunction / Resource(A|B) / Reference(A|B)",
+    "result_count": 0,
+    "summary": "No Resource(A|B) current-source pattern, no compact Reference(A|B) generated StructureDefinition XML pattern, and no relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered built-source or community evidence conflicts with the conclusion that the current specification is already correct.",
+    "supports": ["absence_of_conflict", "confidence", "reconciliation"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,105 @@
+FHIR-17380: Exclude deprecated fasting status code
+
+Issue request:
+FHIR-17380 was Published/Persuasive with Modification for the OO work group. It asked to add patient fasting status to Specimen.collection as a 0..1 choice of CodeableConcept bound extensibly to HL7 v2 table 0916, excluding the deprecated concept, or Duration, and to document that Observation precoordination or component representation is possible but not recommended.
+
+Initial application:
+The issue was initially applied by git commit 1e393840340e8a3496634052422cf0e9018e7d9b, which added Specimen.collection.fastingStatus[x] to the then-authoritative Specimen spreadsheet with CodeableConcept|Duration, the FastingStatus binding, and the Observation modeling guidance. The later source rework in 33b409a4b6d544598262f2f074ebb4b6dc466157 carried the element into source/specimen/structuredefinition-Specimen.xml. Current source retained the element, choice types, extensible binding, and guidance, but the binding still targeted the full THO v2-0916 value set rather than excluding deprecated code FNA.
+
+Additional context:
+Specimen is an active core resource in source/fhir.ini, and the checked-in StructureDefinition and companion diagram feed the current build. THO 6.5.0 marks v2-0916 code FNA as deprecated while ValueSet/v2-0916 composes the full code system, so binding directly to the THO value set does not implement the Jira/minutes requirement to exclude the deprecated concept. A 2025 terminology Zulip thread confirms the practical issue: Specimen.collection.fastingStatus currently exposed both unknown-style codes NG and deprecated FNA through the v2-0916 value set.
+
+AutoFHIR reconciliation:
+This commit adds a Specimen Fasting Status value set in the Specimen source folder that imports THO ValueSet/v2-0916 and explicitly excludes CodeSystem/v2-0916 code FNA. It changes Specimen.collection.fastingStatus[x] to bind to that local value set and updates the checked-in Specimen diagram link/text so the build-facing diagram no longer points at the unfiltered THO value set.
+
+Recommendation:
+Keep this source fix as-is. It preserves the already-applied element and guidance while completing the unresolved deprecated-code exclusion from the published OO decision; no broader fasting-status or Observation modeling change is supported by the evidence.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17380
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17380: Published/Persuasive with Modification; requested Specimen.collection.fastingStatus[x] as CodeableConcept or Duration with v2-0916 excluding the deprecated concept and Observation alternatives not recommended. Learned: establishes the final source requirement.
+- E2 Source source/fhir.ini:224 and source/fhir.ini:1434: Specimen is an active, approved core resource. Learned: source/specimen StructureDefinition and diagram are in current build scope.
+- E3 Source source/specimen/structuredefinition-Specimen.xml:619: Specimen.collection.fastingStatus[x] exists with CodeableConcept|Duration and Observation guidance, but previously bound directly to THO ValueSet/v2-0916. Learned: most of the issue was applied, with the deprecated-code exclusion still missing.
+- E4 Git 1e393840340e8a3496634052422cf0e9018e7d9b: initial GF#17380 application added the fastingStatus[x] row and FastingStatus binding to the Specimen spreadsheet. Learned: confirms prior application history and the intended source location.
+- E5 Confluence OO minutes 21857451 and 25559889: July 24 minutes record the final fastingStatus choice/binding wording and July 31 minutes record the block vote as Persuasive with Mod. Learned: corroborates the Jira resolution and vote trail.
+- E6 Zulip #Orders and Observation WG > Fasting status GF#17380 and #terminology > V2 code deprecation and FHIR: 2018 discussion supported adding an STU Specimen element; 2025 terminology discussion identifies FNA as the deprecated v2-0916 code exposed through the Specimen binding. Learned: supports keeping the element while filtering the deprecated code.
+- E7 Command validation: XML parse and CRLF-aware git diff checks passed for the edited XML/SVG sources. Learned: the committed source is syntactically valid and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17380",
+    "url": "https://jira.hl7.org/browse/FHIR-17380",
+    "snapshot_path": "contexts/FHIR-17380/jira/FHIR-17380.md",
+    "ref": { "jira_key": "FHIR-17380" },
+    "summary": "Published/Persuasive with Modification issue requiring Specimen.collection.fastingStatus[x] as CodeableConcept or Duration, with the v2-0916 coded choice excluding the deprecated concept.",
+    "learned": "This establishes the final OO work group requirement and identifies the deprecated-code exclusion as part of the applied decision.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:224 and source/fhir.ini:1434",
+    "summary": "Specimen is listed as an active core resource and approved in fhir.ini.",
+    "learned": "The Specimen StructureDefinition and companion diagram are current-build source surfaces rather than retired artifacts.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/specimen/structuredefinition-Specimen.xml:619",
+    "summary": "The current Specimen source already defines fastingStatus[x] with CodeableConcept and Duration, Observation guidance, and an extensible binding, but it previously used the unfiltered THO v2-0916 value set.",
+    "learned": "The remaining semantic gap was the Jira-specified exclusion of the deprecated v2 concept, not the element or guidance itself.",
+    "supports": ["initial_application", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "1e393840340e8a3496634052422cf0e9018e7d9b",
+    "ref": { "commit": "1e393840340e8a3496634052422cf0e9018e7d9b" },
+    "summary": "The GF#17380 implementation commit added the Specimen.collection.fastingStatus[x] spreadsheet row and FastingStatus binding.",
+    "learned": "This confirms the historical source application and that the binding was part of the original implementation path.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "OO Specimen Call Minutes July 24, 2018 and 2018-07-31 Meeting notes",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/21857451/Specimen+Call+Minutes+July+24+2018",
+    "snapshot_path": "contexts/FHIR-17380/confluence/21857451.md",
+    "ref": { "confluence_page_id": 21857451 },
+    "summary": "OO minutes record the final fastingStatus choice/binding wording, including excluding the deprecated concept, and the later block-vote minutes record GF#17380 as Persuasive with Mod.",
+    "learned": "This corroborates the Jira resolution and rules out treating the deprecated-code exclusion as accidental wording.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#Orders and Observation WG > Fasting status GF#17380; #terminology > V2 code deprecation and FHIR",
+    "url": "https://chat.fhir.org/#narrow/stream/Orders%20and%20Observation%20WG/topic/Fasting%20status%20GF%2317380",
+    "snapshot_path": "contexts/FHIR-17380/zulip/Orders-and-Observation-WG--Fasting-status-GF17380.md",
+    "summary": "The 2018 OO discussion favored adding an STU Specimen element despite possible generic precondition modeling; the 2025 terminology thread notes that FNA is deprecated but exposed through Specimen's v2-0916 binding.",
+    "learned": "Community evidence supports the element and highlights the exact deprecated-code problem fixed here.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "THO v2-0916 and local validation checks",
+    "snapshot_path": "contexts/FHIR-17380/commands/v2-0916-terminology-check.md",
+    "command": "curl -fsSL https://terminology.hl7.org/6.5.0/CodeSystem-v2-0916.json | jq ...; curl -fsSL https://terminology.hl7.org/6.5.0/ValueSet-v2-0916.json | jq ...; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; xmllint --noout source/specimen/valueset-specimen-fasting-status.xml source/specimen/structuredefinition-Specimen.xml",
+    "summary": "THO marks FNA with deprecated 2.9 while ValueSet/v2-0916 includes the full code system; edited XML parsed and diff whitespace checks passed.",
+    "learned": "This verifies both the need for the value-set filter and the syntactic safety of the source edit.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

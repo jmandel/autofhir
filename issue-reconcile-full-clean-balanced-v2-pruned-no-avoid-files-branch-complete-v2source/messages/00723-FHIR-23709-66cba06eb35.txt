@@ -1,0 +1,93 @@
+FHIR-23709: Remove duplicate ActivityDefinition kind search parameter
+
+Issue request:
+FHIR-23709 was a Published/Persuasive CDS change request from STU3, applied for R5, asking to add `kind` as a search parameter for the ActivityDefinition resource because knowledge vendors use ActivityDefinition.kind to classify protocol, order set, and recommendation definitions.
+
+Initial application:
+The requested parameter was applied in Jira-tagged source history. Commit 774eccb4c1 added `ActivityDefinition-kind` in the sorted ActivityDefinition search-parameter bundle, and commit 1f7ca3b620, later included through PR #2288, added the same `ActivityDefinition-kind` search parameter again near the end of the same bundle. Before this reconciliation the current source therefore had the requested parameter but duplicated the same id, URL, code, type, and expression.
+
+Additional context:
+`activitydefinition=ActivityDefinition` is an active resource in `source/fhir.ini`, and `source/activitydefinition/bundle-ActivityDefinition-search-params.xml` is the resource search-parameter bundle. Neighboring resource bundles such as OperationDefinition, NamingSystem, and StructureDefinition each define their `kind` search parameter once. No Zulip or Confluence discussion was found that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+This commit removes only the redundant appended `ActivityDefinition-kind` entry and leaves the existing sorted `kind` search parameter in place, preserving the requested search capability while eliminating a duplicate SearchParameter definition from active source.
+
+Recommendation:
+Keep this commit as-is. It is a narrow source cleanup of the FHIR-23709 implementation, requires no new work-group decision, and keeps ActivityDefinition.kind searchable exactly once.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-23709
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-23709: Published/Persuasive request to add `kind` as an ActivityDefinition search parameter, with PR #2288 noted in Jira comments. Learned: this establishes final WG intent and the relevant source-change family.
+- E2 Source source/fhir.ini:273 and source/fhir.ini:486: ActivityDefinition is an active resource owned by CDS. Learned: the ActivityDefinition source bundle is in current build scope.
+- E3 Source source/activitydefinition/bundle-ActivityDefinition-search-params.xml:265: the remaining `ActivityDefinition-kind` entry has code `kind`, type `token`, and expression `ActivityDefinition.kind`. Learned: the requested search parameter remains present after reconciliation.
+- E4 Git 774eccb4c1 and 1f7ca3b620: both Jira-tagged commits added `ActivityDefinition-kind` to the same bundle, with the latter associated with PR #2288. Learned: the current duplicate came from repeated application of the same issue, not from a distinct related decision.
+- E5 Command Zulip/Confluence searches for FHIR-23709 and ActivityDefinition kind search parameter: no directly relevant hits were found. Learned: no community evidence changes the Jira/source conclusion.
+- E6 Verification command: XML parse, duplicate-id check for the ActivityDefinition search bundle, and git diff whitespace check passed. Learned: the targeted source remains well-formed and `ActivityDefinition-kind` is now present exactly once in that bundle.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-23709",
+    "url": "https://jira.hl7.org/browse/FHIR-23709",
+    "snapshot_path": "contexts/FHIR-23709/jira/FHIR-23709.md",
+    "ref": { "jira_key": "FHIR-23709" },
+    "summary": "Published/Persuasive CDS issue asking to add `kind` as an ActivityDefinition search parameter, with PR #2288 noted in a Jira comment.",
+    "learned": "This establishes final WG intent to support searching ActivityDefinition by kind.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:273, source/fhir.ini:486",
+    "summary": "ActivityDefinition is listed as an active resource and assigned to the CDS work group.",
+    "learned": "The ActivityDefinition search-parameter bundle is part of current core build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/activitydefinition/bundle-ActivityDefinition-search-params.xml:265",
+    "summary": "The remaining ActivityDefinition-kind SearchParameter defines code `kind`, type `token`, and expression `ActivityDefinition.kind`.",
+    "learned": "The requested search parameter remains in source after removing the duplicate entry.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "774eccb4c1; 1f7ca3b620; PR #2288 merge 13fb5889ec",
+    "ref": { "commit_1": "774eccb4c1e5551b579548fa80f2b84dfb10fcb7", "commit_2": "1f7ca3b6208314f2e805e246a3c579f20497f4ad", "merge_commit": "13fb5889ecbc08b05d25cd2023c933b94581df24" },
+    "summary": "Two Jira-tagged commits added the same ActivityDefinition-kind SearchParameter to the same source bundle; the later one was included through PR #2288.",
+    "learned": "The duplicate was a repeated application of FHIR-23709 rather than a separate substantive search parameter.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-23709 and ActivityDefinition kind search parameter",
+    "command": "bun run zulip:search fts '\"FHIR-23709\" ActivityDefinition kind' --limit 10; bun run confluence:search refs jira FHIR-23709; bun run confluence:search fts '\"FHIR-23709\" ActivityDefinition kind' --limit 10",
+    "query": "FHIR-23709 ActivityDefinition kind search parameter",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Targeted source validation",
+    "command": "python3 -c 'import xml.etree.ElementTree as ET; ET.parse(...)'; perl duplicate-id check; git diff --check",
+    "summary": "The ActivityDefinition search-parameter XML parsed, the bundle no longer reports a duplicate ActivityDefinition-kind id, and the diff has no whitespace errors.",
+    "learned": "The narrow source edit is syntactically safe and resolves the duplicate while preserving the requested parameter.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

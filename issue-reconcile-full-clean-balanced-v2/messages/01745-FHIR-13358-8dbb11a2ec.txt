@@ -1,0 +1,118 @@
+FHIR-13358: Audit Consent policyRule reconciliation
+
+Issue request:
+FHIR-13358 was Published/Persuasive with Modification for FHIR-core Consent. It asked to stop representing Consent policy/policyRule opt-in and opt-out choices as URI magic values, and the final resolution changed policyRule to a CodeableConcept based on ActConsentDecision, retired the magic URIs, corrected examples/text, and recorded that this satisfied duplicate FHIR-13598.
+
+Initial application:
+The issue was explicitly applied in git commit e0f2ea28e4dbe6b1fc2ff9d32ef6f84347cc8ef5, which changed the STU3 Consent examples from http://hl7.org/fhir/ConsentPolicy/opt-in and /opt-out URI values to CodeableConcept policyRule codings and updated the Consent source definitions. No separate source application is needed for duplicate FHIR-13598.
+
+Additional context:
+Consent remains an active current-build resource in source/fhir.ini. Later Published issue FHIR-32817 replaced the old policy/policyRule structure with regulatoryBasis, policyBasis, policyText, and an explicit permit/deny decision model; that later design intentionally keeps URI only for Consent.policyBasis.uri, a dereferenceable computable backing-policy URI, not for the retired opt-in/opt-out magic values. Current R4/R6 mapping records the retired Consent.policyRule as moved to current policy text, and current examples express opt-in/out behavior through Consent.decision and provisions. Zulip and Confluence searches found no conflicting community record.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Current authoritative Consent source has no active Consent.policyRule element and no remaining http://hl7.org/fhir/ConsentPolicy/opt-in or /opt-out magic URI usage. The current regulatoryBasis CodeableConcept, policyBasis/policyText, and decision/provision model preserves the issue's intent after later Consent refactoring.
+
+Recommendation:
+Keep this no-change audit. If the work group wants to rename the historical consent-policy value set title/name that still contains "PolicyRule", handle that as a separate editorial/terminology cleanup because it is not a remaining URI-vs-CodeableConcept defect and does not change the current Consent conformance model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13358
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13598: duplicate - requested a Consent.decision/ActConsentDirective path and was resolved as fixed by FHIR-13358.
+FHIR-32817: later-change - superseded the old policyRule representation with regulatoryBasis, policyBasis, policyText, and explicit decision/provision semantics.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13358: Published/Persuasive with Modification request to change Consent.policyRule from opt-in/opt-out URI magic values to CodeableConcept and retire those URIs. Learned: this is the final work-group intent for the seed issue.
+- E2 Jira FHIR-13598: Duplicate issue requesting Consent.decision/ActConsentDirective support, resolved as fixed by FHIR-13358. Learned: this confirms the seed already covered that closely related request and should not produce a separate duplicate decision.
+- E3 Source source/fhir.ini:265 and source/fhir.ini:1649-1653: Consent is active in the current build, and R4/R6 mappings record old Consent.policy/policyRule/provision.type moves to current elements. Learned: source/consent/structuredefinition-Consent.xml is in build scope and current names must be considered.
+- E4 Source source/consent/structuredefinition-Consent.xml:363-424 and source/consent/structuredefinition-Consent.xml:518-537: current Consent defines regulatoryBasis as CodeableConcept, policyBasis as Reference/uri backing policy, policyText as human-readable policy reference, and decision as permit/deny. Learned: the active model no longer uses policyRule URI values for opt-in/out.
+- E5 Git e0f2ea28e4dbe6b1fc2ff9d32ef6f84347cc8ef5: initial application changed Consent examples and source from opt-in/opt-out ConsentPolicy URI values to CodeableConcept policyRule codings. Learned: FHIR-13358 was historically applied, not merely proposed.
+- E6 Jira/Git FHIR-32817 and 7ec3c37642c57792ee12bc07696299ddcc974dd4: later Published change split the old policy/policyRule semantics into regulatoryBasis, policyBasis, policyText, and explicit decision/provision behavior. Learned: later final decisions explain why the current source differs from the original STU3 element name.
+- E7 Command/community search: Jira search found the seed and FHIR-32817 as the relevant policyRule/CodeableConcept family; Zulip and Confluence searches for Consent policyRule CodeableConcept found no directly relevant or conflicting records. Learned: no discovered community evidence changes the Jira/source/git conclusion.
+- E8 Verification command/query: git diff --check; xmllint --noout source/consent/structuredefinition-Consent.xml source/consent/valueset-consent-policy.xml; rg for old ConsentPolicy opt-in/out URIs and active <policyRule> elements. Learned: checked source is well-formed and the obsolete URI/element pattern is absent.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13358",
+    "url": "https://jira.hl7.org/browse/FHIR-13358",
+    "snapshot_path": "contexts/FHIR-13358/jira/FHIR-13358.md",
+    "ref": { "jira_key": "FHIR-13358" },
+    "summary": "Published/Persuasive with Modification Consent issue requiring policyRule opt-in/opt-out URI magic values to be replaced by CodeableConcept and retired.",
+    "learned": "This establishes the final work-group intent for the seed reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-13598",
+    "url": "https://jira.hl7.org/browse/FHIR-13598",
+    "snapshot_path": "contexts/FHIR-13358/jira/FHIR-13598.md",
+    "ref": { "jira_key": "FHIR-13598" },
+    "summary": "Duplicate Consent issue requesting a Consent.decision/ActConsentDirective path and resolved as fixed by FHIR-13358.",
+    "learned": "This confirms FHIR-13598 is same-family duplicate context, not a separate issue to publish here.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:265; source/fhir.ini:1649-1653",
+    "summary": "Consent is an active current-build resource and old Consent.policy, policyRule, and provision.type are mapped to current elements.",
+    "learned": "The current Consent StructureDefinition is in build scope and later element names must be used when assessing the old policyRule request.",
+    "supports": ["source_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/consent/structuredefinition-Consent.xml:363-424; source/consent/structuredefinition-Consent.xml:518-537",
+    "summary": "Current Consent defines regulatoryBasis as CodeableConcept, policyBasis as Reference/uri, policyText as DocumentReference, and decision as required-bound permit/deny code.",
+    "learned": "The active source no longer uses Consent.policyRule or URI magic values for opt-in/out behavior.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "e0f2ea28e4dbe6b1fc2ff9d32ef6f84347cc8ef5",
+    "summary": "Historical application commit changed Consent examples from ConsentPolicy opt-in/out URI values to CodeableConcept policyRule codings and updated Consent definitions.",
+    "learned": "FHIR-13358 was explicitly applied in source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-32817 and git 7ec3c37642c57792ee12bc07696299ddcc974dd4",
+    "url": "https://jira.hl7.org/browse/FHIR-32817",
+    "snapshot_path": "contexts/FHIR-13358/jira/FHIR-32817.md",
+    "ref": { "jira_key": "FHIR-32817", "commit": "7ec3c37642c57792ee12bc07696299ddcc974dd4" },
+    "summary": "Later Published Consent issue split old policy/policyRule concepts into regulatoryBasis, policyBasis, policyText, and explicit decision/provision semantics.",
+    "learned": "This later final decision explains why URI remains only for policyBasis.uri and why the old policyRule element name is no longer present.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and Jira search for Consent policyRule CodeableConcept",
+    "command": "bun run jira:search fts 'Consent policyRule CodeableConcept URI' --limit 20; bun run zulip:search fts 'Consent policyRule CodeableConcept' --limit 20; bun run confluence:search refs jira FHIR-13358; bun run confluence:search fts 'Consent policyRule CodeableConcept' --limit 20",
+    "query": "Consent policyRule CodeableConcept URI",
+    "result_count": 3,
+    "summary": "Jira returned FHIR-13358, FHIR-32817, and a no-change defaultAction issue; Zulip and Confluence returned no directly relevant or conflicting records.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted source validation for obsolete Consent policyRule URI pattern",
+    "command": "git diff --check; xmllint --noout source/consent/structuredefinition-Consent.xml source/consent/valueset-consent-policy.xml; rg -n 'http://hl7.org/fhir/ConsentPolicy/opt-(in|out)|<policyRule' source/consent source/fhir.ini",
+    "summary": "Whitespace/XML checks passed and the old ConsentPolicy opt-in/out URI plus active policyRule element pattern was absent.",
+    "learned": "The current source is syntactically safe and does not retain the obsolete representation targeted by the issue.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

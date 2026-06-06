@@ -1,0 +1,107 @@
+FHIR-43446: Remove invalid Task Event doNotPerform mapping
+
+Issue request:
+FHIR-43446 was Applied with a Persuasive with Modification resolution for R6. The OO decision asked to align Task with the workflow Request and Event patterns by adding missing mappings for Task.statusReason, Task.focus, Task.input.value[x], Task.authoredOn, and Task.location, and by remapping Task.doNotPerform from the old Task.code relationship to Request.doNotPerform.
+
+Initial application:
+The issue was applied through PR #3719. Commit 816e404de8 added most of the requested Task workflow mappings, commit 496f78917f restored Task.status to Request.status plus Event.status and changed Task.doNotPerform away from Request.code/Event.code, and commit 0036c8e0c1 updated the Task Request/Event mapping exception files. That application left Task.doNotPerform mapped to both Request.doNotPerform and Event.doNotPerform even though the Event workflow pattern has no Event.doNotPerform element.
+
+Additional context:
+The current Task source is in build scope through active source/fhir.ini Task entries. The current Request and Event mapping exception files list the requested divergent mappings, and Event.doNotPerform does not appear anywhere else in the source as an Event pattern path. OO WGM minutes for 2025-09-15/19 record the motion to approve the Task mappings as captured in the Jira comment, including the Event.recorded/AuthoredOn discussion, and no Zulip discussion was found that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+This commit removes only the invalid Event.doNotPerform target from the Task.doNotPerform workflow mapping, leaving the approved Request.doNotPerform mapping and the other FHIR-43446 Task mappings intact.
+
+Recommendation:
+Keep this commit. It is a bounded correction to the applied FHIR-43446 mapping work: Task.doNotPerform now maps to the approved Request pattern element without claiming an Event pattern element that does not exist.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-43446
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-43446: Applied/Persuasive with Modification OO issue requesting Task workflow-pattern alignment mappings. Learned: this establishes the final WG mapping changes to reconcile.
+- E2 Source source/fhir.ini:272 and source/fhir.ini:638: active Task resource and OO work group entries. Learned: Task source changes are in current FHIR build scope.
+- E3 Source source/task/structuredefinition-Task.xml:365: Task.doNotPerform workflow mapping now points only to Request.doNotPerform. Learned: the invalid Event.doNotPerform target was the only remaining source defect found for this issue.
+- E4 Git 816e404de8, 496f78917f, 0036c8e0c1, and merge efbcdc6b9c: PR #3719 applied the Task mappings and exception files. Learned: the requested changes were mostly applied, with the Event.doNotPerform overreach introduced during remapping.
+- E5 Confluence 358886935: OO WGM minutes record a motion to approve the Task mappings as in the Jira comment, including the Event.recorded/AuthoredOn discussion. Learned: meeting evidence supports the Jira disposition and does not add an Event.doNotPerform mapping.
+- E6 Verification command/query: XML parse, diff check, and source search found no Event.doNotPerform pattern path after the edit. Learned: the edited XML is well formed and the stale non-existent Event mapping is removed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-43446",
+    "url": "https://jira.hl7.org/browse/FHIR-43446",
+    "snapshot_path": "contexts/FHIR-43446/jira/FHIR-43446.md",
+    "ref": { "jira_key": "FHIR-43446" },
+    "summary": "Applied/Persuasive with Modification OO issue requesting Task workflow-pattern alignment mappings for Request and Event.",
+    "learned": "This is the final WG intent and establishes the Task mapping changes that should be present in the current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:272 and source/fhir.ini:638",
+    "summary": "Task is an active resource in source/fhir.ini and assigned to OO.",
+    "learned": "The Task StructureDefinition source is in scope for a current FHIR core build fix.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/task/structuredefinition-Task.xml:365",
+    "summary": "Task.doNotPerform workflow mapping now maps to Request.doNotPerform only.",
+    "learned": "The approved Request mapping is retained while the non-existent Event.doNotPerform target is removed.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "816e404de8; 496f78917f; 0036c8e0c1; efbcdc6b9c",
+    "ref": { "commit": "efbcdc6b9c" },
+    "summary": "PR #3719 applied the Task mappings and mapping exception updates for FHIR-43446.",
+    "learned": "The source was mostly applied before reconciliation, but the doNotPerform remap overreached by naming Event.doNotPerform.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "OO 2025-09-15-19 WGM minutes page 358886935",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/358886935/2025-09-15-19_WGM",
+    "snapshot_path": "contexts/FHIR-43446/confluence/358886935.md",
+    "ref": { "confluence_page_id": 358886935 },
+    "summary": "Minutes record the FHIR-43446 Task workflow mapping discussion and a 6-0-0 motion to approve the mappings as in the Jira comment.",
+    "learned": "Meeting evidence supports the Jira mapping scope and does not justify an Event.doNotPerform mapping.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Validation and negative Event.doNotPerform search",
+    "command": "git diff --check -- source/task/structuredefinition-Task.xml; python3 - <<'PY' ... ET.parse('source/task/structuredefinition-Task.xml') ... PY; rg -n 'Event\\.doNotPerform|path value=\"Event.doNotPerform\"|<Data ss:Type=\"String\">Event.doNotPerform' source",
+    "query": "Event.doNotPerform",
+    "result_count": 0,
+    "summary": "The edited XML parsed successfully, diff whitespace check passed, and no Event.doNotPerform pattern path remained in source.",
+    "learned": "The source change is syntactically safe and removes the stale non-existent Event mapping.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative Zulip search for FHIR-43446 Task workflow pattern",
+    "command": "bun run zulip:search fts '\"FHIR-43446\" Task workflow pattern' --limit 10",
+    "query": "\"FHIR-43446\" Task workflow pattern",
+    "result_count": 0,
+    "snapshot_path": "contexts/FHIR-43446/zulip/FHIR-43446-search.txt",
+    "summary": "No directly relevant Zulip hits were found.",
+    "learned": "No discovered community discussion changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

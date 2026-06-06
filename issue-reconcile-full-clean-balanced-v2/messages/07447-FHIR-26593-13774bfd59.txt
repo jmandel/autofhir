@@ -1,0 +1,116 @@
+FHIR-26593: Audit contained-resource id constraint
+
+Issue request:
+FHIR-26593 is Published/Persuasive and requested a dom-3 update for DomainResource so that when a link points to a contained resource, the contained resource must have a non-empty id.
+
+Initial application:
+The issue was applied in git commit 60e802c6f260664a350604c66575dc13d299a1b6, which explicitly updated source/domainresource/structuredefinition-DomainResource.xml dom-3 to include id.exists() in the inbound-reference branch and adjusted the matching XPath. The Jira comment records that R4B application commit.
+
+Additional context:
+DomainResource is still in current build scope through source/fhir.ini [resource-infrastructure]. The current source has since been refactored by FHIR-43690 into the R6 expression using '#'+id.trace('id') against descendant references, while preserving the semantic requirement that an inbound contained-resource reference can only match a non-empty contained id. Confluence minutes show FHIR-I first noted that the FHIRPath already implied a #id requirement, then later accepted FHIR-26593 as a technical correction. FHIR-56263 reports a separate unresolved R6 dom-3 precedence concern about the branch for contained resources that refer back to the container; that open issue should not be resolved under this seed.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active DomainResource source already carries dom-3 on DomainResource.contained and the current inbound-reference test still requires a contained id before a '#id' reference can satisfy the invariant.
+
+Recommendation:
+Keep this audit commit as-is for FHIR-26593. Track any future source correction for the broader dom-3 R6 precedence report under FHIR-56263 or another work-group-approved issue, rather than reopening this already-applied id-constraint tracker.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26593
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-43690: later-change - Applied R6 refactor of the same dom-3 expression; it preserved the FHIR-26593 inbound id requirement while simplifying uri/canonical/url handling.
+FHIR-56263: background - Submitted unresolved report that the current R6 expression has an operator-precedence problem in the container-reference branch; it is outside this seed's final decision scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26593: Published/Persuasive technical correction for FHIR-core-DomainResource requesting dom-3 ensure a referenced contained resource has a non-empty id. Learned: this establishes the final issue request and scope.
+- E2 Source source/domainresource/structuredefinition-DomainResource.xml:77-80,128-144: dom-3 is defined on DomainResource and attached to DomainResource.contained; the current expression checks '#'+id.trace('id') against references. Learned: the active source still implements the inbound contained-resource id rule.
+- E3 Source source/fhir.ini:128-134: [resource-infrastructure] includes domainresource=abstract,DomainResource. Learned: DomainResource source is in current build scope.
+- E4 Git 60e802c6f260664a350604c66575dc13d299a1b6: Jira-tagged implementation commit added id.exists() to dom-3's inbound-reference branch. Learned: FHIR-26593 was explicitly applied before this reconciliation.
+- E5 Jira/Git FHIR-43690 and 86ddd389b9c7690e89ddc061f23f3e6fa09333b6: Applied/Persuasive-with-Modification R6 refactor changed dom-3 to the current expression. Learned: later approved work explains why the current expression differs from the original FHIR-26593 patch.
+- E6 Confluence FHIR-I minutes 2020-03-30 and 2020-07-13: FHIR-I noted the FHIRPath already implied #id was required, then recorded FHIR-26593 as a technical correction to fix. Learned: meeting evidence supports interpreting the issue as an id-requirement clarification, not a new broader dom-3 policy.
+- E7 Jira/Zulip FHIR-56263 and #implementers > Isn't dom-3 broken: Submitted unresolved report about R6 operator precedence in the dom-3 container-reference branch. Learned: this is a known adjacent open issue, but not final authority for a FHIR-26593 source edit.
+- E8 Verification commands: duplicate combined-branch grep for Issue-Reconcile-Key: FHIR-26593 returned no existing commit; current source/history/community checks found the applied invariant and later refactor. Learned: publishing one no-change audit commit is idempotent and bounded to the seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26593",
+    "url": "https://jira.hl7.org/browse/FHIR-26593",
+    "snapshot_path": "contexts/FHIR-26593/jira/FHIR-26593.md",
+    "ref": { "jira_key": "FHIR-26593" },
+    "summary": "Published/Persuasive technical correction requesting dom-3 require a non-empty id when a link points to a contained resource.",
+    "learned": "The final approved request is limited to the contained-resource inbound reference id requirement.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/domainresource/structuredefinition-DomainResource.xml:77-80,128-144",
+    "summary": "Current DomainResource source defines dom-3 and attaches it to DomainResource.contained; the inbound-reference branch uses '#'+id.trace('id') when matching contained references.",
+    "learned": "The current source still requires a contained id to satisfy dom-3 by an inbound '#id' reference.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:128-134",
+    "summary": "The [resource-infrastructure] section includes domainresource=abstract,DomainResource.",
+    "learned": "DomainResource is an active current-build source artifact.",
+    "supports": ["source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "60e802c6f260664a350604c66575dc13d299a1b6",
+    "ref": { "commit": "60e802c6f260664a350604c66575dc13d299a1b6" },
+    "summary": "Jira-tagged commit updated dom-3 to require that a referenced contained resource has an id.",
+    "learned": "FHIR-26593 was explicitly applied in source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-43690 / git 86ddd389b9c7690e89ddc061f23f3e6fa09333b6",
+    "url": "https://jira.hl7.org/browse/FHIR-43690",
+    "ref": { "jira_key": "FHIR-43690", "commit": "86ddd389b9c7690e89ddc061f23f3e6fa09333b6" },
+    "summary": "Applied/Persuasive-with-Modification R6 change refactored dom-3 to remove duplicate and inefficient expression fragments.",
+    "learned": "The current expression's wording differs from the original patch because of a later approved refactor, not because FHIR-26593 was lost.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20200330 and 20200713",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/86973299/FHIR+Infrastructure+Minutes+CC+20200713",
+    "ref": { "confluence_page_id": 86973299 },
+    "summary": "FHIR-I minutes first noted the FHIRPath already implied #id was required, then accepted FHIR-26593 as a technical correction to fix.",
+    "learned": "Meeting evidence supports a bounded id-constraint interpretation of the issue.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-56263 and Zulip #implementers > Isn't dom-3 broken",
+    "url": "https://jira.hl7.org/browse/FHIR-56263",
+    "ref": { "jira_key": "FHIR-56263" },
+    "summary": "Submitted unresolved issue and Zulip thread report an R6 operator-precedence problem in the dom-3 branch for contained resources that refer to the container.",
+    "learned": "There is an adjacent open dom-3 concern, but it is not a final decision requiring a source edit for FHIR-26593.",
+    "supports": ["additional_context", "related_not_decided"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Duplicate and source-history checks",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-26593' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git show 60e802c6f260664a350604c66575dc13d299a1b6 -- source/domainresource/structuredefinition-DomainResource.xml; bun run confluence:search refs jira FHIR-26593",
+    "summary": "No prior combined-branch audit commit existed for FHIR-26593; source history and community evidence confirm the applied dom-3 id correction.",
+    "learned": "A single empty no-change audit commit is the appropriate idempotent reconciliation output.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

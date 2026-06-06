@@ -1,0 +1,92 @@
+FHIR-13597: Audit publisher scan filename handling
+
+Issue request:
+FHIR-13597 was a Published/Persuasive STU3 FHIR-core tooling issue asking that the publisher's scanForPages and scanForImages logic not abort when a build output file has no filename suffix.
+
+Initial application:
+The issue was applied in git commit 48c2dd532de7226381382e377156fae0b2bda987, matching the Jira comment's svn revision 12624. That commit changed both scanForPages and scanForImages in tools/java/org.hl7.fhir.tools.core/src/org/hl7/fhir/tools/publisher/Publisher.java to return an empty extension when the filename does not contain a dot.
+
+Additional context:
+The affected Publisher.java source is no longer present in this FHIR checkout. Commit 9f549566d1346cad7db6d2afca6080d7cebdfbbe removed tools/java/org.hl7.fhir.tools.core and switched the build to a Gradle dependency on org.hl7.fhir:kindling. The current FHIR build.gradle.kts runs org.hl7.fhir.tools.publisher.Publisher from that dependency, and the current HL7/kindling Publisher.java still contains the dot-presence guard in both scanForPages and scanForImages. Zulip/Confluence searches found only bot notifications for this issue and no substantive conflicting community decision.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no FHIR source change. The Jira-requested guard was historically applied, the obsolete in-repo Java source was later externalized, and the current external publisher source used by this build preserves the corrected behavior.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR source follow-up is needed unless a future Kindling update regresses the scanForPages or scanForImages filename-extension guard.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13597
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13597: Published/Persuasive STU3 tooling issue with a comment recording svn revision 12624. Learned: the work group accepted and published the requested publisher filename-suffix guard.
+- E2 Git 48c2dd532de7226381382e377156fae0b2bda987: #13597 - fix error scanning files changed scanForPages and scanForImages to check f.getName().contains(".") before substring. Learned: the requested fix was explicitly applied in the former in-repo Publisher.java.
+- E3 Git 9f549566d1346cad7db6d2afca6080d7cebdfbbe: switching over to gradle build with kindling dependency removed tools/java/org.hl7.fhir.tools.core/src/org/hl7/fhir/tools/publisher/Publisher.java and added build.gradle.kts. Learned: the affected Java source is no longer owned by this FHIR checkout.
+- E4 Source build.gradle.kts:46-49,132-139 and gradle.properties:2: the current build depends on org.hl7.fhir:kindling and runs org.hl7.fhir.tools.publisher.Publisher from that dependency. Learned: current publisher behavior comes from the external Kindling source, not an editable in-repo Publisher.java.
+- E5 Web HL7/kindling src/main/java/org/hl7/fhir/tools/publisher/Publisher.java:3967,3980: current scanForPages and scanForImages both use f.getName().contains(".") ? ... : "". Learned: the current external publisher source preserves the FHIR-13597 guard.
+- E6 Command community/source searches: current git grep found no in-repo Publisher.java or scanForPages/scanForImages definitions; Zulip/Confluence searches found only bot notifications and no conflicting human discussion. Learned: no current FHIR source edit or community override was discovered.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13597",
+    "url": "https://jira.hl7.org/browse/FHIR-13597",
+    "snapshot_path": "contexts/FHIR-13597/jira/FHIR-13597.md",
+    "ref": { "jira_key": "FHIR-13597" },
+    "summary": "Published/Persuasive STU3 FHIR-core tooling issue reporting that Publisher.java aborted when files in the build directory had no suffix.",
+    "learned": "This establishes final accepted intent to guard scanForPages and scanForImages before taking a suffix substring.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "48c2dd532de7226381382e377156fae0b2bda987",
+    "ref": { "commit": "48c2dd532de7226381382e377156fae0b2bda987" },
+    "summary": "The #13597 implementation commit changed both scanForPages and scanForImages to use f.getName().contains(\".\") before substring.",
+    "learned": "The requested change was explicitly applied in the former in-repo publisher source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "9f549566d1346cad7db6d2afca6080d7cebdfbbe",
+    "ref": { "commit": "9f549566d1346cad7db6d2afca6080d7cebdfbbe" },
+    "summary": "The Gradle/Kindling migration deleted tools/java/org.hl7.fhir.tools.core/src/org/hl7/fhir/tools/publisher/Publisher.java and added build.gradle.kts.",
+    "learned": "The affected Java source is no longer maintained inside this FHIR checkout.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "build.gradle.kts:46-49,132-139; gradle.properties:2",
+    "summary": "The current FHIR build depends on org.hl7.fhir:kindling:1.25.5-SNAPSHOT and runs org.hl7.fhir.tools.publisher.Publisher from the Gradle classpath.",
+    "learned": "Any current publisher scan behavior comes from the external Kindling dependency rather than an editable FHIR source file.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "web",
+    "locator": "HL7/kindling Publisher.java lines 3967 and 3980",
+    "url": "https://github.com/HL7/kindling/blob/b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8/src/main/java/org/hl7/fhir/tools/publisher/Publisher.java#L3967-L3980",
+    "summary": "The current external Publisher.java keeps the contains-dot guard in scanForPages and scanForImages.",
+    "learned": "The external source currently used by the build preserves the FHIR-13597 fix, so no FHIR source patch is needed.",
+    "supports": ["additional_context", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current source and community searches for FHIR-13597 publisher scan behavior",
+    "command": "git grep -n -E 'scanForPages|scanForImages|lastIndexOf\\(\"\\.\"\\)' -- .; bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-13597%' OR content LIKE '%13597%'\"; bun run confluence:search refs jira FHIR-13597; bun run confluence:search fts 'publisher abends extraneous files build directory' --limit 10",
+    "summary": "No current in-repo Publisher.java or scan methods were found; community searches found only bot notifications and no Confluence references or conflicting discussion.",
+    "learned": "There is no discovered current FHIR source location or community record requiring a different reconciliation.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,105 @@
+FHIR-11385: Audit eligibility insurance grouping
+
+Issue request:
+FHIR-11385 was a Published/Persuasive Financial Management change request for DSTU2 EligibilityResponse asking to put Contract and BenefitBalance together under an insurance or similar subclass so that multiple insurance coverages could be reflected back to the requestor.
+
+Initial application:
+No current git commit found by this reconciliation explicitly mentions FHIR-11385. Historical source inspection found the substantive application in commit 040158b3, which introduced a repeating EligibilityResponse.insurance backbone, added insurance.coverage and insurance.contract, moved benefitBalance under insurance, and updated an example to wrap the benefit details in insurance.
+
+Additional context:
+The current build uses CoverageEligibilityResponse as the active successor to EligibilityResponse, with source/fhir.ini mapping CoverageEligibilityResponse to the old EligibilityResponse name. The active StructureDefinition now has repeating CoverageEligibilityResponse.insurance entries that each reference one Coverage and contain benefit items/balances under insurance.item.benefit. A later Published/Persuasive issue, FHIR-17963, intentionally removed the direct EligibilityResponse.insurance.contract child because contract details are already represented by Coverage.contract; that related issue is already represented on the combined branch by commit eb3a0d6b9bb2998f686552f91fedf5691cc49800.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The active current specification already preserves the FHIR-11385 grouping through CoverageEligibilityResponse.insurance, CoverageEligibilityResponse.insurance.coverage, CoverageEligibilityResponse.insurance.item, and CoverageEligibilityResponse.insurance.item.benefit, while Contract remains available through the referenced Coverage. Re-adding a direct CoverageEligibilityResponse.insurance.contract element would conflict with the later FHIR-17963 decision and duplicate Coverage.contract.
+
+Recommendation:
+Keep this no-change audit as-is. Do not edit the retired source/eligibilityresponse files or reintroduce a direct insurance.contract child unless the Financial Management work group reverses FHIR-17963.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11385
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17963: later-change - Published/Persuasive issue removed EligibilityResponse.insurance.contract because contract details are already on Coverage; already audited on the combined branch in eb3a0d6b9bb2998f686552f91fedf5691cc49800.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11385: Published/Persuasive FM issue requesting Contract and BenefitBalance be grouped under insurance to support multiple coverages. Learned: this establishes the final seed request and target semantics.
+- E2 Source source/fhir.ini:250,2706: CoverageEligibilityResponse is the active current resource and is mapped to the old EligibilityResponse name. Learned: current reconciliation should inspect CoverageEligibilityResponse rather than only retired EligibilityResponse source.
+- E3 Source source/coverageeligibilityresponse/structuredefinition-CoverageEligibilityResponse.xml:380-459,666-725: insurance is a repeating backbone containing coverage and item benefits/balances. Learned: the active resource keeps per-coverage benefit details together under insurance.
+- E4 Source source/coverage/structuredefinition-Coverage.xml:859-872: Coverage.contract references the policy/contracts constituting the coverage. Learned: Contract remains linked through the Coverage referenced by each insurance repetition.
+- E5 Git 040158b3: historical EligibilityResponse source change introduced insurance grouping and moved benefitBalance under it. Learned: the seed was substantively applied before later resource renaming/refactoring.
+- E6 Jira FHIR-17963 and git eb3a0d6b9bb2998f686552f91fedf5691cc49800: later Published/Persuasive decision removed direct insurance.contract because contract is on Coverage, and that issue is already audited on the combined branch. Learned: the current absence of CoverageEligibilityResponse.insurance.contract is intentional and should not be reversed for FHIR-11385.
+- E7 Community search: exact Zulip and Confluence searches for FHIR-11385 found no relevant records. Learned: no discovered community evidence conflicts with the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11385",
+    "url": "https://jira.hl7.org/browse/FHIR-11385",
+    "snapshot_path": "contexts/FHIR-11385/jira/FHIR-11385.md",
+    "ref": { "jira_key": "FHIR-11385" },
+    "summary": "Published/Persuasive Financial Management change request asking to put Contract and BenefitBalance together under an insurance-like subclass for multiple coverages.",
+    "learned": "The Jira issue is final and establishes the desired per-insurance grouping semantics.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:250,2706",
+    "summary": "CoverageEligibilityResponse is active in the current build and is mapped as the successor name for EligibilityResponse.",
+    "learned": "The current-build source to reconcile is CoverageEligibilityResponse, not just the legacy EligibilityResponse directory.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/coverageeligibilityresponse/structuredefinition-CoverageEligibilityResponse.xml:380-459,666-725",
+    "summary": "The active StructureDefinition defines repeating CoverageEligibilityResponse.insurance entries with coverage and item/benefit children.",
+    "learned": "Benefit details and balances are grouped under each insurance repetition in the active resource.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/coverage/structuredefinition-Coverage.xml:859-872",
+    "summary": "Coverage.contract references the policy(s) constituting the insurance coverage and targets Contract.",
+    "learned": "Contract remains available through the Coverage referenced by CoverageEligibilityResponse.insurance.coverage.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "040158b3ba7d24c6606b512a3108207749c5bb66",
+    "ref": { "commit": "040158b3ba7d24c6606b512a3108207749c5bb66" },
+    "summary": "Historical source commit introduced EligibilityResponse.insurance grouping and moved benefitBalance under it.",
+    "learned": "The seed request was substantively applied before later resource renaming and refactoring.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-17963 and combined audit eb3a0d6b9bb2998f686552f91fedf5691cc49800",
+    "url": "https://jira.hl7.org/browse/FHIR-17963",
+    "snapshot_path": "contexts/FHIR-17963/jira/FHIR-17963.md",
+    "ref": { "jira_key": "FHIR-17963", "commit": "eb3a0d6b9bb2998f686552f91fedf5691cc49800" },
+    "summary": "Later Published/Persuasive issue removed EligibilityResponse.insurance.contract because contract details are already on Coverage, and it is already audited on the combined branch.",
+    "learned": "The current lack of a direct insurance.contract child is intentional and should not be reversed while reconciling FHIR-11385.",
+    "supports": ["additional_context", "absence_of_duplicate", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-11385",
+    "command": "bun run zulip:search fts '\"FHIR-11385\"' --limit 10; bun run confluence:search refs jira FHIR-11385; bun run confluence:search fts '\"FHIR-11385\"' --limit 10",
+    "query": "FHIR-11385",
+    "result_count": 0,
+    "summary": "Exact Zulip and Confluence searches found no directly relevant records for FHIR-11385.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

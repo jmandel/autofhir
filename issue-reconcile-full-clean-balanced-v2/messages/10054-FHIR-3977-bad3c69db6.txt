@@ -1,0 +1,96 @@
+FHIR-3977: Audit ValueSet inv-7 correction
+
+Issue request:
+FHIR-3977 was a Published/Persuasive DSTU1 technical correction for FHIR-core ValueSet. It reported that the old Inv-7 XPath failed when ValueSet.identifier was absent and requested the expression be changed to not(f:define/f:system/@value = f:identifier/@value).
+
+Initial application:
+The Jira comment says this was fixed in SVN revision 4055. Git history maps that to 87833681e38f85c6bd683317732c672ffd9dc7dc, which changed source/valueset/valueset-spreadsheet.xml from not(exists(f:define)) or (f:define/f:system/@value != f:identifier/@value) to not(f:define/f:system/@value = f:identifier/@value).
+
+Additional context:
+The corrected invariant belonged to the retired DSTU1/R2 spreadsheet source model where ValueSet.define represented an inline code system definition. Current build scope uses source/fhir.ini's active valueset=ValueSet resource entry and source/valueset/structuredefinition-ValueSet.xml. That current StructureDefinition has no ValueSet.define element, no vsd-7 constraint, and no f:define/f:system XPath; the active constraints are the modern ValueSet compose and expansion constraints.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The issue's requested correction was historically applied, and the modern specification has since removed the old element and invariant rather than carrying forward an incorrect expression.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up source work is recommended for FHIR-3977 unless a future work group decision reintroduces a comparable ValueSet inline-code-system invariant in the current model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3977
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-3121: background - original published ValueSet.define identifier issue that explains why the old invariant family existed, but it is not needed for this seed decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3977: Published/Persuasive technical correction for DSTU1 ValueSet Inv-7 with a comment saying fixed in SVN 4055. Learned: the final request was the specific XPath correction for an old ValueSet.define invariant.
+- E2 Git 87833681e38f85c6bd683317732c672ffd9dc7dc: SVN 4055 commit changed source/valueset/valueset-spreadsheet.xml to not(f:define/f:system/@value = f:identifier/@value). Learned: the requested correction was applied historically.
+- E3 Source source/fhir.ini:226: active resources entry valueset=ValueSet. Learned: current ValueSet source is in build scope.
+- E4 Source source/valueset/structuredefinition-ValueSet.xml:640: current ValueSet constraints include modern vsd-* constraints and no vsd-7 or ValueSet.define invariant. Learned: there is no remaining incorrect Inv-7 expression to fix in current source.
+- E5 Git c69d71aa213de86d55e0261339c15e4bacd509e6: R4B source refresh deleted source/valueset/valueset-spreadsheet.xml. Learned: the old spreadsheet carrying Inv-7 is no longer current source.
+- E6 Command Zulip/Confluence/Jira searches for FHIR-3977 and ValueSet Inv-7: no relevant community conflict found beyond the Jira snapshot and historical git commit. Learned: no discovered later discussion changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3977",
+    "url": "https://jira.hl7.org/browse/FHIR-3977",
+    "snapshot_path": "contexts/FHIR-3977/jira/FHIR-3977.md",
+    "ref": { "jira_key": "FHIR-3977" },
+    "summary": "Published/Persuasive DSTU1 technical correction saying ValueSet Inv-7 failed when identifier was absent and noting fixed svn 4055.",
+    "learned": "This establishes the final issue request and the historical application pointer.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "87833681e38f85c6bd683317732c672ffd9dc7dc",
+    "ref": { "commit": "87833681e38f85c6bd683317732c672ffd9dc7dc" },
+    "summary": "SVN 4055 commit changed the old ValueSet spreadsheet Inv-7 XPath to not(f:define/f:system/@value = f:identifier/@value).",
+    "learned": "The requested correction was applied in the historical source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:226",
+    "ref": { "path": "source/fhir.ini", "line": 226 },
+    "summary": "The active resources section contains valueset=ValueSet.",
+    "learned": "The inspected ValueSet StructureDefinition is part of the current build scope.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/valueset/structuredefinition-ValueSet.xml:640",
+    "ref": { "path": "source/valueset/structuredefinition-ValueSet.xml", "line": 640 },
+    "summary": "The current ValueSet StructureDefinition contains modern vsd constraints and no ValueSet.define, vsd-7, or f:define/f:system expression.",
+    "learned": "There is no current incorrect Inv-7 expression requiring a source edit.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "c69d71aa213de86d55e0261339c15e4bacd509e6",
+    "ref": { "commit": "c69d71aa213de86d55e0261339c15e4bacd509e6" },
+    "summary": "R4B source refresh deleted source/valueset/valueset-spreadsheet.xml.",
+    "learned": "The old spreadsheet source that carried Inv-7 is retired from current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Jira/Zulip/Confluence search for FHIR-3977 and ValueSet Inv-7",
+    "command": "bun run jira:search fts '\"Inv-7\" ValueSet identifier define system' --limit 20; bun run zulip:search fts '\"FHIR-3977\" ValueSet \"Inv-7\"' --limit 10; bun run confluence:search refs jira FHIR-3977; bun run confluence:search fts '\"FHIR-3977\" ValueSet \"Inv-7\"' --limit 10",
+    "query": "FHIR-3977 ValueSet Inv-7",
+    "result_count": 1,
+    "summary": "Searches found only the seed Jira as directly relevant and no Zulip or Confluence references.",
+    "learned": "No discovered community or related issue evidence conflicts with the historical-application/current-no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

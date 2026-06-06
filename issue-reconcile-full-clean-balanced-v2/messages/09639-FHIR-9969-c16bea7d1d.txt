@@ -1,0 +1,97 @@
+FHIR-9969: Audit narrative jump renderer scope
+
+Issue request:
+FHIR-9969 was a Published/Persuasive DSTU2 FHIR-core change request asking for an easy "jump past narrative" affordance in the pretty-printed XML and JSON rendering of resources because generated narratives can be large.
+
+Initial application:
+The Jira comment records svn revision 11502. The corresponding git-svn commit e6adfacc23 added <%past-narrative-link%> only to source/template-example-xml.html even though the commit subject named both XML and JSON. The historical publisher code supported the placeholder for XML example pages when the renderer passed narrative state, but JSON pages were generated from template-example-json.html without passing narrative state.
+
+Additional context:
+The template files moved to tools/templates and remain part of the current build inputs consumed by the external Kindling publisher dependency. Current tools/templates/template-example-xml.html still contains the placeholder, while tools/templates/template-example-json.html still has no matching placeholder. The current Kindling source used by this checkout still loads both templates from tools/templates, still implements <%past-narrative-link%> in PageProcessor, and still calls processPageIncludes for JSON pages without narrative state. Current CI-rendered XML and JSON example pages checked during reconciliation did not emit a "Jump past Narrative" link.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no FHIR core source change. Adding the XML placeholder again would be redundant, and adding it to the JSON template alone would still render blank with the current Kindling call path and would not create a JSON-side anchor after text.div. A complete fix belongs in the Kindling rendering implementation, with a coordinated core-template update if Kindling exposes a JSON-safe skip anchor.
+
+Recommendation:
+Keep this audit commit as an external-repo decision for the core branch. Follow up in HL7/kindling (or the active Kindling source repository) to pass narrative state for JSON example rendering and to generate stable skip targets for both XML and JSON pretty pages; then update the core templates only as needed to consume that fixed renderer behavior.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-9969
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-24884: later-change - later narrative best-practice work changed the same XML/JSON example templates and preserved the XML placeholder, but it did not address the missing JSON jump-link wiring.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-9969: Published/Persuasive, vote 10-0-1, requested a jump past narrative in XML and JSON pretty-printed resource views; comment says svn revision 11502. Learned: this is final WG intent and identifies the historical application revision.
+- E2 Git e6adfacc23: git-svn commit for #9969 added <%past-narrative-link%> only to source/template-example-xml.html. Learned: the original application was narrower than the issue summary and did not update the JSON template.
+- E3 Source tools/templates/template-example-xml.html:22 and tools/templates/template-example-json.html:21: current XML template retains <%past-narrative-link%>, while the JSON template proceeds directly to <%example%>. Learned: the current core template source is inconsistent with the XML+JSON request.
+- E4 Command Kindling source inspection: current kindling 1.25.5-SNAPSHOT loads template-example-json.html and template-example-xml.html from tools/templates; XML calls pass narrative state to processPageIncludes but JSON calls do not. Learned: a core template-only change cannot safely complete the JSON jump-link behavior.
+- E5 Published-spec command: curl checks of build.fhir.org XML/JSON example pages found no "Jump past Narrative" link. Learned: the current rendered surface does not provide the requested affordance.
+- E6 Community search: Jira FTS found only FHIR-9969; Zulip and Confluence searches for FHIR-9969/jump-past-narrative found no relevant discussion. Learned: no community evidence was found that changes the Jira/source/tooling conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-9969",
+    "url": "https://jira.hl7.org/browse/FHIR-9969",
+    "snapshot_path": "contexts/FHIR-9969/jira/FHIR-9969.md",
+    "ref": { "jira_key": "FHIR-9969" },
+    "summary": "Published/Persuasive FHIR-core issue requesting a jump past narrative in XML and JSON pretty-printed resource views, with application noted as svn revision 11502.",
+    "learned": "This establishes final WG intent and the historical implementation revision to inspect.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e6adfacc23b3dd078bfeb7aa945c25f5a46763e8",
+    "ref": { "commit": "e6adfacc23b3dd078bfeb7aa945c25f5a46763e8" },
+    "summary": "The git-svn #9969 commit added <%past-narrative-link%> only to source/template-example-xml.html.",
+    "learned": "The original source application did not update the JSON template despite the XML and JSON issue request.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "tools/templates/template-example-xml.html:22; tools/templates/template-example-json.html:21",
+    "ref": { "paths": "tools/templates/template-example-xml.html;tools/templates/template-example-json.html" },
+    "summary": "The current XML template retains the narrative-link placeholder, while the JSON template goes directly from cross-reference/raw links to <%example%>.",
+    "learned": "Current core template source is still not aligned across XML and JSON surfaces.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current Kindling source jar inspection",
+    "command": "unzip -p ~/.m2/repository/org/hl7/fhir/kindling/1.25.5-SNAPSHOT/kindling-1.25.5-SNAPSHOT-sources.jar org/hl7/fhir/tools/publisher/PageProcessor.java org/hl7/fhir/tools/publisher/Publisher.java | grep -nE 'past-narrative-link|template-example-(json|xml)|processPageIncludes'",
+    "summary": "Kindling loads both templates from tools/templates and implements past-narrative-link, but current JSON page generation calls processPageIncludes without narrative state whereas XML generation can pass it.",
+    "learned": "The remaining fix needs Kindling renderer changes; a core template-only edit would be partial and unsafe.",
+    "supports": ["build_scope", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "build.fhir.org patient/capabilitystatement example pages",
+    "url": "https://build.fhir.org/patient-example.xml.html",
+    "command": "curl -fsSL build.fhir.org XML/JSON example pages and grep for 'Jump past Narrative' and 'DomainResource.text.div-end'",
+    "summary": "Current CI-rendered XML and JSON example pages checked during reconciliation did not emit a Jump past Narrative link.",
+    "learned": "The requested affordance is not present on the current rendered surface, confirming this is not a no-change issue.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-9969 and jump past narrative",
+    "command": "bun run jira:search fts '\"FHIR-9969\"'; bun run zulip:search fts '\"FHIR-9969\" \"jump past narrative\"' --limit 10; bun run confluence:search refs jira FHIR-9969; bun run confluence:search fts '\"FHIR-9969\" \"jump past narrative\"' --limit 10",
+    "query": "FHIR-9969 jump past narrative",
+    "result_count": 1,
+    "summary": "Jira search found only FHIR-9969; Zulip and Confluence searches found no directly relevant discussion or minutes.",
+    "learned": "No discovered community record changes the Jira/source/tooling conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

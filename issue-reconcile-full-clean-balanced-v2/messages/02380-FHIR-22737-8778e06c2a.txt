@@ -1,0 +1,108 @@
+FHIR-22737: Audit AdverseEvent element order
+
+Issue request:
+FHIR-22737 was a Published FHIR-core Patient Care change request for the AdverseEvent resource. The QA warning said the AdverseEvent elements were out of W5 order and the persuasive-with-modification resolution specifically called for AdverseEvent.subject to sit after AdverseEvent.event/code and before AdverseEvent.encounter, with the subject W5 mapping updated from who to who.focus.
+
+Initial application:
+The issue appears to have been applied in 19edc88a0ded155ed3e803b73666a87dc384f4bb, a multi-issue AdverseEvent QA commit whose subject explicitly included GF#22737. That commit changed the old AdverseEvent spreadsheet's subject W5 mapping from who to who.focus. The later 33b409a4b6d544598262f2f074ebb4b6dc466157 source rework replaced the spreadsheet with structuredefinition-AdverseEvent.xml while keeping the subject before encounter and carrying the W5 subject mapping into the new representation.
+
+Additional context:
+AdverseEvent is active in the current build through source/fhir.ini. Since the original STU3/R5 issue, AdverseEvent.event has become AdverseEvent.code, AdverseEvent.date has become AdverseEvent.effect[x], resultingCondition has become resultingEffect, severity was removed, and participant-related elements were refactored by later Jira decisions. Those later changes do not reverse FHIR-22737's ordering intent. The current FiveWs source defines FiveWs.subject as who.focus and FiveWs.author as who.author; later W5 cleanup commits ab7d0088743cb638033cd9a214779cd3c9a0bdcc and cd774234a5b73a2f28165e4393cb681715233c43 reduced the AdverseEvent mapping to the current FiveWs.subject form rather than the older generated FiveWs.subject[x] spelling.
+
+AutoFHIR reconciliation:
+No source change was made. The current active AdverseEvent StructureDefinition already has code, subject, encounter, effect[x], recordedDate, and recorder in the expected relative order, and AdverseEvent.subject maps to FiveWs.subject, whose FiveWs definition is the current source equivalent of who.focus.
+
+Recommendation:
+Keep this no-change audit commit as-is. Future changes should only revisit this if the FiveWs model is renamed again or a later Patient Care decision intentionally changes AdverseEvent ordering semantics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22737
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-22735: same-change-family - applied in the same historical commit but concerns the AdverseEvent.event/code binding, not the element ordering decision audited here.
+FHIR-22736: same-change-family - applied in the same historical commit but concerns AdverseEvent code-system code spelling, not the element ordering decision audited here.
+FHIR-22740: same-change-family - applied in the same historical commit but concerns the AdverseEvent.seriousness short description, not the element ordering decision audited here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22737: Published/Persuasive with Modification issue for AdverseEvent element order and the subject W5 mapping. Learned: this establishes the final requested ordering/mapping correction.
+- E2 Source source/fhir.ini:280: active resources entry maps adverseevent=AdverseEvent. Learned: the checked AdverseEvent source is in current build scope.
+- E3 Source source/adverseevent/structuredefinition-AdverseEvent.xml:206-285,322-447: current element order places code then subject then encounter, with recordedDate before recorder, and mappings to FiveWs.what[x], FiveWs.subject, FiveWs.context, FiveWs.recorded, and FiveWs.author. Learned: the current authoritative source preserves the ordering intent.
+- E4 Source source/fivews/fivews-spreadsheet.xml:1132-1143,1276-1286: FiveWs.subject is the who.focus concept and FiveWs.author is who.author. Learned: current FiveWs.subject is the modern equivalent of the requested who.focus mapping.
+- E5 Git 19edc88a0d: historical multi-issue AdverseEvent QA commit changed the old spreadsheet's subject W5 mapping from who to who.focus. Learned: the Jira-tagged application of FHIR-22737 happened before source rework.
+- E6 Git 33b409a4b6, ab7d008874, cd774234a5: source rework and later W5 cleanup preserved the AdverseEvent subject mapping in current StructureDefinition form. Learned: later history explains representation differences without requiring a new edit.
+- E7 Community search: quoted Jira/Zulip/Confluence searches for FHIR-22737 and AdverseEvent subject/encounter/who.focus terms found only the seed Jira and no conflicting community record. Learned: no discovered community evidence changes the source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22737",
+    "url": "https://jira.hl7.org/browse/FHIR-22737",
+    "snapshot_path": "contexts/FHIR-22737/jira/FHIR-22737.md",
+    "ref": { "jira_key": "FHIR-22737" },
+    "summary": "Published/Persuasive with Modification issue requiring AdverseEvent element ordering to treat subject as who.focus rather than plain who.",
+    "learned": "This is the final issue request and establishes the ordering and mapping behavior to verify in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:280",
+    "ref": { "path": "source/fhir.ini", "line": 280 },
+    "summary": "The active resources list contains adverseevent=AdverseEvent.",
+    "learned": "AdverseEvent is part of the current build, so its StructureDefinition source is authoritative for this reconciliation.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/adverseevent/structuredefinition-AdverseEvent.xml:206-447",
+    "ref": { "path": "source/adverseevent/structuredefinition-AdverseEvent.xml", "lines": "206-447" },
+    "summary": "The current differential orders code, subject, encounter, effect[x], recordedDate, and recorder as expected and maps subject to FiveWs.subject.",
+    "learned": "The active source already conveys the FHIR-22737 ordering correction, adjusted for later element renames.",
+    "supports": ["reconciliation", "source_current_state"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fivews/fivews-spreadsheet.xml:1132-1143 and 1276-1286",
+    "ref": { "path": "source/fivews/fivews-spreadsheet.xml", "lines": "1132-1143,1276-1286" },
+    "summary": "FiveWs.subject has W5 mapping who.focus, while FiveWs.author has W5 mapping who.author.",
+    "learned": "The current AdverseEvent FiveWs.subject mapping is semantically the requested who.focus mapping.",
+    "supports": ["reconciliation", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "19edc88a0ded155ed3e803b73666a87dc384f4bb",
+    "ref": { "commit": "19edc88a0ded155ed3e803b73666a87dc384f4bb" },
+    "summary": "The Jira-tagged AdverseEvent QA commit changed the old spreadsheet's AdverseEvent.subject W5 value from who to who.focus.",
+    "learned": "This confirms the original application path for FHIR-22737.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "33b409a4b6d544598262f2f074ebb4b6dc466157; ab7d0088743cb638033cd9a214779cd3c9a0bdcc; cd774234a5b73a2f28165e4393cb681715233c43",
+    "ref": { "commits": "33b409a4b6d544598262f2f074ebb4b6dc466157,ab7d0088743cb638033cd9a214779cd3c9a0bdcc,cd774234a5b73a2f28165e4393cb681715233c43" },
+    "summary": "The source rework and later W5 cleanup commits explain why the current mapping is represented as FiveWs.subject instead of the old spreadsheet text who.focus.",
+    "learned": "The representation changed, but the semantic mapping was preserved.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-22737 and AdverseEvent who.focus ordering",
+    "command": "cd /home/jmandel/work/fhir-community-search && bun run jira:search fts '\"FHIR-22737\" AdverseEvent subject encounter \"who.focus\"' --limit 20; bun run zulip:search fts '\"FHIR-22737\" AdverseEvent subject encounter \"who.focus\"' --limit 10; bun run confluence:search refs jira FHIR-22737; bun run confluence:search fts '\"FHIR-22737\" AdverseEvent subject encounter \"who.focus\"' --limit 10",
+    "query": "FHIR-22737 AdverseEvent subject encounter who.focus",
+    "result_count": 1,
+    "summary": "The quoted searches found the seed Jira issue and no directly relevant Zulip or Confluence records.",
+    "learned": "No discovered community record conflicts with the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

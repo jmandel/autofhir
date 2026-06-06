@@ -1,0 +1,127 @@
+FHIR-24624: Audit Measure population basis application
+
+Issue request:
+FHIR-24624 was a Published FHIR-core Measure change request resolved Persuasive. It asked to add an explicit populationBasis element to Measure, typed against all FHIR types, so measure authors did not have to infer the counted population type from population criteria expression result types.
+
+Initial application:
+The issue was applied by commit df7089e33e47459fdadb4a0c8ef51721b3b7a6b7, which added root Measure.basis as a code element with a required all-types binding, meaningWhenMissing of boolean, and definition text explaining subject-based and non-subject-based population basis. Commit cb1a35e127db8b8ff8abfccfe2b7216a4a64b2ac then added the parallel Measure.group.basis override surface.
+
+Additional context:
+FHIR-32079 and FHIR-32194 later considered whether the all-types binding was too broad and decided not to narrow it, instead documenting that abstract FHIR types can be valid and authoring environments may apply content-specific restrictions. FHIR-32069 later changed this binding surface from the old all-types value set to the current fhir-types value set. FHIR-49922 and FHIR-50664 then simplified Measure calculation semantics by deprecating and removing root calculation elements, leaving group-level calculation definition as the current source of truth. FHIR-50500 added Measure.group.basisRequirement for more flexible mixed-type counting while preserving Measure.group.basis.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. In the current build-scope source, source/fhir.ini lists Measure as an active resource, root Measure.basis is intentionally absent after the R6 simplification work, and Measure.group.basis remains present with the population-basis definition, code type, meaningWhenMissing boolean, required ValueSet/fhir-types binding, and FHIR-32194 abstract-type clarification.
+
+Recommendation:
+Keep this audit commit as-is. Do not re-add a root populationBasis or Measure.basis element for FHIR-24624; current Measure population basis is intentionally represented at Measure.group.basis, with basisRequirement available for more specific constraints when needed.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-24624
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32079: same-change-family - QMIG populationBasis issue that considered narrowing the all-types binding and concluded base specification breadth is appropriate.
+FHIR-32194: same-change-family - FHIR-core Measure issue that kept Measure.basis and Measure.group.basis bound to all FHIR types while adding abstract-type clarification.
+FHIR-32069: later-change - terminology refactor that replaced ValueSet/all-types usage with the current ValueSet/fhir-types binding surface.
+FHIR-49922: later-change - R6 Measure simplification that deprecated root calculation elements, including root basis, in favor of group-level specification.
+FHIR-50664: later-change - R6 Measure approach decision that removed the deprecated root calculation elements and confirms group-level calculation definition as current.
+FHIR-50500: later-change - added Measure.group.basisRequirement for flexible population-basis requirements alongside Measure.group.basis.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-24624: Published/Persuasive request to add an explicit populationBasis element to Measure using all FHIR types. Learned: this is the seed issue and establishes the original requirement.
+- E2 Source source/fhir.ini:268 and source/measure/structuredefinition-Measure.xml:1170-1188: Measure is active build-scope source and Measure.group.basis is present as a code bound required to ValueSet/fhir-types with meaningWhenMissing boolean. Learned: current authoritative source retains the population-basis concept.
+- E3 Git df7089e33e47459fdadb4a0c8ef51721b3b7a6b7 and cb1a35e127db8b8ff8abfccfe2b7216a4a64b2ac: initial application added root Measure.basis and then group-level Measure.group.basis. Learned: the Jira request was implemented before later Measure refactors.
+- E4 Jira FHIR-32194 and FHIR-32079: later published decisions kept the all-FHIR-types binding and documented abstract type use rather than narrowing the value set. Learned: current fhir-types binding and abstract-type text are intentional, not an incomplete application.
+- E5 Jira/Git FHIR-49922 and FHIR-50664: later applied R6 decisions deprecated and removed root Measure calculation elements in favor of group-level specification. Learned: absence of root Measure.basis is intentional and should not be reversed for FHIR-24624.
+- E6 Jira FHIR-50500: later applied issue added Measure.group.basisRequirement for mixed or profiled population basis requirements. Learned: current Measure population-basis modeling was refined without replacing Measure.group.basis.
+- E7 Zulip #cqi > population-Basis in R5/R6 and negative key searches: a 2025 thread noted the population-basis field was missed until the participant realized it had moved to group; quoted FHIR-24624 searches found no conflicting community record. Learned: discovered community evidence supports the group-level interpretation and reveals no conflict.
+- E8 Verification commands: git grep confirmed Measure.group.basis and no root Measure.basis on the combined branch; git log showed no prior Issue-Reconcile-Key: FHIR-24624 commit. Learned: the audit commit is idempotent and current-source based.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-24624",
+    "url": "https://jira.hl7.org/browse/FHIR-24624",
+    "snapshot_path": "contexts/FHIR-24624/jira/FHIR-24624.md",
+    "ref": { "jira_key": "FHIR-24624" },
+    "summary": "Published/Persuasive FHIR-core Measure request to add an explicit populationBasis element using all FHIR types.",
+    "learned": "This establishes the original final work-group request that Measure should explicitly represent population basis.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:268 and source/measure/structuredefinition-Measure.xml:1170-1188",
+    "ref": { "path": "source/measure/structuredefinition-Measure.xml", "lines": "1170-1188" },
+    "summary": "Measure is an active resource and Measure.group.basis is present as a code element with meaningWhenMissing boolean and a required http://hl7.org/fhir/ValueSet/fhir-types binding.",
+    "learned": "The current build-scope source retains the population-basis concept in the group-level calculation definition.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "df7089e33e47459fdadb4a0c8ef51721b3b7a6b7; cb1a35e127db8b8ff8abfccfe2b7216a4a64b2ac",
+    "ref": { "commit": "df7089e33e47459fdadb4a0c8ef51721b3b7a6b7", "additional_commit": "cb1a35e127db8b8ff8abfccfe2b7216a4a64b2ac" },
+    "summary": "The initial J#24624 commit added root Measure.basis, and the J#28936 commit added Measure.group.basis with matching population-basis semantics.",
+    "learned": "FHIR-24624 was applied in source before later Measure calculation refactors moved the active representation to group level.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-32194 and FHIR-32079",
+    "url": "https://jira.hl7.org/browse/FHIR-32194",
+    "snapshot_path": "contexts/FHIR-32194/jira/FHIR-32194.md",
+    "ref": { "jira_key": "FHIR-32194", "related_jira_key": "FHIR-32079" },
+    "summary": "Later published issues considered narrowing the population-basis all-types binding and resolved to keep it while documenting abstract type use and authoring-environment constraints.",
+    "learned": "The current all-FHIR-types binding semantics are intentional and should not be changed while auditing FHIR-24624.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-49922 and FHIR-50664",
+    "url": "https://jira.hl7.org/browse/FHIR-50664",
+    "snapshot_path": "contexts/FHIR-50664/jira/FHIR-50664.md",
+    "ref": { "jira_key": "FHIR-50664", "related_jira_key": "FHIR-49922", "commit": "1278aaf985edefedbec9515b3a3957a3fa87e171" },
+    "summary": "Applied R6 Measure decisions deprecated and then removed root calculation elements so calculation definition is specified at the group level.",
+    "learned": "Root Measure.basis is intentionally absent in current source, and re-adding it would conflict with later Measure decisions.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-50500",
+    "url": "https://jira.hl7.org/browse/FHIR-50500",
+    "snapshot_path": "contexts/FHIR-50500/jira/FHIR-50500.md",
+    "ref": { "jira_key": "FHIR-50500", "commit": "bd0612f89dd3f46a3c74bc6d737583a999d076d3" },
+    "summary": "Applied R6 issue added Measure.group.basisRequirement for mixed-type or profile/code-filtered population-basis requirements alongside Measure.group.basis.",
+    "learned": "Later Measure modeling refined population basis without eliminating the group-level basis element that satisfies FHIR-24624.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#cqi > population-Basis in R5/R6",
+    "url": "https://chat.fhir.org/#narrow/stream/cqi/topic/population-Basis%20in%20R5%2FR6",
+    "snapshot_path": "contexts/FHIR-24624/zulip/cqi--population-Basis-in-R5-R6.md",
+    "ref": { "stream": "cqi", "topic": "population-Basis in R5/R6" },
+    "summary": "A 2025 CQI thread asked whether population-basis was in base Measure and then concluded it had been moved to group.",
+    "learned": "The community evidence aligns with the current group-level source interpretation and revealed no conflicting decision.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Idempotency and source checks for FHIR-24624",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-24624' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git grep -n '<path value=\"Measure.group.basis\"' robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/measure/structuredefinition-Measure.xml; git grep -n '<path value=\"Measure.basis\"' robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/measure/structuredefinition-Measure.xml || true",
+    "summary": "No prior FHIR-24624 reconcile commit was present, and the combined branch contains Measure.group.basis but no root Measure.basis.",
+    "learned": "Publishing one no-change audit commit is needed and safe for this seed.",
+    "supports": ["idempotency", "confidence"]
+  }
+]
+</evidence-manifest>

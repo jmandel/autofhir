@@ -1,0 +1,85 @@
+FHIR-8456: Audit extension definition links
+
+Issue request:
+FHIR-8456 was a Published/Persuasive DSTU1 correction request for broken links from profile differential and snapshot tables to the profile definitions page. The reported CQIF KnowledgeModule links omitted the base resource path segment (for example, linking to cqif-knowledgemodule.contributor when the definitions anchor was cqif-knowledgemodule.Basic.contributor), and the Jira resolution comment recorded that the target links were correct while the source links were wrong.
+
+Initial application:
+The issue was applied in SVN revision 6607, preserved in Git as 627d738f6a118ac01d8385645766639233954f78, with the commit subject "#8456 - fix extension links to dictionary". That patch changed the old Java ProfileUtilities.makePathLink logic so a named element under a dotted path used the path prefix plus the element name, matching anchors such as Basic.contributor rather than dropping the path context.
+
+Additional context:
+The old Java publisher/generator source touched by the 2015 fix is no longer present in the current FHIR source checkout. The CQIF KnowledgeModule profile named in the report is not an active current source artifact; current source searches find no cqif-knowledgemodule or Basic.contributor profile source, and source/fhir.ini lists KnowledgeModule under [removed-resources]. A nearby Jira search result, FHIR-8395, also concerned the old CQIF KnowledgeModule build tooling but was a separate nested complex extension build error, not the profile-table link target mismatch decided here.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The requested source-link behavior was fixed by the historical generator commit, and there is no current in-scope core source location where the old broken link pattern remains to be corrected.
+
+Recommendation:
+Keep this audit commit as-is. No core FHIR source follow-up is needed for FHIR-8456 unless a future concrete current build artifact is found with mismatched profile-table links and definitions anchors.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8456
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-8395: background - Same historical CQIF KnowledgeModule/tooling neighborhood, but it addressed a nested complex extension build error rather than the FHIR-8456 link/anchor mismatch and was not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8456: Published/Persuasive DSTU1 issue reporting profile differential/snapshot links that omitted the Basic path segment for CQIF KnowledgeModule anchors. Learned: the final issue request was to fix source links, not definitions-page anchors.
+- E2 Git 627d738f6a118ac01d8385645766639233954f78: Historical commit "#8456 - fix extension links to dictionary" changed ProfileUtilities.makePathLink in SVN revision 6607. Learned: the requested behavior was already applied in the historical generator source.
+- E3 Source source/fhir.ini:308,369 plus current source search: KnowledgeModule is under [removed-resources], and no current cqif-knowledgemodule, Basic.contributor, makePathLink, or ProfileUtilities source remains outside history/generated archives. Learned: there is no active core source hunk to edit now.
+- E4 Published build check: build.fhir.org extension-profile and StructureDefinition pages link to matching definitions anchors such as Extension.url and StructureDefinition.url. Learned: current generated definition links are self-consistent in representative current build output.
+- E5 Community search: Jira/Zulip/Confluence searches for FHIR-8456, knowledgemodule, and Basic.contributor found no conflicting Zulip or Confluence evidence; Jira only surfaced FHIR-8456 and separate background issue FHIR-8395. Learned: no discovered later community decision changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8456",
+    "url": "https://jira.hl7.org/browse/FHIR-8456",
+    "snapshot_path": "contexts/FHIR-8456/jira/FHIR-8456.md",
+    "ref": { "jira_key": "FHIR-8456" },
+    "summary": "Published/Persuasive DSTU1 correction reporting broken profile differential and snapshot links to CQIF KnowledgeModule definitions anchors.",
+    "learned": "The approved request was to fix source links that omitted the Basic path segment, while keeping the definitions-page anchors as the correct target pattern.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "627d738f6a118ac01d8385645766639233954f78",
+    "ref": { "commit": "627d738f6a118ac01d8385645766639233954f78", "svn_revision": 6607 },
+    "summary": "The historical commit '#8456 - fix extension links to dictionary' changed ProfileUtilities.makePathLink to preserve path context for named elements.",
+    "learned": "This is the initial application of FHIR-8456 and matches the Jira comment identifying SVN revision 6607.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "command",
+    "locator": "Current source/build-scope search",
+    "command": "rg -n 'cqif-knowledgemodule|knowledgemodule-cqif|Basic\\.contributor' source --glob '!tools/history/**'; rg -n 'makePathLink|ProfileUtilities|HeirarchicalTableGenerator|HierarchicalTableGenerator' . --glob '!tools/history/**' --glob '!publish/**'; awk 'NR>=308 && NR<=372 {print NR \':\' $0}' source/fhir.ini | grep -E 'removed-resources|KnowledgeModule'",
+    "summary": "No active current source references to the old CQIF profile or old Java link helper were found; source/fhir.ini lists KnowledgeModule under [removed-resources].",
+    "learned": "The old report target is outside the current active core build surface, so a new source edit would not be in scope.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "build.fhir.org representative definitions-link spot checks",
+    "command": "curl -LfsS https://build.fhir.org/ig/HL7/fhir-extensions/StructureDefinition-patient-birthTime.html; curl -LfsS https://build.fhir.org/ig/HL7/fhir-extensions/StructureDefinition-patient-birthTime-definitions.html; curl -LfsS https://build.fhir.org/structuredefinition.html; curl -LfsS https://build.fhir.org/structuredefinition-definitions.html",
+    "summary": "Representative current pages link to matching definitions anchors such as Extension.url, Extension.value[x], StructureDefinition.url, and StructureDefinition.versionAlgorithm_x_.",
+    "learned": "The current generated publication surface does not show the old mismatched source/target pattern in the checked representative cases.",
+    "supports": ["confidence", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Community and neighborhood search for FHIR-8456",
+    "command": "bun run jira:search fts '\"Inconsistent extension element links\" OR \"knowledgemodule-cqif\" OR \"Basic.contributor\"' --limit 10; bun run zulip:search fts '\"FHIR-8456\" \"knowledgemodule\" \"Basic.contributor\"' --limit 10; bun run confluence:search refs jira FHIR-8456; bun run confluence:search fts '\"FHIR-8456\" \"knowledgemodule\" \"Basic.contributor\"' --limit 10",
+    "query": "FHIR-8456 knowledgemodule Basic.contributor",
+    "summary": "No relevant Zulip or Confluence records were found; Jira search returned FHIR-8456 and separate CQIF tooling issue FHIR-8395.",
+    "learned": "No discovered community record or later related issue changes the conclusion that the historical fix is sufficient.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

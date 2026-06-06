@@ -1,0 +1,113 @@
+FHIR-17770: Remove lingering Person reference from Contract asset context
+
+Issue request:
+FHIR-17770 was Published/Persuasive for STU3 and asked FM to remove Person from Contract reference targets because Person is only for linking shared demographics across Patient, Practitioner, and RelatedPerson records and must not be used as a Contract author, publisher, party, subject, or other actor/relationship target.
+
+Initial application:
+Commit d7062ffc63 ("GF #17770") applied the issue to the old Contract spreadsheet by removing Person from explicit Contract reference lists such as author, publisher, party, action subject/requester, performer, and signer. The current XML StructureDefinition already had no explicit targetProfile for http://hl7.org/fhir/StructureDefinition/Person, but the old asset-context definition still described a referenced owner as an "owning Person or Organization."
+
+Additional context:
+Contract remains active in the current build through source/fhir.ini. The Person narrative currently says Person instances are never directly referenced as actors and SHALL NOT be referenced by other clinical or administrative resources, while a 2018 committers Zulip thread also called out Contract.author, Contract.contentDefinition.publisher, Contract.term.offer.party.reference, Contract.term.action.subject.reference, Contract.term.action.requester, and Contract.signer.party as part of the broader late-R4 Person-reference cleanup. Later source history added RelatedPerson to Contract.author, reinforcing that role-specific resources may be used where an individual actor is needed, but Person itself is not the actor resource.
+
+AutoFHIR reconciliation:
+Removed the remaining Contract asset-context prose that could be read as allowing a direct Person resource reference and replaced it with role-neutral owner wording. Updated the matching checked-in Contract SVG tooltip so the visible diagram artifact does not keep the stale Person cue; the authoritative source change is the StructureDefinition XML.
+
+Recommendation:
+Keep this commit as a narrow current-build cleanup for FHIR-17770. No further Contract source change is needed unless a work group chooses to replace broad Reference(Resource) uses with narrower target profiles; the current Person page already supplies the cross-resource prohibition that prevents using Person as a clinical or administrative relationship target.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17770
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-37952: later-change - Later history added RelatedPerson to Contract.author, supporting the distinction between role-specific person resources and the Person linkage resource without needing an additional decision here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17770: Published/Persuasive STU3 issue for FHIR-core Contract asking to remove Person from Contract author, publisher, party, subject, and similar references. Learned: this is final WG intent for the seed reconciliation.
+- E2 Source source/fhir.ini:264: active resource entry contract=Contract. Learned: Contract StructureDefinition source is in current build scope.
+- E3 Git d7062ffc63: GF #17770 changed source/contract/contract-spreadsheet.xml, removing Person from explicit Contract reference lists while leaving broad Reference(Any) entries and the asset-context owner prose. Learned: the historical application mostly succeeded but missed one prose cue in the current generated source lineage.
+- E4 Source source/person/person-introduction.xml:57: Person instances are NEVER directly referenced as actors and SHALL NOT be referenced by other clinical or administrative resources. Learned: current normative guidance confirms Contract prose should not suggest Person as a referenced owner.
+- E5 Source source/contract/structuredefinition-Contract.xml:1259: Contract.term.asset.context.reference was the remaining authoritative Contract definition that named an owning Person; this commit now uses owner wording without naming Person. Learned: the fix removes the misleading current-build source text.
+- E6 Zulip #committers > Close out for R4, 2018-11-14: Lloyd McKenzie listed several Contract Person-reference targets as part of a broader Person cleanup. Learned: community discussion supports the same cleanup direction and revealed no conflicting rationale.
+- E7 Command searches: Jira FTS for "Contract Person author publisher party subject" found only FHIR-17770; Confluence refs for FHIR-17770 found no references. Learned: no later formal or community evidence was discovered that reverses the seed issue for Contract.
+- E8 Verification command: XML parse, diff whitespace check, and rg for Person target profiles/old owner phrase in Contract source returned clean results. Learned: the edited XML/SVG parse and the stale Contract Person reference cue is gone.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17770",
+    "url": "https://jira.hl7.org/browse/FHIR-17770",
+    "snapshot_path": "contexts/FHIR-17770/jira/FHIR-17770.md",
+    "ref": { "jira_key": "FHIR-17770" },
+    "summary": "Published/Persuasive STU3 Contract issue requiring removal of Person as a Contract author, publisher, party, subject, or similar reference target.",
+    "learned": "This establishes final WG intent for the seed issue and the reconciliation target.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:264",
+    "summary": "The active resources list contains contract=Contract.",
+    "learned": "Contract is in current FHIR build scope, so source/contract edits are current-spec fixes.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "d7062ffc63",
+    "ref": { "commit": "d7062ffc63083b79035d7c83ca51451d5c3939b0" },
+    "summary": "GF #17770 changed the old Contract spreadsheet, removing Person from explicit Contract reference lists but not the asset-context owner prose.",
+    "learned": "The original application was real but left a prose cue that survived into the current StructureDefinition lineage.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/person/person-introduction.xml:57",
+    "summary": "The Person narrative states that Person instances are never directly referenced as actors and SHALL NOT be referenced by other clinical or administrative resources.",
+    "learned": "Current source still supports the FHIR-17770 rule, so Contract should not imply a Person resource reference.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/contract/structuredefinition-Contract.xml:1259",
+    "summary": "Contract.term.asset.context.reference is the authoritative element definition whose owner prose no longer names Person after this commit.",
+    "learned": "The current source change removes the remaining misleading Person cue from Contract.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#committers > Close out for R4, 2018-11-14",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/Close%20out%20for%20R4",
+    "ref": { "stream": "committers", "topic": "Close out for R4" },
+    "summary": "Lloyd McKenzie identified multiple Contract Person-reference targets as part of the late-R4 Person cleanup.",
+    "learned": "The discussion supports removing Person from Contract actor/reference surfaces and provides no conflicting rationale.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-17770 Contract Person",
+    "command": "bun run jira:search fts 'Contract Person author publisher party subject' --limit 10; bun run confluence:search refs jira FHIR-17770; bun run zulip:search fts 'Contract Person' --limit 10",
+    "query": "FHIR-17770 Contract Person author publisher party subject",
+    "summary": "Jira search returned FHIR-17770 as the only focused issue, Confluence refs found none, and Zulip did not reveal a conflicting later rationale.",
+    "learned": "No discovered related decision reverses the seed issue for Contract.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Post-change XML, whitespace, and rg checks",
+    "command": "python3 -c 'parse changed XML files'; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg 'targetProfile value=\"http://hl7.org/fhir/StructureDefinition/Person\"|owning Person|Person or Organization|Reference\\([^\\n]*Person' source/contract/structuredefinition-Contract.xml source/contract/contract.svg",
+    "summary": "The changed XML and SVG parsed, the diff whitespace check was clean, and the stale Contract Person patterns were absent.",
+    "learned": "The committed files are syntactically valid and the targeted stale cue is removed.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,132 @@
+FHIR-19977: Audit OperationOutcome external failure code
+
+Issue request:
+FHIR-19977 is Published/Persuasive for R5. It asked FHIR core to add an OperationOutcome code for unresolved external references, specifically a code such as MSG_EXTERNAL_FAIL alongside the existing MSG_LOCAL_FAIL.
+
+Initial application:
+The issue was first applied in upstream commit 69f783bf72ce8ed0be2268fefae6307148dbe756, which added an OperationOutcome terminology binding row and a new MSG_REMOTE_FAIL entry in implementations/translations.xml. A later upstream repair commit, 54c96b26b2a89805739101a5f23a6da64c576b8f, generated duplicate core source/terminologies OperationOutcome CodeSystem and ValueSet files from that state. Those core artifacts used MSG_REMOTE_FAIL and did not carry the requested MSG_EXTERNAL_FAIL spelling, so the historical core application was not the final source of truth for the requested code.
+
+Additional context:
+UTG proposal UP-299 implemented the FHIR-19977 request in http://terminology.hl7.org/CodeSystem/operation-outcome with the requested MSG_EXTERNAL_FAIL code. In the #committers Zulip thread FHIR-19977, Alexander Zautke reported that the R5 fix had been applied to UTG, and Grahame Grieve said THO should be used and the duplicate core CodeSystem deleted for R6. FHIR-41668 then formalized that later change and was applied by upstream commit 6f6c22d0efabe54f0f7abac122cf9fdb62f8d055, which removed the core OperationOutcome binding row and deleted the duplicate source/terminologies operation-outcome CodeSystem and ValueSet. The current core source keeps OperationOutcome.issue.code bound to the separate IssueType value set, and the remaining core source reference to the THO operation-outcome CodeSystem is an AuditEvent example ValueSet include. The downloadable implementations/translations.xml file still contains the historical MSG_REMOTE_FAIL message key, but it no longer defines the OperationOutcome CodeSystem and should not be treated as the current core terminology source of truth.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current FHIR core no longer owns or publishes the duplicate operation-outcome CodeSystem/ValueSet, and the active THO CodeSystem contains MSG_EXTERNAL_FAIL with the external-reference display requested by FHIR-19977.
+
+Recommendation:
+Keep this audit commit as-is. No current FHIR-core source edit is needed for FHIR-19977. Any future cleanup of downloadable tooling translation messages should be handled separately with the tooling/terminology owners, not as a core OperationOutcome CodeSystem fix.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19977
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+UP-299: supporting-decision - UTG proposal that implemented FHIR-19977 in http://terminology.hl7.org/CodeSystem/operation-outcome with MSG_EXTERNAL_FAIL.
+UP-293: background - earlier UTG pro-forma proposal for the same code, later superseded by/duplicated by UP-299.
+FHIR-41668: later-change - R6 decision to move the duplicate core operation-outcome ValueSet/CodeSystem to THO; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19977: Published/Persuasive request to add MSG_EXTERNAL_FAIL for unresolvable external references. Learned: establishes the seed issue request and final workflow state.
+- E2 Jira UP-299: Proposal Implemented with proposal text explicitly tying MSG_EXTERNAL_FAIL to FHIR-19977 and changing http://terminology.hl7.org/CodeSystem/operation-outcome. Learned: the requested code was implemented in THO.
+- E3 Zulip #committers > FHIR-19977: Alexander said the R5 fix was applied to UTG and Grahame said THO should be used while the duplicate core CodeSystem should be deleted for R6. Learned: explains why the current source of truth is THO rather than the old core artifact.
+- E4 Jira FHIR-41668 and FHIR-I WGM 202401 minutes: Applied/Persuasive with Modification and 24-0-0 vote to move operation-outcome terminology from core to THO. Learned: confirms the later final decision that supersedes editing core operation-outcome terminology.
+- E5 Git 69f783bf72ce and 54c96b26b2a8: historical core application added MSG_REMOTE_FAIL and generated duplicate core operation-outcome files. Learned: explains the incomplete/mismatched old core state without making it current source of truth.
+- E6 Git 6f6c22d0efab: removed the core OperationOutcome binding row and deleted source/terminologies/codesystem-operation-outcome.xml and valueset-operation-outcome.xml. Learned: current core source intentionally no longer owns that CodeSystem/ValueSet.
+- E7 Source source/operationoutcome/structuredefinition-OperationOutcome.xml:159 and source/auditevent/valueset-audit-event-outcome-detail-example.xml:40: OperationOutcome.issue.code uses IssueType, and the remaining operation-outcome terminology include points to THO. Learned: current core source is consistent with THO ownership.
+- E8 Web https://terminology.hl7.org/CodeSystem-operation-outcome.json: active complete THO CodeSystem version 4.0.0 contains MSG_EXTERNAL_FAIL with display "Unable to resolve external reference to resource %s". Learned: the requested code exists in the authoritative terminology source.
+- E9 Verification commands: rg/git/curl/bun searches checked current source, historical commits, Jira, Zulip, and Confluence. Learned: no conflicting current FHIR-core instruction or missing core source edit was found.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19977",
+    "url": "https://jira.hl7.org/browse/FHIR-19977",
+    "snapshot_path": "contexts/FHIR-19977/jira/FHIR-19977.md",
+    "ref": { "jira_key": "FHIR-19977" },
+    "summary": "Published/Persuasive R5 request to add MSG_EXTERNAL_FAIL for unresolvable external references.",
+    "learned": "This establishes the seed issue request and final workflow status.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "UP-299",
+    "url": "https://jira.hl7.org/browse/UP-299",
+    "snapshot_path": "contexts/FHIR-41668/jira/UP-299.md",
+    "ref": { "jira_key": "UP-299" },
+    "summary": "Proposal Implemented issue adding MSG_EXTERNAL_FAIL to http://terminology.hl7.org/CodeSystem/operation-outcome per FHIR-19977.",
+    "learned": "The requested code was implemented in the THO terminology source of truth.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "zulip",
+    "locator": "#committers > FHIR-19977",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/FHIR-19977",
+    "snapshot_path": "contexts/FHIR-41668/zulip/committers--FHIR-19977.md",
+    "ref": { "stream": "committers", "topic": "FHIR-19977" },
+    "summary": "Alexander Zautke said the R5 fix was applied to UTG with MSG_EXTERNAL_FAIL; Grahame Grieve said THO should be used and the duplicate core CodeSystem deleted for R6.",
+    "learned": "This explains why the current OperationOutcome code belongs to THO rather than core source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-41668",
+    "url": "https://jira.hl7.org/browse/FHIR-41668",
+    "snapshot_path": "contexts/FHIR-41668/jira/FHIR-41668.md",
+    "ref": { "jira_key": "FHIR-41668" },
+    "summary": "Applied/Persuasive with Modification R6 issue to move the operation-outcome ValueSet and CodeSystem from core to THO.",
+    "learned": "This later final decision controls the current core source interpretation.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "69f783bf72ce8ed0be2268fefae6307148dbe756 and 54c96b26b2a89805739101a5f23a6da64c576b8f",
+    "ref": { "commit": "69f783bf72ce8ed0be2268fefae6307148dbe756" },
+    "summary": "Historical core application added MSG_REMOTE_FAIL and later generated duplicate core operation-outcome terminology files from that state.",
+    "learned": "The old core source did not become the final authoritative location for the requested MSG_EXTERNAL_FAIL code.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "6f6c22d0efabe54f0f7abac122cf9fdb62f8d055",
+    "ref": { "commit": "6f6c22d0efabe54f0f7abac122cf9fdb62f8d055" },
+    "summary": "Upstream FHIR-41668 commit removed the OperationOutcome binding row and deleted the duplicate core operation-outcome CodeSystem and ValueSet source files.",
+    "learned": "Current FHIR core intentionally no longer owns the operation-outcome terminology artifacts.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/auditevent/valueset-audit-event-outcome-detail-example.xml:40",
+    "ref": { "path": "source/auditevent/valueset-audit-event-outcome-detail-example.xml", "line": 40 },
+    "summary": "The current core source includes http://terminology.hl7.org/CodeSystem/operation-outcome in an AuditEvent example ValueSet and has no active core operation-outcome CodeSystem/ValueSet source.",
+    "learned": "Current source is aligned with THO ownership for operation-outcome codes.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "web",
+    "locator": "https://terminology.hl7.org/CodeSystem-operation-outcome.json",
+    "url": "https://terminology.hl7.org/CodeSystem-operation-outcome.json",
+    "summary": "The active complete THO CodeSystem operation-outcome version 4.0.0 contains MSG_EXTERNAL_FAIL with display 'Unable to resolve external reference to resource %s'.",
+    "learned": "The requested code exists in the authoritative terminology source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Current source, Jira, Zulip, Confluence, and THO verification",
+    "command": "rg -n 'ValueSet/operation-outcome|CodeSystem/operation-outcome|http://terminology.hl7.org/CodeSystem/operation-outcome|MSG_EXTERNAL_FAIL|MSG_REMOTE_FAIL' source implementations -g '!tools/history/**'; curl -fsSL https://terminology.hl7.org/CodeSystem-operation-outcome.json; bun run zulip:search fts '\"FHIR-19977\" MSG_EXTERNAL_FAIL operation outcome'; bun run confluence:search refs jira FHIR-19977",
+    "summary": "Checks found the current THO include, the historical local translation key, the THO MSG_EXTERNAL_FAIL code, the relevant Zulip thread, and no direct Confluence references for FHIR-19977.",
+    "learned": "No conflicting evidence or missing current FHIR-core source edit was found.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

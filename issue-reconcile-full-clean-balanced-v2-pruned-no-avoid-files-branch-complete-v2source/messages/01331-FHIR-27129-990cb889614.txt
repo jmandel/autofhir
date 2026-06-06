@@ -1,0 +1,116 @@
+FHIR-27129: Clarify SubscriptionStatus event count increments
+
+Issue request:
+FHIR-27129 was a Published/Persuasive R5 FHIR-I change request to harmonize client subscription status checks after SubscriptionStatus refactoring. It asked to move Subscription.error to SubscriptionStatus.error, rename SubscriptionStatus.notificationType to SubscriptionStatus.type, add a status-query value, and update event count descriptions so event counts are incremented/included only for event notifications.
+
+Initial application:
+The issue was substantially applied by FHIR#27129 commits in 2020: 004593e639 moved Subscription.error and its terminology/example to SubscriptionStatus.error; 31d6f9fa7a renamed notificationType to type and added the current query-status notification type; dcaf7d3291 and 89b7b1fd0e added query-status documentation and examples. The final source intentionally uses query-status rather than the issue's draft status-query wording.
+
+Additional context:
+Subscription and SubscriptionStatus are active resources in source/fhir.ini. FHIR-27130 was approved in the same FHIR-I meeting to add Subscription/$status so clients could dynamically retrieve SubscriptionStatus resources instead of reading/searching transient SubscriptionStatus instances. Later SubscriptionStatus work removed the obsolete eventsInNotification element, added query-event, added self-contained constraints, and linked the $status operation to the query-status guidance, so the remaining source check is the current authoritative SubscriptionStatus definition rather than the removed element or generated diagrams.
+
+AutoFHIR reconciliation:
+Updated the SubscriptionStatus.eventsSinceSubscriptionStart definition in source/subscriptionstatus/structuredefinition-SubscriptionStatus.xml to state that event-notification counts are inclusive of the current notification and that handshake, heartbeat, query-status, and query-event notifications do not increment the count. No Subscription.error, notificationType, status-query, or eventsInNotification non-SVG source references needed changes.
+
+Recommendation:
+Keep this source change. It preserves the already-applied model and later query-status/query-event decisions while fixing a stale authoritative element definition that could otherwise imply query status/event responses might increment the subscription event count. No further core follow-up is needed for FHIR-27129.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27129
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-27130: same-change-family - approved in the same meeting to add Subscription/$status for dynamic client status checks, which explains the query-status context but is a separate operation issue.
+FHIR-27131: same-change-family - approved in the same meeting to clarify that eventsSinceSubscriptionStart is inclusive of the current notification, supporting the retained inclusive event-notification wording.
+FHIR-36081: later-change - removed SubscriptionStatus.eventsInNotification and refined notification event guidance, so FHIR-27129 reconciliation should not reintroduce the removed element.
+FHIR-39038: later-change - added SubscriptionStatus constraints for event and query-status messages, confirming query-status remains a current notification type.
+FHIR-47292: later-change - linked Subscription/$status return documentation to query-status guidance, confirming the current query-status terminology.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27129: Published/Persuasive R5 issue requested moving Subscription.error, renaming notificationType, adding status-query/query status behavior, and clarifying event counts. Learned: establishes final work-group intent for this reconciliation.
+- E2 Source source/fhir.ini:1243-1245 and source/fhir.ini:1438-1440: Subscription, SubscriptionStatus, and SubscriptionTopic are active current-build resources. Learned: the edited SubscriptionStatus StructureDefinition is in current build scope.
+- E3 Git 004593e639, 31d6f9fa7a, dcaf7d3291, 89b7b1fd0e: original FHIR#27129 commits moved error, renamed notificationType to type, chose query-status, and added query-status documentation/examples. Learned: most of the issue was already applied and query-status is intentional.
+- E4 Source source/subscriptionstatus/structuredefinition-SubscriptionStatus.xml:129-159,354-372; source/subscriptionstatus/codesystem-subscription-notification-type.xml:55-64; source/subscriptions.html:759-769: current source defines SubscriptionStatus.type/query-status and SubscriptionStatus.error and communicates errors via SubscriptionStatus.error. Learned: current source satisfies the error/type parts of the issue.
+- E5 Community/Jira context: FHIR-27130 snapshot, Zulip #subscriptions May 2020 Virtual Connectation, and Confluence FHIR-I 2020-05-18 minutes all tie FHIR-27129 to dynamic client status checks and Subscription/$status. Learned: the query-status path is the approved mechanism for dynamic status checks.
+- E6 Source source/subscriptionstatus/subscriptionstatus-notes.xml:75-86,135-138,405-409,456-460: narrative guidance already distinguishes event-notification inclusion from query-status/query-event non-increment behavior. Learned: the fix aligns the authoritative element definition with existing narrative guidance.
+- E7 Later git 588abaab98, 33515587d4, b434647505: later applied/reconciled changes removed eventsInNotification, added SubscriptionStatus constraints, and linked $status to query-status guidance. Learned: the reconciliation must not revive removed event-count fields and must retain query-status/query-event semantics.
+- E8 Verification command/query: XML parse, git diff --check, and targeted rg scans passed after the edit. Learned: the source edit is syntactically valid and no stale non-SVG Subscription.error, notificationType, status-query, or old increment phrase remains.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27129",
+    "url": "https://jira.hl7.org/browse/FHIR-27129",
+    "snapshot_path": "contexts/FHIR-27129/jira/FHIR-27129.md",
+    "ref": { "jira_key": "FHIR-27129" },
+    "summary": "Published/Persuasive R5 issue to move Subscription.error to SubscriptionStatus.error, rename notificationType to type, add query-status behavior, and clarify event count rules.",
+    "learned": "This establishes the approved issue scope for checking current Subscription and SubscriptionStatus source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1243-1245; source/fhir.ini:1438-1440",
+    "summary": "Subscription, SubscriptionStatus, and SubscriptionTopic are active current-build resources.",
+    "learned": "The edited SubscriptionStatus StructureDefinition is an authoritative current-build source input.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "004593e639; 31d6f9fa7a; dcaf7d3291; 89b7b1fd0e",
+    "ref": { "commits": "004593e639f3a1cfd357600acf3c5ab6009f0cc6,31d6f9fa7a4ebb88f7236e13a73a840a77748f32,dcaf7d32918612a69679db4f6850009f332ce42c,89b7b1fd0e50f90a07acd143b53cbc365c14c3b9" },
+    "summary": "The original FHIR#27129 commits moved error to SubscriptionStatus, renamed notificationType to type, selected query-status terminology, and added query-status documentation/examples.",
+    "learned": "The current query-status naming is intentional prior application, not a typo to revert to status-query.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/subscriptionstatus/structuredefinition-SubscriptionStatus.xml:129-159,354-372; source/subscriptionstatus/codesystem-subscription-notification-type.xml:55-64; source/subscriptions.html:759-769",
+    "summary": "Current source defines SubscriptionStatus.type/query-status and SubscriptionStatus.error, and Subscriptions narrative points client-visible errors to SubscriptionStatus.error.",
+    "learned": "The error move and type rename portions of FHIR-27129 are already represented in current source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20200518 page 82912887",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/82912887/FHIR+Infrastructure+Minutes+CC+20200518",
+    "ref": { "confluence_page_id": 82912887 },
+    "summary": "Minutes record FHIR-27130 discussion for a Subscription/$status operation and FHIR-27129 approval at 12-0-0 in the same tracker block.",
+    "learned": "This confirms the approved dynamic status-check context for interpreting query-status behavior.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/subscriptionstatus/subscriptionstatus-notes.xml:75-86,135-138,405-409,456-460",
+    "summary": "SubscriptionStatus notes already say event notifications include/increment event counts while query-status and query-event do not increment them.",
+    "learned": "The edited element definition now matches existing authoritative narrative guidance.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "588abaab98; 33515587d4; b434647505",
+    "ref": { "commits": "588abaab987146a316a3ff43beadaa8dd794c722,33515587d4c23bf276f2dd950e08dba72c7879f4,b434647505c52bc37d0b1b0a12117c7f9e676b41" },
+    "summary": "Later applied/reconciled changes removed eventsInNotification, added SubscriptionStatus constraints, and linked Subscription/$status to query-status guidance.",
+    "learned": "Current reconciliation should retain query-status/query-event and not reintroduce the removed eventsInNotification field.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local validation and stale-reference scans",
+    "command": "xmllint --noout source/subscriptionstatus/structuredefinition-SubscriptionStatus.xml; git diff --check -- source/subscriptionstatus/structuredefinition-SubscriptionStatus.xml; rg -n --glob '!*.svg' 'Subscription\\.error|notificationType|status-query|This number is NOT incremented for handshake and heartbeat|query-status, or query-event' source/subscription source/subscriptionstatus source/subscriptions.html",
+    "summary": "The XML parsed, whitespace check passed, and scans found the intended new definition with no stale non-SVG references to the old names or old increment phrase.",
+    "learned": "The fix is syntactically safe and limited to the intended current-build source definition.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

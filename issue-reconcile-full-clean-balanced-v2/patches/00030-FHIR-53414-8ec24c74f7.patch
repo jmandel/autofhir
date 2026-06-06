@@ -1,0 +1,85 @@
+diff --git a/source/datatypes/triggerdefinition.xml b/source/datatypes/triggerdefinition.xml
+index 1f58b8656e..557fad5009 100644
+--- a/source/datatypes/triggerdefinition.xml
++++ b/source/datatypes/triggerdefinition.xml
+@@ -885,7 +885,7 @@
+     <Cell ss:StyleID="s80"><Data ss:Type="String">Defines an expected trigger for a module</Data><NamedCell ss:Name="_FilterDatabase"/></Cell>
+     <Cell ss:StyleID="s81"><Data ss:Type="String">A description of a triggering event. Triggering events can be named events, data events, or periodic, as determined by the type element</Data><NamedCell ss:Name="_FilterDatabase"/></Cell>
+     <Cell ss:StyleID="s82"><NamedCell ss:Name="_FilterDatabase"/></Cell>
+-    <Cell ss:StyleID="s83"><Data ss:Type="String">If an event is a named-event, it means the event is completely pre-coordinated, and no other information can be specified for the event. If the event is one of the data- events, the data and condition elements specify the triggering criteria. The data element specifies the structured component, and the condition element provides additional optional refinement of that structured component. If the event is periodic, the timing element defines when the event is triggered. For both data- and periodic events, a name can be provided as a shorthand for the formal semantics provided by the other elements</Data><NamedCell ss:Name="_FilterDatabase"/></Cell>
++    <Cell ss:StyleID="s83"><Data ss:Type="String">If an event is a named-event, it is identified by a pre-coordinated name or code. If the event is one of the data- events, the data element specifies the structured component of the trigger. If the event is periodic, the timing element defines when the trigger is evaluated. If the event is subscription-topic, the subscriptionTopic element identifies the topic. The condition element can be used with any trigger type to provide additional optional criteria; data-change events are the trigger type that populate current and previous data context for the condition. For data- and periodic events, a name can be provided as a shorthand for the formal semantics provided by the other elements</Data><NamedCell ss:Name="_FilterDatabase"/></Cell>
+     <Cell ss:StyleID="s82"><NamedCell ss:Name="_FilterDatabase"/></Cell>
+     <Cell ss:StyleID="s84"><NamedCell ss:Name="_FilterDatabase"/></Cell>
+     <Cell ss:StyleID="s84"><NamedCell ss:Name="_FilterDatabase"/></Cell>
+@@ -1067,7 +1067,7 @@
+     <Cell ss:StyleID="s80"><Data ss:Type="String">Whether the event triggers (boolean expression)</Data><NamedCell ss:Name="_FilterDatabase"/></Cell>
+     <Cell ss:StyleID="s81"><Data ss:Type="String">A boolean-valued expression that is evaluated in the context of the container of the trigger definition and returns whether or not the trigger fires</Data><NamedCell ss:Name="_FilterDatabase"/></Cell>
+     <Cell ss:StyleID="s88"><Data ss:Type="String">Need to be able to formally describe the triggering criteria</Data><NamedCell ss:Name="_FilterDatabase"/></Cell>
+-    <Cell ss:StyleID="s81"><Data ss:Type="String">This element can be specified for any type of trigger and provides additional criteria for the trigger. The context available within the condition is based on the type of event. For all events, the current resource will be available as context. In addition, for modification events, the previous resource will also be available. The expression may be inlined, or may be a simple absolute URI, which is a reference to a named expression within a logic library referenced by a library element or extension within the containing resource. If the expression is a FHIR Path expression, it evaluates in the context of a resource of one of the type identified in the data requirement, and may also refer to the variable %previous for delta comparisons on events of type data-changed, data-modified, and data-deleted which will always have the same type</Data><NamedCell ss:Name="_FilterDatabase"/></Cell>
++    <Cell ss:StyleID="s81"><Data ss:Type="String">This element can be specified for any type of trigger and provides additional criteria for the trigger. The context available within the condition is based on the type of event. For data-change events, the current resource that triggered the event will be available as context. In addition, for modification or removal events, the previous resource will also be available. The expression may be inlined, or may be a simple absolute URI, which is a reference to a named expression within a logic library referenced by a library element or extension within the containing resource. If the expression is a FHIRPath expression for a data-change event, it evaluates in the context of a resource of one of the types identified in the data requirement, and may also refer to the variable %previous for delta comparisons on events of type data-changed, data-modified, and data-removed which will always have the same type</Data><NamedCell ss:Name="_FilterDatabase"/></Cell>
+     <Cell ss:StyleID="s88"><NamedCell ss:Name="_FilterDatabase"/></Cell>
+     <Cell ss:StyleID="s89"><NamedCell ss:Name="_FilterDatabase"/></Cell>
+     <Cell ss:StyleID="s89"><NamedCell ss:Name="_FilterDatabase"/></Cell>
+@@ -3589,7 +3589,7 @@
+     <Cell ss:StyleID="s89"><Data ss:Type="String">TriggerDefinition</Data></Cell>
+     <Cell ss:StyleID="s89"><Data ss:Type="String">A named event requires a name or code, a periodic event requires timing, a data event requires data, and a subscription topic requires a reference to a subscription topic</Data></Cell>
+     <Cell ss:StyleID="s89"><Data ss:Type="String">(type = 'named-event' implies (name.exists() or code.exists())) and (type = 'periodic' implies timing.exists()) and (type.startsWith('data-') implies data.exists()) and (type = 'subscription-topic' implies subscriptionTopic.exists())</Data></Cell>
+-    <Cell ss:StyleID="s105"><Data ss:Type="String">((not(f:type/@value = 'named-event')) or name.exists()) and (not(f:type/@value = 'periodic') or timing.exists()) and (not(starts-with(f:type/@value, 'data-')) or data.exists())</Data></Cell>
++    <Cell ss:StyleID="s105"><Data ss:Type="String">((not(f:type/@value = 'named-event')) or exists(f:name) or exists(f:code)) and (not(f:type/@value = 'periodic') or exists(*[starts-with(local-name(.), 'timing')])) and (not(starts-with(f:type/@value, 'data-')) or exists(f:data)) and (not(f:type/@value = 'subscription-topic') or exists(f:subscriptionTopic))</Data></Cell>
+    </Row>
+    <Row ss:AutoFitHeight="0">
+     <Cell ss:StyleID="s104"><NamedCell ss:Name="Invariantids"/></Cell>
+diff --git a/source/eventdefinition/eventdefinition-notes.xml b/source/eventdefinition/eventdefinition-notes.xml
+index 3e8a7c5a11..46d067aea6 100644
+--- a/source/eventdefinition/eventdefinition-notes.xml
++++ b/source/eventdefinition/eventdefinition-notes.xml
+@@ -38,7 +38,7 @@
+   &lt;/data&gt;
+   &lt;condition&gt;
+     &lt;language value=&quot;text/cql-expression&quot;/&gt;
+-    &lt;expression value=&quot;StickTest.consecutivelyFrom(%context).take(3).negative().count() = 3&quot;/&gt;
++    &lt;expression value=&quot;StickTest.consecutivelyAfter(%context).take(3).negative().count() = 3&quot;/&gt;
+   &lt;/condition&gt;
+ &lt;/trigger&gt;
+ </code></pre>
+@@ -49,7 +49,7 @@
+ 
+ <p>The expression in this case:</p>
+ 
+-<pre><code>StickTest.consecutivelyFrom(%context).take(3).negative().count() = 3</code></pre>
++<pre><code>StickTest.consecutivelyAfter(%context).take(3).negative().count() = 3</code></pre>
+ 
+ <p>Relies on the fluent functions defined in the <a href="library-ExampleEventDefinitionLogic.html"><code>ExampleEventDefinitionLogic</code></a> library:</p>
+ 
+@@ -73,7 +73,7 @@ define fluent function consecutively(observations List&lt;Observation&gt;):
+   observations O
+     sort by issued
+ 
+-define fluent function consecutivelyFrom(observations List&lt;Observation&gt;, observation Observation):
++define fluent function consecutivelyAfter(observations List&lt;Observation&gt;, observation Observation):
+   observations O
+     where O.issued on or after observation.issued
+     sort by issued
+@@ -84,7 +84,7 @@ define fluent function consecutivelyFrom(observations List&lt;Observation&gt;, o
+ //StickTest.during(encounter)
+ //StickTest.within(3 hours)
+ //StickTest.consecutively().take(3).negative().count() = 3
+-//StickTest.consecutivelyFrom(%context).take(3).negative().count() = 3
++//StickTest.consecutivelyAfter(%context).take(3).negative().count() = 3
+ ```
+ -->
+ 
+@@ -94,11 +94,11 @@ define fluent function consecutivelyFrom(observations List&lt;Observation&gt;, o
+   &lt;type value=&quot;data-changed&quot;/&gt;
+   &lt;data&gt;
+     &lt;type value=&quot;Observation&quot;/&gt;
+-    &lt;profile value=&quot;http://example.org/StructureDefinition/stick-test-profile&quot;/&gt;
++    &lt;profile value=&quot;http://example.org/StructureDefinition/stick-test&quot;/&gt;
+   &lt;/data&gt;
+   &lt;condition&gt;
+     &lt;language value=&quot;text/cql-expression&quot;/&gt;
+-    &lt;expression value=&quot;[StickTestProfile].consecutivelyFrom(%context).take(3).negative().count() = 3&quot;/&gt;
++    &lt;expression value=&quot;[StickTestProfile].consecutivelyAfter(%context).take(3).negative().count() = 3&quot;/&gt;
+   &lt;/condition&gt;
+ &lt;/trigger&gt;
+ </code></pre>

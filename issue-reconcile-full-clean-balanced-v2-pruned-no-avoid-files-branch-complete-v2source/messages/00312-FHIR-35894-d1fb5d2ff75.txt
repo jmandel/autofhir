@@ -1,0 +1,109 @@
+FHIR-51540: Remove stale maxDosePerPeriod example guidance
+
+Attribution note: surfaced while reviewing FHIR-35894, but direct Jira backing for this change is FHIR-51540.
+
+Issue request:
+FHIR-35894 was Published/Persuasive for R5 by Pharmacy. It asked how to represent multiple maximum doses per period, such as PCA limits over 1 hour and 4 hours, and resolved to make Dosage.maxDosePerPeriod repeatable with guidance that repeated period denominators should differ.
+
+Initial application:
+Commit b9257918056a31ebdc080627432cc94db78637e0 explicitly included FHIR-35894 and changed source/datatypes/dosage.xml so Dosage.maxDosePerPeriod cardinality became 0..*. The R5.0.0 source contains that repeatable cardinality. The denominator comment requested in Jira was not found as separate current text, but later source changes superseded the Ratio-denominator representation.
+
+Additional context:
+The current build has since incorporated the R6 Dosage refactor from the same max-dose family, especially FHIR-51540, replacing the old direct Dosage.maxDosePerPeriod example pattern with DosageDetails/DosageSafety. Current authoritative source defines DosageSafety.doseLimit as 0..* with scope=period and an explicit period element, and dosage narrative says DosageSafety can represent multiple limits. source/dosage-examples.html is in active Dosage documentation scope via the active Dosage datatype and dosage page, but Example 2 still named the removed Dosage.maxDosePerPeriod element and adjacent old asNeededBoolean name.
+
+AutoFHIR reconciliation:
+This commit updates Example 2's structure guidance to use the current Dosage.asNeeded element and removes the stale Dosage.maxDosePerPeriod bullet, leaving the existing MedicationRequest.dosageInstruction.safety.doseLimit period-limit guidance as the correct current representation for the weekly maximum.
+
+Recommendation:
+Keep this source fix. It preserves the issue's implementer intent in the current R6 model without reintroducing obsolete R5 element names. Do not add the old denominator wording to current Dosage text unless Pharmacy separately decides to constrain duplicate DosageSafety.doseLimit periods; current FHIR-51540-era guidance intentionally allows multiple dose limits and can distinguish period-scoped limits with the doseLimit.period element.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-35894
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-51540: same-change-family - later Pharmacy decision and source refactor replaced maxDosePerPeriod with DosageSafety.doseLimit for combined and scoped dose limits; used as context but not decided in this default Applied/Published seed run.
+FHIR-54246: background - later retracted example concern confirms Example 2 was reviewed around period-scoped doseLimit, but it was Resolved - No Change and is not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-35894: Published/Persuasive Pharmacy issue requested repeatable maxDosePerPeriod for multiple period limits and a denominator-difference comment. Learned: the seed is final and establishes the original max-dose-per-period requirement.
+- E2 Git b9257918056a31ebdc080627432cc94db78637e0: FHIR-35894 application commit changed Dosage.maxDosePerPeriod from 0..1 to 0..*. Learned: the original R5 source application happened in the Dosage datatype.
+- E3 Source source/dosage.html:39 and source/fhir.ini:51: Dosage is an active datatype and its page links to dosage-examples.html. Learned: the edited example page is current build documentation, not an out-of-scope generated artifact.
+- E4 Source source/datatypes/dosagesafety.xml:851, source/datatypes/dosagesafety.xml:904, source/datatypes/dosagesafety.xml:930, and source/dosage.html:194-203: current DosageSafety has repeatable doseLimit entries with required scope and period-specific period. Learned: the current model preserves the ability to represent multiple period limits without the removed maxDosePerPeriod element.
+- E5 Source source/dosage-examples.html:219-220: Example 2 now names Dosage.asNeeded and the current MedicationRequest.dosageInstruction.safety.doseLimit period-limit representation. Learned: the stale obsolete-element guidance has been reconciled in active source.
+- E6 Community/Jira search: Confluence refs for FHIR-35894 found Pharmacy WGM minutes; Zulip seed-key search found no direct conflicting thread; FHIR-51540 Zulip/Jira evidence explains the later R6 max-dose refactor. Learned: no discovered community record contradicts the source fix, and later context supports the current doseLimit model.
+- E7 Verification command: git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg 'Dosage\\.maxDosePerPeriod|Dosage\\.asNeededBoolean' source/dosage-examples.html. Learned: the edited diff has no whitespace errors and the active example no longer contains the stale names.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-35894",
+    "url": "https://jira.hl7.org/browse/FHIR-35894",
+    "snapshot_path": "contexts/FHIR-35894/jira/FHIR-35894.md",
+    "ref": { "jira_key": "FHIR-35894" },
+    "summary": "Published/Persuasive Pharmacy issue asking how to represent multiple maximum doses per period, resolved by making MaxDose Period 0..* and noting differing denominators.",
+    "learned": "This final Jira decision establishes the original requirement to support multiple period-specific maximum dose limits.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "b9257918056a31ebdc080627432cc94db78637e0",
+    "ref": { "commit": "b9257918056a31ebdc080627432cc94db78637e0" },
+    "summary": "Commit mentioning FHIR-35894 changed source/datatypes/dosage.xml so Dosage.maxDosePerPeriod cardinality became 0..*.",
+    "learned": "The issue was initially applied to the R5 Dosage datatype as a repeatable maxDosePerPeriod element.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:51; source/dosage.html:39",
+    "ref": { "paths": "source/fhir.ini; source/dosage.html" },
+    "summary": "Dosage is listed as an active datatype and the Dosage page links to the dosage examples page.",
+    "learned": "source/dosage-examples.html is in current build scope for this reconciliation.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/dosagesafety.xml:851,904,930; source/dosage.html:194-203",
+    "ref": { "paths": "source/datatypes/dosagesafety.xml; source/dosage.html" },
+    "summary": "Current DosageSafety defines repeatable doseLimit entries with scope and period; narrative explains period-scoped limits and multiple limits.",
+    "learned": "The current R6 model represents multiple max-dose periods through doseLimit entries rather than the removed Dosage.maxDosePerPeriod element.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/dosage-examples.html:219-220",
+    "ref": { "path": "source/dosage-examples.html" },
+    "summary": "Example 2 now names Dosage.asNeeded and MedicationRequest.dosageInstruction.safety.doseLimit for the weekly period maximum.",
+    "learned": "The active example no longer instructs implementers to use obsolete Dosage.asNeededBoolean or Dosage.maxDosePerPeriod.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community and related-Jira search for FHIR-35894/FHIR-51540 max-dose context",
+    "command": "bun run confluence:search refs jira FHIR-35894; bun run zulip:search fts '\"FHIR-35894\" maxDosePerPeriod' --limit 10; bun run jira:search snapshot FHIR-51540; bun run zulip:search snapshot implementers 'Max dose per period for a concurrent dosage instruction'",
+    "query": "FHIR-35894 maxDosePerPeriod; FHIR-51540 max dose per period concurrent dosage",
+    "summary": "Seed community search found Pharmacy minutes and no direct conflicting Zulip thread; related FHIR-51540 evidence explains the later R6 DosageSafety doseLimit refactor.",
+    "learned": "No discovered community evidence contradicts the fix, and later context supports retaining doseLimit as the current representation.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Whitespace and stale-name verification",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg 'Dosage\\.maxDosePerPeriod|Dosage\\.asNeededBoolean' source/dosage-examples.html",
+    "result_count": 0,
+    "summary": "The edited diff passed the CRLF-aware whitespace check, and the active example page has no remaining stale maxDosePerPeriod or asNeededBoolean references.",
+    "learned": "The source fix is limited and internally consistent for the edited page.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

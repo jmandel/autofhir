@@ -1,0 +1,87 @@
+FHIR-23032: Audit datatype usage links
+
+Issue request:
+FHIR-23032 was a Published/Persuasive FHIR-core technical correction reporting broken internal links on the datatypes page, especially Attachment usage links to RelatedArtifact and ProdCharacteristic and Coding usage links to Meta, DataRequirement, and UsageContext.
+
+Initial application:
+The Jira comment records R4 commit a00b4aa155 and R5 commit ed006b5. Both commits changed the then-current Java publisher so generated datatype usage links used definitions.getSrcFile(...)+".html#..." instead of assuming all datatype targets lived on the current datatypes page; that directly addressed cross-page links such as RelatedArtifact, Meta, DataRequirement, and UsageContext.
+
+Additional context:
+The current core source keeps datatypes.html in build scope and still uses [%dtusage ...%] placeholders. The active [type-pages] mappings in source/fhir.ini send Meta to resource.html, DataRequirement/RelatedArtifact/UsageContext to metadatatypes.html, and in-page datatypes such as Signature to datatypes.html; ProdCharacteristic is commented out and is not a current built datatype page target. The Java publisher files changed in 2019 are no longer present in this checkout, so there is no current core generator source hunk to reapply.
+
+AutoFHIR reconciliation:
+This audit makes no source change because the current generated CI page already emits working cross-page usage links for the reported cases: Attachment links RelatedArtifact to metadatatypes.html#RelatedArtifact, Coding links Meta to resource.html#Meta, DataRequirement and UsageContext to metadatatypes.html anchors, and Signature to datatypes.html#Signature. The checked target anchors resolve on the current rendered pages.
+
+Recommendation:
+Keep this no-change audit as-is. No further core FHIR source edit is needed for FHIR-23032 unless the external publisher later regresses dtusage link generation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-23032
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-20409: background - the same 2019 commits also fixed STU3 comparison URL breakage, but that issue concerns broader non-datatype comparison links and was not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-23032: Published/Persuasive technical correction for broken datatypes-page internal links in Attachment and Coding usage lists. Learned: the final request was a non-substantive link-generation correction for R5.
+- E2 Source source/datatypes.html:635 and source/fhir.ini:75-109: datatypes.html remains the source page with [%dtusage Attachment%], while active type-page mappings route Meta, DataRequirement, RelatedArtifact, UsageContext, and other moved datatypes to their current pages. Learned: the current source/config supplies the build-scope page routing needed by generated usage links.
+- E3 Git a00b4aa155 and ed006b5: historical R4/R5 commits changed dtusage generation from same-page anchors to definitions.getSrcFile(...).html#... links. Learned: the issue was previously applied in the publisher rather than by editing datatypes prose.
+- E4 Published-spec/command current build link check: build.fhir.org/datatypes.html currently renders Attachment and Coding usage links to metadatatypes.html#RelatedArtifact, resource.html#Meta, metadatatypes.html#DataRequirement, metadatatypes.html#UsageContext, and datatypes.html#Signature, with target anchors present. Learned: the reported broken-link pattern is not present in the current generated specification.
+- E5 Command community search: Jira topic search only rediscovered FHIR-23032; Zulip and Confluence searches for the issue terms found no directly relevant discussion, and Confluence refs found no FHIR-23032 pages. Learned: no discovered community evidence changes the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-23032",
+    "url": "https://jira.hl7.org/browse/FHIR-23032",
+    "snapshot_path": "contexts/FHIR-23032/jira/FHIR-23032.md",
+    "ref": { "jira_key": "FHIR-23032" },
+    "summary": "Published/Persuasive technical correction reporting broken internal links in datatypes page usage lists for Attachment and Coding.",
+    "learned": "This establishes the final non-substantive request to correct generated datatype usage links.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes.html:635; source/fhir.ini:75-109",
+    "ref": { "paths": "source/datatypes.html, source/fhir.ini" },
+    "summary": "datatypes.html contains the [%dtusage Attachment%] placeholder, and fhir.ini maps special datatype pages such as Meta, DataRequirement, RelatedArtifact, and UsageContext to their current pages.",
+    "learned": "The current build-scope source/config has the page routing needed for generated usage links instead of hard-coded same-page anchors.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "a00b4aa155; ed006b5",
+    "ref": { "commits": "a00b4aa155, ed006b5" },
+    "summary": "Historical R4 and R5 commits changed PageProcessor datatype usage link generation to use definitions.getSrcFile(...).html#... targets.",
+    "learned": "FHIR-23032 was applied as a publisher/generator fix, which explains why no datatypes prose hunk is expected now.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/datatypes.html",
+    "url": "https://build.fhir.org/datatypes.html",
+    "command": "python3 script fetching build.fhir.org/datatypes.html, metadatatypes.html, and resource.html and checking reported usage href targets/anchors",
+    "summary": "The current rendered page links Attachment to metadatatypes.html#RelatedArtifact and Coding to resource.html#Meta plus metadatatypes.html#DataRequirement/#UsageContext and datatypes.html#Signature; the checked anchors exist.",
+    "learned": "The reported broken-link cases are correct in the current generated specification.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-23032 datatypes broken links",
+    "command": "bun run jira:search fts 'datatypes broken links Attachment RelatedArtifact ProdCharacteristic' --limit 10; bun run zulip:search fts 'datatypes broken links Attachment RelatedArtifact ProdCharacteristic' --limit 10; bun run confluence:search refs jira FHIR-23032; bun run confluence:search fts 'datatypes broken links Attachment RelatedArtifact ProdCharacteristic' --limit 10",
+    "query": "datatypes broken links Attachment RelatedArtifact ProdCharacteristic",
+    "result_count": 0,
+    "summary": "Jira found only FHIR-23032 for the topic; Zulip and Confluence had no directly relevant hits, and Confluence refs had no FHIR-23032 references.",
+    "learned": "No discovered community record conflicts with the no-change conclusion based on Jira, source, git history, and current rendered output.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

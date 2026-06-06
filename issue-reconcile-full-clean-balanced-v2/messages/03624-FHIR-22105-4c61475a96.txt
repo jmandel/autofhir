@@ -1,0 +1,127 @@
+FHIR-22105: Allow preferred NamingSystem ids by period
+
+Issue request:
+FHIR-22105 was Published as Persuasive with Modification for R5. It asked to change NamingSystem invariant nsd-2 so that multiple preferred identifiers of the same type can be distinguished by their validity period, and to make $preferred-id date-aware.
+
+Initial application:
+Commit 25159ea161eaed360cf05d040c52d38e80cdcbac listed FHIR-22105 among broad NamingSystem R5 updates, but it only moved the existing nsd-2 expression and kept uniqueId.where(preferred = true).select(type).isDistinct(), so the constraint still rejected the reported period-based use case. Later commits b709f1aec3008d932753b1a0ac53f60235208aa0 and c7583c6f60f457f2a14238a80e83113fa2e7c3cc made $preferred-id date-aware under follow-up Jira issues.
+
+Additional context:
+NamingSystem is active in source/fhir.ini, so source/namingsystem/structuredefinition-NamingSystem.xml and its invariant fixtures feed the current build. FHIR-37673 superseded the originally proposed input name by choosing the operation parameter name date and added the SHOULD NOT overlap by period note; FHIR-43169 confirmed the current nsd-3 type/start/end period-combination FHIRPath pattern. Confluence minutes and the archived deprecated-identifier policy both confirm that the intended rule is one preferred identifier per type for a given period, not one preferred identifier per type across all time.
+
+AutoFHIR reconciliation:
+Updated nsd-2 to compare preferred identifiers by type plus period.start plus period.end, updated the human-readable invariant text, added nsd-2 as a condition on NamingSystem.uniqueId.period, and added a passing invariant fixture with two preferred identifiers of the same type in distinct periods.
+
+Recommendation:
+Keep this source fix. It removes the stale over-restrictive invariant while preserving the current date-aware $preferred-id behavior and the later guidance that preferred identifiers for the same type should not overlap by period.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22105
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-37673: later-change - chose date rather than effective for $preferred-id and added the period-overlap guidance that this fix preserves.
+FHIR-37674: later-change - clarified how $preferred-id behaves when multiple identifiers exist for the specified date.
+FHIR-43169: supporting-decision - confirmed the current nsd-3 type/start/end period-combination FHIRPath pattern used here for nsd-2.
+FHIR-30319: background - deprecated identifier policy discussion highlighted that FHIR-22105's valid-period update had not reached nsd-2.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22105: Published/Persuasive with Modification issue for NamingSystem nsd-2 and $preferred-id. Learned: final WG intent was to make preferred identifier selection period-aware.
+- E2 Source source/fhir.ini:233,594,737,879,1194,1400: active NamingSystem resource, work group, category, compartment, code, and standards-status entries. Learned: the edited NamingSystem StructureDefinition is in current build scope.
+- E3 Source source/namingsystem/structuredefinition-NamingSystem.xml:103: nsd-2 still compared only preferred identifier type before this commit. Learned: the current build retained the over-restrictive invariant.
+- E4 Source source/namingsystem/operationdefinition-NamingSystem-preferred-id.xml:93: optional date input already exists. Learned: the operation side of the issue was handled later and should not be renamed back to effective.
+- E5 Git 25159ea161eaed360cf05d040c52d38e80cdcbac: broad NamingSystem R5 update listed FHIR-22105 but left nsd-2's expression unchanged. Learned: initial application was incomplete for the seed's core constraint request.
+- E6 Git b709f1aec3008d932753b1a0ac53f60235208aa0 and c7583c6f60f457f2a14238a80e83113fa2e7c3cc: later $preferred-id changes added date-aware behavior and multiple-preferred guidance. Learned: later decisions refine the operation wording but still rely on period-aware preferred identifiers.
+- E7 Confluence 86976133 and 97458317: Vocab block vote and WGM minutes record FHIR-22105 and the one preferred identifier per type per period assumption. Learned: meeting evidence supports changing nsd-2 by type/period rather than leaving type-only uniqueness.
+- E8 Command searches: Jira/Zulip/Confluence searches for FHIR-22105, nsd-2, NamingSystem preferred identifiers, and period found no conflicting later decision. Learned: no discovered community evidence contradicts the source fix.
+- E9 Verification commands: XML parsing, git diff whitespace check, and ./gradlew test completed successfully. Learned: the edited XML and added invariant fixture are syntactically valid and the repository test task still passes.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22105",
+    "url": "https://jira.hl7.org/browse/FHIR-22105",
+    "snapshot_path": "contexts/FHIR-22105/jira/FHIR-22105.md",
+    "ref": { "jira_key": "FHIR-22105" },
+    "summary": "Published/Persuasive with Modification issue requiring NamingSystem nsd-2 and $preferred-id to account for validity period.",
+    "learned": "This establishes the final WG request to avoid rejecting period-distinct preferred identifiers of the same type.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:233,594,737,879,1194,1400",
+    "summary": "fhir.ini contains active NamingSystem entries for the resource, work group, compartment/category/code, and status metadata.",
+    "learned": "NamingSystem source files are in current FHIR build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/namingsystem/structuredefinition-NamingSystem.xml:103",
+    "summary": "Before reconciliation, nsd-2 still used uniqueId.where(preferred = true).select(type).isDistinct().",
+    "learned": "The current invariant was still over-restrictive and did not account for validity period.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/namingsystem/operationdefinition-NamingSystem-preferred-id.xml:93",
+    "summary": "$preferred-id currently has an optional date input with documentation for defaulting to now.",
+    "learned": "The operation side is already date-aware under later decisions, so this commit should focus on nsd-2.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "25159ea161eaed360cf05d040c52d38e80cdcbac",
+    "ref": { "commit": "25159ea161eaed360cf05d040c52d38e80cdcbac" },
+    "summary": "Broad R5 NamingSystem commit listed FHIR-22105 but kept the type-only nsd-2 expression.",
+    "learned": "The seed was not fully applied by the initial Jira-tagged source change.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-37673 and FHIR-37674",
+    "url": "https://jira.hl7.org/browse/FHIR-37673",
+    "ref": { "jira_key": "FHIR-37673" },
+    "summary": "Published follow-up decisions chose a date input for $preferred-id and clarified behavior when multiple identifiers match.",
+    "learned": "The operation parameter should remain date, but nsd-2 still needs to stop enforcing type-only uniqueness.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "VOC block vote 2020-07-23 page 86976133 and Jan 2021 WGM page 97458317",
+    "url": "https://confluence.hl7.org/spaces/VOC/pages/86976133/FHIR+block+vote+for+Main+Vocab+WG+conference+call+2020-07-23",
+    "ref": { "confluence_page_id": 86976133 },
+    "summary": "Minutes record the FHIR-22105 block vote and later state that only one preferred identifier should exist per type for a given period.",
+    "learned": "Community meeting evidence supports a type/period invariant rather than the stale type-only invariant.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative/conflict search for FHIR-22105 NamingSystem nsd-2 preferred period",
+    "command": "bun run zulip:search fts '\"FHIR-22105\"'; bun run zulip:search fts '\"NamingSystem\" \"nsd-2\"'; bun run jira:search fts '\"nsd-2\" \"preferred identifier\" \"period\"'; bun run confluence:search fts '\"preferred identifier\" \"NamingSystem\" \"period\"'",
+    "query": "FHIR-22105 NamingSystem nsd-2 preferred identifier period",
+    "summary": "Searches found the seed and supporting Confluence pages but no conflicting later decision.",
+    "learned": "No discovered evidence reverses the need for a period-aware nsd-2.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Validation commands",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; xmllint --noout source/namingsystem/structuredefinition-NamingSystem.xml source/namingsystem/invariant-tests/nsd-2.p1.pass.xml; ./gradlew test --quiet",
+    "summary": "Whitespace check, XML parse, and Gradle test task completed successfully.",
+    "learned": "The edited XML and added invariant fixture are syntactically valid and compile/test validation still passes.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

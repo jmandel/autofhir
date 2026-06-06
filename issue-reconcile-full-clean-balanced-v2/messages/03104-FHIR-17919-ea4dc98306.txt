@@ -1,0 +1,86 @@
+FHIR-17919: Audit ClaimResponse form attachment support
+
+Issue request:
+FHIR-17919 was Published with a Persuasive with Modification resolution for STU3/FM. It asked to add an element or extension so an insurer could include a PDF/HTML/etc. EOB with a ClaimResponse, and the approved resolution was to extend the existing form attribute so the response can send both the form code and an attachment at the same time rather than a choice.
+
+Initial application:
+The issue was explicitly included in the 2018-11-05 financial management bulk commit afb5ec66f68641293bb7950b6e0eeb118fa1444a. In that commit, the ClaimResponse spreadsheet changed the former ClaimResponse.form CodeableConcept row into ClaimResponse.formCode and added a separate Attachment-valued ClaimResponse.form row; ClaimResponse examples that carried a form identifier were updated to use formCode. Later source refactors preserved those semantics in the current StructureDefinition XML.
+
+Additional context:
+ClaimResponse remains an active current-build resource through source/fhir.ini. The active source defines ClaimResponse.formCode as a CodeableConcept for the printed form identifier and ClaimResponse.form as an Attachment for the actual form by reference or inclusion, explicitly including an EOB. A matching pattern exists on ExplanationOfBenefit, but the Jira artifact and approved request are satisfied by ClaimResponse. Jira/Zulip/Confluence searches found no later or conflicting decision requiring a current FHIR source change.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active ClaimResponse source already supports simultaneous code plus attachment through two independent 0..1 elements, which is exactly the non-choice outcome requested by FHIR-17919.
+
+Recommendation:
+Keep this no-change audit commit as-is. No follow-up is needed in core FHIR unless the Financial Management work group wants to add examples showing both elements together, which would be illustrative rather than required for the applied issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17919
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17656: background - mentioned in the same 2018 financial management bulk commit and also references EOB/ClaimResponse, but it concerns EOB and preAuthRef placement rather than ClaimResponse form attachments.
+FHIR-22662: background - surfaced in Jira search for ClaimResponse/EOB/attachment terms, but it concerns outcome/disposition/preAuthRef/preAuthPeriod on individual items and does not affect this form/formCode decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17919: Published/Persuasive with Modification issue for FHIR-core ClaimResponse, voted 5-0-0 on 2018-10-26 and applied for STU3. Learned: final FM intent was to allow both the form code and an attachment, not a choice.
+- E2 Source source/fhir.ini:242: active resources include claimresponse=ClaimResponse. Learned: ClaimResponse source is in current build scope.
+- E3 Source source/claimresponse/structuredefinition-ClaimResponse.xml:2125-2158: current ClaimResponse has separate formCode CodeableConcept and form Attachment elements, with form defined as the actual form by reference or inclusion for printing the content or an EOB. Learned: the current source implements the requested simultaneous code-plus-attachment capability.
+- E4 Git afb5ec66f68641293bb7950b6e0eeb118fa1444a: 2018 financial management bulk commit explicitly lists 17919 and changes ClaimResponse form handling from the old form identifier to formCode plus a separate actual form attachment. Learned: the issue was applied historically and carried forward through source refactors.
+- E5 Command searches: Jira search for ClaimResponse EOB attachment found FHIR-17919 and unrelated FHIR-22662; Zulip and Confluence searches for ClaimResponse/EOB/form attachment terms found no relevant hits; Confluence refs for FHIR-17919 found none. Learned: no discovered later/community evidence changes the source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17919",
+    "url": "https://jira.hl7.org/browse/FHIR-17919",
+    "snapshot_path": "contexts/FHIR-17919/jira/FHIR-17919.md",
+    "ref": { "jira_key": "FHIR-17919" },
+    "summary": "Published/Persuasive with Modification issue asking ClaimResponse to carry a PDF/HTML/etc. EOB attachment while retaining the form code.",
+    "learned": "This establishes final FM intent to support both a code and an attachment at the same time, not a choice.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:242",
+    "ref": { "path": "source/fhir.ini", "line": 242 },
+    "summary": "The resources section actively maps claimresponse=ClaimResponse.",
+    "learned": "ClaimResponse is in current build scope, so its StructureDefinition source is authoritative for this reconciliation.",
+    "supports": ["build_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/claimresponse/structuredefinition-ClaimResponse.xml:2125-2158",
+    "ref": { "path": "source/claimresponse/structuredefinition-ClaimResponse.xml", "start_line": 2125, "end_line": 2158 },
+    "summary": "Current ClaimResponse defines formCode as CodeableConcept and form as Attachment for the actual form by reference or inclusion, including an EOB.",
+    "learned": "The active source already implements separate code and attachment elements, satisfying the issue without a source edit.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "afb5ec66f68641293bb7950b6e0eeb118fa1444a",
+    "ref": { "commit": "afb5ec66f68641293bb7950b6e0eeb118fa1444a" },
+    "summary": "2018 financial management bulk commit explicitly lists 17919 and changes ClaimResponse form handling to formCode plus a separate Attachment form.",
+    "learned": "The requested change was historically applied and subsequently preserved.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for ClaimResponse EOB form attachment context",
+    "command": "bun run jira:search fts 'ClaimResponse EOB attachment' --limit 20; bun run zulip:search fts 'ClaimResponse EOB attachment form' --limit 10; bun run confluence:search refs jira FHIR-17919; bun run confluence:search fts 'ClaimResponse EOB attachment form' --limit 10",
+    "query": "ClaimResponse EOB attachment form",
+    "summary": "Jira returned the seed and an unrelated ClaimResponse item issue; Zulip and Confluence returned no relevant or conflicting hits, and Confluence refs for FHIR-17919 found none.",
+    "learned": "No discovered later or community evidence changes the conclusion that current ClaimResponse source is correct.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

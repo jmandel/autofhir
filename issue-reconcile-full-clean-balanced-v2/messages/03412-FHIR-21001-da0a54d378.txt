@@ -1,0 +1,119 @@
+FHIR-21001: Align ChargeItem pricing ModelInfo
+
+Issue request:
+FHIR-21001 was a Published/Persuasive with Modification Patient Administration change request for R5 asking ChargeItem to carry monetary charge amounts. The approved resolution replaced priceOverride with totalPriceComponent, added unitPriceComponent, removed factorOverride because the price component carries factor, and changed overrideReason from string to CodeableConcept.
+
+Initial application:
+Commit 8b936b6829 applied the ChargeItem source change before R5 publication, updating the StructureDefinition, example, and search parameters. Because the related FHIR-16380 decision created the reusable MonetaryComponent metadata type, the R5 ChargeItem StructureDefinition used MonetaryComponent for unitPriceComponent and totalPriceComponent instead of a local backbone.
+
+Additional context:
+FHIR-16380 was a Published/Persuasive PA decision that explicitly listed ChargeItem.totalPriceComponent and ChargeItem.unitPriceComponent among the elements to use the new MonetaryComponent type. ChargeItem and ChargeItemDefinition were later removed from active core resource inputs by commit 71567db3ee and moved to the HL7 Administrative Incubator IG, whose current CI package still exposes the FHIR-21001 ChargeItem fields. The active core Library/FHIR-ModelInfo example remained stale: it still exposed ChargeItem.factorOverride, ChargeItem.priceOverride, and string overrideReason, while Library remains an active resource in source/fhir.ini.
+
+AutoFHIR reconciliation:
+Updated source/library/library-fhir-model-definition-content.xml so the active FHIR ModelInfo surface now defines PriceComponentType and MonetaryComponent, exposes ChargeItem.unitPriceComponent and ChargeItem.totalPriceComponent as FHIR.MonetaryComponent, and changes ChargeItem.overrideReason to FHIR.CodeableConcept. This does not reintroduce removed core ChargeItem resource files; it only fixes the active ModelInfo example that still surfaced the old shape.
+
+Recommendation:
+Keep this commit. Future structural maintenance of the authoritative ChargeItem resource should happen in HL7/admin-incubator, and broader MonetaryComponent ModelInfo alignment for Invoice or ChargeItemDefinition should be audited under FHIR-16380 or a dedicated related issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-21001
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-16380: supporting-decision - created the MonetaryComponent metadata type that FHIR-21001 used for ChargeItem.unitPriceComponent and ChargeItem.totalPriceComponent.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-21001: Published/Persuasive with Modification issue for adding ChargeItem monetary amount fields and changing overrideReason to CodeableConcept. Learned: establishes the approved ChargeItem target shape.
+- E2 Jira FHIR-16380: Published/Persuasive issue creating MonetaryComponent and explicitly listing the two new ChargeItem fields. Learned: explains why the applied ChargeItem elements should use FHIR.MonetaryComponent.
+- E3 Git 8b936b6829: applied FHIR-21001 to the R5 ChargeItem StructureDefinition, example, and search parameters. Learned: confirms the historical source application that ModelInfo missed.
+- E4 Source source/library/library-fhir-model-definition-content.xml:10272: active Library/FHIR-ModelInfo still had factorOverride, priceOverride, and string overrideReason before this commit. Learned: a current build-scope model surface remained semantically stale.
+- E5 Git 71567db3ee and source/fhir.ini: removed ChargeItem from active core resource inputs while Library remains active. Learned: the current core fix should be limited to ModelInfo, not removed resource files.
+- E6 Web HL7/admin-incubator package StructureDefinition-ChargeItem.json: current external ChargeItem carries unitPriceComponent/totalPriceComponent as MonetaryComponent and overrideReason as CodeableConcept. Learned: the moved authoritative artifact preserves the approved structure.
+- E7 Confluence PA 2022 Jan WGM minutes page 81029757: PA recorded the FHIR-21001 discussion and 4-0-2 persuasive-with-modification vote. Learned: confirms the work-group disposition and rationale around price components.
+- E8 Command searches and validation: quoted Zulip searches found no FHIR-21001-specific discussion and only unrelated 2017 Invoice price-component hits; XML and CRLF-aware whitespace checks passed. Learned: no discovered community evidence changes the Jira/source conclusion and the edited XML is well-formed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-21001",
+    "url": "https://jira.hl7.org/browse/FHIR-21001",
+    "snapshot_path": "contexts/FHIR-21001/jira/FHIR-21001.md",
+    "ref": { "jira_key": "FHIR-21001" },
+    "summary": "Published/Persuasive with Modification issue requiring ChargeItem monetary amount support through price-component-style fields and CodeableConcept overrideReason.",
+    "learned": "This establishes the approved target shape for ChargeItem.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-16380",
+    "url": "https://jira.hl7.org/browse/FHIR-16380",
+    "snapshot_path": "contexts/FHIR-16380/jira/FHIR-16380.md",
+    "ref": { "jira_key": "FHIR-16380" },
+    "summary": "Published/Persuasive issue creating MonetaryComponent and listing ChargeItem.totalPriceComponent and ChargeItem.unitPriceComponent as users of that type.",
+    "learned": "This explains why the FHIR-21001 fields should be modeled as FHIR.MonetaryComponent rather than local backbone structures.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "8b936b6829",
+    "ref": { "commit": "8b936b6829832c19b4cf616dbdd6e9a1f6986a9a" },
+    "summary": "Applied FHIR-21001 to ChargeItem source by replacing factorOverride/priceOverride with unitPriceComponent/totalPriceComponent and changing overrideReason to CodeableConcept.",
+    "learned": "This confirms the R5 source application that the ModelInfo example needed to mirror.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:10272",
+    "summary": "The active FHIR ModelInfo Library content still exposed ChargeItem.factorOverride, ChargeItem.priceOverride, and string overrideReason before this commit.",
+    "learned": "A build-scope current source surface missed the applied ChargeItem monetary amount change.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "71567db3ee and source/fhir.ini",
+    "ref": { "commit": "71567db3ee039ac6977be5f96a7e013896569a36" },
+    "summary": "Removed ChargeItem and ChargeItemDefinition from active core resource inputs while source/fhir.ini still lists Library as an active resource.",
+    "learned": "The current core correction should update the active ModelInfo Library example rather than restore removed ChargeItem resource files.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "web",
+    "locator": "HL7 Administrative Incubator StructureDefinition-ChargeItem.json",
+    "url": "https://build.fhir.org/ig/HL7/admin-incubator/StructureDefinition-ChargeItem.json",
+    "summary": "The Administrative Incubator CI package defines ChargeItem.unitPriceComponent and totalPriceComponent as MonetaryComponent and overrideReason as CodeableConcept.",
+    "learned": "The moved authoritative artifact already preserves the FHIR-21001 structure, so the core edit is limited to ModelInfo.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "PA 2022 Jan WGM minutes page 81029757",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/81029757/2022+Jan+WGM+-+Patient+Administration",
+    "snapshot_path": "contexts/FHIR-21001/confluence/81029757.md",
+    "ref": { "confluence_page_id": 81029757 },
+    "summary": "Minutes record the FHIR-21001 discussion and the 4-0-2 persuasive-with-modification vote for ChargeItem price-component support.",
+    "learned": "This confirms the work-group disposition and rationale reflected in Jira.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community searches and local validation for FHIR-21001 ChargeItem pricing ModelInfo",
+    "command": "bun run zulip:search fts '\"FHIR-21001\"' --limit 5; bun run zulip:search fts '\"ChargeItem\" \"totalPriceComponent\"' --limit 5; xmllint --noout source/library/library-fhir-model-definition-content.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/library/library-fhir-model-definition-content.xml",
+    "query": "FHIR-21001 ChargeItem totalPriceComponent",
+    "result_count": 2,
+    "summary": "No FHIR-21001-specific Zulip hits were found; the broader ChargeItem totalPriceComponent search returned only unrelated 2017 Invoice discussion, and local XML/whitespace checks passed.",
+    "learned": "No discovered community discussion conflicts with the Jira/source conclusion, and the edited ModelInfo XML is well-formed.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

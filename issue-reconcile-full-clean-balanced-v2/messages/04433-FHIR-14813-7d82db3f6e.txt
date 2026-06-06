@@ -1,0 +1,99 @@
+FHIR-14813: Audit Account active removal
+
+Issue request:
+FHIR-14813 was a Published/Persuasive with Modification Patient Administration change request for Account from STU3. It asked to remove Account.active, rename Account.period to Account.servicePeriod, update the period definition to "The date range of services associated with this account", and clarify that transactions may be posted outside the service period when the service occurred within it.
+
+Initial application:
+The issue was explicitly applied by e88e991a574185bed8cad539e6ab012cab0cca51, which removed Account.active from the historical Account spreadsheet source, renamed Account.period to Account.servicePeriod, updated the requested definition/comment text, and changed Account examples from period/active to servicePeriod. The current XML source was later regenerated/refactored from the spreadsheet-era source, preserving the requested Account.servicePeriod element and examples.
+
+Additional context:
+Account is an active current-build resource in source/fhir.ini. Related FHIR-14811 separately made Account.status mandatory and added status codes; later FHIR-14963 added Account.billingStatus for billing/lifecycle processing and is already represented on the combined branch by f18430c5af6d4524b83c05e5d87df7ebfc161dfd. Those later/same-family decisions explain why current Account still has status/billingStatus fields, but they do not reintroduce the removed Account.active period element or conflict with FHIR-14813.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current authoritative Account StructureDefinition contains Account.servicePeriod with the approved definition and comment, examples use servicePeriod, Account.active is absent as a current element, and the only remaining Account.active text found in current source is an R2 rename-map entry rather than current Account content.
+
+Recommendation:
+Keep this no-change audit commit as-is. No FHIR core source follow-up is needed for FHIR-14813 unless a future work-group decision changes Account lifecycle/status modeling; do not edit stale generated diagrams or historical version-mapping entries for this issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14813
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-14811: same-change-family - separate Published Account status issue that made Account.status 1..1 and added on-hold/unknown; it explains current status modeling but is not decided by this commit.
+FHIR-14963: later-change - separate Published Account billing/lifecycle status issue that added Account.billingStatus; it is already represented on the combined branch and does not change the FHIR-14813 conclusion.
+FHIR-20496: duplicate - later Account business-status request resolved as a duplicate of the FHIR-14963 billingStatus change family.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14813: Published/Persuasive with Modification request to remove Account.active, rename Account.period to Account.servicePeriod, and use the approved service-period definition/comment. Learned: establishes the final WG request and target Account source state.
+- E2 Source source/fhir.ini:170-263 and source/account/structuredefinition-Account.xml:230-238: Account is active in the current build and Account.servicePeriod has the approved path, definition, and comment. Learned: current authoritative source implements the requested rename and text.
+- E3 Source/command search: rg for Account.active, Account.period, and servicePeriod found current Account.servicePeriod plus search-parameter/example uses, with Account.active only in an R2 rename map and no current Account.active element. Learned: the removed element has not persisted in current Account content.
+- E4 Git e88e991a574185bed8cad539e6ab012cab0cca51: original GF#14813 application removed Account.active and renamed period/servicePeriod in the spreadsheet-era Account source and examples. Learned: the historical application directly matches the Jira resolution.
+- E5 Jira/source FHIR-14811 and FHIR-14963: FHIR-14811 handled Account.status cardinality/codes, and FHIR-14963 later added Account.billingStatus; current source contains those separate elements. Learned: related status/billingStatus content is deliberate later/same-family work, not a missed Account.active removal.
+- E6 Community search: Zulip SQL/FTS and Confluence searches for FHIR-14813, Account.active, and Account.servicePeriod found only bot/commit notifications, a pre-issue German discussion, and later Account billingStatus minutes, with no conflicting final guidance. Learned: no community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14813",
+    "url": "https://jira.hl7.org/browse/FHIR-14813",
+    "snapshot_path": "contexts/FHIR-14813/jira/FHIR-14813.md",
+    "ref": { "jira_key": "FHIR-14813" },
+    "summary": "Published/Persuasive with Modification PA issue requesting removal of Account.active, rename of Account.period to Account.servicePeriod, and clarified service-period definition/comment.",
+    "learned": "This is the final WG request that must be checked against current Account source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-263; source/account/structuredefinition-Account.xml:230-238",
+    "ref": { "path": "source/account/structuredefinition-Account.xml", "start_line": 230, "end_line": 238 },
+    "summary": "Account is an active resource and Account.servicePeriod is present with the approved definition and comment.",
+    "learned": "The current authoritative source implements the rename and wording required by FHIR-14813.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "command",
+    "locator": "Current source search for Account.active, Account.period, and servicePeriod",
+    "command": "rg -n 'id=\"Account\\.active\"|path value=\"Account\\.active\"|<active>|</active>|Account\\.period|id=\"Account\\.period\"|path value=\"Account\\.period\"|servicePeriod' source --glob '**/*Account*.xml'; rg -n 'Account\\.active|Account\\.period|Account\\.servicePeriod|activePeriod' source tests implementations",
+    "query": "Account.active; Account.period; Account.servicePeriod; activePeriod",
+    "summary": "Searches found Account.servicePeriod in current Account source/examples/search parameter and only historical version-map entries for Account.period/Account.activePeriod, with no current Account.active element.",
+    "learned": "The removed element did not remain in current Account content; version-rename mappings are not current element definitions.",
+    "supports": ["source_state", "absence_of_conflict"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "e88e991a574185bed8cad539e6ab012cab0cca51",
+    "ref": { "commit": "e88e991a574185bed8cad539e6ab012cab0cca51" },
+    "summary": "GF#14813 commit removed Account.active and renamed Account.period to Account.servicePeriod in the historical Account spreadsheet and examples.",
+    "learned": "The issue was explicitly applied in source history before later XML source refactoring.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-14811; FHIR-14963; combined commit f18430c5af6d4524b83c05e5d87df7ebfc161dfd",
+    "url": "https://jira.hl7.org/browse/FHIR-14963",
+    "ref": { "jira_key": "FHIR-14963", "commit": "f18430c5af6d4524b83c05e5d87df7ebfc161dfd" },
+    "summary": "Related Account status issues explain mandatory Account.status and later Account.billingStatus; FHIR-14963 is already audited on the combined branch.",
+    "learned": "Current status/billingStatus content is deliberate related work and does not indicate a missed Account.active removal.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-14813 plus Account.active/servicePeriod",
+    "command": "bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-14813%' OR content LIKE '%Account.active%' OR content LIKE '%Account.servicePeriod%' ...\"; bun run zulip:search fts '\"Account active\"' --limit 20; bun run confluence:search refs jira FHIR-14813; bun run confluence:search fts 'Account active servicePeriod' --limit 20",
+    "query": "FHIR-14813; Account.active; Account.servicePeriod; Account active servicePeriod",
+    "summary": "Searches found only bot/commit notifications, a pre-issue German discussion, and later Account billingStatus minutes; no conflicting final guidance was found.",
+    "learned": "Community evidence does not change the conclusion drawn from Jira, source, and git history.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

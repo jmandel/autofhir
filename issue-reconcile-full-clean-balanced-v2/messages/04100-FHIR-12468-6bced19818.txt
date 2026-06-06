@@ -1,0 +1,96 @@
+FHIR-12468: Audit MedicationAdministration reason alignment
+
+Issue request:
+FHIR-12468 was a Published/Persuasive Pharmacy change request for DSTU2 asking MedicationAdministration to mirror MedicationStatement by renaming reasonGiven to reasonGivenCodeableConcept, renaming reasonReference to reasonGivenReference, and ordering the given-reason elements together after the not-given elements.
+
+Initial application:
+The issue was applied by git-svn commit 805a87d6445447d15f8df95750cdebdf698056e5, which renamed the MedicationAdministration reason fields and changed their order in the spreadsheet source. A later Published Pharmacy harmonization, FHIR-12842, was applied by 3e6ab010725e97201494594d25960f3a4ebbb7df and intentionally renamed those intermediate fields to the broader reasonCode and reasonReference pattern across pharmacy resources.
+
+Additional context:
+MedicationAdministration is active in source/fhir.ini. The current build source no longer has separate reasonCode/reasonReference elements; it uses MedicationAdministration.reason as a CodeableReference with Condition, Observation, DiagnosticReport, and Procedure targets, and fhir.ini records that MedicationAdministration.reason merged reasonCode and reasonReference with aliases to reason.concept and reason.reference. MedicationStatement.reason uses the same CodeableReference pattern, so the current model preserves the issue's alignment goal even though later R5/R6 modeling changed the literal element names.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Adding back the DSTU2-era reasonGiven names or separate reasonReference element would contradict the later Pharmacy harmonization and current CodeableReference model, while the active source already supports both coded and referenced reasons in the aligned location.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-12468; future work should treat FHIR-12842 and the CodeableReference migration as the current interpretation of the original alignment request.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12468
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12842: later-change - Published Pharmacy harmonization changed MedicationAdministration reasonGivenCodeableConcept/reasonGivenReference to the reasonCode/reasonReference pattern after FHIR-12468 was applied.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12468: Published/Persuasive with vote 4-0-0; requested MedicationAdministration reasonGiven/reasonReference renames and ordering to align with MedicationStatement. Learned: establishes the seed request and final workflow state.
+- E2 Git 805a87d6445447d15f8df95750cdebdf698056e5: TR #12468 changed names of MedicationAdministration reasonGiven and reasonReference attributes and their order. Learned: confirms the seed issue was initially applied in source history.
+- E3 Jira FHIR-12842 and git 3e6ab010725e97201494594d25960f3a4ebbb7df: Published harmonization changed MedicationAdministration reasonGivenReference/reasonGivenCodeableConcept to reasonReference/reasonCode. Learned: explains why the literal FHIR-12468 names should not be restored now.
+- E4 Source source/fhir.ini:201 and source/fhir.ini:1894-1896: MedicationAdministration is active, and version-diff aliases show reasonCode/reasonReference merged into reason.concept/reason.reference. Learned: confirms build scope and current migration handling.
+- E5 Source source/medicationadministration/structuredefinition-MedicationAdministration.xml:526-538 and source/medicationstatement/structuredefinition-MedicationStatement.xml:405-418: both resources use a reason CodeableReference supporting coded concepts and clinical reference targets. Learned: confirms the current source already satisfies the alignment intent.
+- E6 Community search: Zulip exact-key search found no discussion; broader Zulip search found only the committers bot announcement; Confluence searches and Jira refs found no relevant WG minutes. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12468",
+    "url": "https://jira.hl7.org/browse/FHIR-12468",
+    "snapshot_path": "contexts/FHIR-12468/jira/FHIR-12468.md",
+    "ref": { "jira_key": "FHIR-12468" },
+    "summary": "Published/Persuasive Pharmacy request to rename and reorder MedicationAdministration reason elements to align with MedicationStatement.",
+    "learned": "The seed has a final done workflow state and establishes the intended alignment change.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "805a87d6445447d15f8df95750cdebdf698056e5",
+    "ref": { "commit": "805a87d6445447d15f8df95750cdebdf698056e5" },
+    "summary": "TR #12468 renamed MedicationAdministration reasonGiven/reasonReference attributes and changed their order.",
+    "learned": "The historical source application for FHIR-12468 exists, so this reconciliation should audit current correctness rather than reapply from scratch.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-12842 and git 3e6ab010725e97201494594d25960f3a4ebbb7df",
+    "url": "https://jira.hl7.org/browse/FHIR-12842",
+    "snapshot_path": "contexts/FHIR-12468/jira/FHIR-12842.md",
+    "ref": { "jira_key": "FHIR-12842", "commit": "3e6ab010725e97201494594d25960f3a4ebbb7df" },
+    "summary": "Published Pharmacy harmonization renamed MedicationAdministration reasonGivenReference/reasonGivenCodeableConcept to reasonReference/reasonCode.",
+    "learned": "The intermediate FHIR-12468 element names were intentionally superseded by a later same-family Pharmacy decision.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:201; source/fhir.ini:1894-1896",
+    "summary": "MedicationAdministration is an active resource, and fhir.ini maps reasonCode to reason.concept and reasonReference to reason.reference after merging both into reason.",
+    "learned": "The relevant source is in build scope and preserves migration aliases for the older separate reason elements.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/medicationadministration/structuredefinition-MedicationAdministration.xml:526-538; source/medicationstatement/structuredefinition-MedicationStatement.xml:405-418",
+    "summary": "MedicationAdministration.reason and MedicationStatement.reason are CodeableReference elements that support coded reasons plus Condition, Observation, DiagnosticReport, and Procedure targets.",
+    "learned": "The current active definitions already implement the intended code/reference alignment using the current R5/R6 model.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-12468 and MedicationAdministration reason terms",
+    "command": "bun run zulip:search fts '\"FHIR-12468\" MedicationAdministration reasonReference' --limit 10; bun run zulip:search fts 'MedicationAdministration reasonReference reasonGiven' --limit 10; bun run confluence:search refs jira FHIR-12468; bun run confluence:search fts '\"FHIR-12468\" MedicationAdministration reasonReference' --limit 10",
+    "query": "FHIR-12468 MedicationAdministration reasonReference reasonGiven",
+    "result_count": 1,
+    "summary": "No relevant discussion or minutes were found; the only broader Zulip hit was the committers bot announcement for the historical commit.",
+    "learned": "No discovered community evidence conflicts with the Jira and source-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

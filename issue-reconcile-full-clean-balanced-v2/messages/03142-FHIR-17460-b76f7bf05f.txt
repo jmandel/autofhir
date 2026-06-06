@@ -1,0 +1,103 @@
+FHIR-17460: Audit eligibility detail cleanup
+
+Issue request:
+FHIR-17460 was a Published/Persuasive FM change request for STU3 EligibilityRequest and EligibilityResponse. It asked to rename the authorization backbone to detail, remove BenefitSubCategory, move benefitCategory under detail.category, use the example BenefitCategory value set for detailed service categories, and add detail.provider for the servicing practitioner.
+
+Initial application:
+The issue appears to have been applied in historical commit 10ac2496c7fa29fe458c13a1ef3f7edb89485acc, whose message lists tracker 17460. That commit changed the old EligibilityRequest and EligibilityResponse spreadsheet sources to mark the authorization backbones and BenefitSubCategory rows as removed, add EligibilityRequest.detail and EligibilityResponse.insurance.detail with category/provider/preauthorization detail fields, and bind the retained category fields to BenefitCategory/ex-benefitcategory.
+
+Additional context:
+The current build no longer uses the old EligibilityRequest and EligibilityResponse resources directly. source/fhir.ini lists CoverageEligibilityRequest and CoverageEligibilityResponse as active approved resources, records EligibilityRequest/Response as removed, and maps CoverageEligibilityRequest=EligibilityRequest and CoverageEligibilityResponse=EligibilityResponse for name-change history. A later Published decision, FHIR-17473, changed the neutralized detail backbone name to item for the current CoverageEligibility resources; a separate combined-branch reconciliation for FHIR-17473 is already present. FHIR-17484 made the same BenefitSubCategory consolidation for Claim, ClaimResponse, and ExplanationOfBenefit, but those artifacts are outside this seed's bounded EligibilityRequest/Response scope.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. On the latest combined branch, the active CoverageEligibilityRequest source already has CoverageEligibilityRequest.item.category bound as BenefitCategory to ex-benefitcategory and CoverageEligibilityRequest.item.provider for the servicing practitioner. The active CoverageEligibilityResponse source already has CoverageEligibilityResponse.insurance.item.category bound as BenefitCategory to ex-benefitcategory, provider, and item-level preauthorization fields, and grep finds no active BenefitSubCategory, benefitSubCategory, or obsolete CoverageEligibilityRequest/Response authorization backbone in the current build resource directories. The remaining old EligibilityRequest/Response spreadsheet rows are retired build-scope history rather than current-spec source needing edits.
+
+Recommendation:
+Keep this audit commit as-is. No current FHIR-core source edit is needed for FHIR-17460; future cleanup should avoid modifying the retired EligibilityRequest/Response spreadsheet artifacts unless the build machinery explicitly reactivates them.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17460
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17473: later-change - Published/Persuasive with Modification decision changed the FHIR-17460 detail backbone to the neutral item name in the current CoverageEligibilityRequest structure, so the current item paths are expected rather than a missed FHIR-17460 rename.
+FHIR-17484: same-change-family - Published/Persuasive decision removed BenefitSubCategory from Claim, ClaimResponse, and ExplanationOfBenefit using the same ex-benefitcategory terminology consolidation, but those artifacts are outside this seed's EligibilityRequest/Response scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17460: Published/Persuasive FM issue requiring EligibilityRequest/Response authorization/detail and BenefitSubCategory cleanup. Learned: this is a final STU3 work-group decision in the seed scope.
+- E2 Git 10ac2496c7: historical commit lists tracker 17460 and changed old EligibilityRequest/Response spreadsheet sources. Learned: the requested old-resource changes were applied before later source/refactor history.
+- E3 Source source/fhir.ini:245,250,348,349,1081,1082,1351,1352,1460,2705,2706 on the combined branch: CoverageEligibilityRequest/Response are active approved resources, old EligibilityRequest/Response are removed/retired aliases, and name-change mappings connect them. Learned: current reconciliation should judge the active CoverageEligibility sources, not edit retired old spreadsheets.
+- E4 Source source/coverageeligibilityrequest/structuredefinition-CoverageEligibilityRequest.xml:520-537 and 580-590 on the combined branch. Learned: the active request resource already has item.category bound to BenefitCategory/ex-benefitcategory and item.provider for the practitioner/provider detail.
+- E5 Source source/coverageeligibilityresponse/structuredefinition-CoverageEligibilityResponse.xml:440-487,534-545,723-763 on the combined branch. Learned: the active response resource already has item category/provider plus item-level preauthorization fields, with no semantic gap for FHIR-17460.
+- E6 Command git grep on the combined branch for BenefitSubCategory/benefitSubCategory and obsolete CoverageEligibilityRequest/Response authorization/detail-category names in active resource directories. Learned: no active current-build resource path still exposes the obsolete elements targeted by FHIR-17460.
+- E7 Community search for FHIR-17460, BenefitSubCategory, EligibilityRequest, authorization/detail/provider across Zulip and Confluence. Learned: no relevant human discussion or meeting record was found that contradicts the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17460",
+    "url": "https://jira.hl7.org/browse/FHIR-17460",
+    "snapshot_path": "contexts/FHIR-17460/jira/FHIR-17460.md",
+    "ref": { "jira_key": "FHIR-17460" },
+    "summary": "Published/Persuasive FM issue requesting EligibilityRequest/Response authorization-to-detail cleanup, BenefitSubCategory removal, benefitCategory relocation, and detail.provider addition.",
+    "learned": "This establishes the final STU3 issue request and the required reconciliation target.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "10ac2496c7fa29fe458c13a1ef3f7edb89485acc",
+    "ref": { "commit": "10ac2496c7fa29fe458c13a1ef3f7edb89485acc" },
+    "summary": "Historical commit message lists tracker 17460 and changes old EligibilityRequest/Response spreadsheets, including removed authorization/BenefitSubCategory rows and added detail/category/provider rows.",
+    "learned": "The original STU3 source application was made before later resource renames and refactors.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:245,250,348,349,1081,1082,1351,1352,1460,2705,2706",
+    "summary": "The combined branch lists CoverageEligibilityRequest/Response as active approved resources, old EligibilityRequest/Response as removed, and maps the current resource names back to the old ones.",
+    "learned": "Build-scope review belongs on the active CoverageEligibility resources; old EligibilityRequest/Response spreadsheet artifacts are retained history, not current edit targets.",
+    "supports": ["build_scope", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/coverageeligibilityrequest/structuredefinition-CoverageEligibilityRequest.xml:520-537,580-590",
+    "summary": "The active request resource has CoverageEligibilityRequest.item.category bound to BenefitCategory/ex-benefitcategory and CoverageEligibilityRequest.item.provider referencing Practitioner/PractitionerRole.",
+    "learned": "The request-side substance of FHIR-17460 is present under the later item naming.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/coverageeligibilityresponse/structuredefinition-CoverageEligibilityResponse.xml:440-487,534-545,723-763",
+    "summary": "The active response resource has CoverageEligibilityResponse.insurance.item.category bound to BenefitCategory/ex-benefitcategory, item.provider, and item-level preauthorization fields.",
+    "learned": "The response-side detail/category/provider/authorization information requested by FHIR-17460 is already represented in current source.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Combined-branch grep for obsolete active eligibility elements",
+    "command": "git -C /home/jmandel/work/fhir grep -n -i 'BenefitSubCategory\\|benefitSubCategory' robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/coverageeligibilityrequest source/coverageeligibilityresponse; git -C /home/jmandel/work/fhir grep -n -E 'CoverageEligibility(Request|Response)\\.(authorization|benefitCategory|benefitSubCategory)|CoverageEligibilityResponse\\.insurance\\.authorization|CoverageEligibilityRequest\\.detail\\.category' robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/coverageeligibilityrequest source/coverageeligibilityresponse",
+    "summary": "No matches were found in active CoverageEligibilityRequest/Response source directories for obsolete BenefitSubCategory, benefitSubCategory, or old authorization/detail-category paths.",
+    "learned": "There is no remaining active current-build source element requiring a FHIR-17460 fix.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-17460 and BenefitSubCategory eligibility terms",
+    "command": "bun run zulip:search fts '\"FHIR-17460\"' --limit 10; bun run zulip:search fts '\"BenefitSubCategory\" EligibilityRequest' --limit 10; bun run confluence:search refs jira FHIR-17460; bun run confluence:search fts 'BenefitSubCategory EligibilityRequest authorization detail provider' --limit 10",
+    "query": "FHIR-17460 BenefitSubCategory EligibilityRequest authorization detail provider",
+    "summary": "No relevant human Zulip or Confluence record was found; the only Zulip hit was a 2016 committers bot notification predating this issue.",
+    "learned": "No discovered community evidence changes the Jira/git/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

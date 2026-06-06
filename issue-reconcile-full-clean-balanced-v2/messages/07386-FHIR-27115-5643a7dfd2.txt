@@ -1,0 +1,115 @@
+FHIR-27115: Audit event-basedOn context migration
+
+Issue request:
+FHIR-27115 was Published/Persuasive for R5. It reported that the event-basedOn extension had context limited to Condition even though it should apply to event resources, at least those without a native basedOn element, and the approved resolution was to expand the extension context beyond Condition.
+
+Initial application:
+The issue was applied in core by 2aaccf071c30f8c22a283f5e9113c907e9a52bdb, which changed source/profiles/event-extensions-spreadsheet.xml from Condition-only to a broader event-resource context list. A second same-key commit, 6616e51d37fe83bbfebcdb574deb3ccc2cae86a3, changed unrelated profiling guidance and does not affect this extension decision.
+
+Additional context:
+Current core no longer carries the event-basedOn extension definition as a build input: source/fhir.ini still lists the event-pattern extensions spreadsheet, but a focused current-source search finds event-basedOn only in source/oids.ini, and dd468d4f1799dd79819315b211588ef1cf4586e0 removed extension definitions from the R5 source. The current authoritative definition is in the FHIR Extension Pack, where StructureDefinition-event-basedOn.xml lists multiple event contexts including Composition. Later FHIR-49697 intentionally removed DetectedIssue from the allowed contexts, so that omission should not be treated as an unapplied part of FHIR-27115.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The core source is not missing a current build-scope edit for FHIR-27115: the original core correction happened before R5 publication, the definition subsequently moved to the Extension Pack, and the current Extension Pack source preserves the expanded context set as modified by later decisions.
+
+Recommendation:
+Keep this audit commit as-is. Any future disagreement about event-basedOn contexts or validator precedence, such as the unresolved FHIR-56195 discussion, should be handled in the FHIR Extension Pack and/or validator workflow rather than by restoring the extension definition to core.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27115
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-49697: later-change - Published FHIR-extensions decision removing DetectedIssue from event-basedOn contexts, explaining a current difference from the original FHIR-27115 application list.
+FHIR-56195: background - Triaged validator question about R4 core versus Extension Pack context precedence for Composition; not final and not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27115: Published/Persuasive issue asks to expand event-basedOn context beyond Condition for event resources. Learned: the seed was a final R5 work-group decision to broaden, not remove, the extension contexts.
+- E2 Git 2aaccf071c: added a broader context list to source/profiles/event-extensions-spreadsheet.xml for event-basedOn. Learned: the seed had an explicit core source application before R5.
+- E3 Git dd468d4f: removed extension definitions from R5 core source. Learned: absence of the event-basedOn definition from current core is an intentional source migration, not an unapplied seed issue.
+- E4 Source /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-event-basedOn.xml:51: current Extension Pack definition lists expanded contexts including Condition, ChargeItem, ClinicalImpression, Composition, Consent, Coverage, EpisodeOfCare, ExplanationOfBenefit, FamilyMemberHistory, ImmunizationEvaluation, InventoryReport, MedicationStatement, PaymentNotice, and PaymentReconciliation. Learned: the authoritative current definition is no longer Condition-only.
+- E5 Jira FHIR-49697 and Git bcfece8: Published Extension Pack decision removed DetectedIssue from allowed event-basedOn contexts. Learned: a current context omission from the 2022 application is a later intentional correction.
+- E6 Confluence FHIR Infrastructure Minutes CC 20200817 and FHIR Workflow Minutes CC 20210719: minutes record the FHIR-27115 persuasive-with-modification vote and later workflow alignment discussion. Learned: community governance evidence supports the Jira decision and the workflow-pattern framing.
+- E7 Zulip #fhir/infrastructure-wg > ✔ FHIR-27115 and #implementers > Use of Composition.extension[event-basedOn]: the 2022 application discussion notes uncertainty about undocumented context magic, and the 2026 thread says the Extension Pack should overrule the old R4 Condition-only definition while noting version questions. Learned: no discovered community evidence requires a core source edit now.
+- E8 Verification command: `rg -n 'event-basedOn|extension-event-basedon|StructureDefinition/event-basedOn' source input` found only source/oids.ini in current core, while `rg -n '<expression value=' /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-event-basedOn.xml` listed the Extension Pack contexts. Learned: the current build-scope source check matches the no-change decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27115",
+    "url": "https://jira.hl7.org/browse/FHIR-27115",
+    "snapshot_path": "contexts/FHIR-27115/jira/FHIR-27115.md",
+    "ref": { "jira_key": "FHIR-27115" },
+    "summary": "Published/Persuasive R5 issue asking to expand event-basedOn contexts beyond Condition for event resources.",
+    "learned": "This establishes the final seed request and approved direction for the source-history check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "2aaccf071c30f8c22a283f5e9113c907e9a52bdb",
+    "ref": { "commit": "2aaccf071c30f8c22a283f5e9113c907e9a52bdb" },
+    "summary": "Added ChargeItem, ClinicalImpression, Composition, Consent, Coverage, DetectedIssue, DocumentManifest, EpisodeOfCare, ExplanationOfBenefit, FamilyMemberHistory, ImmunizationEvaluation, InventoryReport, MedicationUsage, PaymentNotice, and PaymentReconciliation to the core event-basedOn context list.",
+    "learned": "The issue was explicitly applied in core before the extension source was moved.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "dd468d4f1799dd79819315b211588ef1cf4586e0",
+    "ref": { "commit": "dd468d4f1799dd79819315b211588ef1cf4586e0" },
+    "summary": "Removed extension definitions from the R5 core source, including the event-basedOn row in source/profiles/event-extensions-spreadsheet.xml.",
+    "learned": "The current absence of the extension definition from core is an intentional migration rather than a missing application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-event-basedOn.xml:51",
+    "summary": "The Extension Pack definition lists expanded contexts for event-basedOn, including Composition and other event resources, rather than Condition alone.",
+    "learned": "The current authoritative extension source preserves the broadened context set outside the core checkout.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-49697",
+    "url": "https://jira.hl7.org/browse/FHIR-49697",
+    "ref": { "jira_key": "FHIR-49697", "commit": "bcfece833bc316ebb1231d4e335849a0a7dd9dde" },
+    "summary": "Published FHIR-extensions issue requiring removal of DetectedIssue from event-basedOn contexts, implemented by bcfece8.",
+    "learned": "DetectedIssue should not be reintroduced as part of reconciling the older FHIR-27115 context expansion.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20200817; FHIR Workflow Minutes CC 20210719",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/91982712/FHIR+Infrastructure+Minutes+CC+20200817",
+    "summary": "Minutes record the FHIR-27115 persuasive-with-modification vote and later workflow-pattern alignment discussion.",
+    "learned": "Meeting evidence is consistent with the Jira disposition and does not create a broader current-core edit requirement.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#fhir/infrastructure-wg > ✔ FHIR-27115; #implementers > Use of Composition.extension[event-basedOn]",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir%2Finfrastructure-wg/topic/%E2%9C%94%20FHIR-27115",
+    "summary": "The 2022 application thread notes uncertainty about context-list mechanics, while the 2026 Composition thread says the Extension Pack should overrule the old R4 Condition-only definition subject to version questions.",
+    "learned": "Community discussion supports treating this as an Extension Pack/current-version concern rather than a current core source defect.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Focused current source and Extension Pack searches",
+    "command": "rg -n 'event-basedOn|extension-event-basedon|StructureDefinition/event-basedOn' source input; rg -n '<expression value=' /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-event-basedOn.xml",
+    "summary": "Current core only contains the event-basedOn OID entry, while the Extension Pack source lists the expanded context expressions.",
+    "learned": "The current source layout matches an audit/no-change decision for core.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

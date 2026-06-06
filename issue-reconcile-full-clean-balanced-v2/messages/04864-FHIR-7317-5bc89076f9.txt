@@ -1,0 +1,109 @@
+FHIR-7317: Clarify EOB item diagnosis order
+
+Issue request:
+FHIR-7317 was a Published/Persuasive with Modification FM change request for FHIR-core Claim. It asked how diagnosisLinkId ordering should work at line items, and the final modified resolution said Claim.item.diagnosisLinkId and EOB.item.diagnosisLinkId are lists that should be created in order of decreasing relevance, with the resource element definitions updated to reflect that rule.
+
+Initial application:
+No explicit FHIR-7317-tagged source commit was found. Current source had the old diagnosisLinkId elements represented as diagnosisSequence lists, and the companion FHIR-7318 reconciliation commit applies the same order rule to Claim.item.diagnosisSequence. Before this commit, the active ExplanationOfBenefit item diagnosisSequence element still lacked any orderMeaning, so the EOB half of the FHIR-7317 resolution was not visible in current conformance source.
+
+Additional context:
+FHIR-7318 is the same line-item diagnosisLinkId ordering issue family and supports applying the rule to the current Claim-family model. FHIR-7319 separately clarifies that diagnosis.sequence is a local reference identifier and not global primary/secondary diagnosis ranking; that remains compatible with FHIR-7317 because this change only defines the order of diagnosis references attached to one service or product. source/fhir.ini lists ExplanationOfBenefit as an active FM resource and maps historical ExplanationOfBenefit.item.diagnosisLinkId to the current ExplanationOfBenefit.item.diagnosisSequence element.
+
+AutoFHIR reconciliation:
+This commit adds orderMeaning to the active ExplanationOfBenefit StructureDefinition element ExplanationOfBenefit.item.diagnosisSequence, stating that diagnosis sequence references are listed in order of decreasing relevance to the service or product. No generated diagram-only artifacts were edited.
+
+Recommendation:
+Keep this source fix with the companion FHIR-7318 Claim fix. Together they implement the later narrowed same-family decision for the active Claim and ExplanationOfBenefit sources without introducing a obsolete diagnosis-link backbone.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7317
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-7318: same-change-family - seed issue for the same line-item diagnosisLinkId priority-order request; its companion commit applies the Claim side.
+FHIR-7319: supporting-decision - clarifies that diagnosis.sequence is a reference identifier rather than global diagnosis ranking, so item-level pointer order should be documented separately.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7317: Published/Persuasive with Modification issue deciding Claim.item.diagnosisLinkId and EOB.item.diagnosisLinkId lists should be ordered by decreasing relevance. Learned: this is final WG intent for the EOB item diagnosis pointer ordering rule.
+- E2 Jira FHIR-7318: Published/Persuasive same-family seed issue asking for line-item diagnosisLinkId priority order. Learned: the EOB fix belongs to the same bounded diagnosis pointer ordering family already investigated for the seed.
+- E3 Source source/fhir.ini:243,550,2715: ExplanationOfBenefit is an active FM resource and maps historical ExplanationOfBenefit.item.diagnosisLinkId to ExplanationOfBenefit.item.diagnosisSequence. Learned: the edited EOB StructureDefinition file is in build scope and targets the current name of the Jira element.
+- E4 Source source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:1404: ExplanationOfBenefit.item.diagnosisSequence now has orderMeaning for decreasing relevance to the service or product. Learned: the active EOB conformance source now exposes the approved ordering rule.
+- E5 Git/source history: no FHIR-7317-tagged commit was found; current source retained repeated diagnosisSequence pointers without orderMeaning after the diagnosisLinkId to diagnosisSequence rename. Learned: the remaining gap is a missing current-source clarification, not an intentional removal of the EOB rule.
+- E6 Command searches: Confluence refs and Zulip searches for FHIR-7317/FHIR-7318 and Claim diagnosis priority found no relevant conflicting records. Learned: no discovered community record changes the Jira/source conclusion.
+- E7 Verification command/query: git diff --check and xmllint succeeded for source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml. Learned: the targeted XML edit is well-formed and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7317",
+    "url": "https://jira.hl7.org/browse/FHIR-7317",
+    "snapshot_path": "contexts/FHIR-7317/jira/FHIR-7317.md",
+    "ref": { "jira_key": "FHIR-7317" },
+    "summary": "Published/Persuasive with Modification issue deciding Claim.item.diagnosisLinkId and EOB.item.diagnosisLinkId are lists created in order of decreasing relevance.",
+    "learned": "This establishes final WG intent for the EOB item diagnosis pointer ordering rule.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-7318",
+    "url": "https://jira.hl7.org/browse/FHIR-7318",
+    "snapshot_path": "contexts/FHIR-7318/jira/FHIR-7318.md",
+    "ref": { "jira_key": "FHIR-7318" },
+    "summary": "Published/Persuasive same-family Claim issue requesting line-item diagnosisLinkId priority order.",
+    "learned": "This supports treating the EOB update as a bounded companion decision to the seed investigation.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:243,550,2715",
+    "ref": { "path": "source/fhir.ini", "resource_line": 243, "workgroup_line": 550, "old_name_line": 2715 },
+    "summary": "ExplanationOfBenefit is an active FM resource, and the old item.diagnosisLinkId name maps to current item.diagnosisSequence.",
+    "learned": "The edited ExplanationOfBenefit StructureDefinition file is in current build scope and targets the current element corresponding to the Jira request.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:1404",
+    "ref": { "path": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml", "line": 1404, "element": "ExplanationOfBenefit.item.diagnosisSequence" },
+    "summary": "ExplanationOfBenefit.item.diagnosisSequence now declares that diagnosis sequence references are ordered by decreasing relevance to the service or product.",
+    "learned": "The authoritative EOB conformance source now carries the requested item-level priority-order semantics.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "git log --grep FHIR-7317/FHIR-7318; source/fhir.ini old-name mapping",
+    "command": "git -C /home/jmandel/work/fhir log --all --grep='FHIR-7317\\|FHIR-7318' --oneline -- source/claim source/explanationofbenefit source/fhir.ini; rg -n 'ExplanationOfBenefit.item.diagnosisLinkId=ExplanationOfBenefit.item.diagnosisSequence' source/fhir.ini",
+    "summary": "No FHIR-7317/FHIR-7318-tagged source commit was found, and current source maps the old EOB diagnosisLinkId name to diagnosisSequence.",
+    "learned": "The EOB issue was still missing a current-source order clarification after the element rename.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-7317 and FHIR-7318 diagnosis ordering",
+    "command": "cd /home/jmandel/work/fhir-community-search && bun run confluence:search refs jira FHIR-7317; bun run confluence:search refs jira FHIR-7318; bun run zulip:search fts '\"FHIR-7317\" Claim diagnosis priority order' --limit 10; bun run zulip:search fts '\"FHIR-7318\" Claim diagnosis priority order' --limit 10; bun run zulip:search fts 'Claim diagnosis priority order sequence item' --limit 10",
+    "query": "FHIR-7317 FHIR-7318 Claim diagnosis priority order sequence item",
+    "result_count": 0,
+    "summary": "No Confluence references or relevant Zulip threads were found for the issue keys or broader Claim diagnosis priority-order terms.",
+    "learned": "No discovered community evidence reverses the Published Jira decisions or suggests a different EOB source change.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "ExplanationOfBenefit XML validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml; xmllint --noout source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml",
+    "summary": "Whitespace checking and XML parsing passed for the edited ExplanationOfBenefit StructureDefinition source.",
+    "learned": "The targeted source edit is well-formed and does not introduce whitespace errors.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

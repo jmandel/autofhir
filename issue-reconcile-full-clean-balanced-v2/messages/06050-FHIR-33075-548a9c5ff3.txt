@@ -1,0 +1,105 @@
+FHIR-33075: Audit ServiceRequest.code datatype alignment
+
+Issue request:
+FHIR-33075 was a Published, Persuasive with Modification OO change request for R5. It raised concern that ServiceRequest.orderDetail was taking on part of the requested "what" and asked to align ServiceRequest.code with orderDetail. The final approved resolution was narrower than the original proposed ServiceRequest.service backbone: change ServiceRequest.code from CodeableConcept to CodeableReference(ActivityDefinition | PlanDefinition).
+
+Initial application:
+The Jira application comment points to PR #2084 commit 5cfdb8d5b528ac164f1220d31425716f0bcb8db9. The underlying source-changing history includes b452b8ce425c090acd054dbcd888e61d4fc6ea83, which changed source/servicerequest/structuredefinition-ServiceRequest.xml so ServiceRequest.code is a CodeableReference targeting ActivityDefinition and PlanDefinition and updated ServiceRequest examples to wrap code values in CodeableReference.concept.
+
+Additional context:
+ServiceRequest is active in source/fhir.ini, so the ServiceRequest XML and search-parameter bundle are in current build scope. FHIR-31584 supplied the earlier orderDetail backbone context, but FHIR-33075's OO discussion narrowed this issue to the code datatype. The 2022-08-08 OO HCP minutes state that OO on FHIR agreed to only change the datatype to CodeableReference allowing ActivityDefinition and PlanDefinition, with any 0..1 to 1..1 cardinality change to be handled in a separate Jira. Later FHIR-47249 clarified the PlanDefinition use case for the same ServiceRequest.code element and is already represented on the combined branch; it did not reverse the FHIR-33075 datatype decision.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current authoritative ServiceRequest source already has ServiceRequest.code as CodeableReference with target profiles ActivityDefinition and PlanDefinition, retains orderDetail as the FHIR-31584 backbone structure, and exposes the split code-concept/code-reference search parameters expected for the CodeableReference datatype.
+
+Recommendation:
+Keep this audit commit as-is. A source edit for FHIR-33075 would either duplicate already-applied source history or broaden the issue beyond the approved datatype-only disposition.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-33075
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-31584: same-change-family - earlier Published ServiceRequest issue that changed orderDetail from CodeableConcept to a parameterized backbone, creating the context for FHIR-33075.
+FHIR-47249: later-change - later Applied ServiceRequest.code clarification explaining PlanDefinition use; already reconciled on the combined branch and consistent with the FHIR-33075 datatype.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-33075: Published/Persuasive with Modification issue approved changing ServiceRequest.code to CodeableReference(ActivityDefinition | PlanDefinition). Learned: this establishes the seed request and the approved narrower scope.
+- E2 Source source/fhir.ini:213: ServiceRequest is listed as an active resource. Learned: source/servicerequest files are in current core build scope.
+- E3 Source source/servicerequest/structuredefinition-ServiceRequest.xml:479-494,563-583: ServiceRequest.code is CodeableReference(ActivityDefinition, PlanDefinition) and orderDetail remains the backbone element. Learned: the current authoritative source already reflects the approved datatype alignment without the rejected service backbone restructure.
+- E4 Source source/servicerequest/bundle-ServiceRequest-search-params.xml:104-134: current search parameters use ServiceRequest.code.concept and ServiceRequest.code.reference. Learned: generated/search surfaces match the CodeableReference model.
+- E5 Git b452b8ce425c090acd054dbcd888e61d4fc6ea83 / 5cfdb8d5b528ac164f1220d31425716f0bcb8db9 / PR #2084: source history changed ServiceRequest.code to CodeableReference and Jira linked the build application. Learned: the issue was already applied before reconciliation.
+- E6 Confluence 2022-08-08 OO HCP page 134946358: minutes say OO agreed to only change the datatype to CodeableReference allowing ActivityDefinition and PlanDefinition and to handle any cardinality change separately; the item was approved in the August 4 block vote. Learned: community/WG evidence supports no broader source edit.
+- E7 Command searches: Zulip searches for FHIR-33075 and ServiceRequest code/orderDetail found no conflicting directly relevant discussion; related Jira search found later FHIR-47249 already reconciled. Learned: no discovered later community or Jira evidence changes the source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-33075",
+    "url": "https://jira.hl7.org/browse/FHIR-33075",
+    "snapshot_path": "contexts/FHIR-33075/jira/FHIR-33075.md",
+    "ref": { "jira_key": "FHIR-33075" },
+    "summary": "Published/Persuasive with Modification OO issue requesting alignment of ServiceRequest.code and ServiceRequest.orderDetail, with final resolution to change ServiceRequest.code to CodeableReference(ActivityDefinition | PlanDefinition).",
+    "learned": "The final WG decision was the datatype change, not the originally proposed service backbone restructure.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:213",
+    "summary": "The active resources list includes servicerequest=ServiceRequest.",
+    "learned": "ServiceRequest source files are part of the current core build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:479-494,563-583",
+    "summary": "ServiceRequest.code is CodeableReference targeting ActivityDefinition and PlanDefinition, and orderDetail is the parameterized backbone element.",
+    "learned": "The authoritative source already satisfies the approved FHIR-33075 change while preserving the related orderDetail structure.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/servicerequest/bundle-ServiceRequest-search-params.xml:104-134",
+    "summary": "ServiceRequest code search parameters are split into code-concept and code-reference expressions over ServiceRequest.code.concept and ServiceRequest.code.reference.",
+    "learned": "The current search-parameter surface is aligned with ServiceRequest.code being a CodeableReference.",
+    "supports": ["source_state", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "b452b8ce425c090acd054dbcd888e61d4fc6ea83; 5cfdb8d5b528ac164f1220d31425716f0bcb8db9; PR #2084",
+    "url": "https://github.com/HL7/fhir/pull/2084",
+    "ref": { "commit": "b452b8ce425c090acd054dbcd888e61d4fc6ea83" },
+    "summary": "The source-changing commit changed ServiceRequest.code from CodeableConcept to CodeableReference and updated examples; Jira links the later PR #2084 merge history as added to the build.",
+    "learned": "The approved datatype change was already applied in source history.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "2022-08-08 OO HCP page 134946358",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/134946358/2022-08-08+HCP",
+    "ref": { "confluence_page_id": 134946358 },
+    "summary": "Minutes record agreement to only change ServiceRequest.code to CodeableReference allowing ActivityDefinition and PlanDefinition, with cardinality handled separately, and note approval in the August 4 block vote.",
+    "learned": "WG minutes confirm the approved scope is already reflected in current source and should not be broadened here.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip/Jira searches for FHIR-33075 ServiceRequest code orderDetail context",
+    "command": "bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-33075%' OR content LIKE '%ServiceRequest.code%' OR content LIKE '%ServiceRequest orderDetail%' ...\"; bun run zulip:search fts 'ServiceRequest code orderDetail ActivityDefinition PlanDefinition' --limit 10; bun run jira:search sql \"... MATCH 'ServiceRequest code ActivityDefinition PlanDefinition' ...\"",
+    "query": "FHIR-33075; ServiceRequest.code; ServiceRequest orderDetail; ServiceRequest code orderDetail ActivityDefinition PlanDefinition",
+    "summary": "No directly relevant conflicting Zulip discussion was found; related Jira search surfaced FHIR-47249, which has already been reconciled and is consistent with the current datatype.",
+    "learned": "No discovered later community or Jira evidence requires changing the current source for FHIR-33075.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

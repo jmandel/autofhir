@@ -1,0 +1,116 @@
+FHIR-13702: Audit Encounter waiting subject status
+
+Issue request:
+FHIR-13702 was Published/Persuasive with Modification for R5. It asked to add a "waiting" code to Encounter.status so outpatient and similar encounters could track time spent waiting. The accepted resolution did not add waiting to the required Encounter.status value set; it split overall encounter state from patient-specific state by adding Encounter.subjectStatus, reorganizing status/subjectStatus codes, updating Status Management guidance, and noting that statusHistory was out of scope for this issue.
+
+Initial application:
+The Jira application comment says the change was partially applied with GF#13072. Git history confirms that b8e66a8579ca2e5e44a6fbd18ba4362b631a38f8 added Encounter.subjectStatus, reorganized Encounter.status and subjectStatus terminology, and updated Encounter examples. Later FHIR-13702-tagged commits 84c280b9715941ba29c953bf6c3cd14779d381ce and dc223befbe35bc659d657b3124bc6a70d697583d updated the Status Management section and subjectStatus definition to explain waiting-like patient states and local workflow-specific subjectStatus codes.
+
+Additional context:
+Encounter is active in source/fhir.ini, so source/encounter/structuredefinition-Encounter.xml, source/encounter/codesystem-encounter-status.xml, source/encounter/valueset-encounter-status.xml, source/encounter/valueset-encounter-subject-status.xml, and source/encounter/encounter-introduction.xml are current build-scope source. Later Published issue FHIR-32343 relaxed Encounter.subjectStatus from extensible to example and added definitions/new subject-status semantics, so the current example binding is an intentional later refinement rather than an incomplete FHIR-13702 application. FHIR-14157 separately replaced statusHistory/classHistory with EncounterHistory, matching FHIR-13702's note that statusHistory would be revisited elsewhere. Community searches found no direct FHIR-13702 Zulip or Confluence decision that conflicts with the Jira/source/git trail; a later ED waiting-room Zulip question shows implementation modeling interest but no approved reversal.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current build-scope source already keeps Encounter.status as the required overall encounter state without a waiting code, defines Encounter.subjectStatus as the patient-specific status that can represent waiting-like states, and states in the Status Management narrative that the example subjectStatus binding permits local "waiting" statuses for workflow-specific use.
+
+Recommendation:
+Keep this no-change audit. Do not add waiting to the required Encounter.status code system for FHIR-13702; any future standardized waiting code or additional ED workflow guidance should be handled by a new PA decision because the current source matches the published modified resolution and later Encounter refinements.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13702
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-14157: same-change-family - revisited the statusHistory/classHistory concern that FHIR-13702 explicitly deferred and created EncounterHistory instead.
+FHIR-32343: later-change - refined Encounter.subjectStatus by adding definitions, receiving-care semantics, and relaxing the binding to example.
+FHIR-22726: later-change - added discharged Encounter.status and further clarified status versus subjectStatus; already represented separately on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13702: Published/Persuasive with Modification issue requesting Encounter waiting support; final resolution chose Encounter.subjectStatus and narrative guidance instead of adding waiting to Encounter.status. Learned: establishes the target behavior for this reconciliation.
+- E2 Source source/fhir.ini:169-190 and source/encounter/structuredefinition-Encounter.xml:130-149,409-425: Encounter is active; Encounter.status remains required and bound to encounter-status, while Encounter.subjectStatus is a CodeableConcept with an example binding to encounter-subject-status. Learned: the current build-scope model has the intended status/subjectStatus split.
+- E3 Source source/encounter/codesystem-encounter-status.xml:48-92 and source/encounter/valueset-encounter-status.xml:43-47: the required status code system/value set has no waiting code. Learned: current source intentionally did not add waiting to Encounter.status.
+- E4 Source source/encounter/encounter-introduction.xml:47-87 and source/encounter/structuredefinition-Encounter.xml:409-425: Status Management explains subjectStatus versus status and says local workflows can capture "waiting" through the example subjectStatus binding. Learned: the narrative and element definition convey the FHIR-13702 resolution.
+- E5 Git b8e66a8579ca2e5e44a6fbd18ba4362b631a38f8; 84c280b9715941ba29c953bf6c3cd14779d381ce; dc223befbe35bc659d657b3124bc6a70d697583d: initial and follow-up FHIR-13702/GF#13072 commits added subjectStatus, reorganized statuses, and completed QA/status-management wording. Learned: the issue was applied through source history.
+- E6 Jira/Git FHIR-32343 and 42a5298014e543ef9319c72fcb1eaad7a2ecdc3c: Published later decision relaxed Encounter.subjectStatus binding from extensible to example. Learned: the current example binding supersedes FHIR-13702's original extensible wording.
+- E7 Jira/Confluence FHIR-14157 and Encounter History and Movements page 86973644: related Encounter history work created EncounterHistory and removed statusHistory/classHistory from Encounter. Learned: FHIR-13702's deferred statusHistory concern belongs to a separate applied change family, not this audit.
+- E8 Command community and idempotency searches: no prior FHIR-13702 reconciliation commit was found on the combined branch; quoted FHIR-13702 Zulip/Confluence searches found no conflicting decision; a later ED waiting-room Zulip thread raised modeling questions without a work-group reversal. Learned: no duplicate commit or discovered external evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13702",
+    "url": "https://jira.hl7.org/browse/FHIR-13702",
+    "snapshot_path": "contexts/FHIR-13702/jira/FHIR-13702.md",
+    "ref": { "jira_key": "FHIR-13702" },
+    "summary": "Published/Persuasive with Modification issue asking for Encounter waiting support, resolved by adding Encounter.subjectStatus and guidance rather than adding waiting to Encounter.status.",
+    "learned": "This establishes the target behavior: keep Encounter.status focused on overall encounter state and use subjectStatus/local workflow codes for waiting-like patient states.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-190; source/encounter/structuredefinition-Encounter.xml:130-149,409-425",
+    "summary": "Encounter is an active build resource; Encounter.status is required and bound to encounter-status, while Encounter.subjectStatus is a CodeableConcept with an example binding to encounter-subject-status.",
+    "learned": "The active source already implements the intended status/subjectStatus split.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/encounter/codesystem-encounter-status.xml:48-92; source/encounter/valueset-encounter-status.xml:43-47",
+    "summary": "The Encounter status code system and required value set contain planned, in-progress, on-hold, discharged, completed, cancelled, discontinued, entered-in-error, and unknown, but no waiting code.",
+    "learned": "Current source matches the modified resolution by not adding waiting to the required Encounter.status value set.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/encounter/encounter-introduction.xml:47-87; source/encounter/structuredefinition-Encounter.xml:409-425",
+    "summary": "Status Management explains status versus subjectStatus and explicitly says local workflows may capture a waiting status through the example subjectStatus binding.",
+    "learned": "The current narrative gives implementers the waiting-state guidance requested by FHIR-13702 without requiring a core status code.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "b8e66a8579ca2e5e44a6fbd18ba4362b631a38f8; 84c280b9715941ba29c953bf6c3cd14779d381ce; dc223befbe35bc659d657b3124bc6a70d697583d",
+    "ref": { "commits": "b8e66a8579ca2e5e44a6fbd18ba4362b631a38f8,84c280b9715941ba29c953bf6c3cd14779d381ce,dc223befbe35bc659d657b3124bc6a70d697583d" },
+    "summary": "GF#13072/FHIR-13702 commits added subjectStatus, reorganized statuses, updated examples, and completed the Status Management wording.",
+    "learned": "Git history confirms a real source application and explains why no new source edit is needed now.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-32343 and commit 42a5298014e543ef9319c72fcb1eaad7a2ecdc3c",
+    "url": "https://jira.hl7.org/browse/FHIR-32343",
+    "ref": { "jira_key": "FHIR-32343", "commit": "42a5298014e543ef9319c72fcb1eaad7a2ecdc3c" },
+    "summary": "Published/Persuasive with Modification later issue added subjectStatus definitions and relaxed Encounter.subjectStatus from extensible to example.",
+    "learned": "The current example binding is an intentional later refinement, not a missed part of FHIR-13702.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "Encounter History and Movements page 86973644; Jira FHIR-14157",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/86973644/Encounter+History+and+Movements",
+    "ref": { "confluence_page_id": 86973644, "jira_key": "FHIR-14157" },
+    "summary": "The Encounter history work lists FHIR-13702 as related and records the movement/history redesign that led to EncounterHistory.",
+    "learned": "The statusHistory concern noted in FHIR-13702 was handled in a separate applied change family and does not require a FHIR-13702 source edit.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community and idempotency searches for FHIR-13702 Encounter waiting subjectStatus",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13702' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run zulip:search fts '\"FHIR-13702\" Encounter waiting subjectStatus' --limit 10; bun run confluence:search fts '\"FHIR-13702\" Encounter waiting subjectStatus' --limit 10; bun run zulip:search snapshot implementers 'Emergency department waiting room'",
+    "query": "FHIR-13702 Encounter waiting subjectStatus",
+    "summary": "No prior reconciliation commit or direct conflicting FHIR-13702 community decision was found; a later implementer thread discussed ED waiting-room modeling without a formal reversal.",
+    "learned": "There is no duplicate publish and no discovered community evidence that changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

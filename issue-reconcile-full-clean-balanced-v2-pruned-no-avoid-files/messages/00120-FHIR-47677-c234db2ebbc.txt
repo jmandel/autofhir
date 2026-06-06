@@ -1,0 +1,106 @@
+FHIR-47677: Fix Appointment is-recurring search expression
+
+Issue request:
+FHIR-47677 is Applied/Persuasive with Modification for Appointment recurrence search. The approved resolution considered date searches already covered for materialized or virtualized occurrences, and requested five search parameters for recurrence-series management: originating-appointment, previous-appointment, occurrence-changed, is-recurring, and has-recurrence-template.
+
+Initial application:
+The issue was initially applied by git commit 5041e81d6e8c50a3f8fd2e60e18be643dc7234d5, which added the five Appointment search parameters to source/appointment/bundle-Appointment-search-params.xml. A follow-up compile fix, e6239bb09ba6158b2c47856f21a8c73eb125af6f, narrowed the build path extension for is-recurring but left the search expression intended to cover both recurrenceTemplate and originatingAppointment.
+
+Additional context:
+Appointment is active in source/fhir.ini, and the search parameter bundle is the current Appointment search-parameter source. PA WGM minutes for FHIR-47677 record further discussion and then a 4-0-0 motion to approve the proposed solution. No directly relevant Zulip discussion or separate related Jira issue was found in bounded searches.
+
+AutoFHIR reconciliation:
+This commit changes Appointment-is-recurring from the FHIRPath union operator to logical OR so the token search parameter evaluates whether an Appointment has a recurrence template or has an originating appointment, matching the approved resolution and the parameter description. The other four requested search parameters are already present and aligned with the issue request.
+
+Recommendation:
+Keep this source fix. It corrects the semantic FHIRPath used by the existing search parameter without widening the issue scope or adding redundant narrative.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-47677
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-47677: Applied/Persuasive with Modification Appointment recurrence search issue requested five search parameters. Learned: this is final PA work-group intent for the reconciliation.
+- E2 Source source/fhir.ini:231: Appointment is listed as an active resource. Learned: the Appointment search-parameter source is in current build scope.
+- E3 Source source/appointment/bundle-Appointment-search-params.xml:453-548: all five requested search parameters exist, with is-recurring intended to cover recurrenceTemplate or originatingAppointment. Learned: the remaining semantic defect was the logical expression for is-recurring.
+- E4 Git 5041e81d6e and e6239bb09b: the issue application added the five parameters and a compile follow-up adjusted the build path extension. Learned: the current source is the prior application with a narrow expression fix still needed.
+- E5 Confluence PA 2024 September WGM Atlanta minutes page 274269548: FHIR-47677 was discussed and later approved 4-0-0. Learned: community minutes support the Jira disposition and do not narrow the approved search parameters.
+- E6 Command community/Jira search: bounded searches found no directly relevant Zulip hits and only the seed Jira for recurrence search-parameter terms. Learned: no discovered related decision changes this reconciliation.
+- E7 Verification command: xmllint and git diff --check passed for the edited XML. Learned: the XML remains well formed and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-47677",
+    "url": "https://jira.hl7.org/browse/FHIR-47677",
+    "snapshot_path": "contexts/FHIR-47677/jira/FHIR-47677.md",
+    "ref": { "jira_key": "FHIR-47677" },
+    "summary": "Applied/Persuasive with Modification issue requesting Appointment recurrence search parameters for originating-appointment, previous-appointment, occurrence-changed, is-recurring, and has-recurrence-template.",
+    "learned": "This establishes the approved PA work-group search-parameter requirements for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:231",
+    "ref": { "path": "source/fhir.ini", "line": 231 },
+    "summary": "Appointment is listed as an active resource in the current build configuration.",
+    "learned": "The Appointment source and search parameter bundle are in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/appointment/bundle-Appointment-search-params.xml:453-548",
+    "ref": { "path": "source/appointment/bundle-Appointment-search-params.xml", "line": 527 },
+    "summary": "The five requested Appointment search parameters are present; is-recurring now uses logical OR between recurrenceTemplate.exists() and originatingAppointment.exists().",
+    "learned": "The source now matches the requested has-template-or-has-originating-appointment semantics.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "5041e81d6e8c50a3f8fd2e60e18be643dc7234d5; e6239bb09ba6158b2c47856f21a8c73eb125af6f",
+    "ref": { "commit": "5041e81d6e8c50a3f8fd2e60e18be643dc7234d5" },
+    "summary": "The FHIR-47677 application commit added the five search parameters, and the later compile fix changed only the is-recurring build path extension.",
+    "learned": "The historical application was otherwise present, leaving only the expression semantics to correct.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "PA 2024 September WGM Atlanta minutes page 274269548",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/274269548/2024+September+WGM+Atlanta+-+Meeting+Minutes",
+    "ref": { "confluence_page_id": 274269548 },
+    "summary": "The minutes record FHIR-47677 discussion and a later 4-0-0 motion to approve the proposed solution.",
+    "learned": "The minutes support the Jira disposition and do not introduce a conflicting search-parameter scope.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Bounded Zulip and Jira related search",
+    "command": "bun run zulip:search fts '\"FHIR-47677\" Appointment recurrence' --limit 10; bun run zulip:search fts 'Appointment recurrence search parameter originatingAppointment' --limit 10; bun run jira:search fts 'Appointment recurrence search parameter originating appointment occurrence changed' --limit 10",
+    "query": "FHIR-47677 Appointment recurrence search parameter originatingAppointment",
+    "result_count": 1,
+    "summary": "No directly relevant Zulip hits were found, and the recurrence search-parameter Jira query returned only FHIR-47677.",
+    "learned": "No discovered related issue or community discussion changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "xmllint --noout source/appointment/bundle-Appointment-search-params.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The edited XML is well formed and the diff has no whitespace errors.",
+    "learned": "The targeted source edit is syntactically safe.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

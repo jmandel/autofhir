@@ -1,0 +1,107 @@
+FHIR-36829: Clarify Consent purpose matching as OR
+
+Issue request:
+FHIR-36829 was Published/Persuasive with Modification for FHIR-core Consent. It asked how repeated fields within a single Consent.provision should be interpreted, noting that actor, securityLabel, and action lacked explicit repeat semantics, class/code already implied OR, and the purpose binding text implied AND. The final Jira resolution closed the issue by the changes to FHIR-34322.
+
+Initial application:
+No source commit explicitly mentioning FHIR-36829 was found. FHIR-34322 was applied through the Consent provisions narrative added by PR #1882, including commits 045316834324696c30df57559a5d83b4b03e3b30 and 3ec287e360dfe910ef0697a2922d025bae81fdbe, which state that sibling provisions are OR-ed, different attributes within a provision are AND-ed, and repeated values within a multi-valued attribute are OR-ed. Current source already contained that narrative, but Consent.provision.purpose still retained the older binding description saying that when more than one label is specified, operations must have all specified labels.
+
+Additional context:
+Consent is an active current-build resource in source/fhir.ini, and source/consent/structuredefinition-Consent.xml is the authoritative StructureDefinition input for the element binding description. The later FHIR-39597 Consent model changes, including the existing combined-branch reconciliation commit 73953f4e6f096f0614960011d34b353282dd8f9d, updated base-decision/provision-zero wording but did not alter the repeated-value semantics from FHIR-34322. Older FHIR-11056 and FHIR-11057 snapshots explain earlier security-label wording, but they predate the later FHIR-36829/FHIR-34322 clarification. Zulip and Confluence searches found no directly relevant or conflicting discussion for FHIR-36829 or FHIR-34322.
+
+AutoFHIR reconciliation:
+This commit updates the Consent.provision.purpose binding description so it no longer contradicts the provisions narrative. The description now says that when more than one purpose is specified, matching any one purpose is sufficient for the purpose attribute to match, aligning the generated element definition with the published multi-valued-attribute OR rule.
+
+Recommendation:
+Keep this source fix as the bounded FHIR-36829 reconciliation. No broader Consent model change is needed for this issue; if CBCC later wants an element-specific AND interpretation for purpose or security-label combinations, that should be handled as a new work-group decision because it would contradict the current published provisions narrative.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36829
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-34322: same-change-family - Published Consent provisions documentation that FHIR-36829 explicitly says closed this ambiguity and that establishes the OR semantics for repeated values within an attribute.
+FHIR-39597: later-change - later Published Consent restructuring moved the base decision to Consent.decision and removed provision-zero wording, but did not change the repeated-value matching rule.
+FHIR-11056: background - older Published securityLabel wording explains why some historical Consent text discussed all labels, but it predates the later FHIR-36829 clarification.
+FHIR-11057: background - older Published Consent actor/securityLabel issue also included historical all-label wording, but it does not override the later provision matching rule.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36829: Published/Persuasive with Modification issue for Consent asking to resolve ambiguous interpretation of repeated fields within a single provision, with final resolution closed by FHIR-34322. Learned: the current reconciliation must make repeated provision attributes consistently OR unless later decisions say otherwise.
+- E2 Jira FHIR-34322: Published/Persuasive Consent issue whose resolution added Provisions guidance stating that sibling provisions are OR-ed, attributes within a provision are AND-ed, and repeated values within an attribute are OR-ed. Learned: this is the final source of the rule that closed FHIR-36829.
+- E3 Source source/fhir.ini:265 and source/consent/structuredefinition-Consent.xml:681-699: Consent is an active resource and Consent.provision.purpose is a max=* Coding element whose binding description still said multiple labels must all be present. Learned: the stale binding text was in current build scope and contradicted the applied rule.
+- E4 Source source/consent/consent-notes.xml:81-104: the current Provisions narrative says repeated values in a multi-valued attribute are disjunctive and matching any value is sufficient. Learned: the authoritative narrative was already correct, so the fix should align the element definition rather than add redundant prose.
+- E5 Git 045316834324696c30df57559a5d83b4b03e3b30 and 3ec287e360dfe910ef0697a2922d025bae81fdbe: PR #1882 added the FHIR-34322 provisions text, while no git history search found an explicit FHIR-36829 source commit. Learned: FHIR-36829 was only partially covered by the earlier narrative application, leaving a missed element-definition contradiction.
+- E6 Community search: Zulip searches for FHIR-36829, FHIR-34322, multi-valued Consent provision, Consent.provision.purpose, and the exact all-label phrase plus Confluence refs/FTS found no direct conflicting work-group discussion. Learned: no community evidence changes the Jira/source conclusion.
+- E7 Verification command/query: git diff --check; xmllint --noout source/consent/structuredefinition-Consent.xml; rg -n 'all the specified labels|operations must have all|matching any one purpose' source/consent/structuredefinition-Consent.xml source/consent/consent-notes.xml. Learned: the XML remains well-formed, whitespace is clean, and the stale all-label phrase is gone from the edited authoritative sources.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36829",
+    "url": "https://jira.hl7.org/browse/FHIR-36829",
+    "snapshot_path": "contexts/FHIR-36829/jira/FHIR-36829.md",
+    "ref": { "jira_key": "FHIR-36829" },
+    "summary": "Published/Persuasive with Modification Consent issue asking how repeated fields within a single provision should be interpreted and noting purpose was the outlier with AND wording.",
+    "learned": "This establishes the seed request and points to FHIR-34322 as the final applied rule for repeated provision values.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-34322",
+    "url": "https://jira.hl7.org/browse/FHIR-34322",
+    "ref": { "jira_key": "FHIR-34322" },
+    "summary": "Published/Persuasive Consent provisions issue whose resolution adds guidance that repeated values within a multi-valued attribute are OR-ed.",
+    "learned": "This is the same-change-family decision that closed FHIR-36829 and defines the intended current semantics.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:265; source/consent/structuredefinition-Consent.xml:681-699",
+    "summary": "Consent is active in the build, and Consent.provision.purpose is a repeatable Coding element whose binding description still used all-label AND wording before this commit.",
+    "learned": "The contradiction was in an authoritative current-build source location that affects the generated element definition.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/consent/consent-notes.xml:81-104",
+    "summary": "The current Consent Provisions narrative says different attributes are conjunctive but repeated values within a multi-valued attribute are disjunctive.",
+    "learned": "The narrative application of FHIR-34322 is already correct and the element binding description needed to align with it.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "045316834324696c30df57559a5d83b4b03e3b30; 3ec287e360dfe910ef0697a2922d025bae81fdbe",
+    "summary": "PR #1882 commits added the FHIR-34322 provisions section containing the repeated-value OR rule; no explicit FHIR-36829 source commit was found.",
+    "learned": "History shows FHIR-36829 was closed by earlier provisions text but left a stale purpose binding description behind.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence searches for FHIR-36829/FHIR-34322 Consent provision semantics",
+    "command": "bun run zulip:search fts '\"FHIR-36829\" Consent provision' --limit 10; bun run zulip:search fts '\"FHIR-34322\" Consent' --limit 10; bun run zulip:search fts '\"multi-valued\" Consent provision' --limit 10; bun run confluence:search refs jira FHIR-36829; bun run confluence:search refs jira FHIR-34322; bun run confluence:search fts '\"all the specified labels\" Consent' --limit 10",
+    "query": "FHIR-36829 FHIR-34322 multi-valued Consent provision all the specified labels",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting community hits were found for the issue family or exact stale phrase.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted validation commands",
+    "command": "git diff --check; xmllint --noout source/consent/structuredefinition-Consent.xml; rg -n 'all the specified labels|operations must have all|matching any one purpose' source/consent/structuredefinition-Consent.xml source/consent/consent-notes.xml",
+    "summary": "Whitespace and XML checks passed, and the stale all-label phrase no longer appears in the edited authoritative Consent sources.",
+    "learned": "The source fix is syntactically safe and aligned with the existing Provisions narrative.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,108 @@
+FHIR-13764: Audit code regex backtracking fix
+
+Issue request:
+FHIR-13764 was a Published/Persuasive MnM STU3 change request asking to correct the primitive code regex because `[^\s]+([\s]?[^\s]+)*` caused catastrophic backtracking when a value ended in whitespace. The issue proposed removing the nested optional whitespace and noted that the prose about no leading/trailing whitespace and only single spaces supported `[^\s]+( [^\s]+)*` as the best target.
+
+Initial application:
+The Jira comment records svn revision 12454. In git history this is commit 0f9097af2a78da0ef2d92afbbef029ffde9a8a99, `#13764 - fix code regex`, which changed `source/datatypes.html` and `source/datatypes/primitives.xml` from `[^\s]+([\s]?[^\s]+)*` to `[^\s]+(\s[^\s]+)*`. That removed the catastrophic optional-whitespace structure and applied the seed's immediate correction.
+
+Additional context:
+Later Published/Persuasive code-regex issues refined the final source. FHIR-25413 changed the authoritative primitive spreadsheet to `[^\s]+( [^\s]+)*` so the pattern permits only literal spaces between non-whitespace tokens, and FHIR-37406 corrected the datatype-page display. Both related issues are already represented on the combined branch. Current `source/datatypes/primitives.xml` contains `[^\s]+( [^\s]+)*`, current `source/datatypes.html` uses `[%regex code%]`, and `source/fhir.ini` routes datatypes through the active datatype page. FHIR-46202 is a later `Resolved - change required` issue asking for a schema-style `^[^\s]+(\s[^\s]+)*$`; it is not Applied/Published, appears to conflict with the Published FHIR-25413/FHIR-37406 literal-space decision, and is not decided in this default applied/published run.
+
+AutoFHIR reconciliation:
+This empty audit commit records that no current core source change is needed for FHIR-13764. The catastrophic pattern no longer appears in active current source, the authoritative code regex now uses the stricter literal-space form that the seed itself identified as matching the prose, and the remaining older patterns found by fixed-string search are historical release snapshots under `tools/history`, not current datatype source.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up is needed for FHIR-13764 in core FHIR; handle FHIR-46202 separately with work-group review if that unresolved later tracker is taken up, because it would revisit the already-published literal-space decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13764
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25413: later-change - Published/Persuasive MnM issue that changed the authoritative code primitive regex to `[^\s]+( [^\s]+)*`; already audited on the combined branch.
+FHIR-37406: later-change - Published/Persuasive MnM issue that corrected the datatype-page display for the same literal-space regex; already audited on the combined branch.
+FHIR-46202: conflicting-decision - Later Resolved-change-required issue requesting a schema-style `\s` regex; not Applied/Published and not in this run's source-edit scope.
+FHIR-9031: background - Earlier Published issue changed a multiple-whitespace code regex to an optional-whitespace form that FHIR-13764 later corrected.
+FHIR-6181: background - Earlier DSTU1 Published issue about tightening the code regex whitespace pattern.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13764: Published/Persuasive STU3 issue requesting correction of catastrophic backtracking in the code regex. Learned: this is the final seed request and establishes that the old `[^\s]+([\s]?[^\s]+)*` pattern must not remain authoritative.
+- E2 Git 0f9097af2a78da0ef2d92afbbef029ffde9a8a99: `#13764 - fix code regex` changed datatypes.html and primitives.xml from `[^\s]+([\s]?[^\s]+)*` to `[^\s]+(\s[^\s]+)*`. Learned: the seed was explicitly applied in source history at the Jira-cited svn revision 12454.
+- E3 Source source/datatypes/primitives.xml:260-265: the current code primitive row defines `[^\s]+( [^\s]+)*`. Learned: the authoritative primitive source already uses the non-catastrophic literal-space regex aligned with the prose.
+- E4 Source source/datatypes.html:146-155 and source/fhir.ini:75-85: the active datatype page displays `[%regex code%]` for code and datatype routing points to datatypes. Learned: the built datatype page is fed by the authoritative primitive regex instead of a stale literal regex.
+- E5 Jira/Git FHIR-25413 and FHIR-37406: later Published issues and commits c4807a5165ee632872ef9f6289fee8e9e1abbb5f / 92efc0e06b73601ad153b28144664fd95a3aa741 refined the seed fix to the current literal-space form. Learned: current source reflects later final decisions and should not be reverted to the intermediate `\s` form.
+- E6 Command source/behavior checks: fixed-string search found no old code regex in active `source/`, and a Python fullmatch check accepted single spaces while rejecting trailing whitespace, tabs, newlines, double spaces, and empty strings. Learned: current source satisfies the seed behavior and preserves the datatype prose.
+- E7 Command Zulip/Confluence searches: Zulip exact-key search found no discussion, term search found only a tracker bot notification, and Confluence refs/FTS found no FHIR-13764 records. Learned: no discovered community evidence contradicts the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13764",
+    "url": "https://jira.hl7.org/browse/FHIR-13764",
+    "snapshot_path": "contexts/FHIR-13764/jira/FHIR-13764.md",
+    "ref": { "jira_key": "FHIR-13764" },
+    "summary": "Published/Persuasive STU3 issue requesting correction of catastrophic backtracking in the primitive code regex.",
+    "learned": "This establishes that the old optional-whitespace regex must not remain authoritative for code.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "0f9097af2a78da0ef2d92afbbef029ffde9a8a99",
+    "ref": { "commit": "0f9097af2a78da0ef2d92afbbef029ffde9a8a99" },
+    "summary": "Commit #13764 changed datatypes.html and primitives.xml from [^\\s]+([\\s]?[^\\s]+)* to [^\\s]+(\\s[^\\s]+)*.",
+    "learned": "The seed was explicitly applied in source history at the Jira-cited svn revision 12454.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:260-265",
+    "summary": "The current code primitive row contains regex [^\\s]+( [^\\s]+)*.",
+    "learned": "The authoritative primitive source already contains a non-catastrophic literal-space regex aligned with the prose.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes.html:146-155; source/fhir.ini:75-85",
+    "summary": "The active datatype page uses [%regex code%], and fhir.ini routes datatypes to the datatype page.",
+    "learned": "The rendered datatype regex is generated from the authoritative primitive regex rather than stale literal prose.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "c4807a5165ee632872ef9f6289fee8e9e1abbb5f; 92efc0e06b73601ad153b28144664fd95a3aa741",
+    "ref": { "commits": "c4807a5165ee632872ef9f6289fee8e9e1abbb5f; 92efc0e06b73601ad153b28144664fd95a3aa741" },
+    "summary": "Later FHIR-25413/FHIR-37406 commits changed the authoritative and displayed code regex from \\s to a literal space.",
+    "learned": "Current source reflects later Published decisions and should not be reverted to the intermediate FHIR-13764 pattern.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Source regex and behavior checks",
+    "command": "git grep -n -F '[^\\s]+([\\s]?[^\\s]+)*' -- source || true; git grep -n -F '[^\\s]+(\\s[^\\s]+)*' -- source || true; python3 regex fullmatch checks for [^\\s]+( [^\\s]+)*",
+    "summary": "No old code regex remains in active source, and the current pattern accepts only single spaces between non-whitespace tokens with no trailing whitespace.",
+    "learned": "The current source satisfies the seed behavior and the datatype prose.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-13764 plus key terms",
+    "command": "bun run zulip:search fts '\"FHIR-13764\"' --limit 10; bun run zulip:search fts '\"catastrophic backtracking\" \"code\" regex' --limit 10; bun run confluence:search refs jira FHIR-13764; bun run confluence:search fts '\"catastrophic backtracking\" \"code\" regex' --limit 10",
+    "query": "FHIR-13764 catastrophic backtracking code regex",
+    "result_count": 1,
+    "summary": "Zulip found only a tracker bot notification and Confluence found no references or term hits.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

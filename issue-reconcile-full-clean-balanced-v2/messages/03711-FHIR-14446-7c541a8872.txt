@@ -1,0 +1,141 @@
+FHIR-14446: Audit Patient Care workflow alignment
+
+Issue request:
+FHIR-14446 was a Published/Persuasive with Modification Patient Care change request asking the work group to clear workflow-report warnings for CarePlan, ClinicalImpression, Communication, CommunicationRequest, Condition, FamilyMemberHistory, and Procedure. The approved actions included workflow mapping changes and suppressions, CarePlan activity doNotPerform/statusReason updates, CommunicationRequest doNotPerform/statusReason and performer mapping updates, ClinicalImpression status/effective alignment, CarePlan status/intent/author-contributor changes, instantiates target updates, and Procedure.performer.role to function.
+
+Initial application:
+The issue was applied in several 2018 source commits. GF#14446 commits on 2018-03-02 and 2018-03-04 renamed CarePlan.activity.detail.prohibited to doNotPerform and added workflow warning suppressions; the 2018-06-20 GF#14446 commit applied the main mapping, element, binding, and exception changes; and the 2018-07-03 GF#14446 commit applied the remaining June vote, including CommunicationRequest.recipient mapping, CarePlan contributor/author changes, instantiates target changes, and Procedure.performer.function.
+
+Additional context:
+The affected resource folders are active in source/fhir.ini. Current source keeps the durable FHIR-14446 semantics, but not every 2018 name remains literal: CarePlan.author was later renamed to CarePlan.custodian and paired with CarePlan.contributor, and applied FHIR-40500 later removed top-level instantiates[x] elements from CarePlan, Communication, FamilyMemberHistory, and Procedure because workflow patterns moved to more precise extensions. Confluence minutes and the linked Zulip workflow thread match the Jira votes and do not show a conflicting unresolved requirement.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already expresses the approved workflow decisions through active resource definitions and mapping-exception files: CarePlan has Request.status/intent mapping, custodian/contributor, activity statusReason as CodeableConcept, and activity doNotPerform; CommunicationRequest has statusReason, doNotPerform, recipient mapped to Request.performer, and category not mapped as Request.code; ClinicalImpression has status/statusReason/effective workflow alignment; Condition.asserter no longer maps to Event.performer.actor; FamilyMemberHistory records the Event.occurrence exemption; Communication.recipient maps to the event actor role; and Procedure uses performer.function.
+
+Recommendation:
+Keep this no-change audit commit. Future edits should be handled under the later, more specific workflow issues that changed these surfaces, especially FHIR-40500 for instantiates removal and FHIR-48444 for CarePlan contributor/custodian FiveWs mapping.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14446
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-40500: later-change - Applied R6 workflow-pattern issue that removed top-level instantiates[x] from PC resources after FHIR-14446 had added or adjusted those targets.
+FHIR-48444: later-change - Applied CarePlan contributor/custodian FiveWs mapping clarification that explains current CarePlan source around the former author/contributor split.
+FHIR-28544: later-change - Renamed CarePlan.author to CarePlan.custodian before the current source state, preserving the responsible-party concept from the FHIR-14446 discussion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14446: Published/Persuasive with Modification; Patient Care approved a multi-part workflow alignment for CarePlan, ClinicalImpression, Communication, CommunicationRequest, Condition, FamilyMemberHistory, and Procedure. Learned: this is the final seed request and defines the reconciliation scope.
+- E2 Confluence 6003273: 2018-03-22 Patient Care minutes record the GF#14446 vote for CarePlan.status, CarePlan.activity.detail.status exemption, and ClinicalImpression.status alignment. Learned: meeting evidence matches the Jira March vote.
+- E3 Confluence 19136690: 2018-06-28 Patient Care minutes record the remaining GF#14446 workflow actions, including CommunicationRequest.recipient, suppressions, CarePlan contributor/author, instantiates targets, and Procedure.performer.function. Learned: meeting evidence matches the Jira June vote and the later source commit.
+- E4 Zulip #workflow > Patient Care Exemption Requests and Workflow Report: Lloyd recommended renaming CarePlan.author to contributor when not responsible for the whole plan, and Michelle later said GF#14446 was being closed with only report issues lingering. Learned: community discussion supports the author/contributor handling and closure rationale.
+- E5 Git 49fa35a, fa3c52b, 0b3156f, f235b25: the 2018 source history explicitly applies GF#14446 in the affected resources and workflow warning files. Learned: the issue was not missed in historical application.
+- E6 Source source/fhir.ini:179-213 and 499-611: the affected Patient Care resources are active build resources with pc work-group ownership. Learned: the source checks are in current build scope.
+- E7 Source source/careplan/structuredefinition-CarePlan.xml:197,441,467,765,921,944; source/communicationrequest/structuredefinition-CommunicationRequest.xml:207,273,324,549; source/clinicalimpression/structuredefinition-ClinicalImpression.xml:124,161,251; source/condition/structuredefinition-Condition.xml:590; source/procedure/structuredefinition-Procedure.xml:594. Learned: current authoritative definitions carry the necessary workflow-alignment elements and mappings.
+- E8 Source mapping exceptions: source/familymemberhistory/familymemberhistory-event-mapping-exceptions.xml:67-75, source/communication/communication-event-mapping-exceptions.xml:135, source/communicationrequest/communicationrequest-request-mapping-exceptions.xml:100 and 184, source/careplan/careplan-request-mapping-exceptions.xml:209-212. Learned: current exceptions preserve the approved workflow suppressions rather than requiring new resource elements.
+- E9 Jira/Git FHIR-40500 and git 6089508: later Applied workflow-pattern issue removed top-level instantiates[x] from CarePlan, Communication, FamilyMemberHistory, and Procedure; the combined branch already has an FHIR-40500 audit/fix commit. Learned: reinstating FHIR-14446's old instantiates wording would be wrong for current R6 source.
+- E10 Verification commands: rg searches for top-level PC instantiates[x] elements found no current matches, and Zulip/Confluence searches found supporting records rather than conflicting decisions. Learned: no current source hunk is required for this seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14446",
+    "url": "https://jira.hl7.org/browse/FHIR-14446",
+    "snapshot_path": "contexts/FHIR-14446/jira/FHIR-14446.md",
+    "ref": { "jira_key": "FHIR-14446" },
+    "summary": "Published/Persuasive with Modification Patient Care request to clear workflow-report issues across CarePlan, ClinicalImpression, Communication, CommunicationRequest, Condition, FamilyMemberHistory, and Procedure.",
+    "learned": "This final Jira disposition defines the seed scope and the set of approved workflow-alignment actions to check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "2018-03-22 Patient Care FHIR Conference Call page 6003273",
+    "url": "https://confluence.hl7.org/spaces/PC/pages/6003273/2018-03-22+Patient+Care+FHIR+Conference+Call",
+    "snapshot_path": "contexts/FHIR-14446/confluence/6003273.md",
+    "ref": { "confluence_page_id": 6003273 },
+    "summary": "Minutes record the GF#14446 motion for CarePlan.status, CarePlan.activity.detail.status exemption, and ClinicalImpression.status alignment.",
+    "learned": "The March meeting evidence confirms part of the Jira resolution and narrows those source checks.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "2018-06-28 Patient Care FHIR Conference Call page 19136690",
+    "url": "https://confluence.hl7.org/spaces/PC/pages/19136690/2018-06-28+Patient+Care+FHIR+Conference+Call",
+    "snapshot_path": "contexts/FHIR-14446/confluence/19136690.md",
+    "ref": { "confluence_page_id": 19136690 },
+    "summary": "Minutes record the remaining GF#14446 motion covering CommunicationRequest.recipient, suppressions, CarePlan contributor/author, instantiates targets, and Procedure.performer.function.",
+    "learned": "The June meeting evidence matches the final 2018 implementation commit and supports treating the issue as historically applied.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "zulip",
+    "locator": "#workflow > Patient Care Exemption Requests and Workflow Report",
+    "url": "https://chat.fhir.org/#narrow/stream/workflow/topic/Patient%20Care%20Exemption%20Requests",
+    "snapshot_path": "contexts/FHIR-14446/zulip/workflow--Patient-Care-Exemption-Requests.md",
+    "ref": { "stream": "workflow", "topic": "Patient Care Exemption Requests" },
+    "summary": "Workflow discussion records Lloyd's recommendation to rename multi-author CarePlan.author semantics to contributor, and Workflow Report search found Michelle closing GF#14446 after the final changes.",
+    "learned": "Community context supports the current CarePlan contributor/custodian interpretation and reveals no conflicting source requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "49fa35a, fa3c52b, 0b3156f, f235b25",
+    "ref": { "commit_range": "2018 GF#14446 application commits" },
+    "summary": "Four 2018 commits explicitly applied GF#14446 workflow mapping, element, binding, suppression, instantiates, contributor, and Procedure performer changes.",
+    "learned": "The source history shows the issue was applied before this reconciliation rather than remaining unimplemented.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:179-213,499-611",
+    "summary": "CarePlan, ClinicalImpression, Communication, CommunicationRequest, Condition, FamilyMemberHistory, and Procedure are active resources and owned by Patient Care where applicable.",
+    "learned": "The current-source inspection covered build-scope artifacts rather than retired files.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/careplan/structuredefinition-CarePlan.xml; source/communicationrequest/structuredefinition-CommunicationRequest.xml; source/clinicalimpression/structuredefinition-ClinicalImpression.xml; source/condition/structuredefinition-Condition.xml; source/procedure/structuredefinition-Procedure.xml",
+    "summary": "Current definitions contain the necessary status, statusReason, doNotPerform, contributor/custodian, recipient/performer, effective/occurrence, Condition.asserter, and Procedure.performer.function state.",
+    "learned": "The authoritative XML already conveys the workflow alignment required by the seed issue.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "source",
+    "locator": "source/*/*-mapping-exceptions.xml workflow mapping exceptions",
+    "summary": "Current mapping exception files preserve approved workflow suppressions for FamilyMemberHistory occurrence, Communication/CommunicationRequest performers, CarePlan unmapped request elements, and related divergences.",
+    "learned": "The remaining report divergences are intentionally represented as exceptions, not missing source fixes.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "jira",
+    "locator": "FHIR-40500",
+    "url": "https://jira.hl7.org/browse/FHIR-40500",
+    "snapshot_path": "contexts/FHIR-14446/jira/FHIR-40500.md",
+    "ref": { "jira_key": "FHIR-40500", "commit": "6089508bef052459893cbb963f5661f217f0ece3" },
+    "summary": "Applied later R6 issue removed top-level instantiates[x] from CarePlan, Communication, FamilyMemberHistory, and Procedure in favor of workflow extensions.",
+    "learned": "This later decision supersedes the old FHIR-14446 instantiates-target additions for current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E10",
+    "kind": "command",
+    "locator": "Current source and community verification searches",
+    "command": "rg '<element id=\"(CarePlan|Communication|FamilyMemberHistory|Procedure)\\.instantiates(Canonical|Uri)\"' source/...; bun run zulip:search fts '\"Patient Care Exemption Requests\" workflow'; bun run confluence:search fts '\"CarePlan.status\" \"Request.status\" \"ClinicalImpression.status\"'",
+    "summary": "Top-level PC instantiates elements are absent as expected after FHIR-40500, while Zulip and Confluence searches found supporting records and no conflicting decision.",
+    "learned": "The verification supports an empty no-change reconciliation for FHIR-14446.",
+    "supports": ["confidence", "absence_of_conflict"]
+  }
+]
+</evidence-manifest>

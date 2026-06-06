@@ -1,0 +1,84 @@
+FHIR-32583: Audit DocumentReference content profile application
+
+Issue request:
+FHIR-32583 was a Published OO change request for R5 asking whether DocumentReference.content.format should become an extension because the existing format concept seemed specific to XDS/IHE use. The final Not Persuasive with Modification resolution instead kept the concept in core by renaming .format to .profile, changing the outer element to 0..*, representing the old choice as a repeating backbone with value[x], allowing Coding, uri, and canonical, and adding usage notes that FHIR content should use canonical URLs of the StructureDefinition profiles the content complies with.
+
+Initial application:
+The current source appears to have been applied by git commit 56832a9e59e07d5449776a61dbb3d0ec3cd0f3d2, "Updates to DocumentReference", which changed source/documentreference/structuredefinition-DocumentReference.xml from DocumentReference.content.format 0..1 Coding into DocumentReference.content.profile 0..* BackboneElement with a mandatory value[x] typed as Coding, uri, or canonical and with the FHIR profile-canonical comment. That commit also updated related DocumentReference content in the same resource-edit batch, though its subject did not name FHIR-32583.
+
+Additional context:
+DocumentReference is active in source/fhir.ini, so source/documentreference/structuredefinition-DocumentReference.xml is in build scope. Current examples and search parameter expressions use DocumentReference.content.profile, and the version-conversion map explicitly maps DocumentReference.content.format to content.profile. Confluence OO minutes reference FHIR-32583 as resolved during the January 2022 WGM and list FHIR-32583 in the March 2022 DocumentReference pull request/update agenda. Zulip search found general later discussion of DocumentReference format/profile terminology but no conflicting final decision requiring a further core change.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The active current source already implements the approved FHIR-32583 shape and usage note, and the remaining uses of "format" are aliases, IHE/XDS formatCode mappings, search-parameter codes/descriptions for the historical search surface, an R4 conversion map, or commented historical notes rather than stale active DocumentReference.content.format elements.
+
+Recommendation:
+Keep this no-change audit commit as-is. No FHIR core follow-up is needed for FHIR-32583 unless a future work-group decision separately renames or deprecates the historical format-* search parameters.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32583
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32583: Published / Not Persuasive with Modification, requiring .format to become repeating .profile with Coding|uri|canonical value[x] and FHIR profile-canonical guidance. Learned: establishes the final approved target behavior.
+- E2 Source source/fhir.ini:189 and source/fhir.ini:1707: DocumentReference is an active resource and R4 DocumentReference.content.format maps to content.profile. Learned: the checked source is in build scope and explicitly records the rename.
+- E3 Source source/documentreference/structuredefinition-DocumentReference.xml:1184: current DocumentReference.content.profile is 0..* with value[x] Coding, uri, canonical and the FHIR profile-canonical comment. Learned: the authoritative resource source already implements the Jira resolution.
+- E4 Git 56832a9e59e07d5449776a61dbb3d0ec3cd0f3d2: changed DocumentReference.content.format to DocumentReference.content.profile and added the repeating backbone/value[x] structure. Learned: explains the initial application event even though the commit subject did not name the Jira key.
+- E5 Command search sweep: rg over source plus Jira/Zulip/Confluence searches found active content.profile references, search-parameter expressions against content.profile, no active content.format element, Confluence records for the OO decision/update, and no conflicting Zulip decision. Learned: no additional current source correction is needed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32583",
+    "url": "https://jira.hl7.org/browse/FHIR-32583",
+    "snapshot_path": "contexts/FHIR-32583/jira/FHIR-32583.md",
+    "ref": { "jira_key": "FHIR-32583" },
+    "summary": "Published OO change request resolved Not Persuasive with Modification to rename DocumentReference.content.format to content.profile, make it repeating, and support Coding, uri, and canonical values.",
+    "learned": "This establishes the final approved R5 target shape and FHIR profile-canonical usage note.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:189 and source/fhir.ini:1707",
+    "ref": { "path": "source/fhir.ini", "lines": "189,1707" },
+    "summary": "DocumentReference is an active resource and the conversion map records DocumentReference.content.format -> content.profile.",
+    "learned": "The inspected DocumentReference resource source is in current build scope and the rename is represented in migration metadata.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/documentreference/structuredefinition-DocumentReference.xml:1184-1230",
+    "ref": { "path": "source/documentreference/structuredefinition-DocumentReference.xml", "start_line": 1184, "end_line": 1230 },
+    "summary": "Current DocumentReference.content.profile is a 0..* BackboneElement with value[x] 1..1 typed Coding, uri, and canonical, plus the FHIR profile-canonical comment.",
+    "learned": "The authoritative source already matches the substantive FHIR-32583 resolution.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "56832a9e59e07d5449776a61dbb3d0ec3cd0f3d2",
+    "ref": { "commit": "56832a9e59e07d5449776a61dbb3d0ec3cd0f3d2" },
+    "summary": "Commit 'Updates to DocumentReference' replaced DocumentReference.content.format with content.profile and added the repeating backbone/value[x] structure.",
+    "learned": "This is the apparent initial source application for FHIR-32583 in the DocumentReference update batch.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Source and community search sweep for FHIR-32583 DocumentReference format/profile",
+    "command": "rg -n 'DocumentReference\\.content\\.format|content\\.format|<format>|</format>|format element|\\.format element|content profile|content\\.profile' source; bun run jira:search fts '\"DocumentReference.content.profile\" OR \"DocumentReference.content.format\" OR \"content.format\" \"DocumentReference\"' --limit 20; bun run zulip:search fts '\"DocumentReference\" \"content\" \"format\" \"profile\"' --limit 10; bun run confluence:search refs jira FHIR-32583 --limit 10",
+    "query": "FHIR-32583 DocumentReference content format profile",
+    "summary": "The sweep found active content.profile source and search expressions, no active content.format element, Confluence references to the OO resolution/update, and no conflicting Zulip decision.",
+    "learned": "No remaining current-build source correction is required for this issue.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

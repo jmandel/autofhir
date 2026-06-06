@@ -1,0 +1,121 @@
+FHIR-15657: Replace stale ClaimResponse total fields
+
+Issue request:
+FHIR-15657 is a Published/Persuasive FHIR-core ClaimResponse change request for STU3. It asked to replace ClaimResponse totalCost, unallocated/unallocDeductable, and totalBenefit with repeating ClaimResponse.total entries containing category and amount, to use the submitted adjudication code instead of total, and to add unallocdeduct to the adjudication code set.
+
+Initial application:
+The change was substantially applied before this reconciliation. Git commit 39b2cdba02 pre-adopted the same repeating total pattern in ExplanationOfBenefit examples and changed the then-core adjudication code system from total to submitted while adding unallocdeduct. Git commit e50c083cdf, explicitly titled Tracker #15657, replaced ClaimResponse example totalCost/totalBenefit/unallocDeductable content with repeating total entries and updated the then-authoritative ClaimResponse spreadsheet. Current ClaimResponse source and regular examples already use ClaimResponse.total with category and amount and no longer expose the old fixed total elements.
+
+Additional context:
+ClaimResponse, Claim, and Library are active resources in source/fhir.ini. The Claim $submit operation is active and references source/claim/$submit-response.txt as its response example; that example still used the retired ClaimResponse totalCost and totalBenefit elements. The Library examples page and publish.ini also publish library-quick-model-definition-content.xml; its QUICK.ClaimResponse model still exposed totalCost, unallocDeductable, and totalBenefit even though the parallel FHIR model-definition content already has ClaimResponse.total and ClaimResponse.Total. ProcessRequest has a similar old response example, but ProcessRequest is commented out of the current resources list and was not edited. The current core source no longer owns the adjudication CodeSystem content after UTG/THO migration; the active adjudication ValueSet composes from http://terminology.hl7.org/CodeSystem/adjudication.
+
+AutoFHIR reconciliation:
+Updated the active Claim $submit response example to use two ClaimResponse.total entries categorized as submitted and benefit, and updated the active QUICK Library model-info example to replace the three stale fixed total fields with a repeating total element and a QUICK.ClaimResponse.Total backbone carrying category and amount.
+
+Recommendation:
+Keep this source fix. The primary ClaimResponse resource was already correct, and these two active parallel artifacts were the remaining source locations that could teach implementers or CQL tooling the retired total fields. No core source follow-up is recommended for the adjudication code system unless a separate THO/UTG issue identifies a terminology defect.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15657
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-15786: background - appeared in the same ClaimResponse total/adjudication search path for ExplanationOfBenefit adjudication work; it is already represented on the combined branch and does not require a separate FHIR-15657 decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15657: Published/Persuasive FM issue requested replacing fixed ClaimResponse total elements with repeating total.category/amount and adjudication-code updates. Learned: this is final WG intent for the current reconciliation.
+- E2 Git 39b2cdba02 and e50c083cdf: pre-adoption in ExplanationOfBenefit and explicit Tracker #15657 ClaimResponse changes replaced old total fields and updated adjudication codes. Learned: the primary source was historically applied, but parallel artifacts needed a current-source sweep.
+- E3 Source source/claimresponse/structuredefinition-ClaimResponse.xml:1969-2023 and source/claimresponse/claimresponse-example.xml:127-149: current ClaimResponse defines repeating total with required category and amount and examples use submitted/benefit total categories. Learned: the authoritative ClaimResponse resource and regular examples already match the issue.
+- E4 Source source/fhir.ini:241,242,266; source/claim/operationdefinition-Claim-submit.xml:25-34; source/library/list-Library-examples.xml:55-64; source/library/library-examples-header.xml:35-42; publish.ini:206-207: Claim, ClaimResponse, and Library are active and the edited response/model-info files are referenced or copied into the build. Learned: the edited files are current build inputs, not stale publish output.
+- E5 Source source/claim/$submit-response.txt:127-156 and source/library/library-quick-model-definition-content.xml:529-652: this commit replaces stale totalCost/totalBenefit/unallocDeductable metadata with repeating total structures. Learned: the remaining active source gaps were reconciled.
+- E6 Source source/fhir.ini:261; source/processrequest/$submit-response.txt:147-157: ProcessRequest is commented out of the current resources list, so its similarly stale response example is out of current build scope. Learned: the fix should not broaden into disabled resource source.
+- E7 Source source/claimresponse/valueset-adjudication.xml:40-43 and Git 5c0494aacf: current core ValueSet composes from THO's adjudication CodeSystem, and UTG/THO content was removed from core. Learned: no core CodeSystem source edit is needed for the unallocdeduct part of the old Jira request.
+- E8 Community search: Jira search for FHIR-15657 found only the seed; Zulip and Confluence searches/refs for FHIR-15657 ClaimResponse total found no relevant hits. Learned: no discovered community record changes the Jira/source conclusion.
+- E9 Verification command: XML parse, targeted assertions, CRLF-aware diff --check, and active-scope grep for retired total names passed. Learned: the source fix is structurally valid and removes the targeted stale active-source content.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15657",
+    "url": "https://jira.hl7.org/browse/FHIR-15657",
+    "snapshot_path": "contexts/FHIR-15657/jira/FHIR-15657.md",
+    "ref": { "jira_key": "FHIR-15657" },
+    "summary": "Published/Persuasive FM issue requesting ClaimResponse fixed total fields be replaced by repeating total.category/amount entries, with submitted and unallocdeduct adjudication-code changes.",
+    "learned": "This establishes final WG intent for the current source reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "39b2cdba0275e76caf7162bcc369a37a3f47e9a2; e50c083cdfcae799180a57d2cd2e45b88bc7299f",
+    "ref": { "commit_1": "39b2cdba0275e76caf7162bcc369a37a3f47e9a2", "commit_2": "e50c083cdfcae799180a57d2cd2e45b88bc7299f" },
+    "summary": "Historical application commits pre-adopted the total pattern in ExplanationOfBenefit, changed the adjudication code system, and then explicitly applied Tracker #15657 to ClaimResponse examples and spreadsheet.",
+    "learned": "The primary resource change was applied, but a current-source sweep was still needed for parallel artifacts.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/claimresponse/structuredefinition-ClaimResponse.xml:1969-2023; source/claimresponse/claimresponse-example.xml:127-149",
+    "summary": "Current ClaimResponse defines repeating total with category and amount, and regular examples use submitted and benefit total categories.",
+    "learned": "The authoritative ClaimResponse resource and regular examples already match FHIR-15657.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:241,242,266; source/claim/operationdefinition-Claim-submit.xml:25-34; source/library/list-Library-examples.xml:55-64; source/library/library-examples-header.xml:35-42; publish.ini:206-207",
+    "summary": "Claim, ClaimResponse, and Library are active; the Claim submit operation references $submit-response.txt and the Library model-info content is listed and published.",
+    "learned": "The edited response and model-info files are current build inputs.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/claim/$submit-response.txt:127-156; source/library/library-quick-model-definition-content.xml:529-652",
+    "summary": "The active Claim submit response and QUICK model-info example now use repeating total structures instead of totalCost/totalBenefit/unallocDeductable.",
+    "learned": "The remaining active stale source content directly tied to FHIR-15657 has been fixed.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:261; source/processrequest/$submit-response.txt:147-157",
+    "summary": "ProcessRequest is commented out of the current resources list; its old response example still contains totalCost and totalBenefit.",
+    "learned": "That stale disabled-resource file is outside current build scope for this core fix.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/claimresponse/valueset-adjudication.xml:40-43; git 5c0494aacf",
+    "ref": { "commit": "5c0494aacf" },
+    "summary": "The current adjudication ValueSet composes from THO's adjudication CodeSystem; later core history removed UTG terminology content from the core build.",
+    "learned": "No core CodeSystem source edit is needed for the unallocdeduct terminology part of the issue.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community search for FHIR-15657 ClaimResponse total",
+    "command": "bun run jira:search fts '\"FHIR-15657\" ClaimResponse total' --limit 10; bun run zulip:search fts '\"FHIR-15657\" ClaimResponse total' --limit 10; bun run confluence:search refs jira FHIR-15657; bun run confluence:search fts '\"FHIR-15657\" ClaimResponse total' --limit 10",
+    "query": "FHIR-15657 ClaimResponse total",
+    "summary": "Jira search found only the seed issue; Zulip and Confluence searches found no directly relevant hits.",
+    "learned": "No discovered community record conflicts with the Jira/source conclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Targeted XML and active-scope verification",
+    "command": "python3 XML parse and targeted assertions; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg -n 'totalCost|totalBenefit|unallocDeductable|unallocatedDeductable|unallocDeduct|unallocatedDeduct' source/claim source/claimresponse source/explanationofbenefit source/library --glob '!tools/history/**' --glob '!publish/**'",
+    "summary": "Edited XML parsed, targeted assertions passed, diff --check passed, and no retired total names remain in the active Claim/ClaimResponse/EOB/Library scope.",
+    "learned": "The source fix is structurally valid and removes the targeted stale active-source content.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

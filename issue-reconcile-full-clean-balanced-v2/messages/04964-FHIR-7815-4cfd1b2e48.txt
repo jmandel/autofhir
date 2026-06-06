@@ -1,0 +1,106 @@
+FHIR-7815: Audit MedicationRequest timing mapping
+
+Issue request:
+FHIR-7815 was a Published/Persuasive Pharmacy change request from the 2015 DSTU QA process. It asked to remove the v2 message-type-level mapping for MedicationPrescription.dosageInstruction/scheduled[x] from RDS:TQ1 and replace it with the segment/field mapping TQ1-X / ORC Quantity/timing, because RDS is a dispense event message type and the mapping should target v2 segments/fields rather than message types.
+
+Initial application:
+The issue appears to have been applied by commit 651364cb098a623c36afc1d6b9d56578507d897c, which explicitly listed tracker item 7815 and changed the then-active MedicationOrder dosageInstruction timing mapping from RDS:TQ1 to TQ1-X / ORC Quantity/timing. No separate FHIR-7815 audit commit already existed on the combined branch before this reconciliation.
+
+Additional context:
+MedicationPrescription was mechanically renamed to MedicationOrder in 2015, and the current build now uses MedicationRequest. Later dosage refactoring moved the dosage timing mapping out of the medication resource into the shared Dosage/DosageInstruction datatype; current source/fhir.ini keeps both dosage and MedicationRequest in build scope. Current MedicationRequest.dosageInstruction is a DosageDetails, DosageDetails.step.component is Dosage, and Dosage.timing still carries TQ1-X / ORC Quantity/timing. The exact obsolete RDS:TQ1 mapping is absent from current source.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active datatype source preserves the applied replacement mapping in the correct shared location, and adding duplicate MedicationRequest-local text would be redundant after the datatype refactors.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up source work is needed for FHIR-7815 unless the Pharmacy work group later chooses to revise the broader v2 dosage timing mapping policy.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7815
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7805: same-change-family - included in the same 2015 v2 mapping update commit, but not needed to decide this dosage timing mapping audit.
+FHIR-7816: same-change-family - neighboring MedicationOrder v2 mapping update from the same 2015 batch; already a separate issue and outside this seed decision.
+FHIR-12049: later-change - part of the later dosage datatype refactor that moved dosageInstruction mappings into shared DosageInstruction/Dosage source.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7815: Published/Persuasive Pharmacy issue asked to replace dosageInstruction/scheduled[x] mapping RDS:TQ1 with TQ1-X / ORC Quantity/timing. Learned: this establishes the final requested mapping correction.
+- E2 Git 651364c: 2015 tracker batch commit explicitly listed 7815 and changed MedicationOrder.dosageInstruction.timing from RDS:TQ1 to TQ1-X / ORC Quantity/timing. Learned: the issue was applied in source history.
+- E3 Git 1d00ede: 2016 DosageInstruction refactor removed resource-local dosageInstruction timing rows and added the same TQ1-X / ORC Quantity/timing mapping to shared datatype source. Learned: the apparent move from MedicationOrder/MedicationRequest to Dosage was an intentional refactor, not a missing application.
+- E4 Source source/fhir.ini:99 and source/fhir.ini:202: dosage and medicationrequest are active build-scope entries. Learned: the checked source locations feed the current build.
+- E5 Source source/datatypes/dosage.xml:1019-1037 and source/datatypes/dosagedetails.xml:1035-1039: Dosage.timing has TQ1-X / ORC Quantity/timing, and DosageDetails.step.component is typed as Dosage. Learned: current MedicationRequest dosage timing semantics preserve the requested v2 mapping through active shared datatypes.
+- E6 Command current exact source checks: git grep found no RDS:TQ1 in source and found TQ1-X / ORC Quantity/timing in source/datatypes/dosage.xml. Learned: the obsolete mapping text is not present in current source.
+- E7 Command Zulip/Confluence search for FHIR-7815, MedicationPrescription, RDS, ORC, and TQ1: no relevant results. Learned: no discovered community record changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7815",
+    "url": "https://jira.hl7.org/browse/FHIR-7815",
+    "snapshot_path": "contexts/FHIR-7815/jira/FHIR-7815.md",
+    "ref": { "jira_key": "FHIR-7815" },
+    "summary": "Published/Persuasive Pharmacy issue requested replacing MedicationPrescription dosageInstruction/scheduled[x] v2 mapping RDS:TQ1 with TQ1-X / ORC Quantity/timing.",
+    "learned": "This establishes the final source intent for the reconciliation check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "651364cb098a623c36afc1d6b9d56578507d897c",
+    "ref": { "commit": "651364cb098a623c36afc1d6b9d56578507d897c" },
+    "summary": "The 2015 tracker batch commit explicitly listed 7815 and changed MedicationOrder.dosageInstruction.timing from RDS:TQ1 to TQ1-X / ORC Quantity/timing.",
+    "learned": "FHIR-7815 was applied to the active medication order source at the time.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "1d00edee4413c641918bdf96071c2407902bc4c3",
+    "ref": { "commit": "1d00edee4413c641918bdf96071c2407902bc4c3" },
+    "summary": "The 2016 dosage datatype refactor removed resource-local dosageInstruction timing rows and added the same v2 mapping to shared DosageInstruction/Dosage source.",
+    "learned": "The current shared datatype location is a historical refactor of the applied mapping, not a regression.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:99,202",
+    "summary": "source/fhir.ini has active build entries for dosage=dosage and medicationrequest=MedicationRequest.",
+    "learned": "The checked MedicationRequest and Dosage source locations are in current build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/dosage.xml:1019-1037; source/datatypes/dosagedetails.xml:1035-1039",
+    "summary": "Dosage.timing maps to TQ1-X / ORC Quantity/timing, and DosageDetails.step.component is typed as Dosage.",
+    "learned": "Current MedicationRequest dosage timing reaches the requested v2 mapping through active shared datatype source.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current exact source checks",
+    "command": "git grep -n -F 'RDS:TQ1' HEAD -- source; git grep -n -F 'TQ1-X / ORC Quantity/timing' HEAD -- source",
+    "summary": "No RDS:TQ1 occurrence was found in source; TQ1-X / ORC Quantity/timing was found in source/datatypes/dosage.xml.",
+    "learned": "The obsolete mapping text is absent and the requested replacement remains present.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-7815 MedicationPrescription RDS ORC TQ1",
+    "command": "bun run zulip:search fts '\"FHIR-7815\" MedicationPrescription RDS ORC TQ1' --limit 10; bun run zulip:search fts 'MedicationPrescription RDS ORC TQ1' --limit 10; bun run confluence:search refs jira FHIR-7815; bun run confluence:search fts '\"FHIR-7815\" MedicationPrescription RDS ORC TQ1' --limit 10",
+    "query": "FHIR-7815 MedicationPrescription RDS ORC TQ1",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

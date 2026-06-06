@@ -1,0 +1,115 @@
+FHIR-25056: Audit PlanDefinition apply output options
+
+Issue request:
+FHIR-25056 was Published/Persuasive for R5 and asked to fix PlanDefinition/$apply because its output only listed CarePlan even though RequestGroup could also be the result of applying a PlanDefinition.
+
+Initial application:
+The issue was directly applied by commit 95d6822227 (J#25056), which added a useCarePlan input and changed the return parameter from CarePlan to Resource with documentation naming CarePlan or RequestGroup. A 2020 Zulip follow-up showed the change was still on the editor backlog before that source commit landed.
+
+Additional context:
+RequestGroup was later renamed to RequestOrchestration by FHIR-24619. FHIR-33169 then intentionally replaced the CarePlan-or-RequestOrchestration return shape with a Bundle 0..* return and removed useCarePlan; that issue is already represented on the combined branch. FHIR-46313 later relaxed the Bundle contents so the result may be any combination of request resources, explicitly including CarePlan and RequestOrchestration, and FHIR-51557 clarified that the plural Bundle return is encoded in a Parameters response.
+
+AutoFHIR reconciliation:
+No source change was made. The current build-scoped PlanDefinition/$apply operation returns Bundle 0..* and the operation and PlanDefinition narrative both state that result Bundles can contain request resources including CarePlan and RequestOrchestration, so the current specification no longer has the CarePlan-only output problem that FHIR-25056 identified.
+
+Recommendation:
+Keep this audit commit as-is. Do not restore the older useCarePlan/Resource return shape for FHIR-25056; the current Bundle-based semantics are governed by later final PlanDefinition/$apply decisions. FHIR-46313 and FHIR-51557 can be reconciled separately if needed, but they do not require a seed source change here.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25056
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-24619: later-change - renamed RequestGroup to RequestOrchestration, explaining the current resource name.
+FHIR-33169: supersedes - replaced the FHIR-25056 CarePlan-or-RequestGroup Resource return with Bundle 0..* semantics and removed useCarePlan.
+FHIR-46313: later-change - relaxed the Bundle output description to allow any combination of request resources, including CarePlan and RequestOrchestration.
+FHIR-51557: later-change - clarified that the plural Bundle return is still carried in a Parameters response.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25056: Published/Persuasive issue requested adding RequestGroup as an output option for PlanDefinition/$apply. Learned: establishes the seed's final request and that the CarePlan-only operation signature was the problem to check.
+- E2 Source source/fhir.ini:274,608 and source/plandefinition/list-PlanDefinition-operations.xml:9: PlanDefinition is an active CDS resource and PlanDefinition/$apply is included in the built operation list. Learned: the checked operation definition and narrative are current build-scope evidence.
+- E3 Source source/plandefinition/operationdefinition-PlanDefinition-apply.xml:37,64,174-179: the current operation returns Bundle 0..* and states that the resulting Bundle may contain CarePlan and RequestOrchestration request resources. Learned: the authoritative operation definition is not CarePlan-only.
+- E4 Source source/plandefinition/plandefinition-notes.xml:62,70: the PlanDefinition narrative says result resources may be returned directly as any combination including CarePlan and RequestOrchestration, and are entries in result Bundles. Learned: the module narrative aligns with the current Bundle-based output model.
+- E5 Git 95d682222790d843e4f8232f990ef2827f436fa2: J#25056 added useCarePlan and changed the return type to Resource for CarePlan or RequestGroup. Learned: FHIR-25056 was historically applied before later redesigns changed the shape again.
+- E6 Jira/Git FHIR-33169, FHIR-46313, and FHIR-51557: later final PlanDefinition/$apply decisions changed output to Bundle 0..*, relaxed the RequestOrchestration wrapper requirement, and clarified response encoding. Learned: current semantics intentionally supersede the literal FHIR-25056 R5 application while preserving its non-CarePlan-only intent.
+- E7 Community Zulip and Confluence: Zulip #Care Plan/Care Coordination > CarePlan and $apply operation records a 2020 backlog confirmation for FHIR-25056; CDS Confluence agendas and Zulip CDS discussion describe the later simplification and Bundle/RequestOrchestration behavior. Learned: no discovered community evidence conflicts with leaving the current Bundle-based text intact.
+- E8 Verification command/query: existing combined-branch grep found no FHIR-25056 reconcile commit, and targeted source/history/community searches confirmed current output semantics and later decisions. Learned: this audit is not a duplicate and no source edit is required for the seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25056",
+    "url": "https://jira.hl7.org/browse/FHIR-25056",
+    "snapshot_path": "contexts/FHIR-25056/jira/FHIR-25056.md",
+    "ref": { "jira_key": "FHIR-25056" },
+    "summary": "Published/Persuasive issue requested adding RequestGroup as a PlanDefinition/$apply result option because the operation only listed CarePlan.",
+    "learned": "This establishes the final seed request and the specific CarePlan-only mismatch to evaluate.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:274,608; source/plandefinition/list-PlanDefinition-operations.xml:9",
+    "summary": "PlanDefinition is an active CDS resource and PlanDefinition/$apply is included in the built operation list.",
+    "learned": "The inspected operation definition and PlanDefinition narrative are current build-scope evidence.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/plandefinition/operationdefinition-PlanDefinition-apply.xml:37,64,174-179",
+    "summary": "The current operation returns Bundle 0..* and says result Bundles may contain CarePlan and RequestOrchestration request resources.",
+    "learned": "The authoritative operation definition is no longer CarePlan-only, even though the result shape is now Bundle-based rather than Resource-based.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/plandefinition/plandefinition-notes.xml:62,70",
+    "summary": "The PlanDefinition narrative allows any combination of request resources, including CarePlan and RequestOrchestration, as result Bundle entries.",
+    "learned": "The narrative aligns with the operation definition and supports no source change for the seed.",
+    "supports": ["current_source", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "95d682222790d843e4f8232f990ef2827f436fa2",
+    "ref": { "commit": "95d682222790d843e4f8232f990ef2827f436fa2" },
+    "summary": "J#25056 added useCarePlan and changed PlanDefinition/$apply output from CarePlan to Resource documented as CarePlan or RequestGroup.",
+    "learned": "The seed issue was historically applied before later PlanDefinition/$apply redesigns superseded that exact signature.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-33169; FHIR-46313; FHIR-51557",
+    "url": "https://jira.hl7.org/browse/FHIR-33169",
+    "ref": { "jira_key": "FHIR-33169" },
+    "summary": "Later final PlanDefinition/$apply decisions removed useCarePlan, changed output to Bundle 0..*, relaxed the RequestOrchestration wrapper requirement, and clarified plural Bundle response encoding.",
+    "learned": "Current Bundle-based semantics intentionally supersede the literal FHIR-25056 R5 application while preserving the non-CarePlan-only intent.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#Care Plan/Care Coordination > CarePlan and $apply operation; #cds > Patient-agnostic Decision Support Workflow; CDS Confluence agenda 156547117",
+    "url": "https://chat.fhir.org/#narrow/stream/Care%20Plan%2FCare%20Coordination/topic/CarePlan%20and%20%24apply%20operation",
+    "summary": "Community records show FHIR-25056 was on the editor backlog in 2020 and later discussions describe the R5/R6 simplification toward RequestOrchestration and Bundle output.",
+    "learned": "No discovered community evidence conflicts with leaving the current Bundle-based output text intact.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "idempotency, source, history, and community searches",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-25056'; git log --all --grep='FHIR-25056|25056'; rg -n 'CarePlan|RequestOrchestration|Bundle|useCarePlan' source/plandefinition/operationdefinition-PlanDefinition-apply.xml source/plandefinition/plandefinition-notes.xml; bun run zulip:search fts '\"FHIR-25056\"'",
+    "summary": "No existing combined-branch FHIR-25056 reconcile commit was found; targeted searches confirmed the direct historical application and current non-CarePlan-only Bundle semantics.",
+    "learned": "The empty audit commit is not a duplicate and a source edit is unnecessary for this seed.",
+    "supports": ["idempotency", "confidence"]
+  }
+]
+</evidence-manifest>

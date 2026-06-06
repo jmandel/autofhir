@@ -1,0 +1,104 @@
+FHIR-5709: Audit external ProfileUtilities sorting fix
+
+Issue request:
+FHIR-5709 was Published/Persuasive for FHIR-core DSTU1. It reported that ProfileUtilities.sortDifferential() could incorrectly order a sparse differential when child elements appeared later in the list, causing snapshot generation to miss nested constraints such as mustSupport flags.
+
+Initial application:
+The issue was applied in the old in-repository Java implementation. Commit 6d65f7a49328b6c92d92bd716e419aaa6054a01d changed processElementsIntoTree() to find matching child paths later in the list, and follow-up commit 70dba15929097daa600fcc0037cc0d98aeb8e97b revised the approach for slicing by pre-sorting non-sliced differential elements with ElementNameCompare before tree processing.
+
+Additional context:
+The current FHIR specification checkout no longer contains implementations/java/ProfileUtilities.java or any Java ProfileUtilities source; commit 7a2c3cd52484193783dcf3edf9b0c815e88d7aac removed the old implementations/java tree. Current profiling narrative only describes differential and snapshot concepts, not this sorting implementation detail. GitHub code search shows the current ProfileUtilities.sortDifferential()/ElementNameCompare implementation lives in the external hapifhir/org.hl7.fhir.core repository. Jira search found no other final FHIR-core issue in this exact change family, and Zulip/Confluence searches found no direct FHIR-5709 discussion or conflicting work-group record.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change in HL7/fhir because the requested Java tooling fix was historically applied and the current executable ProfileUtilities implementation is outside this FHIR source checkout/current build scope.
+
+Recommendation:
+Keep this external-repo audit commit as-is for the core FHIR reconciliation. If a current tooling regression is suspected, reconcile it in hapifhir/org.hl7.fhir.core or the IG Publisher/tooling repository rather than editing HL7/fhir specification source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5709
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5709: Published/Persuasive DSTU1 issue asking to fix ProfileUtilities.sortDifferential() ordering for out-of-order differential subcomponents. Learned: establishes final WG intent and the specific old Java tooling behavior under review.
+- E2 Git 6d65f7a49328b6c92d92bd716e419aaa6054a01d: first #5709 commit changed processElementsIntoTree() to collect later matching children. Learned: the issue was explicitly applied in the in-repository Java implementation.
+- E3 Git 70dba15929097daa600fcc0037cc0d98aeb8e97b: follow-up #5709 commit replaced the later-child scan with non-slicing pre-sort and ElementNameCompare to preserve slicing behavior. Learned: the final historical application matches the Jira comment that the first fix did not work for slicing.
+- E4 Source current checkout: git ls-tree HEAD implementations/java and rg for ProfileUtilities/sortDifferential found no current Java ProfileUtilities source. Learned: there is no current HL7/fhir build-scope source file to edit for this tooling issue.
+- E5 Git 7a2c3cd52484193783dcf3edf9b0c815e88d7aac: removed the old implementations/java tree during later repository restructuring. Learned: the historical in-repository implementation was intentionally removed from this checkout.
+- E6 External source search hapifhir/org.hl7.fhir.core: GitHub code search finds current ProfileUtilities.sortDifferential() and ElementNameCompare in org.hl7.fhir.core. Learned: the active Java tooling implementation is maintained outside HL7/fhir.
+- E7 Community search: Jira/Zulip/Confluence searches for FHIR-5709, ProfileUtilities, and sortDifferential found no direct conflicting discussion or Confluence references. Learned: no discovered community evidence changes the source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5709",
+    "url": "https://jira.hl7.org/browse/FHIR-5709",
+    "snapshot_path": "contexts/FHIR-5709/jira/FHIR-5709.md",
+    "ref": { "jira_key": "FHIR-5709" },
+    "summary": "Published/Persuasive DSTU1 issue requiring ProfileUtilities.sortDifferential() to handle out-of-order differential subcomponents correctly.",
+    "learned": "This establishes the final issue request and identifies the old Java tooling behavior, not a normative profiling text change, as the target.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "6d65f7a49328b6c92d92bd716e419aaa6054a01d",
+    "ref": { "commit": "6d65f7a49328b6c92d92bd716e419aaa6054a01d" },
+    "summary": "[#5709] - fix sortDifferential() changed processElementsIntoTree() in implementations/java/org.hl7.fhir.instance/.../ProfileUtilities.java.",
+    "learned": "The issue was explicitly applied in the historical HL7/fhir Java implementation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "70dba15929097daa600fcc0037cc0d98aeb8e97b",
+    "ref": { "commit": "70dba15929097daa600fcc0037cc0d98aeb8e97b" },
+    "summary": "[#5709] - make ProfileUtilities.sortDifferential() work for slicing added non-slicing pre-sort and ElementNameCompare and removed the first later-child scan.",
+    "learned": "The final historical application accounts for the Jira comment that the first proposed fix failed when slicing was present.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "current HL7/fhir checkout implementations/java and source/profiling.html",
+    "ref": { "path": "implementations/java" },
+    "summary": "Current checkout has no implementations/java/ProfileUtilities.java and no ProfileUtilities or sortDifferential source matches; profiling.html only contains generic differential/snapshot narrative.",
+    "learned": "There is no current core specification source or in-repo Java tooling file where the requested fix can be applied.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "7a2c3cd52484193783dcf3edf9b0c815e88d7aac",
+    "ref": { "commit": "7a2c3cd52484193783dcf3edf9b0c815e88d7aac" },
+    "summary": "Repository restructuring commit removed the old implementations/java tree including ProfileUtilities variants.",
+    "learned": "The absence of ProfileUtilities from the current checkout is a later source move/removal, not a missed FHIR-5709 edit.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "web",
+    "locator": "GitHub code search hapifhir/org.hl7.fhir.core ProfileUtilities sortDifferential ElementNameCompare",
+    "url": "https://github.com/hapifhir/org.hl7.fhir.core",
+    "summary": "Code search finds current ProfileUtilities.sortDifferential() and ElementNameCompare in hapifhir/org.hl7.fhir.core for R4, R4B, R5, and DSTU3 support packages.",
+    "learned": "The active Java tooling implementation is maintained outside the HL7/fhir specification checkout.",
+    "supports": ["external_repo", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-5709 and ProfileUtilities sortDifferential",
+    "command": "bun run jira:search fts 'ProfileUtilities sortDifferential' --limit 10; bun run zulip:search fts '5709 sortDifferential' --limit 10; bun run confluence:search refs jira FHIR-5709; bun run confluence:search fts 'ProfileUtilities sortDifferential' --limit 10",
+    "query": "FHIR-5709 ProfileUtilities sortDifferential",
+    "summary": "Jira search returned FHIR-5709 as the relevant final FHIR-core issue; Zulip/Confluence searches found no direct FHIR-5709 discussion or conflicting work-group record.",
+    "learned": "No discovered community evidence changes the conclusion from Jira, git history, and current source scope.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

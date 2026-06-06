@@ -1,0 +1,104 @@
+FHIR-35948: Clarify SampledData variable timing
+
+Issue request:
+FHIR-35948 was Published/Persuasive for R5 and asked SampledData to support variable timings by adding SampledData.offsets, changing SampledData.interval from 1..1 to 0..1, describing SampledData.intervalUnit as the unit for either interval or offsets, and requiring one of interval or offsets but not both.
+
+Initial application:
+The issue was initially applied in git commit 6b6661326a, which added SampledData.offsets and made SampledData.interval optional in the active datatypes spreadsheet. Later SampledData commits clarified offsets and exposed the generated constraint in the datatype narrative, but the current authoritative spreadsheet still described the root datatype as needing period, described intervalUnit as interval-only, and labeled the invariant as requiring "interval and offsets but not both".
+
+Additional context:
+source/fhir.ini lists SampledData as an active normative datatype source, and maps the R4 SampledData.period name to the current SampledData.interval name. The originating Zulip thread and MnM minutes show that the problem was variable sample timing and that offsets were explicitly discussed. Later FHIR-49899 clarified that offsets are from the logical start point and added the constraints include to the narrative; it does not reverse the FHIR-35948 one-of interval/offsets rule.
+
+AutoFHIR reconciliation:
+Updated source/datatypes/sampleddata.xml so the datatype comments require origin, dimensions, and either interval or offsets instead of the old period-only language; changed intervalUnit's short and definition to cover interval or offsets; and corrected the invariant's English label to say interval or offsets while leaving the already-correct FHIRPath and XPath expressions unchanged.
+
+Recommendation:
+Keep this commit as-is. It finishes the remaining FHIR-35948 source wording gaps in the active datatype spreadsheet without changing the later FHIR-49899 offsets clarification or adding redundant narrative text.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-35948
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-49899: later-change - clarified SampledData.offsets as offsets from the logical start point and added the generated constraint include to the narrative, confirming the current offsets model but not replacing FHIR-35948.
+FHIR-42848: same-change-family - corrected the "SAHLL" typo in the same SampledData invariant; this reconciliation fixes the remaining "and" versus "or" wording in that invariant.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-35948: Published/Persuasive for R5; requested offsets, optional interval, intervalUnit covering interval or offsets, and exactly one of interval or offsets. Learned: this is the final WG requirement for the seed decision.
+- E2 Source source/fhir.ini:33,992,1234,2047: SampledData is an active normative datatype source with R4 period mapped to current interval. Learned: source/datatypes/sampleddata.xml is in build scope and is the right source to edit.
+- E3 Source source/datatypes/sampleddata.xml:842,879,914-915,1052-1067,3428-3430: offsets and the one-of expression were present, but the root comment, intervalUnit text, and invariant label still conflicted with the requested model. Learned: a narrow source fix was needed.
+- E4 Git 6b6661326a: initial FHIR-35948 implementation added offsets and made interval optional. Learned: the issue had been partially applied before this reconciliation.
+- E5 Jira FHIR-49899 and git 8577415543: later Applied clarification states offsets are relative to the logical start point and added the constraint include to datatypes.html. Learned: later decisions support preserving the offsets definition and fixing only stale FHIR-35948 wording.
+- E6 Zulip #implementers > Representing array of data with variable timing and Confluence MnM Minutes CC 20220302: discussion considered offset semantics and led to FHIR-35948. Learned: community evidence matches the Jira/source conclusion.
+- E7 Verification command: python3 parsed source/datatypes/sampleddata.xml and git diff --check passed with CRLF-aware whitespace settings. Learned: the edited XML remains well formed and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-35948",
+    "url": "https://jira.hl7.org/browse/FHIR-35948",
+    "snapshot_path": "contexts/FHIR-35948/jira/FHIR-35948.md",
+    "ref": { "jira_key": "FHIR-35948" },
+    "summary": "Published/Persuasive issue requiring SampledData offsets, optional interval, intervalUnit text for interval or offsets, and a one-of interval/offsets constraint.",
+    "learned": "This establishes the final WG requirement for the seed reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:33,992,1234,2047",
+    "summary": "SampledData is listed as an active normative datatype source and maps old SampledData.period to SampledData.interval.",
+    "learned": "The SampledData spreadsheet is build-scope source and should use current interval terminology.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/sampleddata.xml:842,879,914-915,1052-1067,3428-3430",
+    "summary": "Current source already had optional interval, offsets, and the one-of expression, but retained period-only comments, interval-only intervalUnit text, and an ambiguous invariant label.",
+    "learned": "A source-changing reconciliation is needed to align the authoritative datatype definitions with FHIR-35948.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "6b6661326a",
+    "ref": { "commit": "6b6661326a60980f6418679f71a404c573394df2" },
+    "summary": "Initial FHIR-35948 implementation changed source/datatypes/sampleddata.xml and source/datatypes.html.",
+    "learned": "The seed had been partially applied, leaving only stale wording gaps to reconcile.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-49899 and git 8577415543",
+    "url": "https://jira.hl7.org/browse/FHIR-49899",
+    "ref": { "jira_key": "FHIR-49899", "commit": "85774155430ece5969ad96061a06746e08e8b9e5" },
+    "summary": "Later Applied clarification states offsets are from the logical start point and adds the SampledData constraints include to the narrative.",
+    "learned": "Later related work supports preserving the offsets definition while fixing only FHIR-35948 wording gaps.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Representing array of data with variable timing; MnM Minutes CC 20220302",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Representing%20array%20of%20data%20with%20variable%20timing",
+    "summary": "The originating Zulip thread and MnM minutes discuss variable timings and offset semantics before the Jira resolution.",
+    "learned": "Community evidence is consistent with the Jira requirement and does not narrow or reverse the fix.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "python3 - <<'PY' ... ET.parse('source/datatypes/sampleddata.xml') ... PY; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/datatypes/sampleddata.xml",
+    "summary": "The edited SampledData spreadsheet XML parsed successfully and diff --check reported no whitespace errors.",
+    "learned": "The source edit is syntactically safe for the XML spreadsheet file.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

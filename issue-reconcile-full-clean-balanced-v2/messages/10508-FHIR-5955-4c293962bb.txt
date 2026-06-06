@@ -1,0 +1,97 @@
+FHIR-5955: Audit retired QICore extension profile reference fix
+
+Issue request:
+FHIR-5955 was Published/Persuasive for DSTU1 and asked that profile URL references in an extension worksheet Type such as Reference(Resource){profileUrl} be preserved in the generated extension definition. The concrete failure was Other.AdverseEvent.cause.item in the QICore AdverseEvent profile, where Extension.value[x] was generated with base resource profiles instead of the specified QICore profile URLs.
+
+Initial application:
+Jira records the application as svn revision 5094. In the migrated git history, commit 68b14f5700d4e510e21e777c41355e1eda34135b (#5955 - fix missing profile references) updated ProfileGenerator so a TypeRef with an explicit profile wrote that profile instead of always writing the base resource StructureDefinition URL. The related parser-enablement issue FHIR-5938 had already been applied in commit 81d1bff591ce339694764d726741b17b6770fe00.
+
+Additional context:
+The affected source was historical QICore content, not a current core profile. source/other/adverseevent-qicore-profile-spreadsheet.xml was renamed to source/basic/basic-adverseevent-qicore-profile-spreadsheet.xml when Other became Basic, and later moved out of core source under guides/cqf before disappearing from the current checkout. Current source/fhir.ini still lists Basic and AdverseEvent as active resources, but the active [profiles] list has only current core extension/profile spreadsheets and no QICore AdverseEvent package. Searches of the current core checkout and the FHIR Extension Pack found no current extension-adverseevent-qicore-cause-item or matching QICore AdverseEvent source. The old Java publisher classes changed by the application commit are also no longer present in this checkout.
+
+AutoFHIR reconciliation:
+No source change was made. The Jira-requested tooling/source correction was applied historically, and the specific profile and generated extension that exposed the bug are not part of the current FHIR core build.
+
+Recommendation:
+Keep this empty audit commit as the reconciliation record. No current FHIR core follow-up is needed unless a human chooses to audit archived QICore/CQF IG material outside the current core build.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5955
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-5938: same-change-family - earlier Published/Persuasive issue that allowed profiled Reference types to be parsed in extension worksheets; it explains the first half of the same DSTU1 QICore failure chain but is not separately decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5955: Published/Persuasive DSTU1 issue for profile URL refs being ignored in generated extension definitions. Learned: final WG/application state and the exact affected QICore Other.AdverseEvent extension.
+- E2 Git 68b14f5700d4e510e21e777c41355e1eda34135b: #5955 application commit from svn revision 5094. Learned: the historical fix preserved explicit TypeRef profiles in generated StructureDefinition type output.
+- E3 Source source/fhir.ini:169, source/fhir.ini:449, source/fhir.ini:1471: current build lists Basic/AdverseEvent resources and active core profile spreadsheets, and records that Other became Basic. Learned: current build scope does not include the old QICore AdverseEvent profile package.
+- E4 Git 16ff341c67: moved QICore/CQF spreadsheets, including basic-adverseevent-qicore-profile-spreadsheet.xml, out of core source under guides/cqf. Learned: the affected profile left current core source after the historical fix.
+- E5 Command current source and Extension Pack search for FHIR-5955/FHIR-5938/adverseevent-qicore/extension-adverseevent-qicore/medication-qicore anchors. Learned: no current core or extension-pack artifact remains that needs this fix.
+- E6 Command Zulip and Confluence exact searches for FHIR-5955 and the old extension name. Learned: no directly relevant community record was found that changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5955",
+    "url": "https://jira.hl7.org/browse/FHIR-5955",
+    "snapshot_path": "contexts/FHIR-5955/jira/FHIR-5955.md",
+    "ref": { "jira_key": "FHIR-5955" },
+    "summary": "Published/Persuasive DSTU1 issue requiring profile URL references in extension worksheet Reference types to be preserved in generated extension definitions.",
+    "learned": "This establishes the final issue request and the affected QICore Other.AdverseEvent extension example.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "68b14f5700d4e510e21e777c41355e1eda34135b",
+    "ref": { "commit": "68b14f5700d4e510e21e777c41355e1eda34135b" },
+    "summary": "Migrated svn revision 5094 commit '#5955 - fix missing profile references' changed ProfileGenerator to emit explicit TypeRef profiles instead of base resource URLs.",
+    "learned": "The Jira-requested behavior was applied historically in the old publisher/generator code.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169, source/fhir.ini:449, source/fhir.ini:1471",
+    "summary": "Current fhir.ini includes Basic and AdverseEvent as active resources, lists current core profile spreadsheets, and notes that Other became Basic, with no active QICore AdverseEvent profile entry.",
+    "learned": "The current FHIR core build scope does not include the affected historical QICore profile package.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "16ff341c67",
+    "ref": { "commit": "16ff341c67" },
+    "summary": "Commit 'move cqf to separate folder & clean up HSPC' moved basic-adverseevent-qicore-profile-spreadsheet.xml from source/basic to guides/cqf.",
+    "learned": "The source that exposed FHIR-5955 was moved out of core source after the historical application.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current core and Extension Pack anchor search",
+    "command": "rg -n -i 'adverseevent-qicore|extension-adverseevent-qicore|medication-qicore-qicore-medication|Other\\.AdverseEvent\\.cause\\.item|FHIR-5955|FHIR-5938' /home/jmandel/work/fhir-extensions .",
+    "query": "adverseevent-qicore, extension-adverseevent-qicore, medication-qicore-qicore-medication, Other.AdverseEvent.cause.item, FHIR-5955, FHIR-5938",
+    "result_count": 1,
+    "summary": "No Extension Pack hits and no current core hit for the old extension/profile; the only core hit was an unrelated QUICK library identifier containing medication-qicore-qicore-medication.",
+    "learned": "There is no current artifact in this checkout or the extension pack that needs a source fix for this issue.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-5955 and extension-adverseevent-qicore-cause-item",
+    "command": "bun run zulip:search fts '\"FHIR-5955\" extension profileUrl Reference' --limit 10; bun run zulip:search fts '\"extension-adverseevent-qicore-cause-item\"' --limit 10; bun run confluence:search refs jira FHIR-5955; bun run confluence:search fts '\"FHIR-5955\" profileUrl extension definition' --limit 10",
+    "query": "FHIR-5955 extension profileUrl Reference; extension-adverseevent-qicore-cause-item",
+    "result_count": 0,
+    "summary": "Exact Zulip and Confluence searches found no directly relevant discussion or minutes.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

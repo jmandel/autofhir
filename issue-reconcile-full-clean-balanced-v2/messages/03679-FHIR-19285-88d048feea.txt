@@ -1,0 +1,111 @@
+FHIR-19285: Correct Account billing diagnosis guidance
+
+Issue request:
+FHIR-19285 is a Published/Persuasive with Modification Patient Administration issue, raised against STU3 and applied for R5, requesting that ranked billing diagnoses and procedures move from Encounter to Account. The final resolution added Account.diagnosis and Account.procedure backbones with sequence/rank support, CodeableReference diagnosis/procedure values, coded-date invariants, billing package fields, and related metadata.
+
+Initial application:
+The issue appears to have been applied by PR #2668, merged as 20ce73a818, with implementation commit 194c70c746 adding Account.diagnosis and Account.procedure to source/account/structuredefinition-Account.xml. Follow-up QA commits 809bb0dfbf, 51969a2ccf, and b4b2e7dda1 refined Encounter billing comments, removed an accidentally duplicated Account.procedure.onAdmission, clarified packageCode descriptions, and corrected the Account date invariants. The Account application left Account.diagnosis.dateOfDiagnosis with a copy/paste definition for ranking, and the pre-existing Condition notes still pointed implementers to removed Encounter.diagnosis.role and Encounter.diagnosis.rank elements.
+
+Additional context:
+FHIR-18829 opened the question about splitting procedures and ranked billing data out of Encounter. FHIR-16148 redesigned Encounter.reason and Encounter.diagnosis, removed Encounter.diagnosis.rank from active Encounter source, introduced Encounter.diagnosis.use, and documented that billing-related diagnosis ranking belongs on Account. Later no-change decisions FHIR-28188 and FHIR-22797 confirm that billing-specific diagnosis/procedure rank and present-on-admission information should not be reintroduced to Encounter. Confluence PA design notes and 2023-02-15 PA minutes record the Account direction and approval, and PA Zulip messages around the same implementation state that rank was being removed from Encounter and Account was updated with billing diagnosis/procedure information.
+
+AutoFHIR reconciliation:
+This commit fixes the remaining current-build source gaps. It updates the authoritative Account StructureDefinition so Account.diagnosis.dateOfDiagnosis describes a coded diagnosis date instead of another ranking field, and keeps the checked-in Account SVG tooltip consistent with that authoritative definition. It also updates the active Condition narrative to point to Encounter.diagnosis.use for diagnosis use and Account.diagnosis.sequence for billing-related numeric rank, removing links to retired Encounter.diagnosis.role and Encounter.diagnosis.rank. Account, Encounter, and Condition are active approved resources in source/fhir.ini; the SVG edit is included only to keep the diagram source aligned with the independently necessary Account XML fix.
+
+Recommendation:
+Keep this source fix. It completes the FHIR-19285 reconciliation without reopening later Encounter design decisions: billing rank remains on Account, clinical Encounter diagnosis use remains on Encounter, and any broader diagnosis-use terminology work should follow the already-audited Encounter/THO issue family rather than this seed.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19285
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-18829: background - identified the related question of splitting Procedure and ranked billing data out of Encounter, leading to FHIR-19285.
+FHIR-16148: same-change-family - redesigned Encounter.reason and Encounter.diagnosis, introduced Encounter.diagnosis.use, removed active Encounter.diagnosis.rank, and pointed billing rank to Account.
+FHIR-28188: supporting-decision - later Resolved - No Change issue confirms Account and Claim provide the billing-related structures and that Encounter should not be changed further for billing-specific content.
+FHIR-22797: supporting-decision - later Resolved - No Change issue confirms R5 changes addressed Encounter procedure/rank/on-admission concerns by using Account/Claim rather than adding those fields back to Encounter.
+FHIR-20484: background - already audited on the combined branch; clarifies that diagnosis-use terminology/cardinality work is a separate Encounter/THO issue family.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19285: Published/Persuasive with Modification issue requested moving ranked billing diagnoses and procedures from Encounter to Account, with Account diagnosis/procedure sequence and coded-date invariants. Learned: this is the final seed request and establishes that Account, not Encounter, is the current home for billing rank.
+- E2 Source source/fhir.ini:170-263,1083,1121,1149,1319,1347,1363; source/account/structuredefinition-Account.xml:474-628; source/condition/condition-notes.xml:85-91. Learned: Account, Encounter, and Condition are active approved build resources; Account already has the requested backbones, but the Account date definition and Condition notes needed correction.
+- E3 Git 194c70c746, 20ce73a818, 809bb0dfbf, 51969a2ccf, b4b2e7dda1, 005f3df50a. Learned: FHIR-19285 was structurally applied to Account, later QA refined it, and the stale Condition note predated and escaped the R5 Account/Encounter updates.
+- E4 Confluence page 51223352 and PA minutes page 156537470. Learned: PA design notes and minutes record dropping Encounter rank, using Account for billing rank, and approving FHIR-19285 by 6-0-0.
+- E5 Zulip #patient administration WG > Conference call. Learned: implementation discussion states that rank was being removed from Encounter and that Account diagnosis/procedure billing information had been applied.
+- E6 Jira FHIR-28188 and FHIR-22797. Learned: later no-change decisions support keeping billing-specific rank/POA data on Account/Claim rather than restoring it to Encounter.
+- E7 Verification command/query: XML parsed the edited Account StructureDefinition, Account SVG, and Condition notes; assertions checked the new date definition, removed Encounter rank/role links, Account rank link, and CRLF-aware diff whitespace. Learned: the edited source is syntactically readable and the targeted stale references are gone.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19285",
+    "url": "https://jira.hl7.org/browse/FHIR-19285",
+    "snapshot_path": "contexts/FHIR-19285/jira/FHIR-19285.md",
+    "ref": { "jira_key": "FHIR-19285" },
+    "summary": "Published/Persuasive with Modification issue requesting ranked billing diagnoses and procedures to move from Encounter to Account, with Account.diagnosis and Account.procedure structures and coded-date invariants.",
+    "learned": "This establishes the final seed decision and the target model: billing rank belongs on Account, not Encounter.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-263,1083,1121,1149,1319,1347,1363; source/account/structuredefinition-Account.xml:474-628; source/condition/condition-notes.xml:85-91",
+    "ref": { "path": "source/account/structuredefinition-Account.xml" },
+    "summary": "Account, Encounter, and Condition are active approved resources; Account contains diagnosis/procedure billing backbones, while Account.diagnosis.dateOfDiagnosis and Condition narrative had stale wording.",
+    "learned": "The edited files are in current build scope and the remaining gaps affected implementer-facing definitions and links.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "194c70c746; 20ce73a818; 809bb0dfbf; 51969a2ccf; b4b2e7dda1; 005f3df50a",
+    "ref": { "commit": "194c70c746ca960301bc0cc1831a7cf138d75ddb" },
+    "summary": "PR #2668/commit 194c70c746 added Account.diagnosis and Account.procedure for FHIR-19285; later QA commits refined the Account/Encounter application; the Condition note was restored before these changes.",
+    "learned": "The issue was mostly applied, but two stale/copy-paste source locations were missed by the initial application and follow-up QA.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "confluence",
+    "locator": "PA design page 51223352 and 2023-02-15 PA minutes page 156537470",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/156537470/2023-02-15+Conference+Call+Minutes",
+    "ref": { "confluence_page_id": 156537470 },
+    "summary": "The PA design page records dropping Encounter rank and using Account for billing ranking; the 2023-02-15 minutes approve FHIR-19285 by 6-0-0.",
+    "learned": "Community/work-group evidence supports the Account billing-rank direction and the source-change scope.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#patient administration WG > Conference call",
+    "url": "https://chat.fhir.org/#narrow/stream/patient%20administration%20WG/topic/Conference%20call",
+    "ref": { "stream": "patient administration WG", "topic": "Conference call" },
+    "summary": "February 2023 PA messages say Encounter rank was being removed and Account diagnosis/procedure billing information had been applied for FHIR-19285.",
+    "learned": "Informal implementation evidence matches the Jira/Confluence/source conclusion and reveals no conflicting direction.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-28188 and FHIR-22797",
+    "url": "https://jira.hl7.org/browse/FHIR-28188",
+    "ref": { "jira_key": "FHIR-28188" },
+    "summary": "Later Resolved - No Change PA issues confirm billing-specific diagnosis/procedure rank and present-on-admission needs are handled by Account/Claim rather than by further Encounter changes.",
+    "learned": "These later decisions prevent overbroad reconciliation that would restore rank or billing metadata to Encounter.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local XML and stale-reference verification",
+    "command": "python3 - <<'PY' ... parse source/account/structuredefinition-Account.xml, source/account/account.svg, source/condition/condition-notes.xml and assert updated definitions/links ... PY; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/account/structuredefinition-Account.xml source/account/account.svg source/condition/condition-notes.xml; rg -n 'Encounter\\.diagnosis\\.(rank|role)|dateOfDiagnosis.*Ranking|Diagnosis Role and Rank' source -g '!**/*.svg'",
+    "summary": "The edited XML/SVG/XHTML files parsed, assertions confirmed the new date definition and updated links, diff whitespace passed, and only the historical fhir.ini migration map still mentions Encounter.diagnosis.rank.",
+    "learned": "The reconciliation changes are syntactically valid and removed the targeted stale current-build references.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

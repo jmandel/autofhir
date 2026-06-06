@@ -1,0 +1,120 @@
+FHIR-37761: Simplify sdf-24 and sdf-25 path checks
+
+Issue request:
+FHIR-37761 was a Published FHIR-core technical correction resolved Persuasive. It asked to fix the StructureDefinition sdf-24 and sdf-25 FHIRPath constraints, specifically noting that the expressions should not use $this and that the path comparison could be written without substring arithmetic.
+
+Initial application:
+FHIR-31759 originally introduced sdf-24 and sdf-25 in commits e54acba3221b3015925ae860c64bc41966700740 and bb07b227109ce945918994d616a37171b3ba46f2 using id.substring(0,$this.length()-...) comparisons. FHIR-37761 was explicitly applied in commit 2cc91c21fca7fa12a0d60457be87e8ec2e123d2a, which changed those checks to path.substring(0,$this.path.length()-...) and added failing invariant fixtures. The current source retained the remaining $this plus substring structure, so the prior application fixed the invalid id/$this.length() form but did not fully apply the Jira's requested expression cleanup.
+
+Additional context:
+source/fhir.ini actively maps structuredefinition to the StructureDefinition resource and lists StructureDefinition in the conformance category, so source/structuredefinition/structuredefinition-StructureDefinition.xml is current build-scoped source. Later Published CodeableReference decisions, including FHIR-39176 and the already-published FHIR-38957 reconciliation on the combined branch, preserved the underlying SHALL NOT policy enforced by sdf-24 and sdf-25. No directly relevant Zulip or Confluence evidence for FHIR-37761 was found.
+
+AutoFHIR reconciliation:
+This commit updates sdf-24 and sdf-25 to derive the CodeableReference parent path with replaceMatches('\\.reference$', '') and replaceMatches('\\.concept$', '') instead of using $this.path.length() with substring arithmetic. The conformance meaning remains the same: targetProfile and binding constraints still belong on CodeableReference, not on CodeableReference.reference or CodeableReference.concept.
+
+Recommendation:
+Keep this source fix as-is. It is a narrow correction to active StructureDefinition source that completes the requested FHIRPath cleanup without changing the CodeableReference policy or weakening the later SHALL NOT alignment.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37761
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-31759: same-change-family - introduced sdf-24 and sdf-25 for CodeableReference targetProfile and binding placement, providing the source expressions that FHIR-37761 later corrected.
+FHIR-39176: later-change - later Published issue aligned CodeableReference narrative to the sdf-24/sdf-25 error constraints by making the child-element prohibition SHALL NOT.
+FHIR-38957: later-change - already represented on the combined branch; it clarified CodeableReference targetProfile and binding narrative while preserving the same sdf-24/sdf-25 policy.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37761: Published/Persuasive technical correction asking to fix sdf-24 and sdf-25 and avoid $this/substrings. Learned: this establishes the required source-level cleanup.
+- E2 Source source/structuredefinition/structuredefinition-StructureDefinition.xml:919-928: current active constraints still used path.substring(0,$this.path.length()-...) before this reconciliation. Learned: a remaining source correction was needed.
+- E3 Source source/fhir.ini:258 and source/fhir.ini:940: structuredefinition maps to StructureDefinition and StructureDefinition is an active conformance resource. Learned: the edited XML is build-scoped source.
+- E4 Git 2cc91c21fca7fa12a0d60457be87e8ec2e123d2a: explicit FHIR-37761 application changed the original id/$this.length() expressions and added invariant fail fixtures. Learned: the issue had a partial implementation history but left the cleanup incomplete.
+- E5 Jira FHIR-31759: Published/Persuasive with Modification decision establishing the SHALL NOT rule that targetProfile and binding constraints belong on CodeableReference rather than child elements. Learned: the fix must preserve the same conformance semantics.
+- E6 Jira/Confluence FHIR-39176 and combined-branch FHIR-38957: later decisions keep the SHALL NOT CodeableReference policy and clarify its narrative. Learned: no later decision reverses or weakens sdf-24/sdf-25.
+- E7 Command community search: quoted Zulip and Confluence searches for FHIR-37761 and SDF-24/SDF-25 found no relevant hits; Confluence refs for FHIR-37761 found no pages. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E8 Verification commands: XML parsing, CRLF-aware diff check, and rg for residual $this.path.length()/path.substring in source passed. Learned: the edited source is well-formed and the targeted obsolete expression form is gone from current source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37761",
+    "url": "https://jira.hl7.org/browse/FHIR-37761",
+    "snapshot_path": "contexts/FHIR-37761/jira/FHIR-37761.md",
+    "ref": { "jira_key": "FHIR-37761" },
+    "summary": "Published/Persuasive technical correction asking to fix the sdf-24 and sdf-25 StructureDefinition constraints and avoid $this plus substring-heavy expressions.",
+    "learned": "This is final WG intent and establishes that the current constraints should be cleaned up rather than merely audited.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/structuredefinition/structuredefinition-StructureDefinition.xml:919-928",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml", "line": 919 },
+    "summary": "Before this commit, sdf-24 and sdf-25 still used path.substring(0,$this.path.length()-...) to identify CodeableReference child paths.",
+    "learned": "The current active source still retained the expression form the Jira asked to avoid.",
+    "supports": ["initial_application", "source_change"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:258 and source/fhir.ini:940",
+    "ref": { "path": "source/fhir.ini", "line": 258 },
+    "summary": "structuredefinition maps to StructureDefinition and StructureDefinition is listed as an active conformance resource.",
+    "learned": "source/structuredefinition/structuredefinition-StructureDefinition.xml is build-scoped current FHIR source.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "2cc91c21fca7fa12a0d60457be87e8ec2e123d2a",
+    "ref": { "commit": "2cc91c21fca7fa12a0d60457be87e8ec2e123d2a" },
+    "summary": "The explicit FHIR-37761 implementation changed id.substring(0,$this.length()-...) to path.substring(0,$this.path.length()-...) and added sdf-24/sdf-25 fail fixtures.",
+    "learned": "The historical application addressed the broken id/$this.length() expression but left the no-$this/no-substring cleanup incomplete.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-31759",
+    "url": "https://jira.hl7.org/browse/FHIR-31759",
+    "ref": { "jira_key": "FHIR-31759" },
+    "summary": "Published/Persuasive with Modification issue establishing that profiles SHALL NOT put targetProfile on CodeableReference.reference or binding on CodeableReference.concept.",
+    "learned": "The expression rewrite must preserve the same CodeableReference conformance rule.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-39176 and FHIR-38957",
+    "url": "https://jira.hl7.org/browse/FHIR-39176",
+    "ref": { "jira_key": "FHIR-39176" },
+    "summary": "Later Published CodeableReference issues kept the sdf-24/sdf-25 SHALL NOT policy and clarified the surrounding narrative.",
+    "learned": "Later decisions support preserving the constraint semantics while simplifying the expression form.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-37761 and SDF-24/SDF-25",
+    "command": "bun run zulip:search fts '\"FHIR-37761\"' --limit 10; bun run zulip:search fts '\"SDF-24\" \"SDF-25\" StructureDefinition constraint' --limit 10; bun run confluence:search refs jira FHIR-37761; bun run confluence:search fts '\"FHIR-37761\" OR \"SDF-24\" \"SDF-25\"' --limit 10",
+    "query": "FHIR-37761; SDF-24 SDF-25 StructureDefinition constraint",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found for the seed issue or the sdf-24/sdf-25 expression cleanup.",
+    "learned": "No discovered community record changes the Jira, source, and git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Source validation and residual-expression checks",
+    "command": "python3 -c 'import xml.etree.ElementTree as ET; ET.parse(\"source/structuredefinition/structuredefinition-StructureDefinition.xml\")'; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg '\\$this\\.path\\.length\\(\\)|path\\.substring\\(0,\\$this' source",
+    "summary": "The edited XML parsed successfully, the whitespace check passed, and no residual $this.path.length()/path.substring form remains under source/.",
+    "learned": "The source edit is syntactically safe and fully removes the targeted obsolete expression pattern from current source.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

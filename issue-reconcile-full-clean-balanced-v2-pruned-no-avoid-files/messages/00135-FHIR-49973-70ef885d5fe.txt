@@ -1,0 +1,115 @@
+FHIR-49973: Add stratum scores to CMS146 summary report
+
+Issue request:
+FHIR-49973 was an Applied/Persuasive FHIR-core CQI change request for R6. It asked that the CMS146 summary MeasureReport example show measure scores for the group and group.stratifier.stratum levels, using numerator 200, denominator 500, denominator-exclusion 100, and a proportion score of 200/(500-100)=0.5.
+
+Initial application:
+The issue was initially applied by 710ff0b715f08e1607c008ee0fa600711742ad90, merged through HL7/fhir#3423, which added group.scoring=proportion, group.improvementNotation=increase, and group.measureScoreQuantity=0.5 to the CMS146 examples. In the current CMS146 summary report source, that application left the group-level score correct but did not add any stratum-level measureScore values.
+
+Additional context:
+source/fhir.ini lists MeasureReport as an active resource, and source/measurereport/list-MeasureReport-examples.xml includes the CMS146 summary example, so source/measurereport/measurereport-cms146-cat3-example.xml is in current build scope. The current MeasureReport StructureDefinition includes MeasureReport.group.stratifier.stratum.measureScore[x], and related FHIR-49921 confirms the proportion calculation uses numerator divided by denominator after exclusions and exceptions.
+
+AutoFHIR reconciliation:
+This commit adds measureScoreQuantity value 0.5 to the six CMS146 summary strata where denominator minus denominator-exclusion is non-zero. It intentionally leaves the other and unknown gender strata without a score because their denominator after exclusions is zero, making a numeric proportion undefined rather than 0.0.
+
+Recommendation:
+Keep this commit as-is. It completes the applied FHIR-49973 request in the active core MeasureReport summary example without changing unrelated individual or subject-list examples, and without inventing scores for undefined zero-denominator strata.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-49973
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-49921: supporting-decision - clarified proportion calculation semantics as Numerator divided by Denominator after exclusions and exceptions, supporting the 0.5 score used in this example.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-49973: Applied/Persuasive CQI issue asking to add group and stratum measure scores to the CMS146 summary MeasureReport example. Learned: this is the final work-group request being reconciled.
+- E2 Source source/fhir.ini:269 and source/measurereport/list-MeasureReport-examples.xml:7: MeasureReport is an active resource and the CMS146 summary MeasureReport example is registered. Learned: the edited example is in current build scope.
+- E3 Source source/measurereport/measurereport-cms146-cat3-example.xml:982: current summary report has group.scoring=proportion and group.measureScoreQuantity=0.5 but lacked stratum measure scores. Learned: the prior application was incomplete for the requested stratum-level example values.
+- E4 Source source/measurereport/structuredefinition-MeasureReport.xml:1226: MeasureReport.group.stratifier.stratum.measureScore[x] is defined for stratum scores. Learned: adding stratum measureScoreQuantity values is valid for this resource shape.
+- E5 Git 710ff0b715f0: prior FHIR-49973 commit added group-level scoring and measureScore values through HL7/fhir#3423. Learned: the issue was partially applied before this reconciliation.
+- E6 Jira FHIR-49921: Published/Persuasive with Modification calculation-semantics issue clarifying proportion scoring as numerator over denominator after exclusions and exceptions. Learned: this supports using 0.5 for non-zero CMS146 strata and omitting undefined 0/0 strata.
+- E7 Command community search: Zulip and Confluence searches for FHIR-49973 and MeasureReport measureScore CMS146 found no directly relevant conflicting discussions. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E8 Verification command: XML parse, targeted MeasureReport score assertions, xmllint well-formedness check, and CRLF-aware git diff --check passed. Learned: the edited XML is well formed and the targeted non-zero strata now carry 0.5 scores.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-49973",
+    "url": "https://jira.hl7.org/browse/FHIR-49973",
+    "snapshot_path": "contexts/FHIR-49973/jira/FHIR-49973.md",
+    "ref": { "jira_key": "FHIR-49973" },
+    "summary": "Applied/Persuasive CQI issue asking to add group and group.stratifier.stratum measure scores to the CMS146 summary MeasureReport example.",
+    "learned": "This establishes the final work-group request and the target example.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:269; source/measurereport/list-MeasureReport-examples.xml:7",
+    "summary": "MeasureReport is listed as an active resource and the CMS146 summary example is registered in the MeasureReport examples list.",
+    "learned": "The edited example is in current core build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/measurereport/measurereport-cms146-cat3-example.xml:982-1183",
+    "summary": "The current CMS146 summary report already had group.scoring=proportion and group.measureScoreQuantity=0.5, but its strata only had population counts.",
+    "learned": "The remaining semantic gap was missing stratum-level measureScore values.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/measurereport/structuredefinition-MeasureReport.xml:1226",
+    "summary": "MeasureReport.group.stratifier.stratum.measureScore[x] is defined with Quantity among its allowed types.",
+    "learned": "Adding measureScoreQuantity to strata is valid for the current MeasureReport source model.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "710ff0b715f08e1607c008ee0fa600711742ad90",
+    "ref": { "commit": "710ff0b715f08e1607c008ee0fa600711742ad90" },
+    "summary": "Prior FHIR-49973 application commit added group-level scoring, improvementNotation, and measureScore values to CMS146 examples.",
+    "learned": "The previous source application was partial because stratum scores were not added.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-49921",
+    "url": "https://jira.hl7.org/browse/FHIR-49921",
+    "snapshot_path": "contexts/FHIR-49973/jira/FHIR-49921.md",
+    "ref": { "jira_key": "FHIR-49921" },
+    "summary": "Published/Persuasive with Modification issue clarifying proportion calculation semantics as numerator divided by denominator after exclusions and exceptions.",
+    "learned": "This supports the 0.5 score for strata with 100/(250-50) and avoiding a numeric score for 0/(0-0).",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-49973 and MeasureReport measureScore CMS146",
+    "command": "bun run zulip:search fts '\"FHIR-49973\"' --limit 10; bun run zulip:search fts 'MeasureReport measureScore denominator exclusion CMS146' --limit 10; bun run confluence:search refs jira FHIR-49973; bun run confluence:search fts 'MeasureReport measureScore CMS146' --limit 10",
+    "query": "FHIR-49973; MeasureReport measureScore denominator exclusion CMS146",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted XML and diff validation",
+    "command": "python XML parse and targeted assertions; xmllint --noout source/measurereport/measurereport-cms146-cat3-example.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/measurereport/measurereport-cms146-cat3-example.xml",
+    "summary": "The XML parsed, xmllint reported no well-formedness errors, whitespace checks passed, and targeted assertions confirmed 0.5 scores on the six non-zero strata only.",
+    "learned": "The source change is syntactically sound and matches the requested calculation examples.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

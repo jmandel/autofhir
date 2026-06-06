@@ -1,0 +1,96 @@
+FHIR-25619: Audit primitive ShEx datatype fix
+
+Issue request:
+FHIR-25619 was Published/Persuasive for R5 and reported that generated ShEx for FHIR primitive types was recursively using primitive shapes for primitive values, for example integer using fhir:value @<integer>, when the value should be constrained by the relevant XML Schema datatype.
+
+Initial application:
+No HL7/fhir source commit explicitly tagged FHIR-25619 was found, and this checkout does not track the Java ShEx generator or generated primitive ShEx source files. The historical generated R4/R4B ShEx surfaces show the problem: integer was represented with fhir:value pointing at a FHIRPath/integer primitive shape. R5 and current generated ShEx now use the RDF primitive literal property fhir:v with concrete XSD datatypes, e.g. integer as xsd:int with the 32-bit FHIR integer range.
+
+Additional context:
+FHIR-I minutes for 2020-11-02 record FHIR-25619 as a technical correction, auto-approved. The current build path runs the Kindling publisher from build.gradle.kts, and source/rdf.html documents that primitive values are RDF literals carried by fhir:v. Related already-published reconciliation commits FHIR-25620, FHIR-25621, and FHIR-25622 cover neighboring ShEx link, packaging, and integer64 RDF/ShEx concerns; none require re-opening the primitive datatype fix here. The current generated output uses capitalized R6 shape names such as <Integer>, but the semantic fix remains the same.
+
+AutoFHIR reconciliation:
+This empty audit commit intentionally makes no source change. The current R5/current generated ShEx surfaces already satisfy the issue intent by avoiding recursive primitive fhir:value shapes for primitive values and using XSD datatype constraints on fhir:v instead. Changing current integer ShEx to bare xsd:integer would be weaker than the current xsd:int plus min/max range semantics for FHIR integer.
+
+Recommendation:
+Keep this audit as-is. If future generated ShEx regresses to recursive primitive value shapes, fix the external Kindling/org.hl7.fhir.core ShEx generator used by the build rather than adding redundant prose or editing generated artifacts in this checkout.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25619
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25620: same-change-family - neighboring Published ShEx issue for canonical link handling; already audited on the combined branch as external generator work.
+FHIR-25621: same-change-family - neighboring Published ShEx packaging issue; already fixed on the combined branch by packaging generated ShEx artifacts.
+FHIR-25622: same-change-family - neighboring Published RDF/ShEx integer64 issue; already fixed on the combined branch by aligning RDF prose with generated xsd:long support.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25619: Published/Persuasive technical correction asking that primitive ShEx values use XML Schema datatypes rather than recursive primitive shapes. Learned: this is final WG intent for primitive ShEx generation.
+- E2 Confluence FHIR Infrastructure Minutes CC 20201102 page 97455396: minutes record FHIR-25619 as a technical correction, auto-approved. Learned: meeting evidence confirms the Jira disposition.
+- E3 Published spec R4/R4B/R5/current ShEx comparison: R4/R4B integer ShEx used fhir:value with primitive/FHIRPath shapes, while R5 and current fhir.shex use fhir:v xsd:int with FHIR integer range constraints. Learned: the requested primitive value datatype fix is present from R5 forward.
+- E4 Source README.md:20-24 and build.gradle.kts:132-153: the current build runs ./gradlew publish/publishFull through the Kindling publisher and then packages generated ShEx artifacts. Learned: generated ShEx is produced by the current build path, but its generator source is not tracked in this checkout.
+- E5 Source source/rdf.html:388-412 and source/datatypes/primitives.xml:107-111: RDF primitives use fhir:v literals, and FHIR integer is a 32-bit int. Learned: current xsd:int/min-max ShEx output is consistent with authoritative primitive RDF and datatype semantics.
+- E6 Command searches: git log found no explicit FHIR-25619 source commit; git ls-files shows no tracked ShEx generator or generated ShEx source other than templates/packaging; Zulip/Confluence searches found no conflicting community discussion beyond the FHIR-I minutes. Learned: no local source hunk is needed or available for a safer correction.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25619",
+    "url": "https://jira.hl7.org/browse/FHIR-25619",
+    "snapshot_path": "contexts/FHIR-25619/jira/FHIR-25619.md",
+    "ref": { "jira_key": "FHIR-25619" },
+    "summary": "Published/Persuasive technical correction reporting that generated ShEx for primitive values should use XML Schema datatypes instead of recursive primitive shapes.",
+    "learned": "This establishes final WG intent and the target behavior for primitive ShEx generation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20201102 page 97455396",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/97455396/FHIR+Infrastructure+Minutes+CC+20201102",
+    "ref": { "confluence_page_id": 97455396 },
+    "summary": "FHIR-I minutes record FHIR-25619 as a technical correction, auto-approved.",
+    "learned": "The minutes corroborate the Jira status and do not add a broader source-change scope.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "published-spec",
+    "locator": "R4/R4B/R5/current fhir.shex and patient/integer ShEx outputs",
+    "command": "curl -fsSL https://hl7.org/fhir/R4/patient.shex; curl -fsSL https://hl7.org/fhir/R4B/patient.shex; curl -fsSL https://hl7.org/fhir/R5/fhir.shex; curl -fsSL https://build.fhir.org/fhir.shex; curl -fsSL https://build.fhir.org/integer.shex.html",
+    "summary": "R4/R4B generated integer ShEx used fhir:value with primitive/FHIRPath shapes, while R5/current generated ShEx uses fhir:v xsd:int with min/max constraints.",
+    "learned": "The specific primitive-value ShEx defect was corrected for R5 and remains corrected in the current build output.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "README.md:20-24; build.gradle.kts:132-153",
+    "summary": "The documented build runs ./gradlew publish through org.hl7.fhir.tools.publisher.Publisher and packages generated ShEx after publish/publishFull.",
+    "learned": "Generated ShEx is in the current build path, but the primitive ShEx generator itself is not tracked as editable source in this checkout.",
+    "supports": ["source_scope", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/rdf.html:388-412; source/datatypes/primitives.xml:107-111",
+    "summary": "RDF primitive values are represented as fhir:v literals, and FHIR integer is defined with schema type int and 32-bit semantics.",
+    "learned": "The current xsd:int/min-max generated ShEx is semantically correct and should not be weakened to bare xsd:integer.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Local history/source and community searches for FHIR-25619 ShEx primitives",
+    "command": "git log --fixed-strings --grep='FHIR-25619'; git ls-files | grep -i shex; bun run zulip:search fts 'ShEx primitive integer value xsd' --limit 10; bun run confluence:search refs jira FHIR-25619",
+    "query": "FHIR-25619 ShEx primitive integer value xsd",
+    "summary": "No explicit local FHIR-25619 implementation commit or tracked generator source was found; Zulip searches found no hits; Confluence refs found the auto-approval minutes.",
+    "learned": "There is no discovered conflicting evidence and no safer in-checkout source edit to make for this already-correct generated surface.",
+    "supports": ["initial_application", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

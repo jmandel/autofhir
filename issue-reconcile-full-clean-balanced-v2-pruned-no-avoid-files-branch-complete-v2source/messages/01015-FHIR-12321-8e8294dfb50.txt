@@ -1,0 +1,102 @@
+FHIR-12321: Remove stray carriage returns from encounter location definitions
+
+Issue request:
+FHIR-12321 is a Published/Persuasive FHIR-core vocab technical correction. It reported stray "\r\r" separators in CodeSystem code definitions emitted in valuesets.json and asked that the sentence breaks be replaced with spaces for http://hl7.org/fhir/resource-types MedicationStatement and http://hl7.org/fhir/encounter-location-status active/completed.
+
+Initial application:
+The Jira comments say the issue was already fixed, but no Jira-keyed source commit was found. In the current source, MedicationStatement no longer has the reported carriage-return pair; its resource definition uses line-feed escapes instead. The encounter-location-status CodeSystem source, however, still contained the two reported double carriage-return escapes after the 2021 source rework/R4B import path.
+
+Additional context:
+The current checkout does not contain a checked-in valuesets.json, so the authoritative reconciliation target is the terminology source that feeds generated terminology artifacts. source/fhir.ini lists Encounter and MedicationStatement as active resources, and source/encounter/codesystem-encounter-location-status.xml is the current CodeSystem source for the referenced encounter-location-status terminology. FTS-safe Zulip and Confluence searches found no community/minutes evidence that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+This commit replaces the two `&#xD;&#xD;` separators in the active and completed encounter-location-status code definitions with single spaces. It intentionally leaves MedicationStatement unchanged because the current source no longer contains the reported carriage-return pair there.
+
+Recommendation:
+Keep this source fix as-is. It restores the published technical correction for the remaining current-source regression without changing terminology meaning; follow-up is only needed if downstream generated terminology artifacts are regenerated separately.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12321
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12321: Published/Persuasive technical correction reporting stray "\r\r" in valuesets.json CodeSystem definitions for resource-types MedicationStatement and encounter-location-status active/completed. Learned: this is final WG intent to remove those stray carriage-return separators.
+- E2 Source source/fhir.ini:169-203: Encounter and MedicationStatement are active resources in the current build configuration. Learned: their resource folders and terminology inputs are in current build scope.
+- E3 Source source/encounter/codesystem-encounter-location-status.xml:56-68: active and completed definitions are the authoritative current CodeSystem source for the reported encounter-location-status codes. Learned: replacing the two `&#xD;&#xD;` separators fixes the remaining reported source problem.
+- E4 Source source/medicationstatement/structuredefinition-MedicationStatement.xml:77-80: MedicationStatement's current resource definition uses `&#xA;&#xA;`, not `&#xD;&#xD;`. Learned: the resource-types/MedicationStatement part of the Jira no longer needs a carriage-return fix.
+- E5 Git 33b409a4b6 and c69d71aa21: 2021 source rework/R4B import commits introduced encounter-location-status CodeSystem XML with the two `&#xD;&#xD;` definition separators. Learned: the current issue is a remaining/reintroduced source artifact rather than an intentionally later vocab decision.
+- E6 Command community search: Zulip SQL/FTS plus Confluence refs/FTS for FHIR-12321 and key terms returned no direct hits. Learned: no discovered community record conflicts with the Jira/source reconciliation.
+- E7 Verification command: `xmllint --noout source/encounter/codesystem-encounter-location-status.xml`, `git diff --check`, and targeted grep for the reported encounter definitions completed cleanly. Learned: the edited XML is well-formed, whitespace is clean, and the target carriage-return escapes are removed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12321",
+    "url": "https://jira.hl7.org/browse/FHIR-12321",
+    "snapshot_path": "contexts/FHIR-12321/jira/FHIR-12321.md",
+    "ref": { "jira_key": "FHIR-12321" },
+    "summary": "Published/Persuasive technical correction reporting stray \"\\r\\r\" in valuesets.json definitions for resource-types MedicationStatement and encounter-location-status active/completed.",
+    "learned": "This establishes final intent to replace the reported stray carriage-return separators with spaces.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-203",
+    "summary": "The active [resources] list includes encounter=Encounter and medicationstatement=MedicationStatement.",
+    "learned": "The source folders inspected for the reported artifacts are in current build scope.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/encounter/codesystem-encounter-location-status.xml:56-68",
+    "summary": "The active and completed encounter-location-status definitions are current CodeSystem source and still carried the reported double carriage-return escapes before this commit.",
+    "learned": "These two source values were the remaining current-spec locations requiring correction.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationstatement/structuredefinition-MedicationStatement.xml:77-80",
+    "summary": "The current MedicationStatement resource definition uses line-feed escapes, not the reported carriage-return pair.",
+    "learned": "No current MedicationStatement source hunk is needed for the issue's resource-types example.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "33b409a4b6; c69d71aa21",
+    "ref": { "commits": "33b409a4b6,c69d71aa21" },
+    "summary": "The 2021 source rework/R4B import path added encounter-location-status CodeSystem XML containing the `&#xD;&#xD;` separators.",
+    "learned": "The remaining encounter-location-status problem came from source import/rework history rather than a later explicit reversal of FHIR-12321.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-12321 plus valuesets/carriage-return terms",
+    "command": "bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-12321%' ...\"; bun run zulip:search fts 'valuesets json carriage returns encounter location MedicationStatement' --limit 10; bun run confluence:search refs jira FHIR-12321; bun run confluence:search fts 'valuesets json carriage returns encounter location MedicationStatement' --limit 10",
+    "query": "FHIR-12321; valuesets json carriage returns encounter location MedicationStatement",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip messages or Confluence references/pages were found.",
+    "learned": "No discovered community or minutes evidence changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local XML and diff validation",
+    "command": "xmllint --noout source/encounter/codesystem-encounter-location-status.xml; git diff --check; git grep -n 'encounter-location-status.*&#xD;&#xD;|The patient is currently at this location.*&#xD;&#xD;|The patient was at this location.*&#xD;&#xD;' -- source/encounter/codesystem-encounter-location-status.xml || true",
+    "summary": "The edited XML parsed, whitespace checks passed, and targeted searches found no remaining reported encounter-location-status carriage-return escapes.",
+    "learned": "The source edit is syntactically safe and removes the targeted source artifacts.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

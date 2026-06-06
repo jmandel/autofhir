@@ -1,0 +1,96 @@
+FHIR-5804: Audit Condition stage assessment targets
+
+Issue request:
+FHIR-5804 was a Published/Persuasive with Modification Patient Care change request from DSTU1 asking whether Condition.stage.assessment was too broad as Reference(Any). The accepted resolution was to change it to Reference(ClinicalAssessment|DiagnosticReport|Observation).
+
+Initial application:
+The issue was applied in svn/git history by f5d7f1054b, which changed the Condition spreadsheet from Reference(Any) to Reference(ClinicalAssessment|DiagnosticReport|Observation). A follow-up commit, 74daa24071, renamed that target to ClinicalImpression after the resource naming changed.
+
+Additional context:
+The current build no longer has ClinicalImpression or ClinicalAssessment as an active resource in source/fhir.ini. FHIR-46596 later renamed ClinicalImpression back to ClinicalAssessment, and fad1b9cf84 then removed ClinicalAssessment from the active resource set and from Condition.stage.assessment. The current CI build matches the local source: Condition.stage.assessment targets DiagnosticReport and Observation only, while ClinicalAssessment is not published in the current build.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active Condition source is not Reference(Any); it is constrained to the current in-build target profiles DiagnosticReport and Observation. Re-adding a target profile for an out-of-build ClinicalAssessment resource would be unsafe and outside the current build scope.
+
+Recommendation:
+Keep this no-change audit as-is for the current build. If ClinicalAssessment is reintroduced as an active core resource, revisit Condition.stage.assessment to decide whether the FHIR-5804 target list should again include it.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5804
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-46596: later-change - renamed ClinicalImpression to ClinicalAssessment before the resource was later removed from the active build, explaining why the original named target is absent now.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5804: Published/Persuasive with Modification; resolution was Reference(ClinicalAssessment|DiagnosticReport|Observation). Learned: the final request was to replace Reference(Any) with a limited assessment-evidence target list.
+- E2 Source source/condition/structuredefinition-Condition.xml:754: Condition.stage.assessment currently targets DiagnosticReport and Observation only. Learned: the current active Condition definition is no longer broad Reference(Any).
+- E3 Source source/fhir.ini:169: Condition is active in the current resource list, while grep finds no active clinicalassessment or clinicalimpression resource entry. Learned: the only omitted original target is outside the current build scope.
+- E4 Git f5d7f1054b, 74daa24071, 670d3a407a, fad1b9cf84: history applied the FHIR-5804 restriction, renamed the clinical assessment target, then removed that target when removing additional resources. Learned: the current two-target shape is explained by later build-scope changes rather than an un-applied Reference(Any) problem.
+- E5 Command Zulip/Confluence search for FHIR-5804 and Condition stage assessment: no relevant hits. Learned: no discovered community record contradicts the Jira/source/history conclusion.
+- E6 Published-spec https://build.fhir.org/condition.profile.json and https://build.fhir.org/clinicalassessment.profile.json: CI Condition targets DiagnosticReport and Observation, and ClinicalAssessment returns 404. Learned: the current published build surface matches the local build-scope conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5804",
+    "url": "https://jira.hl7.org/browse/FHIR-5804",
+    "snapshot_path": "contexts/FHIR-5804/jira/FHIR-5804.md",
+    "ref": { "jira_key": "FHIR-5804" },
+    "summary": "Published/Persuasive with Modification issue asking to replace Condition.stage.assessment Reference(Any) with Reference(ClinicalAssessment|DiagnosticReport|Observation).",
+    "learned": "This establishes the final DSTU1 request and the target behavior to compare against current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/condition/structuredefinition-Condition.xml:754-764",
+    "ref": { "path": "source/condition/structuredefinition-Condition.xml", "start_line": 754, "end_line": 764 },
+    "summary": "Condition.stage.assessment is a Reference whose target profiles are DiagnosticReport and Observation.",
+    "learned": "The current active Condition source is constrained and is not the broad Reference(Any) that FHIR-5804 objected to.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-214 plus grep for clinicalassessment/clinicalimpression",
+    "ref": { "path": "source/fhir.ini", "start_line": 169, "end_line": 214 },
+    "summary": "Condition is listed as an active resource, while no active clinicalassessment or clinicalimpression resource entry is present.",
+    "learned": "Re-adding ClinicalAssessment to Condition.stage.assessment would point at an out-of-build resource in the current core build.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "f5d7f1054b; 74daa24071; 670d3a407a; fad1b9cf84",
+    "ref": { "commits": "f5d7f1054b,74daa24071,670d3a407a,fad1b9cf84" },
+    "summary": "History shows the FHIR-5804 restriction was applied, ClinicalAssessment was renamed to ClinicalImpression, ClinicalImpression was renamed back to ClinicalAssessment for FHIR-46596, and a later commit removed ClinicalAssessment from this target list when removing additional resources.",
+    "learned": "The current omission of the clinical assessment target is a later build-scope change, not evidence that FHIR-5804 remains unapplied.",
+    "supports": ["initial_application", "additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-5804 and Condition stage assessment",
+    "command": "bun run zulip:search fts '\"FHIR-5804\" Condition stage assessment' --limit 10; bun run confluence:search fts '\"FHIR-5804\" Condition stage assessment' --limit 10",
+    "query": "FHIR-5804 Condition stage assessment",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "build.fhir.org Condition and ClinicalAssessment profiles",
+    "url": "https://build.fhir.org/condition.profile.json",
+    "summary": "The CI build Condition profile targets DiagnosticReport and Observation for Condition.stage.assessment; clinicalassessment.profile.json returns 404.",
+    "learned": "The current publication surface matches the local conclusion that ClinicalAssessment is outside the active build and should not be reintroduced here.",
+    "supports": ["additional_context", "reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

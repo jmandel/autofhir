@@ -1,0 +1,102 @@
+FHIR-13781: Audit MedicationRequest category reconciliation
+
+Issue request:
+FHIR-13781 was a Published/Persuasive with Modification Pharmacy change request for the STU3 MedicationPrescription/MedicationRequest artifact. Despite the reasonCode/reasonReference title, the accepted request was to make MedicationRequest.category 0..*, change its binding from preferred to exemplar/example while retaining inpatient, outpatient, and community, and add usage notes allowing categories such as treatment types with profile-specific bindings/invariants.
+
+Initial application:
+The historical application is explicit in git commit cf35ab7ebc, whose message names GF #13781. That commit changed the old MedicationRequest spreadsheet category cardinality from 0..1 to 0..*, changed the category binding conformance from preferred to example, and added definition/comment text mentioning chemotherapy/endocrine treatment types and profile-specific value set binding.
+
+Additional context:
+The source and model subsequently changed. MedicationPrescription became MedicationRequest, and current source/fhir.ini lists MedicationRequest as an active resource. More importantly, later Published issue FHIR-15688 found MedicationRequest.category overloaded, resolved to put category back to the inpatient/outpatient/etc. care-setting use, and to separate treatment-type handling; commit b87c1a290d removed the chemotherapy/endocrine and invariant-profiling language from the category definition/comment. Related Published issue FHIR-17255 added MedicationRequest.courseOfTherapyType as a separate medication therapy-pattern element. Later terminology work restored the MedicationRequest category example CodeSystem/ValueSet to core, but did not reverse FHIR-15688's narrowing of the category prose.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The active MedicationRequest source already has category cardinality 0..*, an example binding to the in-core MedicationRequest category ValueSet, and the inpatient/outpatient/community category codes. Reintroducing the original FHIR-13781 treatment-type examples or profiling/invariant note would be a stale edit because FHIR-15688 later removed that language and split the concern from category.
+
+Recommendation:
+Keep this no-change audit as-is. The current build reflects the seed's durable structural changes after later Pharmacy decisions, and any renewed desire to represent chemotherapy/endocrine treatment classification should be handled under a fresh final tracker rather than by restoring superseded FHIR-13781 wording.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13781
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-15688: later-change - Published Pharmacy issue directly revisited MedicationRequest.category, declared it overloaded, and removed the treatment-type examples introduced by FHIR-13781.
+FHIR-17255: supporting-decision - Published Pharmacy issue added MedicationRequest.courseOfTherapyType as a separate therapy-pattern element during the same later cleanup period.
+FHIR-31632: later-change - Applied Pharmacy issue restored the MedicationRequest category example terminology to FHIR Core without changing the category cardinality/prose conclusion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13781: Published/Persuasive with Modification request for MedicationPrescription/MedicationRequest category 0..*, exemplar/example binding, and usage notes for treatment-type categories. Learned: this is the seed decision to reconcile.
+- E2 Zulip #implementers > Request.reasonCode and reasonReference: the submitter asked whether disease indication and endocrine/chemotherapy classification belonged in reason or category; Melva directed filing a tracker. Learned: the Jira text accurately reflects the originating use case.
+- E3 Git cf35ab7ebc: GF #13781 application changed category from 0..1 to 0..*, changed preferred to example, and added treatment-type/profiling notes in the old spreadsheet source. Learned: the seed was historically applied.
+- E4 Jira FHIR-15688 and git b87c1a290d: later Published issue and commit pulled MedicationRequest.category back toward inpatient/outpatient/etc. and removed chemotherapy/endocrine plus invariant-profiling category notes. Learned: later final Pharmacy intent supersedes the broad treatment-type wording from FHIR-13781.
+- E5 Source source/fhir.ini:203; source/medicationrequest/structuredefinition-MedicationRequest.xml:325-341,784-800; source/medicationrequest/codesystem-medicationrequest-category.xml:22-36; source/medicationrequest/valueset-medicationrequest-category.xml:29-32. Learned: MedicationRequest is active, category is 0..* with an example binding to the current category ValueSet, and separate therapy-pattern modeling exists.
+- E6 Command checks: idempotency log search found no existing FHIR-13781 audit on the combined branch; Confluence refs for FHIR-13781 found no meeting page references; git show --check and git diff --check succeeded with no source changes. Learned: publishing an empty no-change audit is safe and not duplicative.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13781",
+    "url": "https://jira.hl7.org/browse/FHIR-13781",
+    "snapshot_path": "contexts/FHIR-13781/jira/FHIR-13781.md",
+    "ref": { "jira_key": "FHIR-13781" },
+    "summary": "Published/Persuasive with Modification Pharmacy request to make MedicationRequest.category repeatable, example-bound, and documented for categories such as treatment type.",
+    "learned": "This establishes the seed request and the original accepted source-change target.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Request.reasonCode and reasonReference",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Request.reasonCode%20and%20reasonReference",
+    "snapshot_path": "contexts/FHIR-13781/zulip/implementers--Request-reasonCode-and-reasonReference.md",
+    "ref": { "stream": "implementers", "topic": "Request.reasonCode and reasonReference" },
+    "summary": "The originating discussion asked whether MedicationRequest reason or category should carry disease indication and endocrine/chemotherapy classification.",
+    "learned": "This confirms that the Jira's category/treatment-type resolution came from the linked implementer use case.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "cf35ab7ebc",
+    "ref": { "commit": "cf35ab7ebcf102964085812bf6e2166fe3eaa11c" },
+    "summary": "GF #13781 commit changed MedicationRequest.category from 0..1 to 0..*, changed preferred to example binding, and added treatment-type/profiling notes.",
+    "learned": "The seed was explicitly applied in historical source before later refactoring.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-15688 and git b87c1a290d",
+    "url": "https://jira.hl7.org/browse/FHIR-15688",
+    "snapshot_path": "contexts/FHIR-13781/jira/FHIR-15688.md",
+    "ref": { "jira_key": "FHIR-15688", "commit": "b87c1a290d1ad3d6e352f8bf4127fc61c949e67d" },
+    "summary": "Published follow-up found MedicationRequest.category overloaded, put it back to inpatient/outpatient/etc., and removed chemotherapy/endocrine category guidance.",
+    "learned": "Later final Pharmacy intent supersedes the treatment-type usage-note portion of FHIR-13781.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:203; source/medicationrequest/structuredefinition-MedicationRequest.xml:325-341,784-800; source/medicationrequest/codesystem-medicationrequest-category.xml:22-36; source/medicationrequest/valueset-medicationrequest-category.xml:29-32",
+    "ref": { "paths": "source/fhir.ini; source/medicationrequest/structuredefinition-MedicationRequest.xml; source/medicationrequest/codesystem-medicationrequest-category.xml; source/medicationrequest/valueset-medicationrequest-category.xml" },
+    "summary": "MedicationRequest is active; category is 0..* with an example binding to the in-core inpatient/outpatient/community category ValueSet; courseOfTherapyType is a separate therapy-pattern element.",
+    "learned": "The current source already preserves the durable, non-superseded parts of FHIR-13781 and should not regain stale treatment-type prose.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Idempotency, community, and whitespace checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13781' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run confluence:search refs jira FHIR-13781; git show --check --pretty=format: HEAD; git diff --check",
+    "query": "FHIR-13781 MedicationRequest category reconciliation",
+    "result_count": 0,
+    "summary": "No existing combined-branch audit or Confluence refs were found; lightweight git checks succeeded with a clean worktree.",
+    "learned": "There is no duplicate existing reconciliation or discovered community conflict, and an empty audit commit is safe to publish.",
+    "supports": ["absence_of_conflict", "confidence", "verification"]
+  }
+]
+</evidence-manifest>

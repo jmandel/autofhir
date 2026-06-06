@@ -1,0 +1,95 @@
+FHIR-46238: Align MeasureReport score model metadata
+
+Issue request:
+FHIR-46238 was an Applied/Persuasive CQI R6 change request asking to allow boolean values on MeasureReport measureScore elements because attestation-style measures need boolean scores. The accepted resolution was to allow boolean as a possible type in the MeasureReport measureScore elements.
+
+Initial application:
+The Jira comment identifies commit da71fb39ce81cab9f55b3210115d4e41ab6bf077 and PR HL7/fhir#3314. That commit added boolean to both authoritative MeasureReport StructureDefinition elements, MeasureReport.group.measureScore[x] and MeasureReport.group.stratifier.stratum.measureScore[x], but it did not update the active FHIR model-definition Library metadata that still exposed both model properties as FHIR.Quantity only.
+
+Additional context:
+source/fhir.ini keeps both MeasureReport and Library active in the current build. The Library examples page links library-fhir-model-definition-content.xml as the FHIR model information file used by the CQL-to-ELM translator, and recent reconciliation commits in this run have treated this model-definition content and its embedded Library attachment as active source metadata that must stay aligned with resource changes. Jira and community searches found no later core decision reversing the boolean score change; the only broad Zulip hit was a DEQM invariant discussion that assumes boolean attestation MeasureReport examples are legitimate and belongs to a separate IG/FHIRPath issue path.
+
+AutoFHIR reconciliation:
+This commit updates source/library/library-fhir-model-definition-content.xml so both MeasureReport.Stratum.measureScore and MeasureReport.Group.measureScore use a ChoiceTypeSpecifier matching the current StructureDefinition types: Quantity, dateTime, CodeableConcept, Period, Range, Duration, boolean, and Ratio. It also refreshes the embedded base64 attachment in source/library/library-fhir-model-definition.xml so the Library resource and the linked raw modelinfo content remain byte-for-byte consistent.
+
+Recommendation:
+Keep this commit as-is. The authoritative MeasureReport StructureDefinition was already correct, and this narrow follow-up fixes the remaining active model metadata surface needed for CQL consumers without changing unrelated examples or MeasureReport semantics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-46238
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-51433: background - mentioned in a Zulip thread about a DEQM attestation MeasureReport invariant after boolean scores were available, but it concerns IG/FHIRPath constraint behavior rather than this core MeasureReport type metadata.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-46238: Applied/Persuasive CQI issue for R6, resolved to allow boolean as a possible MeasureReport measureScore type. Learned: the final WG decision requires boolean score support on the current MeasureReport score elements.
+- E2 Source source/fhir.ini:266,269 and source/measurereport/structuredefinition-MeasureReport.xml:813,1226: Library and MeasureReport are active resources, and the MeasureReport StructureDefinition already lists boolean on both measureScore[x] elements. Learned: the authoritative conformance source is in build scope and the initial application covered the core StructureDefinition surface.
+- E3 Source source/library/library-fhir-model-definition-content.xml:1798,7993 and source/library/library-fhir-model-definition.xml:277: the FHIR model-definition Library metadata previously listed both MeasureReport score properties as FHIR.Quantity only, and this commit changes them to the same choice set as the StructureDefinition while refreshing the embedded attachment. Learned: this was the remaining active source inconsistency caused by incomplete application.
+- E4 Git da71fb39ce81cab9f55b3210115d4e41ab6bf077: PR #3314 implementation commit added boolean to both MeasureReport StructureDefinition score elements. Learned: the issue was partially applied in source history but omitted the model-definition metadata files.
+- E5 Community search: quoted Zulip and Confluence searches for FHIR-46238 plus MeasureReport measureScore boolean found no direct community decision; a broader Zulip thread #IG creation > DEQM invariant issue discussed a DEQM attestation boolean MeasureReport invariant and linked FHIR-51433. Learned: no discovered community evidence reverses the Jira/source conclusion, and the broad hit is separate IG/FHIRPath context.
+- E6 Verification command: embedded model-definition attachment comparison, MeasureReport modelinfo type assertions, and CRLF-aware git diff --check all passed. Learned: the edited raw modelinfo and embedded Library attachment are synchronized and the patch is whitespace-clean.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-46238",
+    "url": "https://jira.hl7.org/browse/FHIR-46238",
+    "snapshot_path": "contexts/FHIR-46238/jira/FHIR-46238.md",
+    "ref": { "jira_key": "FHIR-46238" },
+    "summary": "Applied/Persuasive CQI R6 change request resolved to allow boolean as a possible type in the MeasureReport measureScore elements.",
+    "learned": "This establishes the final WG intent that current MeasureReport score elements must support boolean values for attestation-style measures.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:266,269; source/measurereport/structuredefinition-MeasureReport.xml:813,1226",
+    "ref": { "paths": "source/fhir.ini; source/measurereport/structuredefinition-MeasureReport.xml" },
+    "summary": "fhir.ini keeps Library and MeasureReport active, and the MeasureReport StructureDefinition already includes boolean on both measureScore[x] elements.",
+    "learned": "The authoritative MeasureReport conformance definition was in build scope and already carried the intended boolean type.",
+    "supports": ["initial_application", "build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:1798,7993; source/library/library-fhir-model-definition.xml:277",
+    "ref": { "paths": "source/library/library-fhir-model-definition-content.xml; source/library/library-fhir-model-definition.xml" },
+    "summary": "The active FHIR model-definition Library metadata still exposed MeasureReport.Stratum.measureScore and MeasureReport.Group.measureScore as FHIR.Quantity only before this commit.",
+    "learned": "The remaining source defect was stale model metadata, so the required fix is to align both modelinfo entries and the embedded Library attachment with the StructureDefinition choice types.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "da71fb39ce81cab9f55b3210115d4e41ab6bf077",
+    "ref": { "commit": "da71fb39ce81cab9f55b3210115d4e41ab6bf077" },
+    "summary": "The FHIR-46238 implementation commit added boolean to both MeasureReport StructureDefinition measureScore elements in PR #3314.",
+    "learned": "History confirms the issue was intentionally applied to MeasureReport but did not touch the model-definition metadata that this reconciliation fixes.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-46238 plus MeasureReport measureScore boolean",
+    "command": "bun run zulip:search fts '\"FHIR-46238\" MeasureReport measureScore boolean attestation' --limit 10; bun run confluence:search refs jira FHIR-46238; bun run confluence:search fts '\"FHIR-46238\" MeasureReport measureScore boolean' --limit 10; bun run zulip:search snapshot 'IG creation' 'DEQM invariant issue'",
+    "query": "FHIR-46238 MeasureReport measureScore boolean attestation",
+    "summary": "No direct Zulip or Confluence decision for FHIR-46238 was found; a broader DEQM invariant thread assumes boolean attestation MeasureReports and points to separate FHIR-51433 work.",
+    "learned": "No discovered community record changes the Jira/source conclusion or expands the core reconciliation scope.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "modelinfo synchronization and whitespace checks",
+    "command": "python3 embedded attachment/type assertion check; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The embedded Library attachment decodes exactly to the raw model-definition content, both MeasureReport modelinfo blocks include the expected choice types, and diff --check passed.",
+    "learned": "The source fix is internally consistent and does not introduce whitespace problems.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,86 @@
+FHIR-15650: Audit ElementDefinition eld-2 invariant
+
+Issue request:
+FHIR-15650 was a Published/Persuasive FHIR-core technical correction for STU3. It asked to correct ElementDefinition invariant eld-2 because the expression `min.empty() or max.empty() or (max = '*') or (min <= max.toInteger())` assumes short-circuit behavior and can evaluate `max.toInteger()` when `max = '*'`; the requested expression guards the numeric comparison with `iif(max != '*', min <= max.toInteger())`.
+
+Initial application:
+The Jira comments identify svn revision 13338 as the application. In the imported git history, commit 13dfd25e58392c4b0a6851301f593a28b63a198f (`#15650 - fix eld-2 invariant`, git-svn build@13338) changed `source/datatypes/elementdefinition.xml` from the unsafe expression to `min.empty() or max.empty() or (max = '*') or iif(max != '*', min <= max.toInteger())`.
+
+Additional context:
+`source/fhir.ini` lists ElementDefinition as an active datatype and maps it to the `eld` prefix, so `source/datatypes/elementdefinition.xml` is the current authoritative source to inspect. Current active source no longer contains the old unsafe eld-2 expression. FHIR-15649 is mentioned in a Jira comment but concerns the separate Bundle bdl-7 invariant and was applied separately at svn revision 13339, so it is background rather than part of this issue decision. Targeted Zulip and Confluence searches found no conflicting or clarifying community record.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current ElementDefinition source already contains the corrected eld-2 FHIRPath expression requested by FHIR-15650, and the historical application commit aligns with the Jira resolution.
+
+Recommendation:
+Keep this empty audit commit as-is. No follow-up is needed for FHIR-15650 unless a future FHIRPath semantics change reopens the broader invariant pattern.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15650
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-15649: background - linked from a FHIR-15650 Jira comment, but it addresses the separate Bundle bdl-7 invariant and was not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15650: Published/Persuasive technical correction asking for the eld-2 expression to guard `max.toInteger()` with `iif(max != '*', ...)`. Learned: this establishes the final issue request and target expression.
+- E2 Source source/fhir.ini:61 and source/fhir.ini:1146: ElementDefinition is listed as an active datatype and mapped to the `eld` prefix. Learned: the ElementDefinition spreadsheet source is in current build scope.
+- E3 Source source/datatypes/elementdefinition.xml:4622: eld-2 currently uses `min.empty() or max.empty() or (max = '*') or iif(max != '*', min <= max.toInteger())`. Learned: the active source already matches the requested correction.
+- E4 Git 13dfd25e58392c4b0a6851301f593a28b63a198f: imported svn revision 13338 changed eld-2 from the unsafe expression to the guarded `iif` expression. Learned: the Jira application history matches the current source state.
+- E5 Command searches: active-source search found no old unsafe eld-2 expression, and targeted Zulip/Confluence searches found no relevant conflicting record. Learned: no current-source or community evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15650",
+    "url": "https://jira.hl7.org/browse/FHIR-15650",
+    "snapshot_path": "contexts/FHIR-15650/jira/FHIR-15650.md",
+    "ref": { "jira_key": "FHIR-15650" },
+    "summary": "Published/Persuasive technical correction requiring ElementDefinition eld-2 to avoid evaluating max.toInteger() when max is '*'.",
+    "learned": "This establishes the final issue request and the guarded iif expression expected in source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:61 and source/fhir.ini:1146",
+    "ref": { "path": "source/fhir.ini", "lines": "61,1146" },
+    "summary": "ElementDefinition is listed as an active datatype and mapped to the eld prefix.",
+    "learned": "This confirms the ElementDefinition datatype source is in current build scope.",
+    "supports": ["source_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:4622",
+    "ref": { "path": "source/datatypes/elementdefinition.xml", "line": 4622 },
+    "summary": "The eld-2 expression currently reads min.empty() or max.empty() or (max = '*') or iif(max != '*', min <= max.toInteger()).",
+    "learned": "The active source already matches the corrected expression requested by FHIR-15650.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "13dfd25e58392c4b0a6851301f593a28b63a198f",
+    "ref": { "commit": "13dfd25e58392c4b0a6851301f593a28b63a198f" },
+    "summary": "Imported svn revision 13338 commit '#15650 - fix eld-2 invariant' changed the unsafe eld-2 expression to the guarded iif expression.",
+    "learned": "The current source is the result of the Jira-noted application, not an unrelated later change.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Active-source and community negative searches for FHIR-15650 eld-2",
+    "command": "rg old eld-2 expression source; rg corrected eld-2 expression source; bun run zulip:search fts '\"FHIR-15650\"'; bun run zulip:search fts '\"eld-2\" \"ElementDefinition\" \"max.toInteger\"'; bun run confluence:search refs jira FHIR-15650; bun run confluence:search fts '\"FHIR-15650\"'",
+    "query": "FHIR-15650 eld-2 ElementDefinition max.toInteger",
+    "result_count": 0,
+    "summary": "No old unsafe eld-2 expression was found in active source, and no relevant Zulip or Confluence records were found.",
+    "learned": "No discovered current-source or community evidence conflicts with the no-change audit decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

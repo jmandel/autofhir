@@ -1,0 +1,105 @@
+FHIR-19304: Audit inherited-element rendering ownership
+
+Issue request:
+FHIR-19304 is Published/Persuasive for FHIR-core STU3 and asked the rendered structure tables to make inherited Resource/DomainResource elements more prominent by moving the "Elements defined in Ancestors" list out of the root row description column, changing it to "Inherited elements not included below", and doing the same for datatype pages that inherit Element elements.
+
+Initial application:
+Jira records Grahame's application note as GH#dbe102bb95, but that short hash is not present in the current HL7/fhir history or GitHub commit lookup. Current rendered build pages still emit the old "Elements defined in Ancestors" text in the Description & Constraints cell, so the requested rendering behavior is not represented in the current publication surface from core source alone.
+
+Additional context:
+FHIR-18335 was the related ballot comment resolved no-change because the behavior was out of ballot scope; FHIR-I minutes explicitly created FHIR-19304 as the separate follow-up tracker. The current FHIR build invokes org.hl7.fhir:kindling, and the active renderer implementation is in HL7/kindling TableGenerator.java, which still appends "Elements defined in Ancestors" to the root element description cell. A later Zulip publisher thread also identifies ancestor-element display as a publisher issue.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no FHIR source change and records an external-repo decision. Editing checked-in generated-looking snippets or one resource note in this checkout would not fix the all-resource/all-datatype renderer behavior requested by FHIR-19304; the durable fix belongs in the external Kindling publisher/renderer and then requires a core rebuild.
+
+Recommendation:
+Keep this audit commit as-is for the core reconciliation. Follow up in HL7/kindling, especially src/main/java/org/hl7/fhir/definitions/generators/specification/TableGenerator.java, to move the inherited-element list above the generated table/root row and change the label consistently for resource and datatype renderings before rebuilding FHIR core.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19304
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-18335: background - original ballot issue for the same DomainResource inheritance visibility concern was resolved no-change as out of ballot scope and spawned FHIR-19304.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19304: Published/Persuasive, Applied for STU3, requested inherited Resource/DomainResource and Element lists be moved above generated structure tables and relabeled. Learned: this is the final issue request and target behavior.
+- E2 Confluence FHIR-I Minutes WGM 201809 page 40743485: records the FHIR-I discussion of tracker 18335 and creation/vote of new tracker 19304 to move the ancestor statement below "Structure". Learned: confirms the scope and why FHIR-19304 is distinct from FHIR-18335.
+- E3 Source build.gradle.kts:46-48,132-138 and gradle.properties:1-2: the core build depends on org.hl7.fhir:kindling and runs org.hl7.fhir.tools.publisher.Publisher. Learned: generated table rendering is supplied by an external build dependency rather than editable FHIR resource source.
+- E4 Web HL7/kindling TableGenerator.java:247: current renderer code appends "Elements defined in Ancestors" or "Elements defined in Ancestor Resources" to the root row description cell. Learned: the remaining requested behavior change belongs in the Kindling renderer.
+- E5 Published spec build.fhir.org/patient.html and build.fhir.org/datatypes.html: current rendered pages still show "Elements defined in Ancestors" inside the root element description cell. Learned: the request is not fully reflected in the current rendered publication surface.
+- E6 Zulip #cda/publish "Elements defined in ancestors not displaying": Grahame Grieve states ancestor display is "a publisher thing". Learned: community evidence supports treating this as publisher-renderer ownership rather than a core resource-definition edit.
+- E7 Command git/GitHub history checks for FHIR-19304 and dbe102bb95: no matching current core commit was found. Learned: there is no safely reusable current core-source application commit to audit as complete.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19304",
+    "url": "https://jira.hl7.org/browse/FHIR-19304",
+    "snapshot_path": "contexts/FHIR-19304/jira/FHIR-19304.md",
+    "ref": { "jira_key": "FHIR-19304" },
+    "summary": "Published/Persuasive FHIR-core issue requesting inherited Resource/DomainResource and Element lists be moved above generated structure tables and relabeled.",
+    "learned": "This establishes the final requested rendering behavior for the reconciliation decision.",
+    "supports": ["issue_request", "recommendation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes WGM 201809 page 40743485",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/40743485/FHIR+Infrastructure+Minutes+WGM+201809",
+    "ref": { "confluence_page_id": 40743485 },
+    "summary": "FHIR-I minutes record discussion of tracker 18335 and creation of tracker 19304 to move the ancestor statement below Structure.",
+    "learned": "This confirms the related ballot issue was intentionally split into FHIR-19304 for the rendering change.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "build.gradle.kts:46-48,132-138; gradle.properties:1-2",
+    "summary": "The core build depends on org.hl7.fhir:kindling 1.25.5-SNAPSHOT and runs org.hl7.fhir.tools.publisher.Publisher.",
+    "learned": "The generated structure-table renderer is provided by the external Kindling dependency, not by a current core resource definition file.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "web",
+    "locator": "HL7/kindling TableGenerator.java#L247",
+    "url": "https://github.com/HL7/kindling/blob/main/src/main/java/org/hl7/fhir/definitions/generators/specification/TableGenerator.java#L247",
+    "summary": "The renderer still appends 'Elements defined in Ancestors' or 'Elements defined in Ancestor Resources' to the root row description cell.",
+    "learned": "The requested label and placement change must be implemented in Kindling to affect all generated resource and datatype tables.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "build.fhir.org patient.html and datatypes.html inherited-element rendering",
+    "url": "https://build.fhir.org/patient.html",
+    "command": "curl -fsSL https://build.fhir.org/patient.html | rg -n 'Elements defined in Ancestors'; curl -fsSL https://build.fhir.org/datatypes.html | rg -n 'Elements defined in Ancestors'",
+    "summary": "Current rendered resource and datatype pages still show the old ancestor text in the description cell.",
+    "learned": "The publication surface still exhibits the behavior FHIR-19304 wanted changed, so a no-change core audit would be inaccurate.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#cda/publish > Elements defined in ancestors not displaying",
+    "url": "https://chat.fhir.org/#narrow/stream/cda%2Fpublish/topic/Elements%20defined%20in%20ancestors%20not%20displaying",
+    "summary": "Grahame Grieve states that ancestor-element display is a publisher thing.",
+    "learned": "This supports treating the remaining work as external publisher-renderer work rather than a core source edit.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Core git/GitHub checks for FHIR-19304 and dbe102bb95",
+    "command": "git log --all --grep='FHIR-19304\\|19304\\|dbe102bb95'; GitHub get commit dbe102bb95 in HL7/fhir",
+    "summary": "No matching current core commit or GitHub commit was found for the Jira application note.",
+    "learned": "There is no current core-source implementation commit that can be relied on as the completed application of FHIR-19304.",
+    "supports": ["initial_application", "confidence"]
+  }
+]
+</evidence-manifest>

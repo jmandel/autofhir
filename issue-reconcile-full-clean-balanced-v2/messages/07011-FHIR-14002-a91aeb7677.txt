@@ -1,0 +1,120 @@
+FHIR-14002: Audit ServiceRequest codified order details
+
+Issue request:
+FHIR-14002 was a Published, Persuasive with Modification Orders and Observations change request raised against STU3 ProcedureRequest.supportingInfo. It asked for support for codified order-entry details such as isolation precautions, transportation mode, anesthesia type, NPO exceptions, catheter type, and ventilator mode, because using supportingInfo as only Reference(Any) did not cover these coded details. The final resolution did not simply turn supportingInfo into arbitrary coded instructions; it directed ServiceRequest to carry supportingInfo as a reference and add inline patient/provider instruction/order-detail elements, covering both FHIR-14002 and FHIR-12966.
+
+Initial application:
+The change appears to have been pre-applied in SVN-era git history. Commit 5971b343bd added ServiceRequest.orderDetail as CodeableConcept, kept ServiceRequest.supportingInfo as Reference(Any), added ServiceRequest.patientInstruction, and tagged the orderDetail committee notes with [#14002][#12966]. Follow-up commits a0c6e08b5e and 23cf0426e1 added orderDetail and patientInstruction usage to examples. ProcedureRequest is now retired/merged into ServiceRequest, and ServiceRequest is the active resource in source/fhir.ini.
+
+Additional context:
+FHIR-14000, the parallel Request-pattern issue, was resolved Not Persuasive because supportingInfo is existing clinical context rather than instructions for how services should be delivered. Later OO decisions preserved and refined that interpretation: FHIR-31589 clarified that ServiceRequest.supportingInfo is for existing supporting information and points delivery instructions/questions to orderDetail; FHIR-32265 reshaped orderDetail into the current parameter/value BackboneElement; FHIR-37355 later changed ServiceRequest.supportingInfo itself to CodeableReference(Resource). Zulip discussion linked from FHIR-12966 shows implementers wanted extra ServiceRequest details beyond supportingInfo, and a later thread describes FHIR-14002 as the origin of orderDetail.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. The current build-scoped ServiceRequest StructureDefinition already conveys the reconciled rule: orderDetail carries additional coded/structured delivery details, patientInstruction carries patient-facing instructions, supportingInfo is active and can now be CodeableReference(Resource), and the current comments steer implementers away from using supportingInfo for instructions.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up core source work is needed for FHIR-14002; any broader reconsideration of the Request logical pattern or newer orderDetail shape belongs to the later issue family rather than this STU3 ProcedureRequest tracker.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14002
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12966: same-change-family - the FHIR-14002 resolution explicitly says the same ServiceRequest orderDetail/patientInstruction structure covered FHIR-12966 as well.
+FHIR-14000: background - parallel Request-pattern request was Not Persuasive and confirms supportingInfo should not be overloaded with delivery instructions.
+FHIR-31589: later-change - clarified the same ServiceRequest supportingInfo/orderDetail boundary in current R6 source.
+FHIR-32265: later-change - reshaped ServiceRequest.orderDetail from the original CodeableConcept into the current structured parameter/value BackboneElement.
+FHIR-37355: later-change - later changed ServiceRequest.supportingInfo to CodeableReference(Resource), explaining why current source supports coded existing information without reviving the original misuse concern.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14002: Published/Persuasive with Modification tracker requested codified ProcedureRequest supporting information and resolved to add ServiceRequest inline supporting/order-detail and patient-instruction elements. Learned: establishes the seed request and approved scope.
+- E2 Source source/fhir.ini:213: ServiceRequest is an active resource, while ProcedureRequest is retired/merged into ServiceRequest in the same config. Learned: ServiceRequest source is the current build-scope authority for this old ProcedureRequest issue.
+- E3 Source source/servicerequest/structuredefinition-ServiceRequest.xml:563-672,1143-1158,1238-1268: current ServiceRequest has structured orderDetail, CodeableReference(Resource) supportingInfo, and patientInstruction. Learned: current source already implements and later refines the approved capability.
+- E4 Git 5971b343bd, a0c6e08b5e, 23cf0426e1: SVN-era commits pre-applied [#14002]/[#12966] orderDetail, patientInstruction, and examples. Learned: the requested change was historically applied.
+- E5 Jira FHIR-14000/FHIR-31589/FHIR-32265/FHIR-37355: related and later decisions maintain the boundary between existing support information and delivery instructions while refining types. Learned: current wording differs from the original resolution because of later approved decisions, not because FHIR-14002 is missing.
+- E6 Zulip #implementers > extra details for a ProcedureRequest (aka ServiceRequest), and #implementers > ServiceRequest with many details: implementer discussion linked from FHIR-12966 aligns FHIR-14002 with extra order details and later identifies it as the source of orderDetail. Learned: community evidence supports the no-change interpretation.
+- E7 Confluence/Zulip searches: Confluence refs and FTS for FHIR-14002/FHIR-12966 found no conflicting meeting record; Zulip key search found only the relevant ServiceRequest discussion. Learned: no discovered community evidence contradicts Jira/source/history.
+- E8 Verification command: git diff HEAD..robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/servicerequest source/request source/fhir.ini produced no relevant source differences, and combined-branch source inspection showed the same active elements. Learned: the latest combined branch remains consistent with the no-change decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14002",
+    "url": "https://jira.hl7.org/browse/FHIR-14002",
+    "snapshot_path": "contexts/FHIR-14002/jira/FHIR-14002.md",
+    "ref": { "jira_key": "FHIR-14002" },
+    "summary": "Published/Persuasive with Modification issue requesting support for codified ProcedureRequest supporting information and resolving to add ServiceRequest inline order-detail/patient-instruction elements.",
+    "learned": "This establishes the final approved scope for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:213",
+    "ref": { "path": "source/fhir.ini", "line": 213 },
+    "summary": "ServiceRequest is listed as an active resource; ProcedureRequest is separately marked as merged into ServiceRequest.",
+    "learned": "The current ServiceRequest source is the build-scope location to evaluate for this old ProcedureRequest tracker.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:563-672,1143-1158,1238-1268",
+    "ref": { "path": "source/servicerequest/structuredefinition-ServiceRequest.xml" },
+    "summary": "Current ServiceRequest defines orderDetail as structured parameters, supportingInfo as CodeableReference(Resource), and patientInstruction as a patient-facing instruction backbone.",
+    "learned": "The active source already carries the FHIR-14002 capability, adjusted by later approved changes.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "5971b343bd; a0c6e08b5e; 23cf0426e1",
+    "ref": { "commit": "5971b343bde80d40cbf9dcf74744bb49611f194d" },
+    "summary": "Historical commits pre-applied [#14002]/[#12966] orderDetail and patientInstruction and added examples.",
+    "learned": "FHIR-14002 had an explicit source implementation path before this reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-14000, FHIR-31589, FHIR-32265, FHIR-37355",
+    "url": "https://jira.hl7.org/browse/FHIR-31589",
+    "ref": { "jira_key": "FHIR-31589" },
+    "summary": "Related and later Jira decisions preserve the supportingInfo/orderDetail boundary and explain the current CodeableReference and orderDetail BackboneElement shape.",
+    "learned": "Differences from the 2017 resolution are expected later approved refinements rather than omissions.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > extra details for a ProcedureRequest (aka ServiceRequest); #implementers > ServiceRequest with many details",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/extra%20details%20for%20a%20ProcedureRequest%20(aka%20ServiceRequest)",
+    "summary": "Linked implementer discussions identify the need for extra ServiceRequest details beyond supportingInfo and later describe FHIR-14002 as leading to orderDetail.",
+    "learned": "Community context supports reading FHIR-14002 as an orderDetail/patientInstruction solution, not a missing supportingInfo rewrite.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-14002/FHIR-12966 and ServiceRequest orderDetail",
+    "command": "bun run zulip:search fts '\"FHIR-14002\" OR \"FHIR-12966\"' --limit 10; bun run confluence:search refs jira FHIR-14002; bun run confluence:search fts '\"FHIR-14002\" OR \"FHIR-12966\"' --limit 10",
+    "query": "FHIR-14002 FHIR-12966 ServiceRequest orderDetail supportingInfo",
+    "summary": "Confluence searches found no direct references or conflicting high-signal hits; Zulip key search found the relevant ServiceRequest discussion.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Latest combined branch source check",
+    "command": "git diff HEAD..robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/servicerequest source/request source/fhir.ini; git show robo-spec-combined-issue-reconcile-full-clean-balanced-v2:source/servicerequest/structuredefinition-ServiceRequest.xml | rg 'ServiceRequest.orderDetail|ServiceRequest.supportingInfo|ServiceRequest.patientInstruction' -C 2",
+    "summary": "No relevant source diffs existed between the worker base and latest combined branch, and combined source still showed the expected active elements.",
+    "learned": "The no-change decision applies to the branch being published.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

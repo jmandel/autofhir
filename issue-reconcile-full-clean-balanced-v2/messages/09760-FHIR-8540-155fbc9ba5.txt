@@ -1,0 +1,83 @@
+FHIR-8540: Audit primitive profile type-code correction
+
+Issue request:
+FHIR-8540 was a Published/Persuasive FHIR-core StructureDefinition correction from DSTU1. It reported that primitive datatype profiles such as instant.value carried ElementDefinition.type.code values like xs:dateTime, which violated the datatype binding; the resolution agreed that schema types were invalid and irrelevant in those profile type codes.
+
+Initial application:
+The issue was applied in svn revision 6172, represented in git as a98d42388273e9fb79a6a9d93ab717b185741b4e (#8540 - remove schema types from profiles). That commit removed generator assignments that populated primitive value ElementDefinition.type.code from XML Schema type names and allowed XML-attribute primitive value elements to avoid those schema type codes.
+
+Additional context:
+Current source still documents XML representation details such as xs:boolean or xs:base64Binary on the primitive datatype narrative page, but those are serialization-domain descriptions, not ElementDefinition.type.code values. The checked release profile bundles no longer contain <code value="xs:*"> values, and the current R4B/R5 primitive value profiles use FHIRPath system type codes plus structuredefinition-fhir-type extensions for the FHIR primitive name.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The invalid schema-code profile representation requested by FHIR-8540 has already been removed, and the remaining XML Schema references are either representation documentation or XPath/regex-related text that do not recreate the binding violation.
+
+Recommendation:
+Keep this audit commit as-is. No core follow-up is needed unless a future generated primitive profile again emits XML Schema names as ElementDefinition.type.code values.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8540
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8540: Published/Persuasive issue says primitive value ElementDefinition.type.code values such as xs:dateTime violated the datatype binding. Learned: final WG intent was to remove schema type codes from primitive profiles.
+- E2 Git a98d42388273e9fb79a6a9d93ab717b185741b4e: svn r6172 commit titled "#8540 - remove schema types from profiles" removed generator code that set primitive value type codes from XML Schema names. Learned: the original issue was explicitly applied in source history.
+- E3 Source tools/history/release5/profiles-types.xml:952 and :1002 plus :2449 and :2502: boolean.value and integer.value use http://hl7.org/fhirpath/System.Boolean and http://hl7.org/fhirpath/System.Integer rather than xs:* codes. Learned: checked generated profile surfaces do not retain the reported invalid schema type codes.
+- E4 Source source/datatypes.html:99-128 and source/datatypes.html:141: remaining xs:* text describes XML representation for primitives. Learned: these representation notes are not the invalid ElementDefinition.type.code binding surface from the issue.
+- E5 Command checks: rg '<code value="xs:' source tools/history found no hits; namespace-aware parsing of tools/history/release*/profiles-types.xml found zero xs-code violations on *.value elements; quoted Zulip/Confluence searches found no conflicting community evidence. Learned: no current in-scope source change is indicated.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8540",
+    "url": "https://jira.hl7.org/browse/FHIR-8540",
+    "snapshot_path": "contexts/FHIR-8540/jira/FHIR-8540.md",
+    "ref": { "jira_key": "FHIR-8540" },
+    "summary": "Published/Persuasive issue requesting removal of XML Schema primitive type codes such as xs:dateTime from primitive datatype profile ElementDefinition.type.code values.",
+    "learned": "This establishes the final requested correction and the binding violation to check in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "a98d42388273e9fb79a6a9d93ab717b185741b4e",
+    "ref": { "commit": "a98d42388273e9fb79a6a9d93ab717b185741b4e", "svn_revision": 6172 },
+    "summary": "Commit '#8540 - remove schema types from profiles' removed ProfileGenerator assignments that set primitive value ElementDefinition.type.code from XML Schema type names.",
+    "learned": "The issue was explicitly applied in source history rather than left as an unapplied tracker.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "tools/history/release5/profiles-types.xml:952-1002,2449-2502",
+    "summary": "Checked primitive value elements such as boolean.value and integer.value carry FHIRPath system type codes with structuredefinition-fhir-type extensions, not xs:* codes.",
+    "learned": "The currently checked generated profile surfaces preserve the intended correction.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes.html:99-128,141",
+    "summary": "The primitive datatype narrative still mentions xs:* values only as XML representation descriptions.",
+    "learned": "These remaining XML Schema references do not recreate the ElementDefinition.type.code binding violation.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current source/history and community searches for FHIR-8540 primitive schema type codes",
+    "command": "rg -n '<code value=\"xs:' source tools/history; python3 namespace-aware scan of tools/history/release*/profiles-types.xml *.value type codes; bun run zulip:search fts '\"FHIR-8540\" primitive types code binding xs dateTime' --limit 10; bun run confluence:search refs jira FHIR-8540; bun run confluence:search fts '\"FHIR-8540\" primitive types code binding xs dateTime' --limit 10",
+    "query": "FHIR-8540 primitive types code binding xs dateTime",
+    "result_count": 0,
+    "summary": "No <code value=\"xs:*\"> hits were present in source/history, parsed primitive value profile entries had zero xs-code violations, and no relevant Zulip or Confluence records were found.",
+    "learned": "No discovered current source or community evidence contradicts the no-change reconciliation.",
+    "supports": ["absence_of_conflict", "confidence", "reconciliation"]
+  }
+]
+</evidence-manifest>

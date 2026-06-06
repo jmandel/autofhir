@@ -1,0 +1,120 @@
+FHIR-28219: Audit clinical-patient target scope
+
+Issue request:
+FHIR-28219 is a Published/Persuasive FHIR-I technical correction, raised for R4 and applied for R5, asking that the common clinical-patient SearchParameter target only Patient. The reported inconsistency was that DeviceUseStatement.subject could also be Group, so the resolution required patient search expressions based on non-patient-named elements to use where(resolve() is Patient) and avoid broadening the common patient search to non-Patient targets.
+
+Initial application:
+The seed Jira comment says the change was done in R4B. No source commit found in local history cites FHIR-28219 directly, but FHIR-I minutes for 2020-12-07 record the same decision as "Will fix the FHIRPath for DeviceUseStatement." The matching R4B application appears to be git commit b717783b86bab2bb3aa9ca289f2cd11a7ba18107 for related FHIR-26900, which changed DeviceUseStatement-patient from DeviceUseStatement.subject to DeviceUseStatement.subject.where(resolve() is Patient).
+
+Additional context:
+DeviceUseStatement was later renamed to DeviceUsage and DeviceUsage is no longer active in the current FHIR core build; an existing combined-branch FHIR-26900 audit records that the current external DeviceUsage artifact preserves the Patient-only patient search parameter. Related combined-branch audits for FHIR-31714 and FHIR-32876 confirm that later generated clinical-patient target expansion issues are already correct, and FHIR-36674 has already aligned remaining active patient registry bases on the combined branch.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. SearchParameter is active in source/fhir.ini, the combined branch's source/searchparameter/common-search-parameters.xml clinical-patient block contains only the common base list and no Group target assertion, active patient-code SearchParameter sources have no explicit non-Patient targets, and resource expressions that are not Patient-filtered are already Patient-only elements. Current build, R5, and R4B generated search-parameters.json all report SearchParameter/clinical-patient target ["Patient"].
+
+Recommendation:
+Keep this no-change audit. The current core source and generated publication surfaces satisfy FHIR-28219; do not add redundant filters to elements already typed only as Patient or edit inactive DeviceUsage core source. Future follow-up is only needed if generation again expands clinical-patient.target beyond Patient or a resource newly added to clinical-patient has a non-Patient patient search target.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-28219
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-26900: same-change-family - Earlier Published issue asked the same DeviceUseStatement patient search parameter to restrict subject to Patient; it already has an external-repo audit on the combined branch.
+FHIR-31714: later-change - Later Published issue corrected generated clinical-patient targets to Patient and is already represented on the combined branch.
+FHIR-32876: later-change - Duplicate/generated-target recurrence reported clinical-patient target expansion and is already represented on the combined branch.
+FHIR-36674: later-change - Later Published registry-alignment issue added missing active patient bases to clinical-patient on the combined branch without changing the Patient-only target rule.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-28219: Published/Persuasive issue requiring common patient search parameters to target only Patient and use Patient-filtered expressions where needed. Learned: this establishes the seed request and final WG decision.
+- E2 Confluence FHIR-I minutes 2020-12-07 page 97469316: minutes record FHIR-28219, note that DeviceUseStatement has a dedicated subject parameter, and say "Will fix the FHIRPath for DeviceUseStatement." Learned: meeting evidence confirms the approved application scope.
+- E3 Git b717783b86bab2bb3aa9ca289f2cd11a7ba18107: R4B application for related FHIR-26900 changed DeviceUseStatement-patient to DeviceUseStatement.subject.where(resolve() is Patient). Learned: the historical source fix matches the FHIR-28219 resolution even though the commit cited the related issue.
+- E4 Source combined source/searchparameter/common-search-parameters.xml:304-369 and source/fhir.ini:169-248,600-626,644-769: SearchParameter is active and clinical-patient lists current bases without any Group target assertion. Learned: authoritative current core source does not encode the obsolete Group target.
+- E5 Source combined patient SearchParameter scan plus Patient-only element checks: 71 patient-code SearchParameters had no explicit non-Patient target; BiologicallyDerivedProduct.collection.sourcePatient and Coverage.beneficiary are typed Reference(Patient), and inactive SupplyRequest.deliverFor is also Patient-only. Learned: current source inputs do not broaden clinical-patient beyond Patient.
+- E6 Published spec check: build.fhir.org, hl7.org/fhir/R5, and hl7.org/fhir/R4B search-parameters.json all returned target ["Patient"] for SearchParameter/clinical-patient. Learned: generated/publication surfaces named by the issue are correct.
+- E7 Zulip #implementers > clinical-patient search parameter: implementers identified the original DeviceUseStatement issue and confirmed patient should point only to Patient while subject can include Patient or Group. Learned: community evidence supports the Patient-only interpretation and adds no conflicting requirement.
+- E8 Combined branch related audits 8d64d719, a305625b, 632c2f01, and 2310ecd8: existing commits cover FHIR-26900, FHIR-31714, FHIR-32876, and FHIR-36674. Learned: related issues are already represented and should not be republished from this seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-28219",
+    "url": "https://jira.hl7.org/browse/FHIR-28219",
+    "snapshot_path": "contexts/FHIR-28219/jira/FHIR-28219.md",
+    "ref": { "jira_key": "FHIR-28219" },
+    "summary": "Published/Persuasive correction requiring the common clinical-patient SearchParameter to target Patient only and use Patient-filtered expressions where needed.",
+    "learned": "This establishes the seed request and final WG decision.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2020-12-07 page 97469316",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/97469316/FHIR+Infrastructure+Minutes+CC+20201207",
+    "snapshot_path": "contexts/FHIR-28219/confluence/97469316.md",
+    "ref": { "confluence_page_id": 97469316 },
+    "summary": "FHIR-I minutes record FHIR-28219 and say DeviceUseStatement has a dedicated subject parameter and the FHIRPath will be fixed.",
+    "learned": "This confirms the approved application scope was the DeviceUseStatement patient expression.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "b717783b86bab2bb3aa9ca289f2cd11a7ba18107",
+    "ref": { "commit": "b717783b86bab2bb3aa9ca289f2cd11a7ba18107" },
+    "summary": "R4B commit changed DeviceUseStatement-patient from DeviceUseStatement.subject to DeviceUseStatement.subject.where(resolve() is Patient).",
+    "learned": "The historical source change matches the FHIR-28219 resolution through the closely related FHIR-26900 application.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/searchparameter/common-search-parameters.xml:304-369; source/fhir.ini:169-248,600-626,644-769",
+    "ref": { "path": "source/searchparameter/common-search-parameters.xml", "lines": "304-369" },
+    "summary": "SearchParameter is active and the clinical-patient common source lists current bases without any Group target assertion.",
+    "learned": "The authoritative current core source does not encode the obsolete Group target.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Combined-branch patient SearchParameter target scan",
+    "command": "git archive robo-spec-combined-issue-reconcile-full-clean-balanced-v2 source | python3 XML parse of source/*/bundle-*-search-params.xml for code=patient targets and expressions",
+    "summary": "The combined branch has 71 patient-code SearchParameters, no explicit non-Patient targets, and no suspicious active expressions after checking Patient-only elements such as BiologicallyDerivedProduct.collection.sourcePatient and Coverage.beneficiary.",
+    "learned": "Current source inputs that feed clinical-patient target generation are Patient-scoped.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "build.fhir.org, hl7.org/fhir/R5, and hl7.org/fhir/R4B search-parameters.json",
+    "command": "python3 urllib/json checks of <url>/search-parameters.json for resource.id == clinical-patient",
+    "summary": "Current build, R5, and R4B generated artifacts all returned target [\"Patient\"] for SearchParameter/clinical-patient.",
+    "learned": "The generated publication/download surface named by the issue is currently correct.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > clinical-patient search parameter",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/clinical-patient%20search%20parameter",
+    "snapshot_path": "contexts/FHIR-26900/zulip/implementers--clinical-patient-search-parameter.md",
+    "ref": { "stream": "implementers", "topic": "clinical-patient search parameter" },
+    "summary": "The reporter identified the DeviceUseStatement patient-search bug and David Pyke confirmed patient should point only to Patient while subject can include both Patient and Group.",
+    "learned": "Community evidence supports the Patient-only interpretation and adds no conflicting current requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "git",
+    "locator": "8d64d71983756b4abc19249bdb1e90f79f387a91; a305625b18802f1f276b1549109d590fea77329c; 632c2f0163577c271e26eacfd81e2f9567e34aeb; 2310ecd8cf8f53c5906d2c13180e606cd841a927",
+    "summary": "Combined-branch commits already represent related FHIR-26900, FHIR-31714, FHIR-32876, and FHIR-36674 decisions in the clinical-patient change family.",
+    "learned": "Related issues should not be republished from this seed, and their conclusions support a no-change decision for FHIR-28219.",
+    "supports": ["additional_context", "recommendation"]
+  }
+]
+</evidence-manifest>

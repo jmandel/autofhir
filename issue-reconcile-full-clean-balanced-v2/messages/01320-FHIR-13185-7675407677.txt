@@ -1,0 +1,142 @@
+FHIR-13185: Audit superseded immunization dose datatype change
+
+Issue request:
+FHIR-13185 was Published with a Persuasive with Modification resolution for STU3. It reported that Immunization.vaccinationProtocol.seriesDoses, ImmunizationRecommendation.recommendation.doseNumber, and ImmunizationRecommendation.recommendation.protocol.doseSequence were too narrowly modeled as positiveInt, because values such as recurring boosters may be non-numeric. The approved direction was to allow both integer and string representations while expressing a preference for integers when known; the issue comments also noted that related dose search parameters should be removed if there was no use case.
+
+Initial application:
+The source history includes b294e9e7f9239a04662837e18dfffefbe41d5ecb, "#13185 - add a string option for doseNumber and seriesDose in both ImmunizationRecommendation and ImmunizationEvaluation", which applied the original integer/string compromise to the older spreadsheet/example source. Later R4 cross-version history shows the immunization dose fields as positiveInt|string choices, so the original datatype compromise existed in the FHIR lineage. Search-parameter cleanup was subsequently formalized by FHIR-19340 and applied in 760cdc540d095f4d73ccc47fc91be0098ec53076, removing unnecessary ImmunizationRecommendation dose search parameters.
+
+Additional context:
+Later final PHER decisions intentionally superseded the original integer/string compromise. FHIR-25277 changed doseNumber and seriesDoses in the immunization resources to string-only for R5, and the combined branch already contains Issue-Reconcile-Key: FHIR-25277 at 7f80bd9be381213fd16dfc24e785a84648ae56c0 auditing that superseded state. FHIR-44982 then changed the current Immunization doseNumber and seriesDoses elements from string to CodeableConcept for R6 so implementers can use coded concepts or free text; the combined branch already contains Issue-Reconcile-Key: FHIR-44982 at d71140d621d3265e4cb4df589b68e53706ef5a0a completing the current in-scope source reconciliation. Current source/fhir.ini keeps Immunization as an active core resource but no longer lists ImmunizationEvaluation or ImmunizationRecommendation as active core resources; source/resourceguide.html links those resources to the Immunization Incubator IG instead. The remaining search.html ImmunizationRecommendation dose-number example is generic number-search prose pointing at that external IG, not an active base-core search parameter definition.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Reintroducing positiveInt|string or the older integer-preference comments would contradict the later Published/Applied decisions. Current active Immunization source uses CodeableConcept for protocolApplied.doseNumber and protocolApplied.seriesDoses with comments allowing coded concepts or free text, examples use CodeableConcept text, and targeted source searches found no active core doseNumber/seriesDoses/doseSequence search parameter definitions to remove.
+
+Recommendation:
+Keep this audit commit as-is. The current FHIR core source is correct for FHIR-13185 after considering later final decisions; do not recreate deleted ImmunizationEvaluation or ImmunizationRecommendation core source or revert the current CodeableConcept outcome. If the external Immunization Incubator resource or the generic search-page example needs future cleanup, handle that under the owning IG or a separate search documentation issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13185
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-19340: same-change-family - later Published PHER issue explicitly removed unnecessary ImmunizationRecommendation dose search parameters, covering the search-parameter concern raised in FHIR-13185 comments.
+FHIR-25277: later-change - later Published PHER decision changed the same doseNumber and seriesDoses family from positiveInt|string choices to string-only in R5 and is already represented on the combined branch.
+FHIR-44982: later-change - later Applied PHER decision changed the current active Immunization dose fields from string to CodeableConcept in R6 and is already represented on the combined branch.
+FHIR-18868: background - related STU3 issue added Immunization.protocolApplied.seriesDoses, explaining the current element lineage but not changing this seed decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13185: Published/Persuasive with Modification issue requested non-integer support for immunization dose-series fields and recorded approval for integer-or-string with integer preference. Learned: this establishes the seed request and its final workflow status.
+- E2 Git b294e9e7f9239a04662837e18dfffefbe41d5ecb: Jira-tagged source commit added string options in the older ImmunizationRecommendation/ImmunizationEvaluation source. Learned: the original change was applied historically rather than missed entirely.
+- E3 Source tools/history/release4/xver-paths-4.0.json: Immunization.protocolApplied.doseNumber[x], seriesDoses[x], ImmunizationEvaluation dose fields, and ImmunizationRecommendation dose fields are positiveInt|string in R4 cross-version history. Learned: the original integer/string compromise existed in the release lineage.
+- E4 Jira FHIR-19340 and Git 760cdc540d095f4d73ccc47fc91be0098ec53076: Published issue and source commit removed unnecessary ImmunizationRecommendation dose search parameters. Learned: the search-parameter part of the original discussion was handled by a later focused issue.
+- E5 Jira FHIR-25277 and Confluence PHWG 2020-01-30 page 66913622: PHWG approved changing the same immunization dose elements to string-only for R5. Learned: later final WG intent superseded FHIR-13185's integer/string compromise.
+- E6 Jira FHIR-44982, Zulip #implementers > Immunization dose number - feedback sought, and Confluence PHWG 2024-08-08 page 239214583: later final decision and community/WG evidence support CodeableConcept for doseNumber and seriesDoses. Learned: current CodeableConcept source is intentional, not a regression from FHIR-13185.
+- E7 Source source/fhir.ini:170, source/fhir.ini:197, and source/resourceguide.html:217: current active core resources include immunization=Immunization and resourceguide links ImmunizationEvaluation/Recommendation externally. Learned: current core reconciliation should inspect Immunization but not recreate removed resource folders.
+- E8 Source source/immunization/structuredefinition-Immunization.xml:1155 and source/immunization/immunization-example-protocol.xml:102: active Immunization definitions and example use CodeableConcept for doseNumber and seriesDoses with coded/free-text comments. Learned: current in-scope source supports non-numeric dose labels through the later approved representation.
+- E9 Command search for active search parameters and community references: targeted rg found no active core doseNumber/seriesDoses/doseSequence search parameter definitions, Zulip SQL found no FHIR-13185 mentions, and Confluence refs found no FHIR-13185 pages. Learned: no remaining seed-specific source or community evidence requires a source change.
+- E10 Verification command: git status before the empty commit was clean and the audit commit was checked with CRLF-aware git show --check. Learned: this reconciliation publishes only an audit record and introduces no source diff.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13185",
+    "url": "https://jira.hl7.org/browse/FHIR-13185",
+    "snapshot_path": "contexts/FHIR-13185/jira/FHIR-13185.md",
+    "ref": { "jira_key": "FHIR-13185" },
+    "summary": "Published/Persuasive with Modification issue requesting non-integer support for immunization dose-series fields, with approval for integer-or-string representation and integer preference.",
+    "learned": "This establishes the seed request and final Jira status.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "b294e9e7f9239a04662837e18dfffefbe41d5ecb",
+    "ref": { "commit": "b294e9e7f9239a04662837e18dfffefbe41d5ecb" },
+    "summary": "Historical Jira-tagged commit added string options for doseNumber/seriesDose in older immunization recommendation/evaluation source.",
+    "learned": "The original FHIR-13185 application existed in source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "tools/history/release4/xver-paths-4.0.json",
+    "summary": "R4 cross-version entries show affected immunization dose fields as positiveInt|string choices.",
+    "learned": "The integer/string compromise from FHIR-13185 was present in the release lineage before later superseding changes.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-19340 and git 760cdc540d095f4d73ccc47fc91be0098ec53076",
+    "url": "https://jira.hl7.org/browse/FHIR-19340",
+    "snapshot_path": "contexts/FHIR-19340/jira/FHIR-19340.md",
+    "ref": { "jira_key": "FHIR-19340", "commit": "760cdc540d095f4d73ccc47fc91be0098ec53076" },
+    "summary": "Published follow-up issue removed unnecessary ImmunizationRecommendation dose search parameters.",
+    "learned": "The search-parameter concern raised while resolving FHIR-13185 was handled by a focused later issue.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-25277 and PHWG 2020-01-30 page 66913622",
+    "url": "https://jira.hl7.org/browse/FHIR-25277",
+    "snapshot_path": "contexts/FHIR-25277/jira/FHIR-25277.md",
+    "ref": { "jira_key": "FHIR-25277", "confluence_page_id": 66913622 },
+    "summary": "Published later PHER decision changed doseNumber and seriesDoses in the immunization resources to string-only for R5.",
+    "learned": "This superseded the original integer/string compromise.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-44982 plus linked Zulip and PHWG minutes",
+    "url": "https://jira.hl7.org/browse/FHIR-44982",
+    "snapshot_path": "contexts/FHIR-44982/jira/FHIR-44982.md",
+    "ref": { "jira_key": "FHIR-44982", "confluence_page_id": 239214583 },
+    "summary": "Applied later PHER decision changed current doseNumber and seriesDoses elements to CodeableConcept, with community discussion supporting coded concepts or free text.",
+    "learned": "The current CodeableConcept representation is intentional and should not be reverted for FHIR-13185.",
+    "supports": ["additional_context", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/fhir.ini:170, source/fhir.ini:197, source/resourceguide.html:217",
+    "summary": "The current active resources list includes Immunization, while ImmunizationEvaluation and ImmunizationRecommendation are linked externally from the resource guide.",
+    "learned": "Current core source changes should not recreate removed immunization resource folders.",
+    "supports": ["source_change_scope", "additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "source",
+    "locator": "source/immunization/structuredefinition-Immunization.xml:1155 and source/immunization/immunization-example-protocol.xml:102",
+    "summary": "Active Immunization source uses CodeableConcept for doseNumber and seriesDoses, and the example represents values as CodeableConcept text.",
+    "learned": "The current in-scope resource supports non-numeric dose labels through the later approved representation.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Targeted source and community searches for FHIR-13185 dose fields",
+    "command": "rg -n 'Immunization.*(doseNumber|seriesDoses|doseSequence)|ImmunizationRecommendation.*(doseNumber|seriesDoses|doseSequence)' source; bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-13185%'\"; bun run confluence:search refs jira FHIR-13185",
+    "query": "FHIR-13185; immunization doseNumber seriesDoses doseSequence",
+    "result_count": 0,
+    "summary": "No active core search parameter definitions for the affected dose fields and no seed-specific Zulip or Confluence references were found.",
+    "learned": "No remaining seed-specific source or community evidence requires a source change.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E10",
+    "kind": "command",
+    "locator": "Empty audit commit verification",
+    "command": "git status --short; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol show --check --pretty=format: HEAD",
+    "summary": "The worktree was clean before committing and the resulting empty audit commit had no whitespace errors.",
+    "learned": "This reconciliation publishes only an audit record and introduces no source diff.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

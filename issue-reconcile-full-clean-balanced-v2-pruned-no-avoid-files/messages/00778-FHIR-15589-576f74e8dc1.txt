@@ -1,0 +1,92 @@
+FHIR-15589: Remove stale substitution modifier comment
+
+Issue request:
+FHIR-15589 was a Published Pharmacy change request, resolved Persuasive with Modification for STU3, after identifying missing modifier reasons on Medication.amount and MedicationRequest.substitution.allowed. The final resolution was to remove Medication.amount as an isModifier and remove MedicationRequest.substitution from being treated as an isModifier.
+
+Initial application:
+Jira comments record a pre-application at git-svn revision 13603 and application at revision 13825. In the git history, 5ebb8db8d2d83621e046ede3e487cec74eb4f79b is the explicit GF #15589 pre-application commit touching the old Medication and MedicationRequest spreadsheets; it added modifier-reason columns/reasons while the historical rows still carried modifier wording. Later source rework moved the resource definitions into current StructureDefinition XML, where Medication.amount no longer exists and MedicationRequest.substitution/allowed no longer have isModifier=true, but the old substitution.allowed comment saying it was labeled as a modifier remained.
+
+Additional context:
+source/fhir.ini actively includes Medication and MedicationRequest as current resources, so source/medication/structuredefinition-Medication.xml and source/medicationrequest/structuredefinition-MedicationRequest.xml are in current build scope. Current Medication only marks Medication.status as a modifier, not the retired Medication.amount element. Current MedicationRequest correctly marks status, intent, and doNotPerform as modifiers, but not substitution or substitution.allowed. Jira searches found only FHIR-15589 and the public-health parent FHIR-15584 for the Medication amount/substitution modifier terms; direct Zulip and Confluence searches found no conflicting community decision.
+
+AutoFHIR reconciliation:
+Removed the stale MedicationRequest.substitution.allowed[x] comment that said the element was labeled as a modifier. No Medication.amount source change was needed because that element is absent from the current Medication StructureDefinition, and no substitution modifier metadata needed removal because it was already absent.
+
+Recommendation:
+Keep this commit as-is. It preserves the existing non-modifier metadata and removes the remaining wording that contradicted the FHIR-15589 disposition and current ElementDefinition flags.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15589
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-15584: background - original public-health tracker whose description included the two Pharmacy items split into FHIR-15589; not decided here because it covers different PH artifacts.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15589: Published/Persuasive with Modification Pharmacy tracker requested resolution of missing isModifierReason on Medication.amount and MedicationRequest.substitution.allowed by removing those modifier designations. Learned: this establishes the final WG intent for the target elements.
+- E2 Source source/fhir.ini:203,205: MedicationRequest and Medication are active resource entries. Learned: the edited StructureDefinition source files feed the current core build.
+- E3 Source source/medication/structuredefinition-Medication.xml:155: Medication.status is the only current Medication modifier and Medication.amount is absent. Learned: the Medication half of the issue is already satisfied in current source.
+- E4 Source source/medicationrequest/structuredefinition-MedicationRequest.xml:1133: MedicationRequest.substitution and substitution.allowed[x] have no isModifier flag after the edit and no longer carry the stale modifier comment. Learned: the remaining contradiction in the current source has been removed.
+- E5 Git 5ebb8db8d2d83621e046ede3e487cec74eb4f79b: GF #15589 pre-application touched the old Pharmacy spreadsheets and carried modifier-reason/modifier wording. Learned: prior application history explains why stale modifier prose survived into later source.
+- E6 Command community and validation searches: Jira searches for Medication amount/substitution modifier found only FHIR-15589/FHIR-15584; quoted Zulip/Confluence FHIR-15589 searches found no direct hits; XML parse and git diff --check passed. Learned: no discovered community or source-syntax evidence conflicts with the targeted fix.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15589",
+    "url": "https://jira.hl7.org/browse/FHIR-15589",
+    "snapshot_path": "contexts/FHIR-15589/jira/FHIR-15589.md",
+    "ref": { "jira_key": "FHIR-15589" },
+    "summary": "Published/Persuasive with Modification Pharmacy tracker resolved missing modifier reasons by removing Medication.amount and MedicationRequest.substitution modifier treatment.",
+    "learned": "This is the final Jira disposition that the current source must satisfy.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:203,205",
+    "summary": "MedicationRequest and Medication are active resources in the current core build configuration.",
+    "learned": "The checked StructureDefinition files are authoritative current-build inputs for this reconciliation.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medication/structuredefinition-Medication.xml:155",
+    "summary": "Current Medication defines Medication.status as a modifier, and searches find no Medication.amount element in the StructureDefinition.",
+    "learned": "No Medication source edit is needed for the retired Medication.amount modifier request.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationrequest/structuredefinition-MedicationRequest.xml:1133",
+    "summary": "MedicationRequest.substitution and substitution.allowed[x] are present without isModifier flags; this commit removes the stale comment that still called allowed[x] a modifier.",
+    "learned": "The necessary current-source correction is limited to removing contradictory modifier prose.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "5ebb8db8d2d83621e046ede3e487cec74eb4f79b",
+    "ref": { "commit": "5ebb8db8d2d83621e046ede3e487cec74eb4f79b" },
+    "summary": "GF #15589 pre-application changed the old Medication and MedicationRequest spreadsheets and included modifier-reason/modifier wording around the target rows.",
+    "learned": "This explains the historical source trail and why modifier wording could persist after later representation changes.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community searches and targeted validation",
+    "command": "bun run jira:search fts 'MedicationRequest substitution isModifier' --limit 15; bun run zulip:search fts '\"FHIR-15589\"' --limit 10; bun run confluence:search refs jira FHIR-15589; python - <<'PY' ... ET.parse(...) ... PY; git diff --check",
+    "query": "FHIR-15589 MedicationRequest substitution modifier",
+    "summary": "Jira found only FHIR-15589 and FHIR-15584 for the target modifier terms; quoted Zulip and Confluence key searches found no direct hits; XML parsing and diff check passed.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion, and the edited XML remains well-formed.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

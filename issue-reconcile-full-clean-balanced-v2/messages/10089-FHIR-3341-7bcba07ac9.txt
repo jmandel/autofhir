@@ -1,0 +1,110 @@
+FHIR-3341: Audit search parameter processing metadata
+
+Issue request:
+FHIR-3341 was a Published/Not Persuasive FHIR-I change request from the initial draft asking for model metadata that distinguished search parameters with normal element-driven matching from parameters requiring resource-specific matching algorithms. The request named empty-path DSTU1 examples such as ImagingStudy size, Location near/nearDistance, Patient/RelatedPerson/Organization phonetic, and SecurityEvent patientId. The final resolution said the request had been handled by another tracker: search parameters had paths and xpathUsage identified the search operation type.
+
+Initial application:
+No git commit explicitly mentioning FHIR-3341 was found. The matching application trail is FHIR-3317, whose Published/Persuasive with Modification resolution added SearchParameter.xpathUsage and whose implementation commit 572c59da417c5781bef6e10f35c9ba05d2113b40 recorded svn r5930 as "#3317 - add xpathUsage to SearchParameter". Current source has the successor model: SearchParameter.expression extracts search values, SearchParameter.processingMode states whether processing is normal, phonetic, or other, and the relevant resource search parameter bundles carry expressions plus processing modes.
+
+Additional context:
+Later R5 decisions deliberately changed the representation without reversing the seed's substance. FHIR-32530 removed SearchParameter.xpath, renamed xpathUsage to processingMode, and updated the model to use expression rather than XPath; FHIR-35974 trimmed obsolete processing mode codes while retaining other for searches that require custom coding. FHIR-I Zulip and Confluence evidence for FHIR-32530/FHIR-35974 confirms the rename and trimming were intentional. The active fhir.ini resource list includes AuditEvent, ImagingStudy, Location, Organization, Patient, and SearchParameter, and fhir.ini maps old SearchParameter.xpathUsage to SearchParameter.processingMode for version conversion.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scope source already conveys the model-driven distinction FHIR-3341 wanted through expression plus processingMode. The specific historical candidate gaps are not current missing-source defects: ImagingStudy size, Location nearDistance, and AuditEvent patientId are not current search parameter codes, while Location near is marked processingMode="other" and the phonetic parameters are marked processingMode="phonetic".
+
+Recommendation:
+Keep this no-change audit commit as-is. Future work should not reintroduce xpathUsage or extra path metadata for FHIR-3341; any remaining cleanup of legacy XPath surfaces belongs to the later FHIR-32530/FHIR-35974 issue family, not this Not Persuasive seed.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3341
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-3317: same-change-family - Published tracker that actually added xpathUsage for phonetic search parameters and satisfied the metadata mechanism cited by FHIR-3341's resolution.
+FHIR-32530: later-change - Published tracker that removed SearchParameter.xpath and renamed xpathUsage to processingMode while preserving the operation-type metadata concept.
+FHIR-35974: later-change - Published tracker that trimmed processing mode codes and retained other for non-automatable/custom search behavior.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3341: Published/Not Persuasive seed says the requested model-driven metadata was done by another tracker using paths and xpathUsage. Learned: the approved resolution does not require a new current source edit when the successor metadata is present.
+- E2 Jira FHIR-3317: Published/Persuasive with Modification issue for missing phonetic paths resolved by adding SearchParameter.xpathUsage. Learned: this is the historical tracker that implemented the mechanism cited by FHIR-3341.
+- E3 Source source/searchparameter/structuredefinition-SearchParameter.xml:104,567: SearchParameter requires processingMode when expression is present and defines processingMode as the relationship between the expression result and search semantics. Learned: the current model carries the required machine-readable operation metadata.
+- E4 Source source/location/bundle-Location-search-params.xml:179 and source/patient/bundle-Patient-search-params.xml:407: Location near uses processingMode="other" and Patient phonetic uses processingMode="phonetic"; analogous Organization and RelatedPerson phonetic entries do the same. Learned: build-scope resource parameters that need special handling are marked.
+- E5 Git 572c59da417c5781bef6e10f35c9ba05d2113b40: "#3317 - add xpathUsage to SearchParameter" changed the SearchParameter source in svn r5930. Learned: historical source application happened through FHIR-3317 rather than a FHIR-3341-tagged commit.
+- E6 Jira/Community FHIR-32530 and FHIR-35974: later Published decisions, Zulip discussion, and FHIR-I minutes renamed xpathUsage to processingMode and trimmed obsolete codes while keeping other. Learned: current wording differs from FHIR-3341's resolution because of intentional later decisions.
+- E7 Verification command: searched current source for candidate codes and combined-branch audit trailers. Learned: ImagingStudy size, Location nearDistance, and AuditEvent patientId are absent as current search parameter codes; no existing FHIR-3341 audit commit was present.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3341",
+    "url": "https://jira.hl7.org/browse/FHIR-3341",
+    "snapshot_path": "contexts/FHIR-3341/jira/FHIR-3341.md",
+    "ref": { "jira_key": "FHIR-3341" },
+    "summary": "Published/Not Persuasive seed asked for model-driven metadata for search parameters needing resource-specific algorithms and says another tracker had supplied paths plus xpathUsage.",
+    "learned": "The final disposition supports auditing the current successor metadata rather than making a new source change for this seed.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-3317",
+    "url": "https://jira.hl7.org/browse/FHIR-3317",
+    "snapshot_path": "contexts/FHIR-3317/jira/FHIR-3317.md",
+    "ref": { "jira_key": "FHIR-3317" },
+    "summary": "Published/Persuasive with Modification issue resolved missing Patient/RelatedPerson/Organization phonetic paths by adding SearchParameter.xpathUsage.",
+    "learned": "This identifies the other tracker referenced by FHIR-3341's resolution and establishes the historical application path.",
+    "supports": ["initial_application", "related_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/searchparameter/structuredefinition-SearchParameter.xml:104,567",
+    "ref": { "path": "source/searchparameter/structuredefinition-SearchParameter.xml" },
+    "summary": "SearchParameter now has expression plus processingMode, with an invariant requiring processingMode when expression exists.",
+    "learned": "The current build-scope model contains the machine-readable operation metadata needed for model-driven search parameter interpretation.",
+    "supports": ["source_current", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/location/bundle-Location-search-params.xml:179; source/patient/bundle-Patient-search-params.xml:407; source/organization/bundle-Organization-search-params.xml:217; source/relatedperson/bundle-RelatedPerson-search-params.xml:312",
+    "ref": { "path": "source/*/bundle-*-search-params.xml" },
+    "summary": "Current resource search parameter bundles carry expressions and processing modes; Location near is other and phonetic parameters are phonetic.",
+    "learned": "The special algorithm cases still present in current resources are explicitly marked rather than being silent missing paths.",
+    "supports": ["source_current", "verification"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "572c59da417c5781bef6e10f35c9ba05d2113b40",
+    "ref": { "commit": "572c59da417c5781bef6e10f35c9ba05d2113b40" },
+    "summary": "Historical commit '#3317 - add xpathUsage to SearchParameter' implemented svn r5930 for the related tracker.",
+    "learned": "There was no FHIR-3341-tagged source application, but the cited mechanism was applied through FHIR-3317.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20211213 and 2022-04-25",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/81017265/FHIR+Infrastructure+Minutes+CC+20211213",
+    "snapshot_path": "contexts/FHIR-32530/confluence/81017265.md",
+    "ref": { "confluence_page_id": 81017265 },
+    "summary": "FHIR-I minutes accepted FHIR-32530 after Zulip discussion and later accepted FHIR-35974 to remove location/distance codes while keeping other.",
+    "learned": "The current processingMode representation and code set are intentional later decisions, not a regression from FHIR-3341.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Focused source and idempotency checks for FHIR-3341",
+    "command": "rg -n '<code value=\"size\"|<code value=\"nearDistance\"|<code value=\"patientId\"' source/imagingstudy source/location source/auditevent; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-3341' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "The obsolete candidate codes were not present as current search parameter codes and no existing FHIR-3341 audit commit was found.",
+    "learned": "No duplicate commit or current source defect needed to be addressed for the seed.",
+    "supports": ["verification", "idempotency"]
+  }
+]
+</evidence-manifest>

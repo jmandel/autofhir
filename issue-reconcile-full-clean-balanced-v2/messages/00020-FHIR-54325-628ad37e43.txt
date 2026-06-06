@@ -1,0 +1,96 @@
+FHIR-54325: Allow statusReason for entered-in-error
+
+Issue request:
+FHIR-54325 was Applied with a Persuasive with Modification resolution for Immunization.statusReason. The approved change kept the element name but made the short, definition, comment, and invariant reflect that statusReason applies when an immunization was not done or was entered in error.
+
+Initial application:
+Commit 4339778eb3 applied the short, definition, comment, mapping-exception, and ballot-note portions of the issue, but did not add the requested invariant. Commit 35aac5918b later added Immunization invariants and imm-1 test bundles, but imm-1 still allowed statusReason only for status 'not-done' and treated status 'entered-in-error' with statusReason as invalid.
+
+Additional context:
+Immunization is an active resource in source/fhir.ini, so source/immunization/structuredefinition-Immunization.xml and the companion source files feed the current build. The same stale not-administered-only wording also remained in the status-reason search parameter, the status-reason example ValueSet description, and the checked-in Immunization SVG tooltip. No relevant Zulip or Confluence evidence was found that narrowed or reversed the Jira resolution.
+
+AutoFHIR reconciliation:
+This commit updates the imm-1 human text and FHIRPath expression to allow statusReason when status is 'not-done' or 'entered-in-error'. It also aligns the statusReason binding, search parameter description, example ValueSet description, SVG tooltip, and invariant example bundles by moving the entered-in-error/statusReason case from the failing examples to the passing examples.
+
+Recommendation:
+Keep this commit as-is. It completes the applied Jira resolution in the active core Immunization source without changing unrelated Immunization semantics; future terminology work can revisit the example ValueSet codes if PHWG wants more entered-in-error-specific examples.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-54325
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-54326: background - The same April 2026 invariant commit also added Immunization.subpotentReason invariant materials, but that is a separate element and was not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-54325: Applied/Persuasive with Modification resolution says statusReason applies to 'not-done' and 'entered-in-error' and requests a matching invariant. Learned: this establishes the final PHWG intent for the source correction.
+- E2 Source source/fhir.ini:170 and source/fhir.ini:197: Immunization is listed as an active resource. Learned: the edited Immunization source files are in current build scope.
+- E3 Source source/immunization/structuredefinition-Immunization.xml:91 and source/immunization/structuredefinition-Immunization.xml:229: imm-1 and the statusReason binding now allow/document both 'not-done' and 'entered-in-error'. Learned: the authoritative element definition now matches the applied issue.
+- E4 Git 4339778eb3 and 35aac5918b: earlier commits applied the wording and then added imm-1, but the invariant/test application kept the old not-done-only rule. Learned: the remaining defect was an incomplete application, not a later reversal.
+- E5 Command Zulip/Confluence search for Immunization statusReason entered error invariant: no relevant hits or Jira references were found. Learned: no discovered community record changes the Jira/source conclusion.
+- E6 Verification command: jq empty on changed invariant JSON, XML parse on changed XML/SVG sources, and git diff --check all passed. Learned: the edited source is syntactically valid and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-54325",
+    "url": "https://jira.hl7.org/browse/FHIR-54325",
+    "snapshot_path": "contexts/FHIR-54325/jira/FHIR-54325.md",
+    "ref": { "jira_key": "FHIR-54325" },
+    "summary": "Applied/Persuasive with Modification issue requiring Immunization.statusReason wording and invariant updates so the element applies to not-done and entered-in-error statuses.",
+    "learned": "This is the final PHWG decision and establishes that the current invariant must allow both statuses.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170, source/fhir.ini:197",
+    "ref": { "path": "source/fhir.ini", "lines": "170,197" },
+    "summary": "The [resources] section actively lists immunization=Immunization.",
+    "learned": "Immunization source files are in build scope for a current-core source fix.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/immunization/structuredefinition-Immunization.xml:91, source/immunization/structuredefinition-Immunization.xml:229",
+    "ref": { "path": "source/immunization/structuredefinition-Immunization.xml", "lines": "91,229" },
+    "summary": "The imm-1 invariant and binding text now describe statusReason for not-done or entered-in-error statuses.",
+    "learned": "The authoritative resource definition now implements the applied Jira rule.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "4339778eb3; 35aac5918b",
+    "ref": { "commits": "4339778eb3,35aac5918b" },
+    "summary": "Earlier Immunization commits applied the wording and then added imm-1, but the invariant/test application still enforced only status='not-done'.",
+    "learned": "The current source discrepancy is an incomplete application of FHIR-54325 rather than an intentional later change.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-54325 statusReason entered-in-error invariant",
+    "command": "bun run confluence:search refs jira FHIR-54325; bun run zulip:search fts 'Immunization statusReason entered error invariant' --limit 10; bun run confluence:search fts 'Immunization statusReason entered error invariant' --limit 10",
+    "query": "FHIR-54325; Immunization statusReason entered error invariant",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record conflicts with the Jira resolution and source-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Changed-file syntax and whitespace validation",
+    "command": "jq empty source/immunization/invariant-tests/imm-1.f1.fail.json source/immunization/invariant-tests/imm-1.p1.pass.json; XML parse of changed XML/SVG files; git diff --check",
+    "summary": "The changed invariant JSON files parsed, the changed XML/SVG files parsed, and git diff --check reported no whitespace errors.",
+    "learned": "The source edit is syntactically valid for the changed files.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

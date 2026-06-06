@@ -1,0 +1,102 @@
+FHIR-52919: Scope manufacturer operation composites
+
+Issue request:
+FHIR-52919 was Applied/Persuasive for R6 by BR&R. It asked to add search support for MedicinalProductDefinition.operation.organization and MedicinalProductDefinition.operation.type, including composite parameters that allow organization and type to be queried together on the same operation instance.
+
+Initial application:
+The issue was initially applied by upstream commit e444f101fb2f66bcd3b344bdd3cb37c250c54d3b, which added operation organization/type search parameters and the two composite parameters to the active MedicinalProductDefinition search-parameter bundle. Follow-up commits e4145c69af4693704a3cb3df7188c5c96728bb32 and e23a5d1fbec9ed11ff9d179f1fef4a1d91583fa4 added reference targets for Organization, ActivityDefinition, and PlanDefinition. The remaining problem was that the composites evaluated against the whole resource and used search-parameter codes as component sub-expressions.
+
+Additional context:
+source/fhir.ini actively registers medicinalproductdefinition as a current resource, so source/medicinalproductdefinition/bundle-MedicinalProductDefinition-search-params.xml is in build scope. SearchParameter.component.expression is defined as a sub-expression relative to the composite SearchParameter.expression, and existing composite patterns scope the parent expression to the repeating backbone element when component pairing must be instance-local.
+
+AutoFHIR reconciliation:
+This commit changes the two MedicinalProductDefinition operation composite search parameters to evaluate over MedicinalProductDefinition.operation and to use organization plus type.reference/type.concept as relative component expressions. It also points the component definitions at operation-type and operation-type-code, preserving the individual search parameters while making the composites implement the Jira-requested same-operation semantics.
+
+Recommendation:
+Keep this source fix. It is a narrow correction to the applied FHIR-52919 search parameters and does not require additional resource or terminology changes.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-52919
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-52919: Applied/Persuasive BR&R issue requesting operation organization/type search parameters and composites on the same instance. Learned: the final decision requires same-operation composite behavior, not just independent individual parameters.
+- E2 Source source/fhir.ini:170 and source/fhir.ini:289: medicinalproductdefinition is actively registered as a current resource. Learned: the MedicinalProductDefinition search-parameter bundle is in current build scope.
+- E3 Source source/medicinalproductdefinition/bundle-MedicinalProductDefinition-search-params.xml:233-340: individual operation parameters exist and this commit scopes both operation composites to MedicinalProductDefinition.operation with relative organization/type component expressions. Learned: the source now matches the issue's same-instance requirement.
+- E4 Source source/searchparameter/structuredefinition-SearchParameter.xml:714-718: SearchParameter.component.expression is a sub-expression relative to the main composite expression. Learned: the prior resource-level expression with component codes could not reliably express same-operation pairing.
+- E5 Git e444f101fb2f66bcd3b344bdd3cb37c250c54d3b, e4145c69af4693704a3cb3df7188c5c96728bb32, e23a5d1fbec9ed11ff9d179f1fef4a1d91583fa4: initial and follow-up application commits added the parameters and reference targets. Learned: reconciliation should refine the applied composites rather than add unrelated parameters.
+- E6 Confluence/Zulip search: BR&R 2025-10-28 minutes reference FHIR-52919 with a 7-0-0 approval; Zulip search for FHIR-52919 MedicinalProductDefinition manufacturer found no conflicting discussion. Learned: community evidence supports the Jira decision and shows no discovered conflict.
+- E7 Verification command: git diff --check and xmllint --noout on source/medicinalproductdefinition/bundle-MedicinalProductDefinition-search-params.xml passed. Learned: the XML edit is syntactically valid and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-52919",
+    "url": "https://jira.hl7.org/browse/FHIR-52919",
+    "snapshot_path": "contexts/FHIR-52919/jira/FHIR-52919.md",
+    "ref": { "jira_key": "FHIR-52919" },
+    "summary": "Applied/Persuasive BR&R issue requesting operation organization/type search parameters and same-instance composites for MedicinalProductDefinition.",
+    "learned": "The final decision requires composite search parameters that pair organization and operation type on the same operation instance.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170, source/fhir.ini:289",
+    "summary": "The resources section actively registers medicinalproductdefinition=MedicinalProductDefinition.",
+    "learned": "The MedicinalProductDefinition source folder and search-parameter bundle are in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicinalproductdefinition/bundle-MedicinalProductDefinition-search-params.xml:233-340",
+    "summary": "The active search-parameter bundle defines operation-type, operation-type-code, operation-organization, and two operation organization/type composites.",
+    "learned": "The composites needed to be scoped to MedicinalProductDefinition.operation with relative component expressions to satisfy same-instance matching.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/searchparameter/structuredefinition-SearchParameter.xml:714-718",
+    "summary": "SearchParameter.component.expression is defined as a sub-expression relative to the main composite expression.",
+    "learned": "This establishes why the composite parent expression must be the operation backbone element and component expressions must be relative paths.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "e444f101fb2f66bcd3b344bdd3cb37c250c54d3b; e4145c69af4693704a3cb3df7188c5c96728bb32; e23a5d1fbec9ed11ff9d179f1fef4a1d91583fa4",
+    "ref": { "commit": "e444f101fb2f66bcd3b344bdd3cb37c250c54d3b" },
+    "summary": "Upstream application added the operation search parameters and follow-up commits added reference targets.",
+    "learned": "The issue was substantively applied, but the composite scoping still needed correction.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-52919",
+    "command": "bun run confluence:search refs jira FHIR-52919 --limit 5; bun run zulip:search fts '\"FHIR-52919\" MedicinalProductDefinition manufacturer' --limit 10",
+    "query": "FHIR-52919 MedicinalProductDefinition manufacturer",
+    "result_count": 1,
+    "summary": "Confluence found the BR&R 2025-10-28 minutes approving FHIR-52919 7-0-0; Zulip found no matching conflicting discussion.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted source validation",
+    "command": "git diff --check -- source/medicinalproductdefinition/bundle-MedicinalProductDefinition-search-params.xml; xmllint --noout source/medicinalproductdefinition/bundle-MedicinalProductDefinition-search-params.xml",
+    "summary": "Whitespace and XML syntax checks passed for the edited search-parameter bundle.",
+    "learned": "The source edit is syntactically valid and has no whitespace errors.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

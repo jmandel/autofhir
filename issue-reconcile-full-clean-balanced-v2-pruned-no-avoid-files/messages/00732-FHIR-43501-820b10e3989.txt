@@ -1,0 +1,105 @@
+FHIR-43501: Constrain Group instance ranges
+
+Issue request:
+FHIR-43501 was Applied/Persuasive with Modification for R6 Group. It asked that Group.characteristic.instances[x] represent only non-negative whole instance counts; the final resolution changed the choice to unsignedInt|Range and required an invariant that Range minimum and maximum values are >= 0 with unit, code, and system omitted.
+
+Initial application:
+Git commit 191fa02f04 changed Group.characteristic.instances[x] from Quantity|Range to unsignedInt|Range and added grp-1, but the invariant copied Count-style Quantity rules: a Range boundary value required code, allowed system = %ucum and code = '1', and did not check unit. Later Group invariant fixture commits added passing examples with code "1", so the current source still diverged from the Jira resolution.
+
+Additional context:
+Group is active in the current build through source/fhir.ini, and Group.characteristic.instances[x] is an active element. FHIR-I minutes from 2024-05-06 record the approved decision as positive integers, allowing 0, and changing to unsignedInt|Range. A March 2025 Zulip thread briefly reconsidered Count|Range, but no request to reopen was made and the discussion did not reverse the final Jira requirement to omit unit, code, and system.
+
+AutoFHIR reconciliation:
+This commit updates source/group/structuredefinition-Group.xml so grp-1 requires Range.low and Range.high values to be whole numbers greater than or equal to 0 and requires unit, system, and code to be absent. It updates affected Group invariant fixtures to omit code "1" where they are intended to pass this constraint, keeps unrelated fail fixtures from failing grp-1 accidentally, adds a grp-1 fail fixture for unit/system/code, and repairs missing commas in the touched cnl-1 fixtures so the edited JSON remains parseable.
+
+Recommendation:
+Keep this source fix. If FHIR-I wants Count-like UCUM "1" semantics for Range boundaries instead, that should be handled as a new explicit tracker because it relaxes the Applied FHIR-43501 resolution.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-43501
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-43501: Applied/Persuasive with Modification; resolution says instances becomes unsignedInt|Range and Range minimum/maximum must be >= 0 with unit, code, and system omitted. Learned: this is the final source-edit requirement.
+- E2 Source source/fhir.ini:194,2310: Group is an active resource and Group.characteristic.instances[x] is listed as an active element. Learned: source/group/structuredefinition-Group.xml is current build scope.
+- E3 Source source/group/structuredefinition-Group.xml:715-731: grp-1 now constrains Range boundaries to non-negative whole values and omitted unit/system/code. Learned: the authoritative source now matches the Jira resolution.
+- E4 Git 191fa02f04: initial application changed the type to unsignedInt|Range but allowed UCUM code '1' and required a code when a Range boundary value exists. Learned: the issue was applied, but this semantic detail remained inconsistent with the resolution.
+- E5 Confluence FHIR-I Minutes 2024-05-06 page 239211981: minutes record FHIR-43501 as positive integers, possibly 0, changing to unsignedInt|Range with a 9-0-0 vote. Learned: meeting evidence supports non-negative integer Range boundaries.
+- E6 Zulip #fhir/infrastructure-wg > FHIR 43505: March 2025 discussion revisited Count|Range but ended without reopening and continued to support unsignedInt|Range for integer data. Learned: no later community evidence supersedes the omitted unit/code/system rule.
+- E7 Verification command: parsed edited XML and Group invariant JSON, checked grp-1 pass/fail fixtures, and ran CRLF-aware git diff --check. Learned: edited source and fixtures are structurally valid and aligned with the new invariant.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-43501",
+    "url": "https://jira.hl7.org/browse/FHIR-43501",
+    "snapshot_path": "contexts/FHIR-43501/jira/FHIR-43501.md",
+    "ref": { "jira_key": "FHIR-43501" },
+    "summary": "Applied/Persuasive with Modification issue requiring Group.characteristic.instances[x] to be unsignedInt|Range with non-negative Range boundaries and omitted unit, code, and system.",
+    "learned": "This establishes the final source requirement for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:194,2310",
+    "ref": { "path": "source/fhir.ini", "lines": "194,2310" },
+    "summary": "The Group resource and Group.characteristic.instances[x] are active in fhir.ini.",
+    "learned": "The edited Group StructureDefinition and invariant fixtures are in current FHIR build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/group/structuredefinition-Group.xml:715-731",
+    "ref": { "path": "source/group/structuredefinition-Group.xml", "lines": "715-731" },
+    "summary": "The current grp-1 invariant requires Range.low/high unit, system, and code to be empty and values to be whole numbers >= 0.",
+    "learned": "The authoritative source now implements the Applied Jira resolution.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "191fa02f04",
+    "ref": { "commit": "191fa02f0491ac1c45c574c4cc95daef019aa472" },
+    "summary": "Initial application changed Group.characteristic.instances[x] to unsignedInt|Range and added grp-1, but allowed system = %ucum and code = '1'.",
+    "learned": "The issue had been applied with a Count-like invariant that did not match the omitted unit/code/system resolution.",
+    "supports": ["initial_application", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2024-05-06 page 239211981",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/239211981/FHIR+Infrastructure+Minutes+CC+2024-05-06",
+    "ref": { "confluence_page_id": 239211981 },
+    "summary": "Minutes record FHIR-43501 as positive integers, possibly 0, and changing to unsignedInt|Range with a 9-0-0 vote.",
+    "learned": "This supports preserving unsignedInt|Range and non-negative integer semantics.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#fhir/infrastructure-wg > FHIR 43505",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir%2Finfrastructure-wg/topic/FHIR%2043505",
+    "ref": { "stream": "fhir/infrastructure-wg", "topic": "FHIR 43505" },
+    "summary": "March 2025 discussion considered Count|Range but abandoned reopening and continued discussing unsignedInt|Range for integer data.",
+    "learned": "No later community discussion discovered supersedes the Jira rule that unit, code, and system are omitted.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted XML/JSON and fixture validation",
+    "command": "python3 XML/JSON parse checks; custom grp-1 fixture check; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --cached --check",
+    "summary": "Edited XML and Group invariant JSON parsed, grp-1 pass/fail fixtures matched the intended constraint, and staged diff whitespace checks passed.",
+    "learned": "The source edit and fixtures are structurally valid for this targeted reconciliation.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

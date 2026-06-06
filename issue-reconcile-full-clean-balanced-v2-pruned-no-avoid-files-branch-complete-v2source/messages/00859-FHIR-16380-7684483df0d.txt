@@ -1,0 +1,119 @@
+FHIR-16380: Align MonetaryComponent model surfaces
+
+Issue request:
+FHIR-16380 was a Published/Persuasive Patient Administration change request for R5 asking that the reusable PriceComponent structure become a metadata type. The final resolution created MonetaryComponent, made it usable as an extension value, and listed ChargeItem.unitPriceComponent, ChargeItem.totalPriceComponent, ChargeItemDefinition.propertyGroup.priceComponent, Invoice.lineItem.priceComponent, and Invoice.totalPriceComponent as users of the new type.
+
+Initial application:
+Commit 5c52eddab2 added source/datatypes/monetarycomponent.xml and registered monetarycomponent as a metadata type; commit ee6690b2be changed the active Invoice StructureDefinition priceComponent elements from local backbone/contentReference modeling to MonetaryComponent. ChargeItem and ChargeItemDefinition were later removed from active core resource inputs, and the combined branch already contains FHIR-21001 commit da0a54d378 aligning ChargeItem ModelInfo with MonetaryComponent. The remaining missed application was in active Library examples: FHIR-ModelInfo and FHIRHelpers still exposed Invoice.PriceComponent, ChargeItemDefinition.PriceComponent, and InvoicePriceComponentType.
+
+Additional context:
+source/fhir.ini keeps monetarycomponent, Invoice, and Library in the active core build, while ChargeItem and ChargeItemDefinition are no longer active core resources and are linked to the Administrative Incubator IG. The current Administrative Incubator CI StructureDefinitions for ChargeItem and ChargeItemDefinition also use MonetaryComponent for the pricing elements. Later FHIR-44610/duplicate FHIR-37946 work refined PriceComponentType code definitions but did not reverse the FHIR-16380 decision to use the shared type.
+
+AutoFHIR reconciliation:
+Updated source/library/library-fhir-model-definition-content.xml so Invoice.lineItem.priceComponent, Invoice.totalPriceComponent, and ChargeItemDefinition.propertyGroup.priceComponent now use FHIR.MonetaryComponent, and removed the stale local PriceComponent class infos plus InvoicePriceComponentType conversion metadata. Updated source/library/library-fhir-helpers-content.cql to expose ToString for FHIR.PriceComponentType. Refreshed the checked-in Invoice SVG label and links for the displayed price component box so it no longer points at removed Invoice child definitions or the retired invoice-specific value set.
+
+Recommendation:
+Keep this commit. Future ChargeItem and ChargeItemDefinition structural work should happen in the Administrative Incubator source, but the active core Library and Invoice diagram surfaces needed this reconciliation to avoid publishing stale invoice-specific price-component model metadata.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-16380
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-21001: same-change-family - added ChargeItem unit and total price components that rely on MonetaryComponent; already represented on the combined branch by da0a54d378.
+FHIR-37946: background - MnM made FHIR-16380 approval conditional on follow-up PriceComponentType definition work; this was later marked duplicate.
+FHIR-44610: later-change - the duplicate target clarified and consolidated PriceComponentType code definitions without changing the shared MonetaryComponent modeling.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-16380: Published/Persuasive PA issue requiring MonetaryComponent as a metadata type and listing Invoice, ChargeItem, and ChargeItemDefinition pricing elements as users. Learned: establishes the final target model for this reconciliation.
+- E2 Source source/fhir.ini:98,266,285,516: monetarycomponent, Library, and Invoice are active core inputs and monetarycomponent is owned by PA; ChargeItem and ChargeItemDefinition are absent from active resources. Learned: core edits should target MonetaryComponent, Invoice, and active Library examples, not removed resource source files.
+- E3 Git 5c52eddab2 and ee6690b2be: added MonetaryComponent and converted Invoice priceComponent elements to that type. Learned: the authoritative datatype and Invoice StructureDefinition were already applied before this reconciliation.
+- E4 Source source/library/library-fhir-model-definition-content.xml:2101,8003,9073 and source/library/library-fhir-helpers-content.cql:139: active model surfaces now use FHIR.MonetaryComponent and FHIR.PriceComponentType. Learned: the stale Invoice/ChargeItemDefinition local price-component model metadata has been corrected.
+- E5 Git 71567db3ee plus Administrative Incubator CI StructureDefinitions: ChargeItem and ChargeItemDefinition moved out of active core and their current external StructureDefinitions use MonetaryComponent for the relevant elements. Learned: no core resource file should be restored or edited for those moved artifacts.
+- E6 Confluence PA Jan 2022 WGM page 81029757 and MnM 2022-08-17 page 108309812: PA/FM agreed to rename the type to MonetaryComponent and make it a metadata type; MnM approval was conditional on PriceComponentType follow-up. Learned: community minutes support the Jira interpretation and later code-definition follow-up.
+- E7 Jira FHIR-44610/FHIR-37946 and git fd22978127: later work clarified PriceComponentType definitions and removed deduction as a separate code. Learned: the current shared PriceComponentType should remain, replacing InvoicePriceComponentType.
+- E8 Command searches and validation: Jira search found no competing MonetaryComponent issues, direct Zulip search found no FHIR-16380-specific discussion, XML/SVG well-formedness and CRLF-aware whitespace checks passed. Learned: no discovered community or local validation evidence conflicts with the source fix.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-16380",
+    "url": "https://jira.hl7.org/browse/FHIR-16380",
+    "snapshot_path": "contexts/FHIR-16380/jira/FHIR-16380.md",
+    "ref": { "jira_key": "FHIR-16380" },
+    "summary": "Published/Persuasive PA issue requiring the price component structure to become MonetaryComponent and be used by Invoice, ChargeItem, and ChargeItemDefinition pricing elements.",
+    "learned": "This establishes the final target model for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:98,266,285,516",
+    "summary": "monetarycomponent, Library, and Invoice are active core inputs; monetarycomponent is owned by PA, while ChargeItem and ChargeItemDefinition are not active core resources.",
+    "learned": "Core edits should target active MonetaryComponent, Invoice, and Library surfaces rather than removed resource files.",
+    "supports": ["source_change_scope", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "5c52eddab2 and ee6690b2be",
+    "ref": { "commit": "5c52eddab2a0f84a64baf9af7025e120a1b9c98e" },
+    "summary": "5c52eddab2 added MonetaryComponent and fhir.ini registration; ee6690b2be converted Invoice priceComponent elements to MonetaryComponent.",
+    "learned": "The authoritative datatype and Invoice StructureDefinition were already mostly applied before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:2101,8003,9073; source/library/library-fhir-helpers-content.cql:139",
+    "summary": "The active model examples now reference FHIR.MonetaryComponent for Invoice and ChargeItemDefinition price components and FHIR.PriceComponentType for helper conversion.",
+    "learned": "The stale local Invoice/ChargeItemDefinition price-component model metadata has been corrected.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "web",
+    "locator": "Administrative Incubator ChargeItem and ChargeItemDefinition CI StructureDefinitions",
+    "url": "https://build.fhir.org/ig/HL7/admin-incubator/StructureDefinition-ChargeItemDefinition.json",
+    "command": "curl -fsSL https://build.fhir.org/ig/HL7/admin-incubator/StructureDefinition-ChargeItem.json; curl -fsSL https://build.fhir.org/ig/HL7/admin-incubator/StructureDefinition-ChargeItemDefinition.json",
+    "summary": "The moved ChargeItem and ChargeItemDefinition StructureDefinitions expose the relevant pricing elements as MonetaryComponent.",
+    "learned": "No removed core resource files need to be restored or edited for FHIR-16380.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "PA Jan 2022 WGM page 81029757 and MnM 2022-08-17 page 108309812",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/81029757/2022+Jan+WGM+-+Patient+Administration",
+    "ref": { "confluence_page_id": 81029757 },
+    "summary": "Minutes record PA/FM agreement to make the reusable price component a metadata type named MonetaryComponent and MnM conditional approval pending PriceComponentType follow-up.",
+    "learned": "Community minutes support the Jira interpretation and explain later PriceComponentType work.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-44610 and FHIR-37946",
+    "url": "https://jira.hl7.org/browse/FHIR-44610",
+    "ref": { "jira_key": "FHIR-44610" },
+    "summary": "Later PA issue FHIR-44610 clarified and consolidated PriceComponentType definitions; FHIR-37946 was later closed as its duplicate.",
+    "learned": "The current shared PriceComponentType should remain and replaces the stale InvoicePriceComponentType model surface.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Searches and validation for FHIR-16380 MonetaryComponent reconciliation",
+    "command": "bun run jira:search fts 'MonetaryComponent PriceComponent Invoice ChargeItemDefinition' --limit 20; bun run zulip:search fts '\"FHIR-16380\" MonetaryComponent PriceComponent' --limit 10; xmllint --noout source/library/library-fhir-model-definition-content.xml source/invoice/invoice.svg; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "query": "FHIR-16380 MonetaryComponent PriceComponent Invoice ChargeItemDefinition",
+    "result_count": 1,
+    "summary": "Jira search only found FHIR-16380 for the core modeling request; direct Zulip search found no FHIR-16380-specific discussion; edited XML/SVG and whitespace checks passed.",
+    "learned": "No discovered community or local validation evidence conflicts with the source fix.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

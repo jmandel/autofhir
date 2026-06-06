@@ -1,0 +1,119 @@
+FHIR-19108: Audit MedicationRequest immunization basedOn target
+
+Issue request:
+FHIR-19108 was a Published/Persuasive STU3 Pharmacy change request to allow MedicationRequest.basedOn to reference ImmunizationRecommendation, so an immunization order could be linked to a CDS-generated immunization recommendation.
+
+Initial application:
+The Jira comments identify merge commit 65133c5 as the 2018 application. Its underlying implementation commit 0bb03b10227f added ImmunizationRecommendation to the old MedicationRequest.basedOn spreadsheet reference list, and that target survived the later XML conversion and RequestOrchestration addition for several release cycles.
+
+Additional context:
+MedicationRequest remains an active current-build resource in source/fhir.ini, but ImmunizationRecommendation and ImmunizationEvaluation are no longer active core resources. Public Health WG minutes from 2025-10-02 record a 20-0-3 approval to make both ImmunizationRecommendation and ImmunizationEvaluation Additional Resources for R6 until further maturity, and commit e073fb45ec6f then removed those resource sources and removed ImmunizationRecommendation from MedicationRequest.basedOn. Later same-element context also matters: FHIR-41561 added RequestOrchestration while the immunization target still existed, and FHIR-47858 rejected adding PlanDefinition as another basedOn target because basedOn is for request resources and added separate protocol guidance instead.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Re-adding ImmunizationRecommendation to source/medicationrequest/structuredefinition-MedicationRequest.xml would now reference a resource that is no longer part of the current core build and would reverse the later PHWG R6 Additional Resources decision. The checked-in medicationrequest.svg still contains the older diagram text, but it is generated-looking diagram output; the active authoritative XML and fhir.ini source are the relevant current-build evidence for this issue.
+
+Recommendation:
+Keep this no-change audit for core FHIR. If the Additional Resources publication or another external package needs cross-resource guidance for MedicationRequest orders based on ImmunizationRecommendation, handle that in the owning package or through a new work-group decision rather than restoring a removed core targetProfile here.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19108
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-41561: same-change-family - added RequestOrchestration to the same MedicationRequest.basedOn target list before the later PHWG removal of ImmunizationRecommendation.
+FHIR-47858: later-change - considered another requested basedOn target and reaffirmed that basedOn points to request resources, adding protocol guidance instead of PlanDefinition as a target.
+FHIR-25946: background - resolved no-change and cited the then-current basedOn target list, including ImmunizationRecommendation, while recommending supportingInformation for MedicationStatement.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19108: Published/Persuasive STU3 request to add ImmunizationRecommendation to MedicationRequest.basedOn. Learned: establishes the original final issue request.
+- E2 Git 0bb03b10227f and 65133c5: the implementation added Reference(... | ImmunizationRecommendation) to the old medicationrequest spreadsheet and Jira cited the merge. Learned: the request was historically applied.
+- E3 Source source/medicationrequest/structuredefinition-MedicationRequest.xml:143-155: current MedicationRequest.basedOn targets CarePlan, MedicationRequest, ServiceRequest, and RequestOrchestration, but not ImmunizationRecommendation. Learned: current authoritative XML no longer carries the old target.
+- E4 Source source/fhir.ini:170-204,568-578,724,868: MedicationRequest is active, while ImmunizationRecommendation and ImmunizationEvaluation have no active resource entries. Learned: adding a core targetProfile to ImmunizationRecommendation would point at an out-of-build resource.
+- E5 Git e073fb45ec6f: removed ImmunizationRecommendation and ImmunizationEvaluation source directories and removed ImmunizationRecommendation from MedicationRequest.basedOn. Learned: the current omission is tied to the resource removal, not an isolated accidental edit.
+- E6 Confluence PHWG 2025-10-02 minutes page 358283945: PHWG approved making ImmunizationRecommendation and ImmunizationEvaluation Additional Resources in R6 by 20-0-3. Learned: later work-group context supersedes the old core target-profile request.
+- E7 Jira FHIR-47858 and git 1376a4f54966: rejected adding PlanDefinition to basedOn and added protocol guidance in medicationrequest-introduction.xml. Learned: later same-element decisions favor keeping basedOn limited to current request resources.
+- E8 Community search: confluence refs for FHIR-19108 returned no direct references; Zulip search found only background implementer discussion and no later conflict with the PHWG removal evidence. Learned: no discovered community record changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19108",
+    "url": "https://jira.hl7.org/browse/FHIR-19108",
+    "snapshot_path": "contexts/FHIR-19108/jira/FHIR-19108.md",
+    "ref": { "jira_key": "FHIR-19108" },
+    "summary": "Published/Persuasive STU3 request to let MedicationRequest.basedOn reference ImmunizationRecommendation for immunization orders linked to CDS recommendations.",
+    "learned": "This establishes the original final work-group request that must be reconciled against current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "0bb03b10227f and 65133c5c9a9",
+    "ref": { "commit": "0bb03b10227fcb96af6082ce397cb70db55c1551", "merge_commit": "65133c5c9a9c6b94e85467b69529239812f98374" },
+    "summary": "The 2018 implementation added ImmunizationRecommendation to the old MedicationRequest.basedOn spreadsheet target list; Jira cited merge commit 65133c5.",
+    "learned": "The issue was not merely accepted; it was historically applied to the source used at that time.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationrequest/structuredefinition-MedicationRequest.xml:143-155",
+    "ref": { "path": "source/medicationrequest/structuredefinition-MedicationRequest.xml", "start_line": 143, "end_line": 155 },
+    "summary": "Current MedicationRequest.basedOn targets CarePlan, MedicationRequest, ServiceRequest, and RequestOrchestration, with no ImmunizationRecommendation targetProfile.",
+    "learned": "The current authoritative XML no longer contains the old requested target.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini resource entries",
+    "ref": { "path": "source/fhir.ini", "lines": "170-204,568-578,724,868" },
+    "summary": "MedicationRequest remains active in the current build, while ImmunizationRecommendation and ImmunizationEvaluation have no active core resource entries.",
+    "learned": "A core targetProfile to ImmunizationRecommendation would now reference a resource outside the active core build.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "e073fb45ec6f5a738a9f674baf63406bfe90fb78",
+    "ref": { "commit": "e073fb45ec6f5a738a9f674baf63406bfe90fb78" },
+    "summary": "The 2025 commit removed ImmunizationRecommendation and ImmunizationEvaluation source directories and removed ImmunizationRecommendation from MedicationRequest.basedOn.",
+    "learned": "The current omission follows a broad resource removal rather than an isolated missed application of FHIR-19108.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "2025-10-02 Public Health WG Call Minutes page 358283945",
+    "url": "https://confluence.hl7.org/spaces/PHWG/pages/358283945/2025-10-02+Public+Health+Work+Group+Call+Minutes",
+    "ref": { "confluence_page_id": 358283945 },
+    "summary": "PHWG approved making ImmunizationRecommendation and ImmunizationEvaluation Additional Resources in R6 until further maturity by a 20-0-3 vote.",
+    "learned": "This later work-group decision explains why the old core reference target should not be restored in current core source.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-47858 and git 1376a4f54966",
+    "url": "https://jira.hl7.org/browse/FHIR-47858",
+    "ref": { "jira_key": "FHIR-47858", "commit": "1376a4f5496606609943771cd21595901f9b410c" },
+    "summary": "The later Applied issue rejected adding PlanDefinition to MedicationRequest.basedOn and added protocol guidance in medicationrequest-introduction.xml instead.",
+    "learned": "Same-element later context supports keeping basedOn aligned to current request resources rather than broadening the target list.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community searches for FHIR-19108 and MedicationRequest.basedOn ImmunizationRecommendation",
+    "command": "bun run confluence:search refs jira FHIR-19108; bun run zulip:search fts '\"FHIR-19108\" OR \"MedicationRequest.basedOn\" ImmunizationRecommendation' --limit 10",
+    "query": "FHIR-19108 MedicationRequest.basedOn ImmunizationRecommendation",
+    "summary": "No direct Confluence references to FHIR-19108 were found; Zulip hits were background implementer discussion without a later conflict with the PHWG removal evidence.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

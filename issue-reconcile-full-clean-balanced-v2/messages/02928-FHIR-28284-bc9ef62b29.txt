@@ -1,0 +1,128 @@
+FHIR-28284: Audit ConceptMap dependency value modelling
+
+Issue request:
+FHIR-28284 was Published/Persuasive for R5 and asked to remodel ConceptMap.group.element.target.dependsOn and the corresponding product backbone so their value is a value[x] choice rather than separate system/value/display fields. The approved resolution replaced the R4-style property/system/value/display shape with a property plus value[x] choices, and the Jira comments tied the request to $translate output behavior.
+
+Initial application:
+The change was applied in the R5 ConceptMap work. Commit fd2a87c248 changed ConceptMap.group.element.target.dependsOn.value to value[x] with primitive/code choices, and commit 8f39fd413c removed ConceptMap.group.element.target.dependsOn.display per FHIR-28284. The related March 2021 operation-definition work added product and dependsOn output parameters for $translate, while later R5 edits renamed and refined the model.
+
+Additional context:
+Related published issues FHIR-30515 and FHIR-34120 aligned $translate output and input parameters with the FHIR-28284 value model, and FHIR-33032 added id support. Later ConceptMap decisions, especially FHIR-39151 and FHIR-40504, separated mapping properties from source/target additional attributes and renamed the old dependsOn/product property references to attribute references. FHIR-40636 then clarified valueCode interpretation. The current source therefore differs from the original FHIR-28284 type list and names by design: current dependsOn/product values use the additional-attribute type set and the attribute naming introduced by later published decisions.
+
+AutoFHIR reconciliation:
+No source change was made. The active ConceptMap resource source already defines ConceptMap.group.element.target.dependsOn.value[x] and represents product with a contentReference to the same backbone. The current $translate OperationDefinition exposes dependency, match.product, and match.dependsOn values using the same allowed-type set. Changing the source back toward the literal 2021 wording would undo later published ConceptMap decisions rather than complete FHIR-28284.
+
+Recommendation:
+Keep this empty audit commit as-is. Further ConceptMap edits should be driven by a newer tracker if the work group wants to revisit the later attribute/property split or the current allowed-type set; FHIR-28284 itself is already satisfied in the current build.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-28284
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-30515: same-change-family - added $translate match.dependsOn and updated match.product output to align with the FHIR-28284 value model.
+FHIR-34120: same-change-family - changed the $translate dependency input parameter to follow the FHIR-28284 dependsOn value choices.
+FHIR-33032: later-change - added id support for ConceptMap dependsOn/product values after FHIR-28284.
+FHIR-39151: later-change - introduced later ConceptMap property-definition changes that affected the type model around mapping attributes.
+FHIR-40504: later-change - split mapping properties from source/target additional attributes and renamed dependsOn/product property references to attribute references.
+FHIR-40636: later-change - clarified the code-system expectations for ConceptMap property and dependsOn/product valueCode usage.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-28284: Published/Persuasive R5 issue requests replacing ConceptMap dependsOn/product system/value/display modelling with value[x]. Learned: this is the seed decision and target behavior.
+- E2 Source source/fhir.ini:228 and source/fhir.ini:1120: ConceptMap is an active resource with abbreviation cmd. Learned: the inspected ConceptMap source is in current build scope.
+- E3 Source source/conceptmap/structuredefinition-ConceptMap.xml:1077-1158: dependsOn has attribute, value[x], valueSet, and product contentReferences the dependsOn backbone. Learned: the current resource already implements a reusable choice-value backbone for dependsOn and product.
+- E4 Source source/conceptmap/operationdefinition-ConceptMap-translate.xml:180-205,277-332: dependency input plus match.product and match.dependsOn output use Element values with allowed types code, Coding, string, boolean, Quantity, and id. Learned: $translate is aligned with the later ConceptMap attribute value model.
+- E5 Git fd2a87c248 and 8f39fd413c: R5 history changed dependsOn.value to value[x] and removed dependsOn.display for FHIR-28284. Learned: the original request was explicitly applied before this audit.
+- E6 Jira FHIR-39151/FHIR-40504/FHIR-40636: later published ConceptMap decisions refined property/attribute naming and valueCode/type semantics. Learned: differences from the literal FHIR-28284 resolution are explained by later decisions, not by a missing seed application.
+- E7 Zulip #terminology > ConceptMap/$translate with product and Confluence VOC minutes 2022-07-11: community evidence links FHIR-28284 to product output use cases and records that FHIR-28284/FHIR-30515/FHIR-34120 work had been applied. Learned: no community evidence suggests a remaining FHIR-28284 source correction.
+- E8 Verification command/query: git log idempotency check on the combined branch found no existing FHIR-28284 reconcile commit, and git status was clean before the empty audit commit. Learned: publishing this single audit commit will not duplicate another worker's decision or mask source edits.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-28284",
+    "url": "https://jira.hl7.org/browse/FHIR-28284",
+    "snapshot_path": "contexts/FHIR-28284/jira/FHIR-28284.md",
+    "ref": { "jira_key": "FHIR-28284" },
+    "summary": "Published/Persuasive R5 issue requests remodelling ConceptMap dependsOn and product so the value is a value[x] choice instead of separate system/value/display fields.",
+    "learned": "This establishes the seed request and the intended ConceptMap choice-value behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:228; source/fhir.ini:1120",
+    "summary": "fhir.ini lists conceptmap=ConceptMap as an active resource and ConceptMap=cmd as its abbreviation.",
+    "learned": "The inspected ConceptMap source files are in current build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/conceptmap/structuredefinition-ConceptMap.xml:1077-1158",
+    "summary": "The current StructureDefinition defines dependsOn.attribute, dependsOn.value[x], dependsOn.valueSet, and product as a contentReference to the dependsOn backbone.",
+    "learned": "The resource already uses a shared choice-value backbone for dependsOn and product.",
+    "supports": ["reconciliation", "source_current_state"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/conceptmap/operationdefinition-ConceptMap-translate.xml:180-205,277-332",
+    "summary": "$translate dependency input plus match.product and match.dependsOn output expose Element values with allowed types code, Coding, string, boolean, Quantity, and id.",
+    "learned": "The operation definition is aligned with the current ConceptMap additional-attribute value model.",
+    "supports": ["reconciliation", "source_current_state"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "fd2a87c24845105c41a84623c675350d4daf2b7a; 8f39fd413c042a4c43f86fb3c0c180bcb368edde",
+    "ref": { "commit_1": "fd2a87c24845105c41a84623c675350d4daf2b7a", "commit_2": "8f39fd413c042a4c43f86fb3c0c180bcb368edde" },
+    "summary": "Historical R5 commits changed dependsOn.value to value[x] and removed dependsOn.display for FHIR-28284.",
+    "learned": "The original request was explicitly applied before this audit.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-39151, FHIR-40504, FHIR-40636",
+    "url": "https://jira.hl7.org/browse/FHIR-40504",
+    "ref": { "jira_key": "FHIR-40504" },
+    "summary": "Later published ConceptMap decisions separated mapping properties from additional attributes, renamed dependsOn/product property references to attribute references, and clarified valueCode semantics.",
+    "learned": "Differences from FHIR-28284's original names and type list are due to later decisions rather than missed application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#terminology > ConceptMap/$translate with product",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/ConceptMap%2F%24translate%20with%20product",
+    "summary": "The linked January-February 2021 thread records the product output use case that Michael Lawley connected to FHIR-28284 and FHIR-30515.",
+    "learned": "Community discussion supports interpreting FHIR-28284 together with the $translate alignment issues, with no conflicting current-source concern found.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "VOC minutes 2022-07-11 page 134939120",
+    "url": "https://confluence.hl7.org/spaces/VOC/pages/134939120/FHIR+Tracker+Issues+2022-07-11+Call+Agenda+and+Minutes",
+    "ref": { "confluence_page_id": 134939120 },
+    "summary": "Vocab minutes record that Michael had applied changes for $translate, dependsOn, and product: FHIR-28284, FHIR-30515, and FHIR-34120.",
+    "learned": "Work-group minutes corroborate that the issue family had been applied before this audit.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Idempotency and clean worktree checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-28284' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git status --short",
+    "result_count": 0,
+    "summary": "No existing FHIR-28284 reconcile commit was found on the combined branch and the worktree was clean before creating the empty audit commit.",
+    "learned": "The audit can be published as the single FHIR-28284 decision without overwriting source edits.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,97 @@
+FHIR-10398: Audit Observation not-performed handling
+
+Issue request:
+FHIR-10398 was a Published/Not Persuasive with Modification OO change request from DSTU2 asking for Observation extensions to support structured negation in Observation.code and Observation.value. The final resolution rejected the extensions, removed the earlier extension work, and added "not performed" to the Observation value/DataAbsentReason pathway.
+
+Initial application:
+The first implementation added observation-notPerformed and observation-valueNotObserved extensions. The later application commit cc69fb64602bcb037eeb72c394b43becade6faa9 removed those extensions and the procedure-not-performed value set from the Observation extension spreadsheet, with the commit message stating that not-performed was added to the Observation value absent reason value set.
+
+Additional context:
+The current build no longer has Observation notPerformed/valueNotObserved extensions, while the current THO data-absent-reason code system and R6 expansion include not-performed. The linked 2016 Zulip discussion shows the rationale: represent a blood glucose test that was not done using Observation.dataAbsentReason and add a sensible "test not performed" concept. FHIR-5629 established the CodeableConcept/extensible dataAbsentReason shape that makes this representation possible, and later FHIR-7150/FHIR-41322 guidance is already represented on the combined branch.
+
+AutoFHIR reconciliation:
+This is an empty no-change audit commit. No source edit is needed because the rejected extensions are absent from current Observation source and the not-performed concept is already present in the current DataAbsentReason terminology used by Observation.
+
+Recommendation:
+Keep this audit commit as-is. If more detailed laboratory rejection or specimen-condition reasons are desired, they should be handled by separate OO/terminology work rather than reopening the extension approach rejected by FHIR-10398.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-10398
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-5629: same-change-family - established the Observation dataAbsentReason CodeableConcept/extensible-binding pathway used by the not-performed decision.
+FHIR-7150: supporting-decision - later cancelled/specimen-unsatisfactory Observation guidance; already represented on the combined branch.
+FHIR-41322: later-change - current R6 cancelled/not-performed Observation guidance; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-10398: Published/Not Persuasive with Modification issue resolved by removing Observation negation extensions and adding not-performed to observation-valueabsentreason. Learned: this is the authoritative disposition for the not-performed follow-up.
+- E2 Zulip #implementers > Does FHIR support nullFlavor: Grahame showed Observation.dataAbsentReason for a blood glucose test not done and recommended adding a "test not performed" DataAbsentReason concept. Learned: the community rationale matches the Jira resolution.
+- E3 Git cc69fb64602bcb037eeb72c394b43becade6faa9: removed the Observation notPerformed/valueNotObserved extension work and documented adding not-performed to the value absent reason value set. Learned: the source history applied the final resolution after an initial extension attempt.
+- E4 Command rg for notPerformed/valueNotObserved in source/observation: no current Observation negation extensions remain. Learned: the rejected extension approach is not present in the current core Observation source.
+- E5 Command jq over current THO/R6 DataAbsentReason artifacts: data-absent-reason/not-performed is present with the expected meaning. Learned: the accepted terminology representation is present.
+- E6 Source source/observation/observation-notes.xml:386 and source/observation/observation-example-bloodpressure-dar.xml:92: current Observation guidance/examples use dataAbsentReason for not-performed/cancelled observations. Learned: implementer-facing Observation guidance aligns with the Jira decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-10398",
+    "url": "https://jira.hl7.org/browse/FHIR-10398",
+    "ref": { "jira_key": "FHIR-10398" },
+    "summary": "Published/Not Persuasive with Modification issue resolved by removing Observation negation extensions and adding not-performed to observation-valueabsentreason.",
+    "learned": "The final OO decision was to use the DataAbsentReason pathway, not dedicated Observation negation extensions.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Does FHIR support nullFlavor",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Does%20FHIR%20support%20nullFlavor",
+    "ref": { "stream": "implementers", "topic": "Does FHIR support nullFlavor" },
+    "summary": "Grahame showed Observation.dataAbsentReason for a glucose test not done and recommended adding a test-not-performed concept to DataAbsentReason.",
+    "learned": "The discussion supports the Jira decision to represent not-performed through dataAbsentReason.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "cc69fb64602bcb037eeb72c394b43becade6faa9",
+    "ref": { "commit": "cc69fb64602bcb037eeb72c394b43becade6faa9" },
+    "summary": "Commit removed Observation notPerformed/valueNotObserved extensions and documented adding not-performed to the Observation value absent reason value set.",
+    "learned": "The source history applied the final resolution after an initial extension attempt.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current Observation source extension search",
+    "command": "rg -n 'notPerformed|valueNotObserved|observation-notPerformed|observation-valueNotObserved|ObservationProcedureNegationReason' source/observation --glob '!**/*.svg'",
+    "result_count": 0,
+    "summary": "No current Observation notPerformed or valueNotObserved extension definitions were found.",
+    "learned": "The rejected extension approach is absent from current Observation source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current THO and R6 DataAbsentReason expansion check",
+    "command": "jq -r '.concept[] | [.code,.display,.definition] | @tsv' /home/jmandel/.fhir/packages/hl7.terminology#7.1.0/package/CodeSystem-data-absent-reason.json; jq -r '.expansion.contains[]? | [.system,.code,.display] | @tsv' /home/jmandel/.fhir/packages/hl7.fhir.r6.expansions#current/package/ValueSet-data-absent-reason.json",
+    "summary": "The current terminology package and R6 expansion contain data-absent-reason/not-performed.",
+    "learned": "The accepted terminology representation is present in current artifacts.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/observation/observation-notes.xml:386 and source/observation/observation-example-bloodpressure-dar.xml:92",
+    "ref": { "path": "source/observation/observation-notes.xml", "lines": "386-395" },
+    "summary": "Current Observation guidance covers cancelled/not-performed observations and examples use data-absent-reason/not-performed.",
+    "learned": "Implementer-facing Observation guidance aligns with the Jira resolution.",
+    "supports": ["additional_context", "reconciliation"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,119 @@
+FHIR-22994: Audit AdverseEvent seriousness values
+
+Issue request:
+FHIR-22994 was Published/Persuasive with Modification for the Patient Care AdverseEvent resource. It asked to reduce the AdverseEvent.seriousness example value set to only serious and non-serious because the former FDA outcome-style child codes confused seriousness with AdverseEvent.outcome.
+
+Initial application:
+The issue appears to have been applied in 2019 by 05acdd8, linked from the Jira issue, which removed the former serious-results-in-death, serious-is-life-threatening, serious-results-in-hospitalization, serious-results-in-disability, serious-is-birth-defect, and serious-requires-prevent-impairment codes from the then-authoritative AdverseEvent spreadsheet and gave serious/non-serious the requested definitions. Later source refactoring moved the current value set into source/adverseevent/valueset-adverse-event-seriousness.xml.
+
+Additional context:
+AdverseEvent is active in the current build according to source/fhir.ini. The current AdverseEvent.seriousness element has an example binding to the Adverse Event Seriousness value set, and that value set includes the THO adverse-event-seriousness code system. The current THO CodeSystem contains exactly non-serious and serious with the FHIR-22994 definitions, and current core source has no remaining old FDA outcome-style seriousness codes. Later Patient Care decisions reinforce this interpretation: FHIR-23023 rejected adding overdose/cancer outcome-style codes because FHIR-22994 intentionally kept seriousness focused on serious/non-serious, and FHIR-48544 kept the binding strength as example so IGs can profile or tighten it. Patient Care minutes in 2021 and 2022 similarly distinguish seriousness from outcome and note that results-in-death was intentionally removed by FHIR-22994.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scoped core source plus the current THO code system already implement the requested two-code value set, preserve the example binding, and keep outcome-specific semantics on AdverseEvent.outcome rather than AdverseEvent.seriousness.
+
+Recommendation:
+Keep this no-change audit commit as-is. Core FHIR already reflects the published FHIR-22994 decision; follow-up requests for more specific clinical-research criteria should remain in IG profiles, extensions, or separate terminology work rather than reintroducing outcome-like codes into the core example value set.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22994
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-22995: same-change-family - the same 2019 application commit also removed AdverseEvent.severity and clarified the seriousness/severity distinction; it is already represented separately on the combined branch.
+FHIR-23023: supporting-decision - Patient Care rejected adding overdose/cancer seriousness values because FHIR-22994 reduced the value set to serious/non-serious and IGs can profile example bindings.
+FHIR-48544: later-change - a later R6 no-change decision kept AdverseEvent.seriousness as an example binding and cited FHIR-22994 as the reason outcome-like codes were removed.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22994: Published/Persuasive with Modification, voted 10-0-0 on 2019-08-01, requesting only serious and non-serious in the AdverseEvent.seriousness value set. Learned: this establishes the final target for the current source and terminology check.
+- E2 Git 05acdd8: removed the old child seriousness codes from the AdverseEvent spreadsheet and replaced definitions with the requested serious/non-serious wording. Learned: the Jira-linked implementation applied the value set reduction before later source refactoring.
+- E3 Source source/fhir.ini:280 and source/fhir.ini:1025; source/adverseevent/valueset-adverse-event-seriousness.xml:41-47; source/adverseevent/structuredefinition-AdverseEvent.xml:399-405. Learned: AdverseEvent is active in the build, seriousness remains an example binding, and the current value set delegates to the THO adverse-event-seriousness code system.
+- E4 Command curl https://terminology.hl7.org/CodeSystem-adverse-event-seriousness.json and rg old code names. Learned: the current THO code system has exactly non-serious and serious with the FHIR-22994 definitions, and core source has no remaining old outcome-style seriousness codes.
+- E5 Jira FHIR-23023 and FHIR-48544: later Patient Care no-change decisions declined adding additional seriousness values and retained example binding strength, both citing the seriousness/outcome separation from FHIR-22994. Learned: later decisions support no source edit and no re-expansion of the value set.
+- E6 Confluence 104563498 and 104767496: Patient Care minutes discuss keeping seriousness and outcome separated and note results-in-death was intentionally removed as part of FHIR-22994. Learned: community/work-group minutes align with the Jira/source conclusion.
+- E7 Zulip/Confluence search commands for FHIR-22994 and AdverseEvent seriousness. Learned: no conflicting Zulip rationale was found; Confluence hits were the supporting Patient Care minutes cited above.
+- E8 Verification command: XML parsing of the relevant AdverseEvent source files and THO code-system assertion passed. Learned: the no-change conclusion is based on parseable current source and an exact terminology check.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22994",
+    "url": "https://jira.hl7.org/browse/FHIR-22994",
+    "snapshot_path": "contexts/FHIR-22994/jira/FHIR-22994.md",
+    "ref": { "jira_key": "FHIR-22994" },
+    "summary": "Published/Persuasive with Modification AdverseEvent issue requiring the seriousness value set to include only serious and non-serious.",
+    "learned": "This is the final WG decision and defines the current reconciliation target.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "05acdd8f2cbeb3944e8cd114d28f7c7a3d2f5cb3",
+    "ref": { "commit": "05acdd8f2cbeb3944e8cd114d28f7c7a3d2f5cb3" },
+    "summary": "The Jira-linked implementation commit removed the former outcome-style child seriousness codes and added the requested serious/non-serious definitions in the AdverseEvent spreadsheet.",
+    "learned": "The value set reduction was initially applied before later source refactoring.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:280, source/fhir.ini:1025; source/adverseevent/valueset-adverse-event-seriousness.xml:41-47; source/adverseevent/structuredefinition-AdverseEvent.xml:399-405",
+    "ref": { "paths": "source/fhir.ini,source/adverseevent/valueset-adverse-event-seriousness.xml,source/adverseevent/structuredefinition-AdverseEvent.xml" },
+    "summary": "AdverseEvent is active in the current build; AdverseEvent.seriousness has an example binding to the Adverse Event Seriousness value set, whose compose includes the THO adverse-event-seriousness code system.",
+    "learned": "The relevant source is in build scope and delegates the current code membership to THO.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current THO code system and old-code source search",
+    "command": "curl -fsSL https://terminology.hl7.org/CodeSystem-adverse-event-seriousness.json | jq -r '.concept[] | .code'; rg -n 'serious-results-in-death|serious-is-life-threatening|serious-results-in-hospitalization|serious-results-in-disability|serious-is-birth-defect|serious-requires-prevent-impairment' source/adverseevent source/oids.ini",
+    "summary": "The current THO code system contains exactly non-serious and serious with the FHIR-22994 definitions, and the old outcome-style seriousness codes are absent from current core source.",
+    "learned": "The current value set surface already matches the two-code resolution.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-23023 and FHIR-48544",
+    "url": "https://jira.hl7.org/browse/FHIR-48544",
+    "ref": { "jira_keys": "FHIR-23023,FHIR-48544" },
+    "summary": "FHIR-23023 rejected adding overdose/cancer seriousness codes, and FHIR-48544 kept AdverseEvent.seriousness as an example binding while citing FHIR-22994 as the reason outcome-like codes were removed.",
+    "learned": "Later Patient Care decisions support leaving the current two-code example value set unchanged.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "Patient Care minutes pages 104563498 and 104767496",
+    "url": "https://confluence.hl7.org/spaces/PC/pages/104767496/2022-06-16+Patient+Care+FHIR+Conference+Call",
+    "ref": { "confluence_page_ids": "104563498,104767496" },
+    "summary": "Patient Care minutes discuss keeping AdverseEvent seriousness and outcome separated and say results-in-death was intentionally removed as part of FHIR-22994.",
+    "learned": "Work-group minutes are consistent with the no-change interpretation.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-22994 and AdverseEvent seriousness",
+    "command": "bun run zulip:search fts '\"FHIR-22994\" AdverseEvent seriousness' --limit 10; bun run confluence:search refs jira FHIR-22994; bun run confluence:search fts '\"FHIR-22994\" AdverseEvent seriousness' --limit 10",
+    "query": "FHIR-22994 AdverseEvent seriousness",
+    "summary": "Quoted Zulip search found no direct hits; Confluence refs found the Patient Care minutes cited as E6; quoted Confluence FTS found no additional high-signal hits.",
+    "learned": "No discovered community discussion contradicts the Jira, source, and THO evidence.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Relevant source parse and terminology assertion",
+    "command": "python3 XML parse for source/adverseevent/valueset-adverse-event-seriousness.xml, structuredefinition-AdverseEvent.xml, adverseevent-example.xml, and valueset-adverse-event-outcome.xml; curl -fsSL https://terminology.hl7.org/CodeSystem-adverse-event-seriousness.json | jq -e '([.concept[].code] | sort) == [\"non-serious\", \"serious\"]'",
+    "summary": "Relevant XML files parsed and the current THO code system was asserted to contain exactly the two requested codes.",
+    "learned": "The audited current state is syntactically valid and exactly matches the FHIR-22994 target.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

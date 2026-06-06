@@ -1,0 +1,106 @@
+FHIR-18196: Correct ActivityDefinition subject resolution wording
+
+Issue request:
+FHIR-18196 was Published/Persuasive for STU3 by CDS. It requested adding a 0..1 subject CodeableConcept to PlanDefinition.action, documenting that an action subject overrides a parent/root PlanDefinition subject, documenting by-type subject resolution during realization including ActivityDefinitions, and changing the $apply patient parameter to subject with cardinality 1..*.
+
+Initial application:
+The issue was initially applied in git commit 2b9949c7e4ad0746b24d36bd1172bf7c46feae2f, which changed the PlanDefinition and ActivityDefinition spreadsheets plus the PlanDefinition $apply request example. Current generated source already has PlanDefinition.action.subject[x] at 0..1 with CodeableConcept and the requested override/resolution comment, and both PlanDefinition/$apply and ActivityDefinition/$apply use subject 1..*. However, the ActivityDefinition/$apply subject parameter documentation still said supplied subjects resolve as the subject of the PlanDefinition.
+
+Additional context:
+ActivityDefinition and PlanDefinition are active resources in source/fhir.ini, and their operation list files reference the $apply OperationDefinitions, so the edited OperationDefinition source is in current build scope. Later FHIR-29211 expression-context guidance is already represented on the combined branch and does not change this issue's subject-resolution requirement. Zulip and Confluence searches found no conflicting community evidence for FHIR-18196.
+
+AutoFHIR reconciliation:
+Changed ActivityDefinition/$apply subject parameter documentation so subjects provided to the ActivityDefinition operation resolve as the subject of the ActivityDefinition, not the PlanDefinition. No PlanDefinition.action source change was needed because the current source already carries the requested action subject element, CodeableConcept choice, cardinality, and override/resolution comment.
+
+Recommendation:
+Keep this commit as-is. It preserves the already-applied PlanDefinition changes and fixes the only directly related stale wording found in the active current source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-18196
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-29211: background - later Published CDS issue about operation parameters as expression context variables; already represented on the combined branch and did not alter the FHIR-18196 subject-resolution change.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-18196: Published/Persuasive CDS change request for PlanDefinition.action.subject[x] CodeableConcept, override/resolution documentation, and $apply subject 1..*. Learned: establishes the final requested behavior.
+- E2 Git 2b9949c7e4ad0746b24d36bd1172bf7c46feae2f: initial GF#18196 implementation changed PlanDefinition and ActivityDefinition spreadsheets and PlanDefinition $apply request example. Learned: confirms prior application and shows the ActivityDefinition $apply wording came from the same issue trail.
+- E3 Source source/plandefinition/structuredefinition-PlanDefinition.xml:1511: PlanDefinition.action.subject[x] is present with 0..1 cardinality, CodeableConcept type, and override/resolution comment. Learned: no PlanDefinition.action edit is needed.
+- E4 Source source/plandefinition/operationdefinition-PlanDefinition-apply.xml:98 and source/activitydefinition/operationdefinition-ActivityDefinition-apply.xml:75: both $apply operations use subject with min 1 and max *. Learned: the patient-to-subject parameter rename/cardinality is applied, but ActivityDefinition wording needed the resource-name correction made here.
+- E5 Source source/fhir.ini:273 and source/fhir.ini:274 plus operation list references: ActivityDefinition and PlanDefinition are active resources and list their $apply OperationDefinitions. Learned: the edited OperationDefinition file is in build scope.
+- E6 Community search: quoted FHIR-18196 Zulip FTS, Confluence FTS, Confluence refs, and PlanDefinition.action.subject concept searches found no relevant conflicting evidence. Learned: no discovered community record changes the Jira/source conclusion.
+- E7 Validation command: git diff --check, rg verification, and xmllint --noout on the edited OperationDefinition succeeded. Learned: the source edit is syntactically safe and limited to the intended wording.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-18196",
+    "url": "https://jira.hl7.org/browse/FHIR-18196",
+    "snapshot_path": "contexts/FHIR-18196/jira/FHIR-18196.md",
+    "ref": { "jira_key": "FHIR-18196" },
+    "summary": "Published/Persuasive CDS change request to add PlanDefinition.action.subject[x] CodeableConcept, document subject override/resolution, and change $apply patient to subject 1..*.",
+    "learned": "This establishes the final requested behavior for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "2b9949c7e4ad0746b24d36bd1172bf7c46feae2f",
+    "ref": { "commit": "2b9949c7e4ad0746b24d36bd1172bf7c46feae2f" },
+    "summary": "Initial GF#18196 implementation changed PlanDefinition and ActivityDefinition spreadsheets and the PlanDefinition $apply request example.",
+    "learned": "The issue was previously applied and the ActivityDefinition $apply wording is part of the same implementation trail.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/plandefinition/structuredefinition-PlanDefinition.xml:1511",
+    "ref": { "path": "source/plandefinition/structuredefinition-PlanDefinition.xml", "line": 1511 },
+    "summary": "PlanDefinition.action.subject[x] exists with 0..1 cardinality, CodeableConcept type, and the requested override/resolution comment.",
+    "learned": "The core PlanDefinition action element already satisfies the issue request.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/activitydefinition/operationdefinition-ActivityDefinition-apply.xml:75 and source/plandefinition/operationdefinition-PlanDefinition-apply.xml:98",
+    "ref": { "paths": "source/activitydefinition/operationdefinition-ActivityDefinition-apply.xml; source/plandefinition/operationdefinition-PlanDefinition-apply.xml" },
+    "summary": "Both $apply OperationDefinitions use subject 1..*, but ActivityDefinition's subject documentation still referred to PlanDefinition before this commit.",
+    "learned": "A source correction was needed for the ActivityDefinition half of the applied $apply operation change.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:273-274; source/activitydefinition/list-ActivityDefinition-operations.xml:9; source/plandefinition/list-PlanDefinition-operations.xml:9",
+    "ref": { "path": "source/fhir.ini", "lines": "273-274" },
+    "summary": "ActivityDefinition and PlanDefinition are active resources and their operation lists reference the $apply OperationDefinitions.",
+    "learned": "The edited OperationDefinition source is in current build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-18196 and PlanDefinition.action.subject",
+    "command": "bun run zulip:search fts '\"FHIR-18196\"' --limit 10; bun run confluence:search refs jira FHIR-18196; bun run confluence:search fts '\"FHIR-18196\"' --limit 10; bun run confluence:search fts '\"PlanDefinition.action.subject\"' --limit 10",
+    "query": "FHIR-18196; PlanDefinition.action.subject",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence evidence was found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local validation of ActivityDefinition $apply edit",
+    "command": "git diff --check; rg -n 'resolved as the subject of the (ActivityDefinition|PlanDefinition)' source/activitydefinition/operationdefinition-ActivityDefinition-apply.xml source/plandefinition/operationdefinition-PlanDefinition-apply.xml; xmllint --noout source/activitydefinition/operationdefinition-ActivityDefinition-apply.xml",
+    "summary": "Whitespace check, targeted text verification, and XML parse completed successfully.",
+    "learned": "The source edit is syntactically safe and limited to the intended wording.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

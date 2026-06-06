@@ -1,0 +1,106 @@
+FHIR-14175: Audit Signature MIME format split
+
+Issue request:
+FHIR-14175 was a Published/Persuasive STU3 FHIR-core issue from the Security WG. It requested that Signature stop using one contentType element ambiguously for the signature blob MIME type, rename that field to make the signature MIME type clear, and add a separate MIME-typed field for the format of the FHIR resources being signed.
+
+Initial application:
+The issue appears to have been applied in git commit f72fd6237875c6ba9d2a21e235881c7fed559700, which changed the Signature datatype source from Signature.contentType to Signature.targetFormat and Signature.sigFormat, bound both rows to MimeType, described targetFormat as the technical format of the signed resources, and updated Provenance signature examples. Later commit b96bbd292505dde0f56bdda132c7476d85b19de8 renamed Signature.blob to Signature.data, but did not undo the FHIR-14175 MIME split.
+
+Additional context:
+Signature is an active current datatype in source/fhir.ini and is marked normative. Later reconciliation for FHIR-48679 removed a stale short-form xml/json/ttl allowance from Signature.targetFormat while preserving the plain MimeType binding, and later reconciliation for FHIR-47211 fixed remaining signature-rule wording to use Signature.sigFormat and Signature.targetFormat consistently. These later decisions refine surrounding MIME/canonicalization guidance but do not supersede the FHIR-14175 element split.
+
+AutoFHIR reconciliation:
+No source change was made. The current authoritative Signature datatype source already has Signature.targetFormat for the signed resources and Signature.sigFormat for the signature itself, both bound to MimeType, and current examples/rules use targetFormat and sigFormat without stale Signature.contentType references.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR-core follow-up is needed for FHIR-14175 unless the Security WG makes a new decision to rename the already-established targetFormat/sigFormat elements or change their MIME bindings.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14175
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-16998: later-change - renamed Signature.blob to Signature.data after the FHIR-14175 split, leaving targetFormat/sigFormat intact.
+FHIR-48679: later-change - scoped short-form xml/json/ttl MIME allowances away from Signature.targetFormat and is already represented on the combined branch.
+FHIR-47211: later-change - corrected later signature-rule wording to use sigFormat/targetFormat consistently and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14175: Published/Persuasive Security WG issue requesting that Signature distinguish the signature blob MIME type from the MIME format of signed FHIR resources. Learned: the final intent is a two-field Signature MIME model.
+- E2 Source source/fhir.ini:34,993 and source/datatypes/signature.xml:683-721: Signature is active/normative; targetFormat and sigFormat exist as separate MimeType-bound code elements with definitions for signed resources and signature content respectively. Learned: the current build-scope datatype already implements the requested split.
+- E3 Git f72fd6237875c6ba9d2a21e235881c7fed559700: historical implementation changed Signature.contentType to targetFormat/sigFormat and updated examples. Learned: the Jira-tagged application is present in source history.
+- E4 Source source/provenance/provenance-example-sig.xml:66-67, source/provenance/provenance-consent-signature.xml:45-46, and source/signatures.html:198-204,369-400: current examples and narrative use targetFormat and sigFormat for their distinct meanings. Learned: parallel current guidance is consistent with the datatype.
+- E5 Git b96bbd292505dde0f56bdda132c7476d85b19de8, 86a0d2598a002086ea2e1a289256643725781083, and 1e30f533316556ae31ad212e6cfdd34a88f9e44a: later Signature-related changes renamed blob to data and reconciled MIME/canonicalization wording. Learned: later changes refine adjacent text without reversing FHIR-14175.
+- E6 Community search: Zulip and Confluence searches for FHIR-14175 plus Signature MIME/targetFormat/sigFormat terms found no directly relevant conflict; Confluence had no FHIR-14175 references. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E7 Verification command: xmllint parsed the Signature and Provenance XML examples; git grep found targetFormat/sigFormat in source and no stale Signature.contentType references; git diff --check passed. Learned: the no-change conclusion is based on parseable current source and targeted stale-reference checks.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14175",
+    "url": "https://jira.hl7.org/browse/FHIR-14175",
+    "snapshot_path": "contexts/FHIR-14175/jira/FHIR-14175.md",
+    "ref": { "jira_key": "FHIR-14175" },
+    "summary": "Published/Persuasive Security WG issue requesting separate Signature MIME elements for the signature blob and the signed FHIR resources.",
+    "learned": "This establishes the intended two-field model: a signature MIME field and a signed-resource format field.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:34,993; source/datatypes/signature.xml:683-721",
+    "ref": { "path": "source/datatypes/signature.xml", "start_line": 683, "end_line": 721 },
+    "summary": "Signature is an active normative datatype, and the source defines separate MimeType-bound Signature.targetFormat and Signature.sigFormat elements.",
+    "learned": "The current build-scope datatype already implements the requested split.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "f72fd6237875c6ba9d2a21e235881c7fed559700",
+    "ref": { "commit": "f72fd6237875c6ba9d2a21e235881c7fed559700" },
+    "summary": "Historical GF#14175 commit changed Signature.contentType to targetFormat/sigFormat and updated signature examples.",
+    "learned": "The original Jira-tagged source application is present in repository history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/provenance/provenance-example-sig.xml:66-67; source/provenance/provenance-consent-signature.xml:45-46; source/signatures.html:198-204,369-400",
+    "summary": "Current examples and digital-signature guidance use targetFormat for signed-resource format and sigFormat for the signature MIME format.",
+    "learned": "Parallel current source is consistent with the datatype and does not retain the old contentType wording.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "b96bbd292505dde0f56bdda132c7476d85b19de8; 86a0d2598a002086ea2e1a289256643725781083; 1e30f533316556ae31ad212e6cfdd34a88f9e44a",
+    "summary": "Later Signature-related changes renamed blob to data and reconciled adjacent MIME/canonicalization wording, while preserving targetFormat and sigFormat.",
+    "learned": "Later history refines adjacent Signature text but does not reverse the FHIR-14175 element split.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-14175 and Signature MIME terms",
+    "command": "bun run zulip:search fts '\"FHIR-14175\"' --limit 10; bun run zulip:search fts 'Signature MIME signed resources' --limit 10; bun run confluence:search refs jira FHIR-14175; bun run confluence:search fts 'Signature targetFormat sigFormat mimeType contentType' --limit 10",
+    "query": "FHIR-14175; Signature MIME signed resources; Signature targetFormat sigFormat mimeType contentType",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence evidence was found for the seed or terms, and Confluence had no FHIR-14175 references.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source verification",
+    "command": "xmllint --noout source/datatypes/signature.xml source/provenance/provenance-example-sig.xml source/provenance/provenance-consent-signature.xml source/provenance/provenance-example-advanced.xml; git grep for targetFormat/sigFormat and stale Signature.contentType; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "XML parsing and whitespace checks passed; targetFormat/sigFormat are present and no stale Signature.contentType references were found in the Signature datatype, signature page, or Provenance examples.",
+    "learned": "The current source is syntactically sound and already carries the requested element split.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

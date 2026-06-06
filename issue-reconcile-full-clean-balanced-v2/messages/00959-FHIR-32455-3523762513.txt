@@ -1,0 +1,111 @@
+FHIR-32455: Remove stale AuditEvent altId from model definition
+
+Issue request:
+FHIR-32455 was a Published Security WG change request for R5 asking why AuditEvent.agent.altId was named altId when agent.who already represented the user identity. The approved Persuasive with Modification resolution removed the altId element and preserved the DICOM AlternativeUserID concept as an AuditEvent agent extension with an Identifier value.
+
+Initial application:
+The issue was explicitly applied by git commit 11dbeb346100ba0d9089f63b88f99bd28348ad84, which removed AuditEvent.agent.altId from source/auditevent/structuredefinition-AuditEvent.xml and added an auditevent-AlternativeUserID extension definition. A later extension migration commit removed the core extension definitions from the FHIR checkout, and the current Extension Pack now contains the auditevent-AlternativeUserID definition. The active current FHIR model-definition Library content still retained AuditEvent.Agent.altId, so the original application missed this parallel source artifact.
+
+Additional context:
+source/fhir.ini marks AuditEvent and Library active/approved, and source/library/list-Library-examples.xml lists the FHIR Model Definition Library as a built example. Current AuditEvent source no longer has an altId element; agent.who carries the userId alias and DICOM UserName/UserId mapping. Current core AuditEvent examples reference the external auditevent-AlternativeUserID extension, which is present in the Extension Pack. The separate QUICK model-definition example is a legacy QUICK 1.0 model, not the current FHIR model definition, so it was not changed.
+
+AutoFHIR reconciliation:
+Removed the stale AuditEvent.Agent altId element from source/library/library-fhir-model-definition-content.xml and refreshed the embedded base64 attachment in source/library/library-fhir-model-definition.xml so the Library resource and linked readable content stay identical.
+
+Recommendation:
+Keep this commit as-is for FHIR core. If the WG wants to revisit whether the moved Extension Pack definition should be renamed to alternativeIdentifier or constrained to 0..1 exactly as the Jira resolution text said, that should be handled as follow-up work in the Extension Pack, not by adding new core source for this issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32455
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32455: Published/Persuasive with Modification Security issue requested removal of AuditEvent.agent.altId and an AlternativeUserID/alternative identifier extension. Learned: establishes the final WG intent for the reconciliation.
+- E2 Confluence 2021-09-13 Security minutes page 79497364: block vote lists FHIR-32455 with Persuasive with Modification and motion 8-0-1. Learned: confirms approval context for the Jira resolution.
+- E3 Git 11dbeb3461: removed AuditEvent.agent.altId and added auditevent-AlternativeUserID. Learned: shows the explicit initial application and the missed parallel model-definition artifact.
+- E4 Source source/fhir.ini:1096,1176,1328,1385 and source/library/list-Library-examples.xml:67: AuditEvent and Library are active/approved and the FHIR Model Definition Library is a listed example. Learned: the edited Library source is in current build scope.
+- E5 Source source/auditevent/structuredefinition-AuditEvent.xml:708: current AuditEvent.agent.who has the userId alias and there is no AuditEvent.agent.altId element. Learned: the authoritative resource definition already reflects the primary removal.
+- E6 Source source/library/library-fhir-model-definition-content.xml:2524: current FHIR 6.0.0 model definition retained AuditEvent.Agent before this commit and now omits altId. Learned: this was the remaining current-core inconsistency that needed a source fix.
+- E7 Source /home/jmandel/work/fhir-extensions/input/definitions/AuditEvent/StructureDefinition-auditevent-AlternativeUserID.xml:46: Extension Pack defines auditevent-AlternativeUserID for AuditEvent.agent with Identifier value and DICOM mapping. Learned: the extension portion now lives outside the core FHIR checkout.
+- E8 Verification command: XML parse, embedded data comparison, altId count, and diff whitespace check passed. Learned: the readable and embedded Library contents are synchronized and the stale current FHIR model altId is gone.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32455",
+    "url": "https://jira.hl7.org/browse/FHIR-32455",
+    "snapshot_path": "contexts/FHIR-32455/jira/FHIR-32455.md",
+    "ref": { "jira_key": "FHIR-32455" },
+    "summary": "Published/Persuasive with Modification Security issue asking why AuditEvent.agent.altId existed and resolving to remove altId and create an AlternativeUserID/alternative identifier extension.",
+    "learned": "This establishes the final WG intent to remove altId from current FHIR AuditEvent while preserving the DICOM alternative user identifier as an extension.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "2021-09-13 FHIR-Security Meeting Agenda page 79497364",
+    "url": "https://confluence.hl7.org/spaces/SEC/pages/79497364/2021-09-13+FHIR-Security+Meeting+Agenda",
+    "snapshot_path": "contexts/FHIR-32455/confluence/79497364.md",
+    "ref": { "confluence_page_id": 79497364 },
+    "summary": "Security minutes list FHIR-32455 in the block vote as Persuasive with Modification and record the motion as 8-0-1.",
+    "learned": "This confirms the Jira disposition was approved by the responsible work group.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "11dbeb346100ba0d9089f63b88f99bd28348ad84",
+    "ref": { "commit": "11dbeb346100ba0d9089f63b88f99bd28348ad84" },
+    "summary": "Commit titled '* FHIR-32455 - remove altId, and create an extension for AlternativeUserID' removed AuditEvent.agent.altId and added auditevent-AlternativeUserID.",
+    "learned": "The explicit initial application handled the main StructureDefinition but did not remove the stale altId from the active FHIR model-definition Library content.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:1096,1176,1328,1385; source/library/list-Library-examples.xml:67",
+    "summary": "AuditEvent and Library are active and approved, and the FHIR Model Definition Library is listed as a Library example.",
+    "learned": "The edited model-definition Library content is part of current core source scope, not an unused file.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:708",
+    "summary": "Current AuditEvent.agent.who carries userId alias and DICOM UserName/UserId mapping, and no AuditEvent.agent.altId element remains in the authoritative StructureDefinition.",
+    "learned": "The primary resource definition already satisfies the removal portion of FHIR-32455.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:2524; source/library/library-fhir-model-definition.xml:277",
+    "summary": "The FHIR 6.0.0 model-definition Library content defines AuditEvent.Agent; this commit removes the stale altId child and refreshes the embedded data attachment.",
+    "learned": "This is the necessary current-core source fix for the missed parallel artifact.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/AuditEvent/StructureDefinition-auditevent-AlternativeUserID.xml:46",
+    "summary": "The Extension Pack defines auditevent-AlternativeUserID for AuditEvent.agent with Identifier value and DICOM AlternativeUserID mapping.",
+    "learned": "The extension portion of the original core issue has moved outside the FHIR core checkout, so this core reconciliation should not edit the extension definition here.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted validation commands",
+    "command": "python3 XML/base64 consistency check; rg -n 'altId|AlternativeUserID|alternativeIdentifier' source/auditevent source/library/library-fhir-model-definition-content.xml source/library/library-quick-model-definition-content.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "XML parsed, embedded data matched readable content, current FHIR model altId count was zero, and whitespace check reported no errors.",
+    "learned": "The source and embedded Library attachment are synchronized after the fix, with only legacy QUICK/current extension references remaining outside the changed FHIR model definition.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

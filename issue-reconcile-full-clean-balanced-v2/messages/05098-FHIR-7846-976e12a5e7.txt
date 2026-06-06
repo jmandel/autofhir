@@ -1,0 +1,104 @@
+FHIR-7846: Audit MedicationStatement route v2 mapping removal
+
+Issue request:
+FHIR-7846 is a Published/Persuasive Pharmacy issue for the DSTU1 MedicationStatement v2 mapping page. It asked to remove the MedicationStatement route mapping to RXR-1-Route because MedicationStatement is a reported medication-use record rather than a v2 medication transaction concept where RXR-1 route would normally map.
+
+Initial application:
+The issue appears to have been applied during the DSTU QA process in git commit 5bb461af10, a batched v2 mapping update for MedicationDispense and MedicationStatement. That commit removed the historical MedicationStatement route v2 mapping line "RXR-1-Route" from the spreadsheet source along with neighboring MedicationStatement v2 mappings.
+
+Additional context:
+MedicationStatement is active in the current build through source/fhir.ini. The current authoritative source is source/medicationstatement/structuredefinition-MedicationStatement.xml, not the retired spreadsheet, and its MedicationStatement-specific v2 mappings contain only the mapping identity and a subject mapping to PID-3; there is no MedicationStatement route or RXR-1 mapping to remove. Current dosage details are represented through DosageDetails and the generic Dosage datatype still has a general Dosage.route RXR-1 mapping for dosage-bearing contexts, but FHIR-7846 was about the MedicationStatement resource-specific mapping and does not justify removing the generic datatype mapping.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change because the current MedicationStatement source already omits the RXR-1 route v2 mapping requested by FHIR-7846, and changing the generic Dosage mapping would overreach the issue request.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-7846 unless a future Pharmacy decision explicitly revisits whether generic Dosage v2 mappings should be specialized or suppressed for MedicationStatement.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7846
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-10066: background - later Published Pharmacy issue about route/site placement and multiple v2 RXR routes; it discusses route modeling but does not reverse the FHIR-7846 MedicationStatement-specific v2 mapping removal.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7846: Published/Persuasive issue requested blanking the MedicationStatement route v2 mapping that had said RXR-1-Route. Learned: this establishes the final target behavior for the seed.
+- E2 Git 5bb461af10: batched DSTU QA commit removed RXR-1-Route from the historical MedicationStatement spreadsheet source. Learned: the requested change was initially applied in source history.
+- E3 Source source/fhir.ini:203: active resources list includes medicationstatement=MedicationStatement. Learned: the current MedicationStatement source is in build scope.
+- E4 Source source/medicationstatement/structuredefinition-MedicationStatement.xml:67 and :262-263: current MedicationStatement v2 mapping identity exists and only subject maps to PID-3. Learned: no MedicationStatement route/RXR-1 v2 mapping remains in the authoritative current resource source.
+- E5 Source source/medicationstatement/structuredefinition-MedicationStatement.xml:474-486 and source/datatypes/dosage.xml:1120-1139: MedicationStatement.dosage uses DosageDetails while generic Dosage.route retains an RXR-1 mapping. Learned: the remaining RXR-1 text is generic datatype guidance, not the resource-specific mapping targeted by FHIR-7846.
+- E6 Jira FHIR-10066: later Published route/site discussion for medication resources resolved with guidance/examples rather than a reversal of FHIR-7846. Learned: route modeling changed later, but it does not require restoring or further removing the MedicationStatement v2 mapping.
+- E7 Command searches: current source search for RXR in MedicationStatement found no RXR matches; quoted Zulip and Confluence searches for FHIR-7846/RXR/MedicationStatement/route found no relevant records. Learned: no discovered source or community evidence conflicts with the no-change decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7846",
+    "url": "https://jira.hl7.org/browse/FHIR-7846",
+    "snapshot_path": "contexts/FHIR-7846/jira/FHIR-7846.md",
+    "ref": { "jira_key": "FHIR-7846" },
+    "summary": "Published/Persuasive Pharmacy issue asked to remove the MedicationStatement route v2 mapping to RXR-1-Route.",
+    "learned": "This is the final seed decision and establishes that the current MedicationStatement source should not have a resource-specific RXR-1 route mapping.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "5bb461af10",
+    "ref": { "commit": "5bb461af1063efe577bac2b8b17b6992be7560bf" },
+    "summary": "Batched DSTU QA commit for tracker items including 7846 removed RXR-1-Route from the historical MedicationStatement spreadsheet source.",
+    "learned": "The requested mapping removal was applied in source history before the later StructureDefinition refactor.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:203",
+    "summary": "The active resources list contains medicationstatement=MedicationStatement.",
+    "learned": "MedicationStatement is in current build scope, so its StructureDefinition source is the relevant reconciliation target.",
+    "supports": ["additional_context", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationstatement/structuredefinition-MedicationStatement.xml:67,262-263,474-486",
+    "summary": "Current MedicationStatement source has a v2 mapping identity and only a subject-to-PID-3 v2 element mapping; dosage is typed as DosageDetails with no resource-specific route/RXR-1 mapping.",
+    "learned": "The authoritative current resource source already satisfies FHIR-7846.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/dosage.xml:1120-1139",
+    "summary": "The generic Dosage datatype still maps Dosage.route to RXR-1-Route.",
+    "learned": "This remaining RXR-1 text is a generic datatype mapping used by other dosage contexts and is outside the MedicationStatement-specific removal requested by FHIR-7846.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-10066",
+    "url": "https://jira.hl7.org/browse/FHIR-10066",
+    "ref": { "jira_key": "FHIR-10066" },
+    "summary": "Published/Not Persuasive with Modification issue discussed route/site placement and multiple RXR routes in medication resources.",
+    "learned": "Later route modeling discussion did not reverse the FHIR-7846 resource-specific v2 mapping removal.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Source and community searches for FHIR-7846 RXR MedicationStatement route",
+    "command": "rg -n 'RXR-1|RXR' source/medicationstatement; bun run zulip:search fts '\"FHIR-7846\" RXR MedicationStatement route' --limit 10; bun run confluence:search refs jira FHIR-7846; bun run confluence:search fts '\"FHIR-7846\" RXR MedicationStatement route' --limit 10",
+    "query": "FHIR-7846 RXR MedicationStatement route",
+    "result_count": 0,
+    "summary": "No current MedicationStatement RXR source matches and no directly relevant Zulip or Confluence records were found for the seed search.",
+    "learned": "No discovered source or community evidence conflicts with treating the current source as already correct.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

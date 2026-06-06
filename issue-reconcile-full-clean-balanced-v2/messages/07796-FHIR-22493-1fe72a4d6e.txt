@@ -1,0 +1,121 @@
+FHIR-22493: Audit Element.id type profile propagation
+
+Issue request:
+FHIR-22493 was a Published/Persuasive FHIR-I change request raised against STU3/R4 type profiles and applied for R5. It reported that StructureDefinitions derived from Element, such as primitive datatype profiles, did not repeat the base Element.id primitive/system type metadata in their snapshots and instead exposed a regular FHIR type such as string. The accepted resolution was that the extension/type metadata from the base Element profile should be repeated in derived snapshots.
+
+Initial application:
+No current FHIR source commit directly referencing FHIR-22493 was found. The checked-in R4 history bundle still illustrates the original defect: tools/history/release4/profiles-types.xml has Element.id represented with the special json/xml/rdf type extensions, while string.id has a plain code value of string. Later generation changed the representation to FHIRPath System.String plus structuredefinition-fhir-type, and the same Element.id propagation family was handled by follow-up tooling issues/audits such as FHIR-36036, FHIR-38684, and FHIR-41183.
+
+Additional context:
+The current build-scope source defines Element.@id as type string in source/datatypes/element.xml, and source/fhir.ini keeps Element, BackboneElement, and ElementDefinition active in the datatype/infrastructure build. BackboneElement derives from Element without declaring a separate @id row, and current ElementDefinition notes document the FHIRPath System.String plus structuredefinition-fhir-type pattern. Current build output now emits Element.id, string.id, Address.id, BackboneElement.id, and ElementDefinition.id with code http://hl7.org/fhirpath/System.String and structuredefinition-fhir-type valueUrl string. Related final decisions keep Resource.id separate: FHIR-25262/FHIR-25274 establish Resource.id as System.String constrained by fhir-type id, and FHIR-45989 later confirms Element.id is fhir-type string while Resource.id remains fhir-type id.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current authoritative source and generated build output already satisfy FHIR-22493's requirement for Element-derived type profiles, and editing checked-in historical release cache files would not be a current-spec source fix.
+
+Recommendation:
+Keep this no-change audit as the FHIR-22493 reconciliation. Do not broaden it into Resource.id changes or historical R4/R5 cache rewrites; any future publication-surface correction for old releases should be handled through the publication/generator process and related issues already audited on the combined branch.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22493
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25262: supporting-decision - Published correction establishing that Resource.id should use structuredefinition-fhir-type id, preventing an overbroad Element.id-style string change to resource logical ids.
+FHIR-25274: supporting-decision - Published clarification documenting the FHIRPath System.String plus structuredefinition-fhir-type representation used by these special elements.
+FHIR-36036: same-change-family - Published tooling issue for Element/BackboneElement-derived id metadata; already represented on the combined branch and confirms current output is corrected.
+FHIR-38684: later-change - Published follow-up for Element.id still showing fhir-type id; already represented on the combined branch and confirms current Element.id output is string.
+FHIR-41183: later-change - Applied follow-up for ElementDefinition.id in R5; already represented on the combined branch and records that the fix is present in R6/current output.
+FHIR-45989: supporting-decision - Later no-change decision explaining why Element.id remains fhir-type string while Resource.id remains fhir-type id.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22493: Published/Persuasive issue says derived Element type profiles should repeat the base Element.id special type extension metadata in snapshots. Learned: this establishes the seed request and the required propagation behavior.
+- E2 Source source/fhir.ini:63-73,449-466 and source/datatypes/element.xml:616-620: Element is an active infrastructure datatype and Element.@id is declared as type string. Learned: the current authoritative source basis for Element.id is in build scope and has the requested string flavor.
+- E3 Source source/datatypes/backboneelement.xml and source/elementdefinition.html:346-353: BackboneElement derives from Element without its own @id row, and ElementDefinition notes document FHIRPath System.String plus structuredefinition-fhir-type. Learned: current source expects inherited Element.id metadata to be generated from Element and documents the representation.
+- E4 Source tools/history/release4/profiles-types.xml:164-190 and 2852-2866; tools/history/release5/profiles-types.xml:182-200 and 3337-3354: R4 history shows the original mismatch, while R5 history shows the later System.String/fhir-type representation for primitive string.id. Learned: the issue was a generation/history problem, not a missing current source row.
+- E5 Published spec build.fhir.org profile JSON checks: Element.id, string.id, Address.id, BackboneElement.id, and ElementDefinition.id all currently emit code http://hl7.org/fhirpath/System.String with fhir-type string. Learned: the current generated specification output satisfies the seed requirement.
+- E6 Zulip #implementers > "http://hl7.org/fhirpath/System.String": Grahame described GF#22493 as the approval trail for the compiler-magic representation and clarified that Element.id is conceptually string while Resource.id is conceptually id. Learned: community discussion supports keeping Element-derived ids as string without changing Resource.id.
+- E7 Git/command checks: no direct FHIR-22493 source commit or prior combined audit was found; related FHIR-36036, FHIR-38684, FHIR-41183, FHIR-25262, and FHIR-25274 audits are already on the combined branch. Learned: the seed still needs this audit commit, but related issues should not be republished.
+- E8 Community search: Confluence refs for FHIR-22493 found no pages, exact Zulip key search found only the compiler-magic discussion, and Jira exact search found only the seed. Learned: no discovered community evidence conflicts with the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22493",
+    "url": "https://jira.hl7.org/browse/FHIR-22493",
+    "snapshot_path": "contexts/FHIR-22493/jira/FHIR-22493.md",
+    "ref": { "jira_key": "FHIR-22493" },
+    "summary": "Published/Persuasive issue requiring Element-derived type profile snapshots to repeat the base Element.id special type extension metadata.",
+    "learned": "This establishes the seed request and the target propagation behavior for current source/build checks.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:63-73,449-466; source/datatypes/element.xml:616-620",
+    "ref": { "path": "source/datatypes/element.xml", "start_line": 616, "end_line": 620 },
+    "summary": "Element is an active infrastructure datatype and Element.@id is declared as type string.",
+    "learned": "The current authoritative source basis for Element.id is in build scope and carries the requested string flavor.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/backboneelement.xml; source/elementdefinition.html:346-353",
+    "summary": "BackboneElement derives from Element without declaring a separate @id row, and ElementDefinition notes document FHIRPath System.String plus structuredefinition-fhir-type.",
+    "learned": "Current source expects derived id metadata to inherit from Element and documents the representation used in generated profiles.",
+    "supports": ["additional_context", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "tools/history/release4/profiles-types.xml:164-190,2852-2866; tools/history/release5/profiles-types.xml:182-200,3337-3354",
+    "summary": "R4 history shows the original Element.id versus string.id mismatch; R5 history shows the later System.String plus fhir-type representation.",
+    "learned": "The seed concerned generated profile metadata/history, not a missing current source row to edit.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "build.fhir.org profile JSON checks for Element.id, string.id, Address.id, BackboneElement.id, and ElementDefinition.id",
+    "url": "https://build.fhir.org/element.profile.json",
+    "command": "python3 - <<'PY' ... fetch build.fhir.org element/string/address/elementdefinition/backboneelement profile JSON and print id type code/fhir-type ... PY",
+    "summary": "Current build output emits http://hl7.org/fhirpath/System.String with structuredefinition-fhir-type valueUrl string for representative Element-derived id elements.",
+    "learned": "The current generated specification output satisfies FHIR-22493's requested propagation behavior.",
+    "supports": ["reconciliation", "verification"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > \"http://hl7.org/fhirpath/System.String\"",
+    "url": "https://chat.fhir.org/#narrow/stream/179166-implementers/topic/.22http.3A.2F.2Fhl7.2Eorg.2Ffhirpath.2FSystem.2EString.22",
+    "ref": { "stream": "implementers", "topic": "\"http://hl7.org/fhirpath/System.String\"" },
+    "summary": "Grahame described GF#22493 as the approval trail for the compiler-magic representation and clarified that Element.id is string while Resource.id is id.",
+    "learned": "Community evidence supports leaving Element-derived ids as string and not changing Resource.id under this seed.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Git idempotency and related-audit checks",
+    "command": "git log --fixed-strings --grep='FHIR-22493'; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-22493'; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-36036'; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-38684'; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-41183'",
+    "summary": "No direct FHIR-22493 source commit or prior combined audit was found; related same-family audits are already present on the combined branch.",
+    "learned": "The seed needs one audit commit, and related issues should not be republished.",
+    "supports": ["idempotency", "additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-22493",
+    "command": "bun run confluence:search refs jira FHIR-22493; bun run zulip:search fts '\"FHIR-22493\"' --limit 10; bun run jira:search fts '\"FHIR-22493\" \"Element.id\"' --limit 10",
+    "query": "FHIR-22493 Element.id",
+    "result_count": 1,
+    "summary": "Confluence found no references; exact Zulip key search found one compiler-magic thread; Jira exact search found only the seed.",
+    "learned": "No discovered community evidence conflicts with the Jira/source/build conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

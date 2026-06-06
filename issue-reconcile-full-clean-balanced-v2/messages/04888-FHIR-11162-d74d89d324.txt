@@ -1,0 +1,96 @@
+FHIR-11162: Audit Procedure complication reconciliation
+
+Issue request:
+FHIR-11162 was a Published Patient Care change request with a Not Persuasive with Modification resolution. It asked how remedial treatments could be referenced when complications occurred, and the accepted disposition said remedial treatments can be represented as Procedures that are partOf another Procedure; Procedure.complication should support Condition references or a CodeableConcept; and the complication usage note should clarify that it documents a condition resulting from the procedure rather than the reason the procedure was performed.
+
+Initial application:
+The original application appears in git commit fd96fa1d81, whose message includes "#11162 Add Condition.complicationDetail to reference Condition". That commit added Procedure.complicationDetail as Reference(Condition) with the requested "result of the procedure, not the reason" requirements text while retaining Procedure.complication as the coded concept location.
+
+Additional context:
+Procedure is an active current-build resource in source/fhir.ini. A later Published Patient Care issue, FHIR-32511, intentionally merged Procedure.complication and Procedure.complicationDetail for R5 by making Procedure.complication a CodeableReference(Condition) and removing the separate complicationDetail element; source/fhir.ini records that version mapping. The current Procedure definition also keeps Procedure.reason as the place for why the procedure was performed, while Procedure.complication is defined as complications during or immediately after the procedure and binds to codes describing complications that resulted from a procedure. Later FHIR-47824 only added isSummary=true for Procedure.complication and did not change this semantic model.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scope Procedure source already preserves the FHIR-11162 outcome after the FHIR-32511 refactor: remedial follow-up procedures can be linked through Procedure.partOf, and Procedure.complication is a CodeableReference constrained to Condition with coded text support. Re-adding the exact old split-element usage sentence would be redundant because the current complication, reason, and binding definitions already distinguish resulting complications from indications/reasons for the procedure.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-11162 unless Patient Care wants a new editorial issue to restate the result-versus-reason distinction more explicitly after the CodeableReference refactor.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11162
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32511: later-change - merged Procedure.complication and Procedure.complicationDetail into the current CodeableReference(Condition) representation that supersedes the original split-element application.
+FHIR-47824: later-change - added isSummary=true to Procedure.complication without changing the FHIR-11162 semantics.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11162: Published/Not Persuasive with Modification request and resolution for Procedure complications and remedial treatments. Learned: establishes the final WG intent for the seed issue.
+- E2 Git fd96fa1d81: original application commit added Procedure.complicationDetail Reference(Condition) with the requested result-not-reason requirements text. Learned: confirms FHIR-11162 was applied before later refactoring.
+- E3 Jira FHIR-32511 and git 0e1ea92339: Published/Persuasive merge of complication and complicationDetail into Procedure.complication CodeableReference(Condition). Learned: explains why the original separate element and exact requirements location no longer exist.
+- E4 Source source/fhir.ini:169,212,2009-2010: Procedure is an active resource and the version mapping records the complication/complicationDetail merge. Learned: the checked Procedure definition is current build scope and the merge is intentional.
+- E5 Source source/procedure/structuredefinition-Procedure.xml:164-180,724-740,868-890: current partOf, reason, and complication definitions show remedial procedures, indications, and resulting complications are represented distinctly. Learned: current source already conveys the accepted semantics.
+- E6 Community search: Zulip and Confluence searches for FHIR-11162/remedial Procedure complication found no relevant conflicting discussion; Confluence references for FHIR-32511 only found agenda/minutes references. Learned: no discovered community evidence changes the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11162",
+    "url": "https://jira.hl7.org/browse/FHIR-11162",
+    "snapshot_path": "contexts/FHIR-11162/jira/FHIR-11162.md",
+    "ref": { "jira_key": "FHIR-11162" },
+    "summary": "Published/Not Persuasive with Modification issue asking how remedial treatments can be referenced when complications occur and resolving to use Procedure.partOf plus Procedure.complication as Condition or CodeableConcept with result-not-reason guidance.",
+    "learned": "This establishes the seed issue's final Patient Care intent.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "fd96fa1d81",
+    "ref": { "commit": "fd96fa1d815117d335e22713f30f6792a9c83b1d" },
+    "summary": "Original application commit message includes '#11162 Add Condition.complicationDetail to reference Condition' and adds Procedure.complicationDetail Reference(Condition) with the requested requirements text.",
+    "learned": "FHIR-11162 was applied in the split-element model before the later R5 refactor.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-32511 and git 0e1ea92339",
+    "url": "https://jira.hl7.org/browse/FHIR-32511",
+    "snapshot_path": "contexts/FHIR-32511/jira/FHIR-32511.md",
+    "ref": { "jira_key": "FHIR-32511", "commit": "0e1ea923399d5bc6f2fdefb6b09e4073674d04fc" },
+    "summary": "Published/Persuasive R5 issue merged Procedure.complication CodeableConcept and complicationDetail Reference(Condition) into Procedure.complication CodeableReference(Condition).",
+    "learned": "The current single-element representation is an intentional later decision, not a missed application of FHIR-11162.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,212,2009-2010",
+    "summary": "Procedure is listed as an active resource, and the R4-to-R5 mapping records Procedure.complication and Procedure.complicationDetail merging into Procedure.complication.concept/reference.",
+    "learned": "The Procedure source is in current build scope and the merge is documented in source configuration.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/procedure/structuredefinition-Procedure.xml:164-180,724-740,868-890",
+    "summary": "Current Procedure.partOf references Procedure, Procedure.reason captures why the procedure was performed, and Procedure.complication is CodeableReference(Condition) with wording and binding for complications resulting from the procedure.",
+    "learned": "The current source already distinguishes remedial sub-procedures, procedure reasons, and resulting complications consistently with FHIR-11162.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-11162 and Procedure complication terms",
+    "command": "bun run zulip:search fts 'Procedure complication remedial treatment' --limit 10; bun run zulip:search fts '\"FHIR-11162\"' --limit 10; bun run confluence:search fts 'Procedure complication remedial treatment' --limit 10; bun run confluence:search refs jira FHIR-11162; bun run confluence:search refs jira FHIR-32511",
+    "query": "FHIR-11162 Procedure complication remedial treatment",
+    "summary": "No relevant Zulip or Confluence evidence was found for FHIR-11162; FHIR-32511 appeared only in meeting agenda/minutes references without conflicting substance.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

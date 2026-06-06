@@ -1,0 +1,114 @@
+FHIR-29821: Audit designation additionalUse reconciliation
+
+Issue request:
+FHIR-29821 was a Published FHIR-core Vocab change request, resolved Persuasive with Modification for R5, asking not to make designation.use repeat but instead to add CodeSystem.concept.designation.additionalUse and ValueSet.compose.include.concept.designation.additionalUse as 0..* Coding elements, require designation.use when additionalUse is present, and add designation.additionalUse as a $lookup output part.
+
+Initial application:
+The issue was applied before this reconciliation by commit e522c99cebff40f73a3dc10a5673ee5ed6e5b2b8, which added the CodeSystem and ValueSet additionalUse elements, the csd-5 and vsd-11 invariants, and the CodeSystem $lookup output part. A later broad StructureDefinition reformat preserved those semantics in the current source.
+
+Additional context:
+CodeSystem, ValueSet, and OperationDefinition are active build resources in source/fhir.ini. ValueSet.expansion.contains.designation uses a contentReference to ValueSet.compose.include.concept.designation, so the compose designation backbone, including additionalUse and the invariant, is reused for expansion.contains.designation rather than repeated as separate child definitions. FHIR-36231 later discussed adding contextual structure around additionalUse and was resolved No Change; it does not establish a current-source correction for FHIR-29821. A 2022 Vocabulary/committers Zulip thread records Grahame checking the $lookup choice and leaving the existing disposition unchanged.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already contains the requested additionalUse elements, binding, constraints, $lookup output part, and invariant test fixtures needed to convey the FHIR-29821 decision.
+
+Recommendation:
+Keep this audit commit as-is. Future work on designation-use codes or contextual designation semantics, such as unresolved FHIR-57375, should be handled as separate Vocab decisions and not as a FHIR-29821 reconciliation fix.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-29821
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-36231: background - later Resolved-No Change discussion about contextual structure for designation.additionalUse, not a source correction to this issue.
+FHIR-57375: background - unresolved later proposal to add concepts to the DesignationUse value set, separate from this structural additionalUse reconciliation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-29821: Published/Persuasive with Modification for R5, requesting additionalUse on CodeSystem and ValueSet designations, use-required invariants, and $lookup designation.additionalUse. Learned: this is the final seed request to audit.
+- E2 Source source/fhir.ini:170,227,238,270 and source/codesystem/list-CodeSystem-operations.xml:9: ValueSet, OperationDefinition, and CodeSystem are active resources and the CodeSystem lookup operation is listed. Learned: the inspected source files are in current build scope.
+- E3 Source source/codesystem/structuredefinition-CodeSystem.xml:945-1018, source/valueset/structuredefinition-ValueSet.xml:769-842, source/valueset/structuredefinition-ValueSet.xml:1264-1272, source/codesystem/operationdefinition-CodeSystem-lookup.xml:188-195: current source has csd-5/vsd-11, additionalUse elements, ValueSet expansion contentReference reuse, and $lookup additionalUse. Learned: the requested current specification structures are present.
+- E4 Source invariant fixtures source/codesystem/invariant-tests/csd-5.*.xml and source/valueset/invariant-tests/vsd-11.*.xml: pass/fail fixtures exercise additionalUse with and without use. Learned: the invariant behavior is represented in source tests.
+- E5 Git e522c99cebff40f73a3dc10a5673ee5ed6e5b2b8: FHIR-29821 implementation commit added the relevant CodeSystem, ValueSet, and $lookup source. Learned: there was an explicit prior application of the issue.
+- E6 Zulip #Vocabulary/committers > Request — confirmation of committers for critical trackers: Grahame reviewed FHIR-29821 on 2022-09-01, applied the $lookup additionalUse pattern as requested, and no disposition change followed. Learned: community implementation discussion supports leaving the current application in place.
+- E7 Jira FHIR-36231: Resolved-No Change discussion of designation context/additionalUse after FHIR-29821. Learned: this related issue does not justify a source change for the already-applied seed.
+- E8 Confluence VOC 2022-02-07 tracker minutes: Vocab minutes record the non-breaking additionalUse approach and resolved-change-required decision. Learned: meeting evidence aligns with the Jira resolution and current source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-29821",
+    "url": "https://jira.hl7.org/browse/FHIR-29821",
+    "snapshot_path": "contexts/FHIR-29821/jira/FHIR-29821.md",
+    "ref": { "jira_key": "FHIR-29821" },
+    "summary": "Published/Persuasive with Modification issue requesting designation.additionalUse in CodeSystem, ValueSet, and CodeSystem $lookup, with use-required constraints.",
+    "learned": "This establishes the final seed issue request and R5 application target.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,227,238,270; source/codesystem/list-CodeSystem-operations.xml:9",
+    "summary": "fhir.ini lists ValueSet, OperationDefinition, and CodeSystem as active resources, and CodeSystem lists OperationDefinition/CodeSystem-lookup.",
+    "learned": "The inspected CodeSystem, ValueSet, and lookup operation sources are in build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/codesystem/structuredefinition-CodeSystem.xml:945-1018; source/valueset/structuredefinition-ValueSet.xml:769-842,1264-1272; source/codesystem/operationdefinition-CodeSystem-lookup.xml:188-195",
+    "summary": "Current source contains csd-5/vsd-11 constraints, CodeSystem and ValueSet additionalUse elements, ValueSet expansion designation contentReference reuse, and the $lookup additionalUse output part.",
+    "learned": "The requested structural changes are already represented without needing duplicate expansion child definitions.",
+    "supports": ["current_source", "no_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/codesystem/invariant-tests/csd-5.*.xml; source/valueset/invariant-tests/vsd-11.*.xml",
+    "summary": "Invariant test fixtures include additionalUse cases with and without designation.use.",
+    "learned": "The use-required invariant behavior is covered by existing source fixtures.",
+    "supports": ["current_source", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "e522c99cebff40f73a3dc10a5673ee5ed6e5b2b8",
+    "ref": { "commit": "e522c99cebff40f73a3dc10a5673ee5ed6e5b2b8" },
+    "summary": "Commit 'FHIR-29821 Updated cardinality of designation.use' added the CodeSystem, ValueSet, and $lookup additionalUse source.",
+    "learned": "The current source has an explicit Jira-tagged implementation history for the seed.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#Vocabulary/committers > Request — confirmation of committers for critical trackers",
+    "url": "https://chat.fhir.org/#narrow/stream/Vocabulary.2Fcommitters/topic/Request.20.E2.80.94.C2.A0confirmation.20of.20committers.20for.20critical.20trackers",
+    "summary": "On 2022-09-01 Grahame noted he followed the FHIR-29821 $lookup additionalUse disposition and checked whether the committee wanted a different choice; the thread did not change the disposition.",
+    "learned": "Implementation discussion supports keeping the applied pattern rather than editing it now.",
+    "supports": ["additional_context", "no_change"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-36231",
+    "url": "https://jira.hl7.org/browse/FHIR-36231",
+    "ref": { "jira_key": "FHIR-36231" },
+    "summary": "Resolved-No Change issue discussing contextual structure for designation.additionalUse after the seed decision.",
+    "learned": "This related discussion does not create a required correction to the already-applied FHIR-29821 source.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "VOC FHIR Tracker Issues 2022-02-07 Call Agenda and Minutes page 90347036",
+    "url": "https://confluence.hl7.org/spaces/VOC/pages/90347036/FHIR+Tracker+Issues+2022-02-07+Call+Agenda+and+Minutes",
+    "ref": { "confluence_page_id": 90347036 },
+    "summary": "Vocab minutes record the FHIR-29821 discussion and non-breaking additionalUse path.",
+    "learned": "Meeting evidence aligns with the Jira resolution and source application.",
+    "supports": ["issue_request", "additional_context"]
+  }
+]
+</evidence-manifest>

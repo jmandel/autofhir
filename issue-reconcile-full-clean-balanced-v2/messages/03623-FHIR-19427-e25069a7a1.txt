@@ -1,0 +1,120 @@
+FHIR-19427: Audit DICOM Endpoint payload optionality
+
+Issue request:
+FHIR-19427 is a Published/Persuasive with Modification FHIR-core Patient Administration change request for Endpoint. It reported that the example Endpoint payloadType value set had no suitable DICOMweb/DICOM payload value while payloadType was mandatory, and proposed either making the element optional or updating the value set. The final Jira resolution says the payloadType property was updated to 0..* in FHIR-25393.
+
+Initial application:
+The source application was not a standalone FHIR-19427 commit. Commit 445d4741d1559c197decca8343f60d1cad753d36 changed the then-current Endpoint.payloadType minimum from 1 to 0 as part of Endpoint cardinality work, and merge commit 29c32a3f611f298e0601cd090b441155fed47286 explicitly lists FHIR-19427 together with FHIR-34261, FHIR-25393, FHIR-12342, and FHIR-22629 for the Endpoint.connectionType and Endpoint.payloadType cardinality changes.
+
+Additional context:
+Endpoint is active in the current build through source/fhir.ini. The historical Endpoint.payloadType element has since been refactored into Endpoint.payload.type, with source/fhir.ini mapping Endpoint.payloadType to Endpoint.payload.type. PA meeting minutes and the cited DICOM Zulip thread support the same interpretation: the DICOM-specific problem was caused by mandatory payloadType plus an example binding, and the approved resolution was to relax the element rather than require a new DICOM payload code. Related audit commits for FHIR-22629, FHIR-25393, and FHIR-34261 are already present on the combined branch.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current authoritative source already defines Endpoint.payload.type with min 0 and max *, so DICOM Endpoint instances no longer need to invent or select an unsuitable payload type code merely to satisfy cardinality.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-19427 unless a future Patient Administration decision changes the Endpoint payload advertising model or requires a specific standardized DICOM payload type value.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19427
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25393: supporting-decision - Published/Persuasive issue whose resolution explicitly changed Endpoint.payloadType from 1..* to 0..* and is cited by FHIR-19427.
+FHIR-34261: same-change-family - broader Endpoint cardinality tracker whose implementation commit applied the payloadType min 0 change.
+FHIR-22629: same-change-family - related Published/Persuasive request to make Endpoint payload type optional, already represented on the combined branch.
+FHIR-39617: later-change - later Endpoint payload narrative clarification that did not restore mandatory payload type.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19427: Published/Persuasive with Modification issue for missing DICOM Endpoint payloadType code; final resolution cites FHIR-25393 changing payloadType to 0..*. Learned: the seed can be satisfied by optionality rather than a new DICOM value-set code.
+- E2 Zulip #implementers > CodeableConcept describing DICOM images: original thread says DICOMweb can already be conveyed by connectionType and payloadType lacked suitable guidance/vocabulary. Learned: this confirms the practical DICOM problem behind the Jira request.
+- E3 Jira FHIR-25393: Published/Persuasive issue resolved to update Endpoint.payloadType from 1..* to 0..*. Learned: this is the supporting final decision named by FHIR-19427.
+- E4 Confluence PA 2021 Sept WGM page 79500327: minutes record PA deciding to relax the required 1..* payloadType element to optional 0..* with a 7-0-0 vote, noting the example binding. Learned: work group minutes corroborate the Jira resolution path.
+- E5 Git 445d4741d1559c197decca8343f60d1cad753d36 and 29c32a3f611f298e0601cd090b441155fed47286: implementation changed Endpoint.payloadType min from 1 to 0, and the merge message lists FHIR-19427 among the cardinality trackers. Learned: the source change was applied in history even though the implementation commit subject used FHIR-34261.
+- E6 Source source/fhir.ini:170-234,1745: Endpoint is active in [resources], and Endpoint.payloadType maps to Endpoint.payload.type. Learned: the inspected source is current-build scope and uses the refactored current element name.
+- E7 Source source/endpoint/structuredefinition-Endpoint.xml:296-302: Endpoint.payload.type has min 0 and max *. Learned: the current authoritative source already implements the optional payload type outcome.
+- E8 Combined-branch idempotency checks: FHIR-22629, FHIR-25393, and FHIR-34261 already have Issue-Reconcile-Key commits, while FHIR-19427 did not before this commit. Learned: only the seed audit needed publication.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19427",
+    "url": "https://jira.hl7.org/browse/FHIR-19427",
+    "snapshot_path": "contexts/FHIR-19427/jira/FHIR-19427.md",
+    "ref": { "jira_key": "FHIR-19427" },
+    "summary": "Published/Persuasive with Modification Endpoint issue reporting no suitable DICOM payloadType code while payloadType was mandatory; final resolution cites FHIR-25393 changing payloadType to 0..*.",
+    "learned": "The approved way to address the DICOM payload problem was optionality rather than adding a mandatory DICOM payload code.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > CodeableConcept describing DICOM images",
+    "url": "https://chat.fhir.org/#narrow/stream/179166-implementers/topic/CodeableConcept.20describing.20DICOM.20images",
+    "ref": { "stream": "implementers", "topic": "CodeableConcept describing DICOM images" },
+    "summary": "The originating thread discusses DICOM PACS endpoints, notes that connectionType can indicate DICOMweb, and identifies missing guidance or vocabulary for mandatory payloadType.",
+    "learned": "This confirms the issue's DICOM-specific pain point and supports treating optional payload type as sufficient for the seed.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-25393",
+    "url": "https://jira.hl7.org/browse/FHIR-25393",
+    "ref": { "jira_key": "FHIR-25393" },
+    "summary": "Published/Persuasive Endpoint.payloadType issue resolved to update the element from 1..* to 0..*.",
+    "learned": "This is the supporting final Jira decision named in FHIR-19427's resolution.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "confluence",
+    "locator": "PA 2021 Sept WGM minutes page 79500327",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/79500327/2021+Sept+WGM+-+Patient+Administration",
+    "ref": { "confluence_page_id": 79500327 },
+    "summary": "Minutes record PA deciding to relax the required Endpoint payloadType element from 1..* to optional 0..* with a 7-0-0 vote, noting the example binding.",
+    "learned": "Meeting evidence corroborates the Jira resolution path for FHIR-19427 and FHIR-25393.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "445d4741d1559c197decca8343f60d1cad753d36; 29c32a3f611f298e0601cd090b441155fed47286",
+    "ref": { "commit": "445d4741d1559c197decca8343f60d1cad753d36", "merge_commit": "29c32a3f611f298e0601cd090b441155fed47286", "pull_request": 1832 },
+    "summary": "The implementation commit changed Endpoint.payloadType min from 1 to 0, and the PR #1832 merge message lists FHIR-19427 among the Endpoint cardinality trackers.",
+    "learned": "The requested cardinality relaxation was applied in source history under the broader Endpoint cardinality work.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-234,1745",
+    "ref": { "path": "source/fhir.ini", "start_line": 170, "end_line": 1745 },
+    "summary": "Endpoint is active in [resources], and Endpoint.payloadType maps to Endpoint.payload.type.",
+    "learned": "The inspected Endpoint StructureDefinition is in current build scope and uses the current name for the historical element.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/endpoint/structuredefinition-Endpoint.xml:296-302",
+    "ref": { "path": "source/endpoint/structuredefinition-Endpoint.xml", "start_line": 296, "end_line": 302 },
+    "summary": "Endpoint.payload.type is defined with min 0 and max *.",
+    "learned": "The current authoritative source already satisfies the optional payload type outcome required for FHIR-19427.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Combined branch Issue-Reconcile-Key checks for FHIR-19427 and related Endpoint cardinality issues",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-19427' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-25393' --format='%H %s' -n 3 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "No FHIR-19427 audit was present before this commit; related FHIR-22629, FHIR-25393, and FHIR-34261 audits were already present on the combined branch.",
+    "learned": "The seed needed exactly one audit commit and related issues should not be republished.",
+    "supports": ["idempotency", "reconciliation"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,98 @@
+FHIR-37448: Audit current Questionnaire example downloads
+
+Issue request:
+FHIR-37448 was Published/Persuasive for R5 after reporting that JSON examples downloads contained generated Questionnaire examples whose choice-type linkId values were duplicated, violating Questionnaire invariant que-2. The reported examples included activitydefinition-questionnaire.json with repeated ActivityDefinition.timing[x]._null linkIds and supplydelivery-questionnaire.json with repeated SupplyDelivery.occurrence[x]._null linkIds.
+
+Initial application:
+No Jira-tagged FHIR source commit for FHIR-37448 was found. The R5 published examples-json.zip still contains generated per-resource Questionnaire JSON files and many of those files continue to violate que-2, including the reported ActivityDefinition and SupplyDelivery examples, so the original R5 publication artifact was not corrected in-place.
+
+Additional context:
+The generated per-resource Questionnaire artifacts were produced by the external Kindling publisher dependency rather than by checked-in FHIR source files. Current FHIR source still builds the Downloads page and active Questionnaire/ActivityDefinition resources, but current build.fhir.org examples-json.zip no longer contains generated per-resource *-questionnaire.json files. Kindling commit cc11a2d18bc89191caf59af41f73823d04b6fdf2 removed questionnaire generation functionality, and the FHIR source later moved to a Kindling version that includes that removal.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current built specification no longer publishes the invalid generated Questionnaire JSON files, and the remaining local Questionnaire XML examples do not duplicate linkId values except for the intentional invariant failure test fixture.
+
+Recommendation:
+Keep this no-change audit for the current FHIR core branch. If HL7 wants to repair historical R5 downloadable artifacts or reintroduce generated profile Questionnaires, that would need separate publication maintenance or Kindling/publisher work with explicit que-2 validation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37448
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37448: Published/Persuasive issue for R5 describing generated JSON Questionnaire examples with duplicate linkId values for choice-type elements. Learned: the final Jira request targeted generated download artifacts, not a hand-authored Questionnaire example.
+- E2 Source build.gradle.kts:41 and source/downloads.html:55: the FHIR build uses the external Kindling publisher and the Downloads page exposes examples-json.zip. Learned: the affected artifact is generated during publication and the downloads page itself remains in build scope.
+- E3 Published-spec https://build.fhir.org/examples-json.zip: current CI examples ZIP has zero generated per-resource *-questionnaire.json files and seven Questionnaire resources with no duplicate linkIds. Learned: the current publication surface no longer exhibits the reported defect.
+- E4 Published-spec https://hl7.org/fhir/R5/examples-json.zip: R5 examples ZIP has 221 generated Questionnaire files, with 161 duplicate-linkId violations including activitydefinition-questionnaire.json and supplydelivery-questionnaire.json. Learned: the historical R5 artifact demonstrates the original defect and shows it was not repaired in-place.
+- E5 Git HL7/kindling cc11a2d18bc89191caf59af41f73823d04b6fdf2 plus FHIR 39eb12e7: Kindling removed questionnaire generation and FHIR later upgraded to that Kindling line. Learned: current correctness comes from removing the generator path rather than editing FHIR source definitions.
+- E6 Community search: exact Jira-key SQL/refs searches and broader questionnaire/linkId searches found no relevant Zulip or Confluence discussion. Learned: no community evidence was found that changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37448",
+    "url": "https://jira.hl7.org/browse/FHIR-37448",
+    "snapshot_path": "contexts/FHIR-37448/jira/FHIR-37448.md",
+    "ref": { "jira_key": "FHIR-37448" },
+    "summary": "Published/Persuasive R5 correction reporting duplicate linkId values in generated JSON Questionnaire examples from the downloads page.",
+    "learned": "The issue request targets generated download artifacts for resource/profile Questionnaires, especially choice-type linkId generation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "build.gradle.kts:41-52; source/downloads.html:55-61; source/fhir.ini:219,272",
+    "ref": { "paths": "build.gradle.kts, source/downloads.html, source/fhir.ini" },
+    "summary": "The checked-in FHIR source delegates publication to org.hl7.fhir:kindling, exposes examples-json.zip on Downloads, and still includes active Questionnaire and ActivityDefinition resources.",
+    "learned": "The affected examples ZIP is a generated publication artifact, while the relevant pages/resources remain in current build scope.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/examples-json.zip",
+    "url": "https://build.fhir.org/examples-json.zip",
+    "command": "curl -fsSL https://build.fhir.org/examples-json.zip; inspect ZIP names and check Questionnaire.item.linkId duplicates",
+    "summary": "The current CI examples ZIP contains zero generated per-resource *-questionnaire.json files and seven Questionnaire resources, none with duplicate linkId values.",
+    "learned": "The current publication surface no longer has the invalid generated Questionnaire examples reported by FHIR-37448.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "https://hl7.org/fhir/R5/examples-json.zip",
+    "url": "https://hl7.org/fhir/R5/examples-json.zip",
+    "command": "curl -fsSL https://hl7.org/fhir/R5/examples-json.zip; count duplicate Questionnaire.item.linkId values",
+    "summary": "The R5 examples ZIP contains 221 generated Questionnaire files and 161 have duplicate linkIds, including activitydefinition-questionnaire.json and supplydelivery-questionnaire.json.",
+    "learned": "The original defect was real in R5 output, but that historical artifact is not corrected by current FHIR source edits.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "HL7/kindling cc11a2d18bc89191caf59af41f73823d04b6fdf2; HL7/fhir 39eb12e7e63ef7b30b06c8a4d0df14fc2e818238",
+    "url": "https://github.com/HL7/kindling/commit/cc11a2d18bc89191caf59af41f73823d04b6fdf2",
+    "ref": { "kindling_commit": "cc11a2d18bc89191caf59af41f73823d04b6fdf2", "fhir_commit": "39eb12e7e63ef7b30b06c8a4d0df14fc2e818238" },
+    "summary": "Kindling removed processQuestionnaire and the calls that serialized generated resource/profile Questionnaires; FHIR later upgraded to the corresponding Kindling line.",
+    "learned": "Current correctness is explained by removal of the generator path, so no FHIR source definition change is needed.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-37448 and questionnaire/linkId terms",
+    "command": "bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-37448%'\"; bun run confluence:search refs jira FHIR-37448; bun run zulip:search fts 'questionnaire linkId choice type invariant' --limit 10; bun run confluence:search fts 'questionnaire linkId choice type invariant' --limit 10",
+    "query": "FHIR-37448; questionnaire linkId choice type invariant",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip messages or Confluence references were found.",
+    "learned": "No discovered community discussion changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

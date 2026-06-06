@@ -1,0 +1,117 @@
+FHIR-33169: Align PlanDefinition apply narrative with Bundle result
+
+Issue request:
+FHIR-33169 was Published/Persuasive with Modification for R5 and asked to simplify PlanDefinition/$apply semantics by removing useCarePlan, returning Bundle 0..*, and representing each per-subject result as a Bundle rather than a CarePlan wrapper.
+
+Initial application:
+Commit e54c8a3dda (J#33169) removed the useCarePlan input, changed the return parameter to multi-cardinality Bundle, and rewrote the operation and narrative toward Bundle/RequestOrchestration semantics. The current operation definition and PlanDefinition operations list are in build scope, but the PlanDefinition narrative still retained one pre-Bundle sentence saying created resources are returned as contained resources in the result.
+
+Additional context:
+RequestGroup was later renamed to RequestOrchestration in the current source, and FHIR-46313 intentionally relaxed the FHIR-33169 strict RequestOrchestration-wrapper wording so PlanDefinition/$apply can return any applicable request-resource combination in the result Bundle. FHIR-51557 later clarified that the multi-cardinality Bundle return is still conveyed through a Parameters response. Zulip and CDS Confluence evidence support the original FHIR-33169 rationale while also explaining why the later FHIR-46313 relaxation should be preserved.
+
+AutoFHIR reconciliation:
+Updated source/plandefinition/plandefinition-notes.xml so the transient-result note says created resources are returned as entries in the result Bundle(s), not as contained resources in a single result. No useCarePlan or return-signature changes were needed because those parts are already correctly applied, and the later FHIR-46313 variability was left intact.
+
+Recommendation:
+Keep this commit. It fixes the remaining semantic mismatch from the FHIR-33169 application without reverting the later work-group decision in FHIR-46313 or duplicating the FHIR-51557 response-format clarification.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-33169
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-46313: later-change - intentionally relaxes the earlier always-RequestOrchestration wrapper semantics and must be preserved.
+FHIR-51557: later-change - clarifies that the plural Bundle return is encoded in a Parameters response.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-33169: Published/Persuasive with Modification; requested Bundle 0..* output, removal of useCarePlan, and Bundle entries rooted in the applied request group. Learned: establishes the seed decision and the Bundle-entry semantics this reconciliation must preserve.
+- E2 Source source/fhir.ini:274 and source/plandefinition/list-PlanDefinition-operations.xml:7-10: PlanDefinition is an active resource and PlanDefinition/$apply is listed as a built operation. Learned: the edited PlanDefinition narrative and neighboring operation definition are in current build scope.
+- E3 Source source/plandefinition/operationdefinition-PlanDefinition-apply.xml:174-179 and source/plandefinition/plandefinition-notes.xml:62,70: the operation return is already Bundle 0..* and the later variability note is present, but the narrative transient-result note still said resources were returned as contained resources. Learned: only the stale contained-resource wording required a source fix.
+- E4 Git e54c8a3dda: J#33169 removed useCarePlan and changed PlanDefinition/$apply output to Bundle. Learned: most of FHIR-33169 was already applied, but the narrative retained old contained-resource wording.
+- E5 Jira FHIR-46313 and Zulip #workflow > Result of applying a PlanDefinition: later Applied/Persuasive R6 decision and discussion relaxed the strict RequestOrchestration wrapper requirement. Learned: reconciliation must not restore FHIR-33169's older always-wrapper wording.
+- E6 Jira FHIR-51557: Applied/Persuasive clarification of the plural Bundle return parameter. Learned: current return-parameter documentation is a later intentional refinement and should remain unchanged.
+- E7 Confluence CDS 2022-08-03 and Zulip #Care Plan/Care Coordination > Care Plan / Plan definition: CDS records and discussion connect FHIR-33169 to simplifying PlanDefinition/$apply away from the CarePlan/useCarePlan split. Learned: confirms the original rationale for removing contained/CarePlan-style result wording.
+- E8 Verification command: git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; xmllint --noout source/plandefinition/plandefinition-notes.xml. Learned: the edited XML is well-formed and the CRLF-aware whitespace check passes.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-33169",
+    "url": "https://jira.hl7.org/browse/FHIR-33169",
+    "snapshot_path": "contexts/FHIR-33169/jira/FHIR-33169.md",
+    "ref": { "jira_key": "FHIR-33169" },
+    "summary": "Published/Persuasive with Modification issue requiring PlanDefinition/$apply to remove useCarePlan and return one Bundle per input subject.",
+    "learned": "This establishes the final seed request and the Bundle-entry semantics to reconcile.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:274; source/plandefinition/list-PlanDefinition-operations.xml:7-10",
+    "summary": "PlanDefinition is an active resource and PlanDefinition/$apply is included in the resource's operations list.",
+    "learned": "The edited PlanDefinition narrative and neighboring operation definition are in current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/plandefinition/operationdefinition-PlanDefinition-apply.xml:174-179; source/plandefinition/plandefinition-notes.xml:62,70",
+    "summary": "The operation already returns Bundle 0..* and preserves later result variability, but the narrative transient-result note still described contained resources.",
+    "learned": "Only the stale contained-resource wording needed a source correction for FHIR-33169.",
+    "supports": ["initial_application", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "e54c8a3dda0890598f60c1e0425803a4713ed369",
+    "ref": { "commit": "e54c8a3dda0890598f60c1e0425803a4713ed369" },
+    "summary": "J#33169 changed PlanDefinition/$apply from CarePlan-or-RequestOrchestration output to Bundle output and removed useCarePlan.",
+    "learned": "Most of the issue was applied historically, leaving only a stale narrative sentence to reconcile.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-46313 and Zulip workflow / Result of applying a PlanDefinition",
+    "url": "https://jira.hl7.org/browse/FHIR-46313",
+    "ref": { "jira_key": "FHIR-46313" },
+    "summary": "Applied/Persuasive R6 decision, based on Zulip discussion, relaxed the strict RequestOrchestration-wrapper description of PlanDefinition/$apply output.",
+    "learned": "The current variable request-resource Bundle semantics supersede the original always-wrapper wording and should be preserved.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-51557",
+    "url": "https://jira.hl7.org/browse/FHIR-51557",
+    "ref": { "jira_key": "FHIR-51557" },
+    "summary": "Applied/Persuasive clarification that the plural Bundle return parameter is conveyed through a Parameters response.",
+    "learned": "The current return-parameter documentation is a later intentional refinement and was not changed.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "CDS 2022-08-03 CPG-on-FHIR/Informatics Stream and Zulip Care Plan/Care Coordination / Care Plan / Plan definition",
+    "url": "https://confluence.hl7.org/spaces/CDS/pages/134947897/2022-08-03+-+CPG-on-FHIR+Informatics+Stream",
+    "snapshot_path": "contexts/FHIR-33169/confluence/134947897.md",
+    "ref": { "confluence_page_id": 134947897 },
+    "summary": "CDS minutes list FHIR-33169 for PlanDefinition $apply review, and the Zulip thread records the rationale for always producing a request-group style result instead of a CarePlan/useCarePlan split.",
+    "learned": "This supports removing stale CarePlan/contained-result language while respecting later refinements.",
+    "supports": ["additional_context", "source_change"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "CRLF-aware diff and XML validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/plandefinition/plandefinition-notes.xml; xmllint --noout source/plandefinition/plandefinition-notes.xml",
+    "summary": "The edited XML is well-formed and the CRLF-aware whitespace check passes.",
+    "learned": "The source fix is mechanically safe for this XML narrative file.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

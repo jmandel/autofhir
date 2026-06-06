@@ -1,0 +1,105 @@
+FHIR-17412: Update Provenance AuditEvent entity mappings
+
+Issue request:
+FHIR-17412 was Published/Persuasive for STU3 and asked Security to simplify AuditEvent by changing agent.reference to agent.who, removing agent.userId as redundant to agent.who, changing entity.reference to entity.what, and removing entity.identifier.
+
+Initial application:
+The AuditEvent element changes were initially applied in git commit 6c0a0563b3, which explicitly cited GF#17412 along with GF#17413 and GF#15659 and updated the AuditEvent spreadsheet, examples, constraints, and search parameters from the old identifier/reference split to the current Reference-based elements. In the current source, active AuditEvent already has AuditEvent.agent.who and AuditEvent.entity.what and no active AuditEvent.agent.reference, AuditEvent.agent.userId, AuditEvent.entity.reference, or AuditEvent.entity.identifier elements.
+
+Additional context:
+AuditEvent and Provenance are both active resources in source/fhir.ini. A remaining current build-scope inconsistency was in Provenance's fhirauditevent mappings, where Provenance.target and Provenance.entity.what still pointed to the retired AuditEvent.entity.reference path even though AuditEvent now maps entity.what back to Provenance.target and Provenance.entity.what. FHIR-17413 was applied by the same historical commit family and is already represented on the combined branch; FHIR-15659 was the related Provenance identifier/reference issue but is broader than this stale AuditEvent-path mapping correction. FHIR-32449 later made AuditEvent.agent.who 1..1 and does not reverse this issue.
+
+AutoFHIR reconciliation:
+Updated the two active Provenance fhirauditevent mappings from AuditEvent.entity.reference to AuditEvent.entity.what. No AuditEvent source hunk was needed because the authoritative AuditEvent structure definition and search parameters already use agent.who and entity.what and no longer define the removed elements.
+
+Recommendation:
+Keep this source fix as-is. It removes the last discovered current-source reference to the retired AuditEvent.entity.reference path in the active AuditEvent/Provenance build scope; no additional core change is needed for FHIR-17412 unless a future work group decision revisits the AuditEvent-Provenance mapping model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17412
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-17413: same-change-family - the same 2018 implementation commit changed AuditEvent.source.identifier to source.observer; it is already represented on the combined branch and was not re-decided here.
+FHIR-15659: same-change-family - the same 2018 implementation commit also simplified Provenance identifier/reference choices; this reconciliation only fixes Provenance mappings to the renamed AuditEvent entity path and does not decide the broader Provenance issue.
+FHIR-32449: later-change - a later Published AuditEvent issue made AuditEvent.agent.who 1..1, reinforcing rather than reversing the current agent.who model.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17412: Published/Persuasive issue requested agent.reference to agent.who, removal of agent.userId, entity.reference to entity.what, and removal of entity.identifier. Learned: this establishes final work-group intent for the AuditEvent element cleanup.
+- E2 Source source/fhir.ini:217,224: Provenance and AuditEvent are active resource entries. Learned: both the checked AuditEvent source and edited Provenance mappings feed the current build.
+- E3 Source source/auditevent/structuredefinition-AuditEvent.xml:705,1062: current AuditEvent defines agent.who and entity.what as Reference elements and search found no active old AuditEvent paths in source/auditevent. Learned: the core AuditEvent resource already reflects the requested element model.
+- E4 Git 6c0a0563b3: historical commit explicitly says it simplified AuditEvent and Provenance Reference use for GF#17412, GF#17413, and GF#15659 and changed AuditEvent.entity.reference to AuditEvent.entity.what while dropping entity.identifier/userId rows. Learned: the issue had a real prior application and the remaining stale mapping is a missed follow-through after source refactors.
+- E5 Source source/provenance/structuredefinition-Provenance.xml:142,735: Provenance fhirauditevent mappings for Provenance.target and Provenance.entity.what now point to AuditEvent.entity.what. Learned: the current build no longer exposes the retired AuditEvent.entity.reference path in active AuditEvent/Provenance source.
+- E6 Jira FHIR-32449: later Published/Persuasive issue made AuditEvent.agent.who 1..1. Learned: later AuditEvent decisions preserve and strengthen the agent.who replacement rather than restoring userId/reference alternatives.
+- E7 Command community/source searches: Jira, Zulip, and Confluence searches found no conflicting FHIR-17412 community record; post-edit rg found no active AuditEvent.agent.reference, AuditEvent.agent.userId, AuditEvent.entity.reference, or AuditEvent.entity.identifier references in source/auditevent, source/provenance, or source/fhir.ini. Learned: no discovered later evidence changes the source-fix conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17412",
+    "url": "https://jira.hl7.org/browse/FHIR-17412",
+    "snapshot_path": "contexts/FHIR-17412/jira/FHIR-17412.md",
+    "ref": { "jira_key": "FHIR-17412" },
+    "summary": "Published/Persuasive STU3 AuditEvent issue requesting agent.reference to agent.who, removal of agent.userId, entity.reference to entity.what, and removal of entity.identifier.",
+    "learned": "The issue is final and establishes the target AuditEvent element model for this reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:217,224",
+    "summary": "source/fhir.ini has active resource entries for provenance=Provenance and auditevent=AuditEvent.",
+    "learned": "The inspected AuditEvent source and edited Provenance mapping source are in current build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:705,1062",
+    "summary": "Current AuditEvent defines AuditEvent.agent.who and AuditEvent.entity.what as Reference elements; active AuditEvent source search found no old agent.reference, agent.userId, entity.reference, or entity.identifier elements.",
+    "learned": "The authoritative AuditEvent resource already implements the requested element cleanup.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "6c0a0563b3ac6a188b713f2f1a04ff26229100cf",
+    "ref": { "commit": "6c0a0563b3ac6a188b713f2f1a04ff26229100cf" },
+    "summary": "Historical commit explicitly applied Security improvements to AuditEvent and Provenance for GF#17412, GF#17413, and GF#15659, including the old AuditEvent entity and agent path changes.",
+    "learned": "FHIR-17412 was previously applied, but a reciprocal current Provenance mapping still needed cleanup after later source refactoring.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/provenance/structuredefinition-Provenance.xml:142,735",
+    "summary": "The two fhirauditevent mappings for Provenance.target and Provenance.entity.what now map to AuditEvent.entity.what instead of retired AuditEvent.entity.reference.",
+    "learned": "The source change removes the discovered current-build stale reference to the old AuditEvent entity path.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-32449",
+    "url": "https://jira.hl7.org/browse/FHIR-32449",
+    "ref": { "jira_key": "FHIR-32449" },
+    "summary": "Later Published/Persuasive AuditEvent issue made AuditEvent.agent.who 1..1.",
+    "learned": "Later work-group decisions strengthen the agent.who replacement and do not conflict with FHIR-17412.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and source searches for FHIR-17412 and old AuditEvent paths",
+    "command": "bun run jira:search fts 'AuditEvent userId reference identifier who what' --limit 20; bun run zulip:search fts '\"FHIR-17412\" AuditEvent userId identifier' --limit 10; bun run confluence:search refs jira FHIR-17412; rg 'AuditEvent\\.(agent\\.reference|agent\\.userId|entity\\.identifier|entity\\.reference)' source/auditevent source/provenance source/fhir.ini",
+    "query": "FHIR-17412 AuditEvent userId identifier reference who what",
+    "summary": "Searches found no conflicting community record, and the post-edit source search found no active old AuditEvent paths in AuditEvent, Provenance, or fhir.ini.",
+    "learned": "No discovered later evidence changes the conclusion that the remaining required fix was the two stale Provenance mapping paths.",
+    "supports": ["absence_of_conflict", "verification"]
+  }
+]
+</evidence-manifest>

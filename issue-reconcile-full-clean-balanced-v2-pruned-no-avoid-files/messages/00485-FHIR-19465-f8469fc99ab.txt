@@ -1,0 +1,120 @@
+FHIR-19465: Require Coverage cost category
+
+Issue request:
+FHIR-19465 was a Published/Persuasive FHIR-core Coverage change request, raised in STU3 and applied for STU3. It asked for Coverage.status, Coverage.beneficiary, and Coverage.costToBeneficiary.type to be 1..1, and for Coverage.payor to be 1..*.
+
+Initial application:
+Commit 7fbe7046270ff6857644a6af63207642576dc7ef explicitly included GF/FHIR #19465 and updated the old Coverage spreadsheet so Coverage.status and Coverage.beneficiary became 1..1 and Coverage.payor became 1..*. The same applied spreadsheet still showed Coverage.costToBeneficiary.type as 0..1, and the later StructureDefinition conversion preserved that missed cardinality in the current source.
+
+Additional context:
+Coverage is active in the current build through source/fhir.ini. The current StructureDefinition already has Coverage.status and Coverage.beneficiary as 1..1. The historical Coverage.payor element was later split for R5 into Coverage.insurer 0..1 and Coverage.paymentBy 0..*, and FHIR-37702 records the FM no-change decision explaining that R5 split rather than restoring payor. Later Coverage.costToBeneficiary decisions, including FHIR-32966 adding category/network/unit/term and FHIR-27024 making value[x] optional when exceptions are present, did not reverse the accepted requirement that each costToBeneficiary entry identify its cost category type.
+
+AutoFHIR reconciliation:
+Changed source/coverage/structuredefinition-Coverage.xml so Coverage.costToBeneficiary.type has min=1. No example changes were needed because the only Coverage example with costToBeneficiary already includes type, valueMoney, and exception.
+
+Recommendation:
+Keep this commit as the missing portion of the Published STU3 cardinality fix. Do not reintroduce Coverage.payor in current R6+ source; if FM wants Coverage.costToBeneficiary.type to become optional after the later cost-qualifier additions, that should be handled by a new reversing Jira decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19465
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-27024: later-change - made Coverage.costToBeneficiary.value[x] optional and added a value-or-exception invariant, but did not change Coverage.costToBeneficiary.type.
+FHIR-32966: later-change - added Coverage.costToBeneficiary category/network/unit/term qualifiers; its resolution examples still include type and did not request relaxing type cardinality.
+FHIR-37702: later-change - records the FM no-change decision explaining why R5 split Coverage.payor into single insurer plus self-pay paymentBy rather than restoring the historical payor cardinality.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19465: Published/Persuasive Coverage issue requested status, beneficiary, and costToBeneficiary.type as 1..1 and payor as 1..*. Learned: this is final WG intent for the cardinality correction.
+- E2 Source source/fhir.ini:240: active [resources] entry coverage=Coverage. Learned: source/coverage/structuredefinition-Coverage.xml is in current build scope.
+- E3 Git 7fbe7046270ff6857644a6af63207642576dc7ef: Jira-tagged 2018 Coverage spreadsheet application changed status, beneficiary, and payor cardinalities but left costToBeneficiary.type at 0..1. Learned: the seed issue was only partially applied before this reconciliation.
+- E4 Source source/coverage/structuredefinition-Coverage.xml:665: Coverage.costToBeneficiary.type now has min value 1 and max value 1. Learned: this commit applies the remaining authoritative source fix.
+- E5 Jira FHIR-37702 and Git 720258c80a99566e1259c4c1a1dcacd8fbc5abbf: R5 split historical Coverage.payor into Coverage.insurer and Coverage.paymentBy, with a later no-change decision confirming the split. Learned: the historical payor part of FHIR-19465 should not be reapplied to current source.
+- E6 Jira FHIR-32966 and FHIR-27024: later costToBeneficiary changes added qualifiers and optional value/exception behavior without relaxing type. Learned: these later decisions do not supersede the type cardinality fix.
+- E7 Command community/search: targeted Zulip and Confluence searches for FHIR-19465 and Coverage costToBeneficiary type/cardinality found no conflicting discussion or minutes. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E8 Verification command: xmllint --noout source/coverage/structuredefinition-Coverage.xml; git diff --check; Coverage example scan. Learned: the edited XML is well formed, whitespace-clean, and existing Coverage examples satisfy the required type.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19465",
+    "url": "https://jira.hl7.org/browse/FHIR-19465",
+    "snapshot_path": "contexts/FHIR-19465/jira/FHIR-19465.md",
+    "ref": { "jira_key": "FHIR-19465" },
+    "summary": "Published/Persuasive FHIR-core Coverage issue asking for Coverage.status, Coverage.beneficiary, and Coverage.costToBeneficiary.type to be 1..1 and Coverage.payor to be 1..*.",
+    "learned": "This final WG decision establishes the cardinality target and the remaining source gap.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:240",
+    "ref": { "path": "source/fhir.ini", "line": 240 },
+    "summary": "The active [resources] list contains coverage=Coverage.",
+    "learned": "Coverage StructureDefinition source is in current build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "7fbe7046270ff6857644a6af63207642576dc7ef",
+    "ref": { "commit": "7fbe7046270ff6857644a6af63207642576dc7ef" },
+    "summary": "The 2018 Jira-tagged Coverage spreadsheet update included #19465 and changed status, beneficiary, and payor cardinalities, but the post-commit spreadsheet still showed Coverage.costToBeneficiary.type as 0..1.",
+    "learned": "The historical application was partial and missed the costToBeneficiary.type cardinality.",
+    "supports": ["initial_application", "gap_analysis"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/coverage/structuredefinition-Coverage.xml:665",
+    "ref": { "path": "source/coverage/structuredefinition-Coverage.xml", "line": 665 },
+    "summary": "Coverage.costToBeneficiary.type now has min=1 and max=1 in the active StructureDefinition source.",
+    "learned": "The remaining accepted cardinality correction is now applied to authoritative current source.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-37702",
+    "url": "https://jira.hl7.org/browse/FHIR-37702",
+    "ref": { "jira_key": "FHIR-37702" },
+    "summary": "Resolved-No Change FM issue explains that R5 separated self-pay from insurance, allowing multiple paymentBy parties but only one insurer.",
+    "learned": "The historical Coverage.payor part of FHIR-19465 should not be restored in current R6+ source.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-32966 and FHIR-27024",
+    "url": "https://jira.hl7.org/browse/FHIR-32966",
+    "ref": { "jira_key": "FHIR-32966" },
+    "summary": "Later Coverage.costToBeneficiary decisions added category/network/unit/term and made value[x] optional with a value-or-exception invariant, but did not request optional type.",
+    "learned": "Later source changes do not supersede FHIR-19465's requirement for costToBeneficiary.type.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-19465 and Coverage costToBeneficiary type/cardinality",
+    "command": "bun run zulip:search fts '\"FHIR-19465\"' --limit 10; bun run zulip:search fts 'Coverage costToBeneficiary type' --limit 10; bun run confluence:search refs jira FHIR-19465; bun run confluence:search fts '\"FHIR-19465\" Coverage cardinality' --limit 10",
+    "query": "FHIR-19465 Coverage costToBeneficiary type cardinality",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence evidence was found for the seed issue or the remaining cardinality gap.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local validation commands",
+    "command": "xmllint --noout source/coverage/structuredefinition-Coverage.xml; git diff --check; scan source/coverage examples for costToBeneficiary blocks missing type",
+    "summary": "XML well-formedness and whitespace checks passed, and the only Coverage example costToBeneficiary block includes type.",
+    "learned": "The source edit is syntactically safe and does not invalidate checked Coverage examples.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

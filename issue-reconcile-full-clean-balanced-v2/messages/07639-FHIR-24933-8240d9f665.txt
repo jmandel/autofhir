@@ -1,0 +1,104 @@
+FHIR-24933: Audit R4 example data cleanup
+
+Issue request:
+FHIR-24933 was a Published/Persuasive FHIR-I change request, raised against STU3 example data and applied for R5. It reported five R4 example-data bugs: Questionnaire/qs1 items missing required linkId values, Observation/clinical-gender using Encounter as Observation.performer, DeviceMetric/example using DeviceDefinition as DeviceMetric.parent, DeviceUseStatement/example using Procedure as reasonReference, and MedicationRequest/medrx0301 using Practitioner as dispenseRequest.performer.
+
+Initial application:
+The issue was applied before this reconciliation. Commit 5db566a208601df59e6c725326554e94cdc68112, "GF#24933 -  fix wrong resources + R4 technical corrections", changed the Observation, DeviceMetric, DeviceUseStatement, and MedicationRequest examples to valid references for the then-current model. Jira comments and the linked Zulip thread record Grahame Grieve confirming that he fixed the bug and the examples that needed fixing; no current Questionnaire/qs1 source artifact remains in the build to repair.
+
+Additional context:
+The active current build still includes Observation, DeviceMetric, MedicationRequest, and Questionnaire in source/fhir.ini. Later model changes renamed MedicationRequest.dispenseRequest.performer to dispenseRequest.dispenser under FHIR-24701 and renamed DeviceUseStatement to DeviceUsage under FHIR-31478; both related issues already have audit commits on the combined branch. DeviceUsage is not listed as an active current resource in source/fhir.ini, and the old DeviceUseStatement path is only a compatibility alias. Later DeviceMetric refactoring removed the old parent element and uses DeviceMetric.device as the Device reference.
+
+AutoFHIR reconciliation:
+This is an empty no-change audit commit. Current source has no Questionnaire/qs1 example, Observation/clinical-gender performer points to Practitioner/example, DeviceMetric/example has a required DeviceMetric.device reference and no parent element, the retained DeviceUsage/example source points reason to Condition/example, and MedicationRequest/medrx0301 uses dispenseRequest.dispenser with an Organization reference. No source change is needed for the current build.
+
+Recommendation:
+Keep this audit commit as-is. Future work should not reintroduce the old invalid example references; if DeviceUsage is brought back into the active build, its example should be reviewed in that separate resource-restoration context rather than as remaining FHIR-24933 work.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-24933
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-24701: later-change - renamed MedicationRequest.dispenseRequest.performer to dispenseRequest.dispenser, explaining why the current corrected example uses dispenser; already audited on the combined branch.
+FHIR-31478: later-change - renamed DeviceUseStatement to DeviceUsage, explaining the current source location and compatibility alias; already audited on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-24933: Published/Persuasive issue reporting five R4 example-data bugs and recording Grahame Grieve's comment that the bug and needed examples were fixed. Learned: this establishes the requested cleanup and prior editor confirmation.
+- E2 Confluence FHIR-I minutes 2019-12-09: minutes say "Grahame has already fixed these bugs" and record a Persuasive motion 6-0-0. Learned: work-group minutes confirm the no-new-change interpretation.
+- E3 Zulip #implementers > GF#24933: Grahame discussed the MedicationRequest example, corrected his initial read, and then posted "fixed". Learned: community discussion aligns with the Jira comment and application history.
+- E4 Git 5db566a208601df59e6c725326554e94cdc68112: the GF#24933 commit changed Observation performer to Practitioner, DeviceMetric parent to Device, DeviceUseStatement reasonReference to Condition, and MedicationRequest dispenseRequest performer to Organization. Learned: source history contains the requested example fixes.
+- E5 Source source/fhir.ini:169-307 and source/fhir.ini:1703: Observation, DeviceMetric, MedicationRequest, and Questionnaire are active resources; DeviceUsage is not active, while DeviceUseStatement is only an alias to DeviceUsage. Learned: the current source checks are scoped to active build artifacts and note the moved/out-of-build DeviceUseStatement artifact.
+- E6 Source current examples: source/observation/observation-example-clinical-gender.xml:32-35, source/devicemetric/devicemetric-example.xml:22-24, source/deviceusage/deviceusage-example.xml:17-22, and source/medicationrequest/medicationrequest0301.xml:190-211 show the corrected or moved example content. Learned: current source no longer contains the invalid references named by the issue.
+- E7 Verification command/query: targeted grep/awk checks found no current Questionnaire/qs1 source, showed Practitioner/example as Observation.performer, no DeviceMetric parent, Condition/example as DeviceUsage.reason, and Organization as MedicationRequest.dispenseRequest.dispenser. Learned: no remaining source hunk is needed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-24933",
+    "url": "https://jira.hl7.org/browse/FHIR-24933",
+    "snapshot_path": "contexts/FHIR-24933/jira/FHIR-24933.md",
+    "ref": { "jira_key": "FHIR-24933" },
+    "summary": "Published/Persuasive issue reporting five R4 example-data bugs, with a comment that the bug and needed examples were fixed.",
+    "learned": "This establishes the requested cleanup and prior editor confirmation that the examples needing changes were fixed.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2019-12-09 page 66935885",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/66935885/FHIR+Infrastructure+Minutes+CC+20191209",
+    "ref": { "confluence_page_id": 66935885 },
+    "summary": "Minutes state that Grahame had already fixed the bugs and record a Persuasive motion 6-0-0 for FHIR-24933.",
+    "learned": "The work group accepted the issue on the basis that the example fixes were already applied.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "zulip",
+    "locator": "#implementers > GF#24933",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/GF%2324933",
+    "summary": "Grahame discussed the MedicationRequest example, corrected his initial read, and then posted that it was fixed.",
+    "learned": "Community discussion matches the Jira comments and supports the historical application trail.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "5db566a208601df59e6c725326554e94cdc68112",
+    "ref": { "commit": "5db566a208601df59e6c725326554e94cdc68112" },
+    "summary": "The GF#24933 commit changed the Observation, DeviceMetric, DeviceUseStatement, and MedicationRequest examples away from the invalid references reported by the issue.",
+    "learned": "Source history contains the concrete application for the reported example bugs that required source changes.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-307; source/fhir.ini:1703",
+    "summary": "Observation, DeviceMetric, MedicationRequest, and Questionnaire are active resources; DeviceUsage is not active, while DeviceUseStatement is a compatibility alias to DeviceUsage.",
+    "learned": "The current source checks focus on active current-build artifacts and treat the old DeviceUseStatement example as moved/out of the active build.",
+    "supports": ["source_change_scope", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/observation/observation-example-clinical-gender.xml:32-35; source/devicemetric/devicemetric-example.xml:22-24; source/deviceusage/deviceusage-example.xml:17-22; source/medicationrequest/medicationrequest0301.xml:190-211",
+    "summary": "Current examples use Practitioner/example for Observation.performer, a DeviceMetric.device reference with no parent, Condition/example for DeviceUsage.reason, and Organization for MedicationRequest.dispenseRequest.dispenser.",
+    "learned": "The current source no longer contains the invalid references named by FHIR-24933.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted current-source assertions for FHIR-24933 examples",
+    "command": "git grep -n -I -E 'Questionnaire/qs1|questionnaire-qs1|<id value=\"qs1\"' -- source/questionnaire source/*/list-*examples.xml || true; awk blocks for Observation.performer, DeviceMetric parent/device, DeviceUsage.reason, and MedicationRequest.dispenseRequest",
+    "summary": "The checks found no current Questionnaire/qs1 source, showed Practitioner/example as Observation.performer, no DeviceMetric parent, Condition/example as DeviceUsage.reason, and Organization as MedicationRequest.dispenseRequest.dispenser.",
+    "learned": "No remaining current-source edit is needed to satisfy the issue.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

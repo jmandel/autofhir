@@ -1,0 +1,103 @@
+FHIR-28575: Fix patient-reported prescription example
+
+Issue request:
+FHIR-28575 was a Published Pharmacy change request, resolved Persuasive with Modification, asking for guidance on how to represent prescription information reported by a patient. The accepted resolution said to use MedicationRequest with intent=plan, reported=true, informationSource=Reference(Patient), and otherwise populate the request with the information the patient supplied; the work group also specifically asked for a patient-reported MedicationRequest example.
+
+Initial application:
+The issue appears to have been initially applied by commit bb4b0e41393b1023027fc45c9e53d5d941c95ff3, which added source/medicationrequest/medicationrequest0340.xml as the patient-reported prescription example. That application did not add the example to the MedicationRequest examples list/header, so the current built examples page does not link to it. The current MedicationRequest source is in build scope because source/fhir.ini lists medicationrequest as an active resource.
+
+Additional context:
+Later Applied issue FHIR-47855 clarified MedicationRequest.informationSource to say it is used when prescription details are reported by someone other than the requester and is normally paired with .isRecordOfRequest=true. Later issue FHIR-49863, currently Resolved - change required rather than Applied/Published, renamed MedicationRequest.reported to MedicationRequest.isRecordOfRequest; commit 847a0103fdb2abb340ba286ddbd765b5328a4cac updated the example's opening element but left the closing tag as </reported>, making the source XML invalid. The originating Zulip thread confirms the distinction between a patient reporting what was prescribed and MedicationStatement use for what the patient is taking.
+
+AutoFHIR reconciliation:
+This commit fixes the malformed patient-reported MedicationRequest example by using the current </isRecordOfRequest> closing tag, and adds the example to both the MedicationRequest examples List source and examples-page header so the requested example is discoverable from the built resource examples page.
+
+Recommendation:
+Keep this fix. It restores the example requested by FHIR-28575 without changing the later MedicationRequest semantics. Do not decide FHIR-49863 in this default run; its broader modifier/rename work remains outside the Applied/Published seed scope even though this commit repairs the stale example tag it introduced.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-28575
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-47855: later-change - Applied clarification of MedicationRequest.informationSource now supplies the current explanatory guidance for reported prescription details.
+FHIR-49863: later-change - Resolved - change required rename from reported to isRecordOfRequest explains why the FHIR-28575 example needed a current-source repair, but it is not independently decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-28575: Published/Persuasive with Modification; resolution uses MedicationRequest intent=plan, reported=true, informationSource=Patient and asks for an example. Learned: this is final WG intent and establishes the example requirement.
+- E2 Zulip #implementers > Capturing patient-reported prescriptions: the discussion distinguishes patient-reported prescriptions from medication actually taken and led to FHIR-28575. Learned: community context supports using MedicationRequest for the prescribed-information case.
+- E3 Git bb4b0e41393b: initial FHIR-28575 application added source/medicationrequest/medicationrequest0340.xml. Learned: the requested example existed as source but was not discoverable from the examples indexes.
+- E4 Source source/medicationrequest/structuredefinition-MedicationRequest.xml:491 and :628: current source defines informationSource and isRecordOfRequest, with patient/person reporter guidance. Learned: current authoritative element names and guidance align with the issue after later edits.
+- E5 Git 847a0103fdb2: FHIR-49863 changed the example from reported to isRecordOfRequest but left </reported>. Learned: the current malformed XML is a stale rename artifact, not a new WG semantic decision.
+- E6 Source/build check source/medicationrequest/medicationrequest0340.xml:37 and MedicationRequest examples source: the example had a mismatched closing tag and no list/header entry; build.fhir.org/medicationrequest0340.html returned 404. Learned: the current build did not expose a usable example for FHIR-28575.
+- E7 Verification command: xmllint --noout on changed XML and CRLF-aware git diff --check passed. Learned: the repaired source is well-formed and has no publish-blocking whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-28575",
+    "url": "https://jira.hl7.org/browse/FHIR-28575",
+    "snapshot_path": "contexts/FHIR-28575/jira/FHIR-28575.md",
+    "ref": { "jira_key": "FHIR-28575" },
+    "summary": "Published/Persuasive with Modification issue requesting guidance for patient-reported prescription information and an example MedicationRequest.",
+    "learned": "This establishes final Pharmacy WG intent and the need for a patient-reported MedicationRequest example.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Capturing patient-reported prescriptions",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Capturing%20patient-reported%20prescriptions",
+    "summary": "The thread discusses separating patient-reported prescription information from medication actually dispensed or taken and points to FHIR-28575.",
+    "learned": "The discussion supports the MedicationRequest example scope and does not introduce conflicting current guidance.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "bb4b0e41393b1023027fc45c9e53d5d941c95ff3",
+    "ref": { "commit": "bb4b0e41393b1023027fc45c9e53d5d941c95ff3" },
+    "summary": "Commit titled 'FHIR-28575, FHIR-28599, FHIR-28600, FHIR-24651' added medicationrequest0340.xml.",
+    "learned": "FHIR-28575 was initially applied by adding the example source, but not by wiring it into the examples indexes.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationrequest/structuredefinition-MedicationRequest.xml:491-495,628-637",
+    "summary": "Current MedicationRequest defines informationSource and isRecordOfRequest and explains reported prescription details.",
+    "learned": "The correct current element name for the example is isRecordOfRequest and the core guidance already matches the issue intent.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "847a0103fdb2abb340ba286ddbd765b5328a4cac",
+    "ref": { "commit": "847a0103fdb2abb340ba286ddbd765b5328a4cac", "jira_key": "FHIR-49863" },
+    "summary": "FHIR-49863 rename commit changed medicationrequest0340.xml from <reported> to <isRecordOfRequest> but left the closing tag stale.",
+    "learned": "The malformed example is directly tied to the later element rename and can be safely repaired without deciding FHIR-49863.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/medicationrequest/medicationrequest0340.xml:37; source/medicationrequest/list-MedicationRequest-examples.xml; source/medicationrequest/medicationrequest-examples-header.xml",
+    "summary": "The example had a mismatched </reported> closing tag and was absent from the examples List and header sources.",
+    "learned": "A source change is needed so the requested example is valid and discoverable in the current build.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "xmllint --noout source/medicationrequest/medicationrequest0340.xml source/medicationrequest/list-MedicationRequest-examples.xml source/medicationrequest/medicationrequest-examples-header.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Changed XML files are well formed and CRLF-aware whitespace checking passed.",
+    "learned": "The source fix is mechanically valid for the checked files.",
+    "supports": ["confidence"]
+  }
+]
+</evidence-manifest>

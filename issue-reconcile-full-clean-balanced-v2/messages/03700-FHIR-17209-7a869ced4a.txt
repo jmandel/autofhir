@@ -1,0 +1,102 @@
+FHIR-17209: Align special measures ModelInfo
+
+Issue request:
+FHIR-17209 was Published/Persuasive for R5 and asked that MedicinalProduct.specialMeasures stop being a string and use CodeableConcept because the use case needs a coded term with value and OID.
+
+Initial application:
+The request was applied in git commit e14c2059ec7797ff05d19cc2960372c6958002ef, which changed the then-authoritative MedicinalProductDefinition spreadsheet row from string to CodeableConcept and restored the plural specialMeasures name. The current MedicinalProductDefinition StructureDefinition already has specialMeasures as 0..* CodeableConcept, so the main resource definition did not need another edit.
+
+Additional context:
+The current build lists medicinalproductdefinition as an active resource and redirects the retired MedicinalProduct name to MedicinalProductDefinition. The active FHIR ModelInfo Library attachment under source/library still included the retired MedicinalProduct.specialMeasures element as a list of FHIR.string, and nearby AutoFHIR ModelInfo commits show this attachment is being reconciled as current source evidence rather than ignored generated output. Zulip and Confluence searches found no substantive discussion that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+This commit updates source/library/library-fhir-model-definition-content.xml and the embedded base64 data in source/library/library-fhir-model-definition.xml so the ModelInfo entry for specialMeasures is a list of FHIR.CodeableConcept. No change was made to MedicinalProductDefinition itself because it already matches the published issue request.
+
+Recommendation:
+Keep this commit as-is. It preserves the already-correct resource definition while removing the remaining active ModelInfo inconsistency that could mislead CQL/modelinfo consumers about the datatype of specialMeasures.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17209
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17209: Published/Persuasive change request for MedicinalProduct.specialMeasures to be CodeableConcept. Learned: establishes final WG intent and R5 application scope.
+- E2 Git e14c2059: changed MedicinalProductDefinition.specialMeasures from string to CodeableConcept in the resource spreadsheet. Learned: shows the original application path and why the current StructureDefinition is already correct.
+- E3 Source source/medicinalproductdefinition/structuredefinition-MedicinalProductDefinition.xml:389: specialMeasures is defined as 0..* CodeableConcept. Learned: the authoritative current resource definition satisfies the Jira request.
+- E4 Source source/fhir.ini:289 and source/fhir.ini:1929: medicinalproductdefinition is active and MedicinalProduct redirects to MedicinalProductDefinition. Learned: the current build scope is the renamed resource, not a separate active MedicinalProduct resource.
+- E5 Source source/library/library-fhir-model-definition-content.xml:6266: active FHIR ModelInfo Library attachment had MedicinalProduct.specialMeasures as FHIR.string before reconciliation. Learned: this was the remaining in-scope stale representation needing correction.
+- E6 Command community searches: Zulip only found the tracker bot announcement and Confluence found no relevant pages. Learned: no discovered community evidence narrows or reverses the Jira/source conclusion.
+- E7 Verification command: XML parsing of changed files and decoded embedded ModelInfo succeeded; whitespace diff check passed. Learned: the sidecar and embedded ModelInfo remain parseable after the targeted datatype change.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17209",
+    "url": "https://jira.hl7.org/browse/FHIR-17209",
+    "snapshot_path": "contexts/FHIR-17209/jira/FHIR-17209.md",
+    "ref": { "jira_key": "FHIR-17209" },
+    "summary": "Published/Persuasive change request asking that MedicinalProduct.specialMeasures use CodeableConcept instead of string.",
+    "learned": "This establishes the final WG decision and the datatype the current source must preserve.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e14c2059ec7797ff05d19cc2960372c6958002ef",
+    "ref": { "commit": "e14c2059ec7797ff05d19cc2960372c6958002ef" },
+    "summary": "Commit changed MedicinalProductDefinition.specialMeasures from string to CodeableConcept in the resource spreadsheet.",
+    "learned": "The issue was initially applied to the authoritative resource source before later R5/R6 refactors.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicinalproductdefinition/structuredefinition-MedicinalProductDefinition.xml:389",
+    "summary": "Current MedicinalProductDefinition.specialMeasures is 0..* CodeableConcept with the SpecialMeasures example binding.",
+    "learned": "The primary resource definition already satisfies FHIR-17209.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:289 and source/fhir.ini:1929",
+    "summary": "medicinalproductdefinition is active, and the old MedicinalProduct name redirects to MedicinalProductDefinition.",
+    "learned": "Current build scope is the renamed resource plus active ancillary artifacts such as ModelInfo.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:6266",
+    "summary": "The active FHIR ModelInfo Library attachment still represented specialMeasures as a list of FHIR.string before this commit.",
+    "learned": "This stale in-scope representation required a targeted source correction.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-17209 and specialMeasures",
+    "command": "bun run zulip:search fts '\"FHIR-17209\" specialMeasures MedicinalProduct CodeableConcept' --limit 10; bun run zulip:search fts 'specialMeasures MedicinalProduct CodeableConcept' --limit 10; bun run confluence:search fts '\"FHIR-17209\" specialMeasures MedicinalProduct CodeableConcept' --limit 10; bun run confluence:search fts 'specialMeasures MedicinalProduct CodeableConcept' --limit 10",
+    "query": "FHIR-17209 specialMeasures MedicinalProduct CodeableConcept",
+    "result_count": 1,
+    "summary": "Zulip found only the tracker bot announcement for GF#17209; Confluence searches found no relevant pages.",
+    "learned": "No substantive community evidence was found that changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted XML and whitespace validation",
+    "command": "python3 - <<'PY' ... parse changed XML files and decoded embedded ModelInfo ... PY; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Changed XML files and decoded embedded ModelInfo parsed successfully, and diff whitespace checks reported no issues.",
+    "learned": "The targeted ModelInfo datatype update is syntactically safe.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

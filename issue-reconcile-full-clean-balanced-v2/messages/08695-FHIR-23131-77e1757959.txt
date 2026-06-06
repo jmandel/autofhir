@@ -1,0 +1,97 @@
+FHIR-23131: Audit migrated FMM warning validation
+
+Issue request:
+FHIR-23131 was a Published/Persuasive FHIR-core technical correction. It reported that the old in-repo Java ResourceValidator rejected resources with warnings unless their FMM level was 0, but the build error said the resource could not have an FMM level >1, which made an FMM=1 Subscription failure misleading.
+
+Initial application:
+No FHIR source commit explicitly mentions FHIR-23131. Historical FHIR source shows the reported ResourceValidator message in tools/java/org.hl7.fhir.tools.core before the Java tooling was removed from this checkout. FHIR commit 9f549566d1346cad7db6d2afca6080d7cebdfbbe then switched the build to the external Gradle kindling dependency and deleted the in-repo ResourceValidator.java file.
+
+Additional context:
+The current FHIR build uses org.hl7.fhir:kindling:${property("kindlingVersion")} with kindlingVersion=1.25.5-SNAPSHOT, so the active publisher/validator source for this check is outside the FHIR checkout. In HL7/kindling, commit b501b047d5cc472e5be99ce938d202c5ff1972cd changed the primary FMM warning message from ">1" to "> 0", matching the actual FMM0 condition. Later kindling commit 02382b53ed0f3d170ccb3120ef0aabc6db0213e5 commented out the FMM warning requirement checks entirely. Zulip and Confluence searches found no relevant or conflicting community discussion for FHIR-23131.
+
+AutoFHIR reconciliation:
+This audit intentionally makes no source change in the FHIR checkout. The reported in-repo source file is no longer present, the current build delegates to kindling, and the external active source has already corrected and subsequently disabled the confusing FMM warning check.
+
+Recommendation:
+Keep this audit commit as-is. No core FHIR source follow-up is needed for FHIR-23131; if the FMM warning policy is reintroduced, make and test that change in HL7/kindling rather than in this FHIR source checkout.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-23131
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-23131: Published/Persuasive technical correction reporting the misleading ResourceValidator FMM warning message. Learned: the final request was to align the FMM warning message with the FMM0 validation rule.
+- E2 Source gradle.properties:2 and build.gradle.kts:47,137: current FHIR build uses kindlingVersion=1.25.5-SNAPSHOT and runs org.hl7.fhir.tools.publisher.Publisher from the kindling dependency. Learned: the active build-tool source for this issue is outside the FHIR checkout.
+- E3 Git 9f549566d1346cad7db6d2afca6080d7cebdfbbe: switched to Gradle build with kindling dependency and deleted the old in-repo ResourceValidator.java. Learned: the originally reported core source file is no longer build-scope FHIR source.
+- E4 Git HL7/kindling b501b047d5cc472e5be99ce938d202c5ff1972cd: changed the warning message from "cannot have an FMM level >1" to "cannot have an FMM level > 0". Learned: the external build-tool source corrected the off-by-one wording.
+- E5 Git HL7/kindling 02382b53ed0f3d170ccb3120ef0aabc6db0213e5 and current ResourceValidator.java: lines 282-286 show the FMM warning requirement checks commented out. Learned: the confusing active check no longer runs in current kindling.
+- E6 Command community search: quoted FHIR-23131 Zulip search, Confluence refs, and Confluence FTS found no results. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-23131",
+    "url": "https://jira.hl7.org/browse/FHIR-23131",
+    "snapshot_path": "contexts/FHIR-23131/jira/FHIR-23131.md",
+    "ref": { "jira_key": "FHIR-23131" },
+    "summary": "Published/Persuasive technical correction reporting that ResourceValidator enforced an FMM0 rule while saying resources could not have FMM >1 if they had warnings.",
+    "learned": "This establishes the final issue request and the expected correction to the misleading FMM warning wording.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "gradle.properties:2; build.gradle.kts:47,137",
+    "ref": { "file_path": "gradle.properties", "line": 2 },
+    "summary": "The current FHIR build sets kindlingVersion=1.25.5-SNAPSHOT and depends on org.hl7.fhir:kindling for org.hl7.fhir.tools.publisher.Publisher.",
+    "learned": "The active publisher/validator implementation is now supplied by the external kindling dependency, not by an in-repo ResourceValidator.java file.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "HL7/fhir 9f549566d1346cad7db6d2afca6080d7cebdfbbe",
+    "ref": { "commit": "9f549566d1346cad7db6d2afca6080d7cebdfbbe" },
+    "summary": "The FHIR repository switched to a Gradle build with a kindling dependency and deleted tools/java/org.hl7.fhir.tools.core/src/org/hl7/fhir/definitions/validation/ResourceValidator.java.",
+    "learned": "The source file named in FHIR-23131 is no longer part of the current FHIR checkout or build source.",
+    "supports": ["initial_application", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "HL7/kindling b501b047d5cc472e5be99ce938d202c5ff1972cd",
+    "url": "https://github.com/HL7/kindling/commit/b501b047d5cc472e5be99ce938d202c5ff1972cd",
+    "ref": { "repository": "HL7/kindling", "commit": "b501b047d5cc472e5be99ce938d202c5ff1972cd" },
+    "summary": "Kindling changed the ResourceValidator warning text from FMM level >1 to FMM level > 0 for the primary warning-count rule.",
+    "learned": "The external build-tool source corrected the off-by-one message requested by the Jira issue.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "HL7/kindling 02382b53ed0f3d170ccb3120ef0aabc6db0213e5; ResourceValidator.java:282-286",
+    "url": "https://github.com/HL7/kindling/commit/02382b53ed0f3d170ccb3120ef0aabc6db0213e5",
+    "ref": { "repository": "HL7/kindling", "commit": "02382b53ed0f3d170ccb3120ef0aabc6db0213e5" },
+    "summary": "Kindling later removed the FMM requirements by commenting out the FMM warning and hint checks; current ResourceValidator.java retains those checks only as commented code.",
+    "learned": "The confusing FMM warning check is not active in the current build-tool source consumed by FHIR.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-23131 ResourceValidator FMM warnings",
+    "command": "bun run zulip:search fts '\"FHIR-23131\" ResourceValidator FMM warnings' --limit 10; bun run confluence:search refs jira FHIR-23131; bun run confluence:search fts '\"FHIR-23131\" ResourceValidator FMM warnings' --limit 10",
+    "query": "\"FHIR-23131\" ResourceValidator FMM warnings",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip messages or Confluence references/FTS hits were found.",
+    "learned": "No discovered community record changes the conclusion from Jira, FHIR source history, and kindling source history.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

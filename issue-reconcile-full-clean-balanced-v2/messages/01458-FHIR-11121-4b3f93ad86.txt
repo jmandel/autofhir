@@ -1,0 +1,134 @@
+FHIR-11121: Audit Immunization reporting source elements
+
+Issue request:
+FHIR-11121 was a Published/Persuasive with Modification PHER FHIR-core Immunization issue. It said the GForge 9205 change had not made STU3 and requested removing the top-level Immunization.reported element, adding Immunization.primarySource as a boolean, and adding Immunization.reportOrigin for the source of non-primary immunization reports while avoiding a split into separate administration and statement resources.
+
+Initial application:
+The issue was explicitly applied in git commit baf0c978b8, whose subject says "[#9205] and [#11121]" and which replaced reported with primarySource in examples, added primarySource and reportOrigin to the Immunization spreadsheet, and added the immunization-origin value set. The old spreadsheet source was later refactored into the current StructureDefinition XML; the active current source still carries the replacement primarySource concept and the report-origin concept as Immunization.informationSource.
+
+Additional context:
+Immunization is active in the current build via source/fhir.ini. Later final decisions intentionally changed literal details from the 2016 resolution: FHIR-15694 changed primarySource from 1..1 to 0..1; FHIR-15696 and FHIR-20327 approved Option B, which renamed and expanded reportOrigin to informationSource[x]; FHIR-32394 converted informationSource to CodeableReference; and FHIR-37722 clarified that informationSource captures the source of a reported immunization event while primarySource captures the relationship of the record source to the administration event. The combined branch already has separate no-change audit commits for FHIR-11187 and FHIR-15694, and no commit for FHIR-11121 existed before this reconciliation.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scoped Immunization StructureDefinition has no top-level Immunization.reported element, defines Immunization.primarySource with the later-approved optional cardinality and clarified definition, and defines Immunization.informationSource with the ImmunizationReportOrigin binding to the immunization-origin value set. Reverting to reportOrigin or restoring primarySource to 1..1 would conflict with later Published decisions.
+
+Recommendation:
+Keep this no-change audit commit as-is. No core FHIR source edit is needed for FHIR-11121; future changes to these elements should be handled under the later primarySource/informationSource issue family rather than by replaying the original 2016 wording.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11121
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-9205: same-change-family - original GForge/Jira request whose source change was applied together with FHIR-11121 in commit baf0c978b8.
+FHIR-11187: supporting-decision - later Published issue retained the direct-administration indicator and a separate non-primary report source attribute; already audited on the combined branch.
+FHIR-15694: later-change - made Immunization.primarySource optional, superseding the original 1..1 cardinality; already audited on the combined branch.
+FHIR-15696: later-change - approved Option B for using informationSource rather than a separate asserter/reportOrigin-only design.
+FHIR-20327: later-change - same Option B decision, expanding the report source concept to support asserter-like references.
+FHIR-32394: later-change - made Immunization.informationSource a CodeableReference.
+FHIR-37722: later-change - clarified the current distinction between primarySource and informationSource.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11121: Published/Persuasive with Modification PHER issue requested removing reported and adding primarySource plus reportOrigin. Learned: this establishes the seed request and its final workflow status.
+- E2 Source source/fhir.ini:197 and source/immunization/structuredefinition-Immunization.xml:504-563: Immunization is an active resource and current source defines primarySource and informationSource with the ImmunizationReportOrigin binding. Learned: the authoritative current build source already carries the requested concepts under later-approved names/cardinalities.
+- E3 Source search: rg found no top-level Immunization.reported element or reportOrigin element in current source; the only reported element hit is Immunization.reaction.reported. Learned: the obsolete top-level reported element is not still present.
+- E4 Git baf0c978b8: 2016 source commit explicitly applied #9205 and #11121 by replacing reported, adding primarySource/reportOrigin, and adding the report origin value set. Learned: the issue was historically applied rather than missed.
+- E5 Jira/Git FHIR-15694 and 3161b27852: later Published decision changed primarySource cardinality from 1..1 to 0..1. Learned: current optional cardinality is intentional and should not be reverted.
+- E6 Jira/Git FHIR-15696, FHIR-20327, 8386871f82, and FHIR-32394/345df2dd77: later decisions renamed/expanded reportOrigin to informationSource and then CodeableReference. Learned: the absence of a literal reportOrigin element is expected current design.
+- E7 Jira/Git FHIR-37722 and 0f4d89973f: later Published clarification updated primarySource wording and reaffirmed informationSource as the source of reported immunization events. Learned: current wording matches later final interpretation.
+- E8 Zulip #implementers > Attester in Immunization and PHWG Confluence minutes 2018-05-31/2018-06-14: community/minutes evidence discusses primarySource, reportOrigin/informationSource, and Option B. Learned: community evidence supports the same later interpretation and does not conflict with no-change.
+- E9 Verification commands: combined-branch grep found no existing FHIR-11121 audit commit, and quoted Zulip/Confluence issue-key searches for FHIR-11121/FHIR-9205 found no direct conflicting community hits. Learned: publishing this seed audit is idempotent and no discovered community record changes the conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11121",
+    "url": "https://jira.hl7.org/browse/FHIR-11121",
+    "snapshot_path": "contexts/FHIR-11121/jira/FHIR-11121.md",
+    "ref": { "jira_key": "FHIR-11121" },
+    "summary": "Published/Persuasive with Modification PHER issue requested removing top-level Immunization.reported and adding primarySource plus reportOrigin.",
+    "learned": "This establishes the seed request and final workflow status.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:197; source/immunization/structuredefinition-Immunization.xml:504-563",
+    "ref": { "path": "source/immunization/structuredefinition-Immunization.xml", "line_start": 504, "line_end": 563 },
+    "summary": "Immunization is active in fhir.ini and current source defines primarySource plus informationSource with the ImmunizationReportOrigin binding.",
+    "learned": "The authoritative current source already represents the issue's concepts under later-approved names and cardinalities.",
+    "supports": ["build_scope", "current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "command",
+    "locator": "Current-source search for obsolete reported/reportOrigin elements",
+    "command": "rg -n 'element id=\"Immunization\\.reported\"|path value=\"Immunization\\.reported\"|<reported\\b' source/immunization; rg -n 'Immunization\\.reportOrigin|<reportOrigin\\b|informationSource' source/immunization",
+    "summary": "No top-level Immunization.reported or reportOrigin element remains; current hits show Immunization.informationSource and only reaction.reported for reported.",
+    "learned": "The obsolete top-level element was removed and the report-source concept survives as informationSource.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "baf0c978b8",
+    "ref": { "commit": "baf0c978b8c0f58aef16a109ca4d804475897518" },
+    "summary": "2016 commit explicitly applied #9205 and #11121 by replacing reported with primarySource/reportOrigin and adding the report origin value set.",
+    "learned": "The seed issue had an explicit historical source application.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-15694 and commit 3161b27852",
+    "url": "https://jira.hl7.org/browse/FHIR-15694",
+    "ref": { "jira_key": "FHIR-15694", "commit": "3161b278520f32cd279b615f65ead3e6f9580eb1" },
+    "summary": "Later Published decision changed Immunization.primarySource from 1..1 to 0..1.",
+    "learned": "Current optional primarySource cardinality is intentional and supersedes the seed's original 1..1 detail.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "8386871f82 and 345df2dd77",
+    "ref": { "commits": "8386871f82,345df2dd77", "jira_keys": "FHIR-15696,FHIR-20327,FHIR-32394" },
+    "summary": "Later Immunization changes renamed/expanded reportOrigin to informationSource[x] and then converted informationSource to CodeableReference.",
+    "learned": "The missing literal reportOrigin element is expected current design, not an unapplied seed request.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-37722 and commit 0f4d89973f",
+    "url": "https://jira.hl7.org/browse/FHIR-37722",
+    "ref": { "jira_key": "FHIR-37722", "commit": "0f4d89973f594dac312b34901b0e4f9cf7f5be22" },
+    "summary": "Later Published clarification states informationSource captures reported-event source while primarySource captures the source relationship to the immunization event.",
+    "learned": "The current primarySource/informationSource split is the later final interpretation.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#implementers > Attester in Immunization",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Attester%20in%20Immunization",
+    "summary": "Craig Newman summarized Option B: keep primarySource as a boolean, rename reportOrigin to informationSource, and support code or reference sources.",
+    "learned": "Community discussion aligns with the Jira/source history and supports no source change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Idempotency and negative direct community searches",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-11121' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run zulip:search fts '\"FHIR-11121\" Immunization primarySource reportOrigin' --limit 10; bun run confluence:search refs jira FHIR-11121; bun run zulip:search fts '\"FHIR-9205\" Immunization primarySource informationSource reportOrigin' --limit 10; bun run confluence:search refs jira FHIR-9205",
+    "query": "FHIR-11121 FHIR-9205 Immunization primarySource reportOrigin informationSource",
+    "result_count": 0,
+    "summary": "No existing combined-branch FHIR-11121 commit and no direct issue-key Zulip or Confluence hits for FHIR-11121/FHIR-9205 were found.",
+    "learned": "This audit commit is not a duplicate and no discovered direct community record conflicts with the source/Jira conclusion.",
+    "supports": ["idempotency", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,131 @@
+FHIR-50705: Fix stale vital signs category remnants
+
+Issue request:
+FHIR-50705 was an Applied/Persuasive OO R6 change request objecting that the R6 Vital Signs profiles appeared to move the profile-specific LOINC identifiers, such as body temperature 8310-5, from Observation.code into Observation.category. The accepted resolution says this is the same category-vs-code concern as FHIR-50689 and follows the already-applied decision from FHIR-45617: vital signs should not change from code to category for distinguishing the specific vital signs profiles.
+
+Initial application:
+No prior source commit explicitly named FHIR-50705. The relevant issue family was partially applied before this reconciliation: commit 0a17c0f40f introduced the temporary category-based value set/binding approach, then commit 66a80b5fef, applied for FHIR-45617 and later relied on by FHIR-50689/FHIR-50705, moved the "interoperability standard" LOINC identifiers back from Observation.category to Observation.code and removed the observation-vitalsign-category value set. That left the profile differentials mostly correct, but several active Text Summary/profile-summary extensions and two checked-in examples still described or demonstrated the specific LOINC code in Observation.category.
+
+Additional context:
+FHIR-50689 and FHIR-49953 make the same revert/backward-compatibility argument, while FHIR-50392 records the rejected alternative of using category for vital-sign-specific searching. The 2025-10-30 OO minutes record FHIR-50705 as Persuasive/Pre-applied, and the 2025-12 to 2026-01 Zulip thread that led to duplicate FHIR-54960 confirms the remaining Text Summary metadata was a missed cleanup after the change back from Observation.category to Observation.code. The edited files are in build scope because source/fhir.ini lists Observation as an active resource and source/observation/implementationguide-Observation-vitalsigns.xml includes the affected Vital Signs profiles and introduction.
+
+AutoFHIR reconciliation:
+This commit fixes the remaining source-backed contradiction. It updates the structuredefinition-summary/profile-summary metadata for each specific Vital Signs profile so the profile-specific LOINC requirement is described on Observation.code, removes stale LOINC category blocks from the Body Weight and BMI examples, and updates stale "interoperability category" wording in the Observation ballot note and related example comments. It does not change the already-correct profile differentials, which continue to fix only the broad vital-signs category and bind/pattern the specific LOINC identifiers on Observation.code.
+
+Recommendation:
+Keep this source-changing commit. It completes the FHIR-50705 reconciliation by eliminating the implementer-facing remnants that still suggested the rejected category model. Do not restore observation-vitalsign-category or put the specific vital-sign LOINC identifiers back in Observation.category; any remaining unrelated Vital Signs summary cleanup should be handled under its own tracker.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-50705
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-45617: supporting-decision - final Applied decision that moving vital-sign-specific identification from Observation.code to Observation.category was not justified, implemented by commit 66a80b5fef.
+FHIR-50689: same-change-family - same Applied/Persuasive request to revert the category-vs-code change; FHIR-50705 was noted as effectively duplicating it.
+FHIR-49953: same-change-family - earlier Applied/Persuasive argument that the vital signs profiles needed to move back to code and not category.
+FHIR-50392: supporting-decision - Not Persuasive request to use category for specific vital sign searches, confirming the rejected direction.
+FHIR-54960: duplicate - later duplicate metadata issue and Zulip report identifying the stale Text Summary content fixed here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-50705: Applied/Persuasive OO R6 issue objecting to the specific vital-sign LOINC moving from Observation.code to Observation.category. Learned: the final seed decision requires preserving code-based profile identification.
+- E2 Jira FHIR-45617/FHIR-50689/FHIR-49953/FHIR-50392: related final decisions reject the category model and/or treat the revert as pre-applied. Learned: later WG context confirms the current target is code, not category.
+- E3 Git 66a80b5fef2c43d4a46709f2a03b6d933063cb08: moved the "interoperability standard" code back from category to code and removed the category value set. Learned: the initial application fixed the main differentials but missed metadata/examples.
+- E4 Source source/fhir.ini:170-210 and source/observation/implementationguide-Observation-vitalsigns.xml:11-82: Observation and the Vital Signs IG/profile resources are active build inputs. Learned: the edited profile metadata, narrative, and examples feed the current build.
+- E5 Source source/observation/structuredefinition-profile-vitalspanel.xml:9-22 and peer specific profiles: summary extensions now name Observation.code and Observation.code.coding for the LOINC identifiers. Learned: the Text Summary/profile-summary surface no longer contradicts the formal differentials.
+- E6 Source source/observation/observation-example.xml:10-35 and source/observation/observation-example-bmi-using-related.xml:8-28: examples now keep only the broad vital-signs category and place the LOINC identifier in Observation.code. Learned: rendered examples no longer demonstrate the rejected category encoding.
+- E7 Zulip Orders and Observation WG > VitalSign profiles in R6 and duplicate Jira FHIR-54960: Rob Hausam confirmed the Text Summary was missed when the interoperability standard code moved back from Observation.category to Observation.code. Learned: community evidence independently identifies the exact stale source surface fixed here.
+- E8 Confluence 391652160: 2025-10-30 OO minutes record FHIR-50705 as Persuasive/Pre-applied. Learned: meeting evidence supports reconciling remaining stale artifacts rather than revisiting the WG decision.
+- E9 Verification commands: XML parsing, whitespace check, stale-phrase search, and LOINC-category-block search passed after the edit. Learned: the changed source is well-formed and the targeted stale category remnants are gone.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-50705",
+    "url": "https://jira.hl7.org/browse/FHIR-50705",
+    "snapshot_path": "contexts/FHIR-50705/jira/FHIR-50705.md",
+    "ref": { "jira_key": "FHIR-50705" },
+    "summary": "Applied/Persuasive OO R6 issue objecting that the Vital Signs profile appeared to move specific LOINC identifiers from Observation.code to Observation.category.",
+    "learned": "The final seed decision requires preserving vital-sign-specific identification in Observation.code and cleaning up any contrary source remnants.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-45617, FHIR-50689, FHIR-49953, FHIR-50392",
+    "url": "https://jira.hl7.org/browse/FHIR-45617",
+    "summary": "Related final OO decisions reject moving vital-sign-specific identification from Observation.code to Observation.category and treat the revert as pre-applied.",
+    "learned": "The broader issue family confirms that source should use code for specific vital signs and only the broad vital-signs classifier in category.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "66a80b5fef2c43d4a46709f2a03b6d933063cb08",
+    "ref": { "commit": "66a80b5fef2c43d4a46709f2a03b6d933063cb08" },
+    "summary": "Commit moved the Vital Signs interoperability standard code back from Observation.category to Observation.code and removed observation-vitalsign-category.",
+    "learned": "The main application happened before this reconciliation, but it missed source-backed summaries and examples.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-210; source/observation/implementationguide-Observation-vitalsigns.xml:11-82",
+    "ref": { "path": "source/observation/implementationguide-Observation-vitalsigns.xml", "start_line": 11, "end_line": 82 },
+    "summary": "Observation is an active resource and the Vital Signs IG includes the affected profiles and introduction files.",
+    "learned": "The edited XML summaries, examples, and narrative are current build inputs rather than out-of-scope generated output.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-vitalspanel.xml:9-22 and peer specific Vital Signs profile summaries",
+    "ref": { "path": "source/observation/structuredefinition-profile-vitalspanel.xml", "start_line": 9, "end_line": 22 },
+    "summary": "Specific Vital Signs profile summary extensions now describe the profile-specific LOINC requirement on Observation.code, not Observation.category.",
+    "learned": "The Text Summary/profile-summary metadata no longer contradicts the formal profile differentials or WG decision.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/observation/observation-example.xml:10-35; source/observation/observation-example-bmi-using-related.xml:8-28",
+    "ref": { "path": "source/observation/observation-example.xml", "start_line": 10, "end_line": 35 },
+    "summary": "The Body Weight and BMI examples now keep only observation-category#vital-signs in Observation.category and put the LOINC identifier in Observation.code.",
+    "learned": "Examples no longer demonstrate the rejected category encoding for vital-sign-specific LOINC codes.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#Orders and Observation WG > VitalSign profiles in R6",
+    "url": "https://chat.fhir.org/#narrow/stream/Orders%20and%20Observation%20WG/topic/VitalSign%20profiles%20in%20R6",
+    "snapshot_path": "/tmp/zulip-vitalsign-profiles-r6.md",
+    "summary": "Participants identified that the Text Summary tab still showed previous-ballot category wording, and Rob Hausam confirmed it was missed when the code moved back to Observation.code.",
+    "learned": "Community evidence independently validates that stale summary metadata needed cleanup.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "2025-10-30 OO Main page 391652160",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/391652160/2025-10-30+OO+Main",
+    "snapshot_path": "/tmp/confluence-391652160.md",
+    "ref": { "confluence_page_id": 391652160 },
+    "summary": "OO minutes record FHIR-50705 as Persuasive/Pre-applied with an 8-1-4 vote.",
+    "learned": "Meeting evidence supports following the pre-applied code-not-category decision while fixing residual stale source.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Post-edit XML and stale-pattern verification",
+    "command": "xmllint --noout edited observation/vital-signs XML files; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg 'interoperability category|methodless LOINC \"interoperability category\"|LOINC \"magic value\"|One code in `Observation.category` which must have|http ://loinc.org' source/observation --glob '*.{xml,html}'; rg -l -U '(?s)<category>.*?<system value=\"http://loinc.org\".*?</category>' source/observation --glob '*.xml'",
+    "summary": "Edited XML parsed, whitespace checks passed, stale category wording was absent, and no LOINC-coded Observation.category blocks remained under source/observation.",
+    "learned": "The targeted source contradiction was removed without introducing malformed XML or whitespace errors.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

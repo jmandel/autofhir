@@ -1,0 +1,106 @@
+FHIR-5723: Audit Encounter modifier flags
+
+Issue request:
+FHIR-5723 is a Published/Persuasive Patient Administration DSTU1 change request asking to clean up Encounter modifier properties: Encounter.class should not be a modifier, and Encounter.location.status "probably should be."
+
+Initial application:
+No Jira-keyed source commit for FHIR-5723 was found. The legacy Encounter spreadsheet before application had Encounter.class marked as a modifier and Encounter.location.status unmarked. Commit 27302910 removed the Encounter.class modifier flag during Encounter ballot reconciliation, and the published DSTU-era spreadsheet kept Encounter.class non-modifier while leaving Encounter.location.status non-modifier. The later StructureDefinition source rework preserved the same modifier state.
+
+Additional context:
+Encounter is an active resource in the current build. Current Encounter.status is a modifier because entered-in-error makes the resource invalid, while Encounter.location.status is a nested presence/status field for a location entry whose parent is defined as the list of locations where the patient has been. Its values planned, active, reserved, and completed qualify that location participation and period; they do not mark the Encounter resource or the location entry as invalid. The later FHIR-13465/status-code discussion considered a broad status-as-modifier rule, including Encounter.location.status, but ended as Resolved - No Change/tooling-warning context rather than a blanket source rule.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current source already reflects the durable part of FHIR-5723 by keeping Encounter.class non-modifier, and adding isModifier to Encounter.location.status now would over-apply the tentative "probably" note against later modifier semantics and current Encounter modeling.
+
+Recommendation:
+Keep this no-change audit. If PA wants Encounter.location.status to become a modifier in a future release, open a focused new tracker that supplies the modifier reason and decides the summary/missing-value implications for this optional nested element.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5723
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13465: supporting-decision - later FHIR-I issue and Zulip discussion considered a broad status-code modifier rule that named Encounter.location.status but did not establish a blanket source change.
+FHIR-5722: background - neighboring DSTU1 status-modifier QA issue shows explicit resolutions used when a status element was meant to be marked isModifier=true.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5723: Published/Persuasive PA issue asks to remove the Encounter.class modifier flag and says Encounter.location.status probably should be a modifier. Learned: this establishes the seed request but leaves the location-status part tentative.
+- E2 Source source/fhir.ini:190: Encounter is active in the current resource list. Learned: Encounter StructureDefinition source is in current build scope.
+- E3 Source source/encounter/structuredefinition-Encounter.xml:246 and :1236: Encounter.class has no isModifier flag, and Encounter.location.status has no isModifier flag. Learned: current source matches the historical class cleanup and retains location.status as non-modifier.
+- E4 Git 27302910: Encounter ballot reconciliation removed the legacy Encounter.class isModifier cell while leaving Encounter.location.status unmarked. Learned: the known historical application path applied the class part but did not make location.status a modifier.
+- E5 Source source/datatypes/elementdefinition.xml:2479: ElementDefinition.isModifier applies when a value affects interpretation and cannot be ignored; current Encounter.status and Location.status use isModifier for invalid/current-validity statuses. Learned: the current non-modifier Encounter.location.status is consistent with current modifier semantics for a nested location-presence qualifier.
+- E6 Jira/Zulip FHIR-13465 and #committers Status Elements & IsModifier: broad status-code modifier enforcement was discussed and later resolved No Change/tooling-warning context. Learned: later evidence does not compel marking all status-like nested fields, including Encounter.location.status, as modifiers.
+- E7 Command community search: Zulip and Confluence searches for FHIR-5723 and the issue summary found no direct discussion. Learned: no discovered community record contradicts the source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5723",
+    "url": "https://jira.hl7.org/browse/FHIR-5723",
+    "snapshot_path": "contexts/FHIR-5723/jira/FHIR-5723.md",
+    "ref": { "jira_key": "FHIR-5723" },
+    "summary": "Published/Persuasive PA issue requesting Encounter modifier cleanup: class should not be a modifier and location.status probably should be.",
+    "learned": "The final issue establishes the class cleanup and a tentative location-status concern, but no detailed resolution text overrides current source/history.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:190",
+    "summary": "The current fhir.ini resource list includes encounter=Encounter.",
+    "learned": "Encounter StructureDefinition source is active current-build input.",
+    "supports": ["build_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/encounter/structuredefinition-Encounter.xml:246, source/encounter/structuredefinition-Encounter.xml:1236",
+    "summary": "Encounter.class has no isModifier flag, and Encounter.location.status has no isModifier flag while defining planned/active/reserved/completed location participation status.",
+    "learned": "Current source implements the class cleanup and keeps the nested location status non-modifier.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "27302910ae49c6d1fd5544682e5f48f9e365b347",
+    "ref": { "commit": "27302910ae49c6d1fd5544682e5f48f9e365b347" },
+    "summary": "Encounter ballot reconciliation removed the legacy Encounter.class Is Modifier value; parsed legacy rows show Encounter.location.status remained unmarked before and after.",
+    "learned": "The historical application path changed the definite class problem without marking location.status as a modifier.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:2479; source/encounter/structuredefinition-Encounter.xml:130; source/location/structuredefinition-Location.xml:115",
+    "summary": "ElementDefinition.isModifier is for values that cannot be ignored; Encounter.status and Location.status are modifiers because their codes can invalidate or current-validity-qualify the resource.",
+    "learned": "Encounter.location.status is different: it qualifies a location participation/period in a list of locations where the patient has been, so leaving it non-modifier is consistent with current semantics.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-13465 and Zulip #committers > Status Elements & IsModifier",
+    "url": "https://jira.hl7.org/browse/FHIR-13465",
+    "snapshot_path": "contexts/FHIR-5723/zulip/committers--Status-Elements-IsModifier.md",
+    "ref": { "jira_key": "FHIR-13465" },
+    "summary": "A later broad status-code modifier proposal named Encounter.location.status in tool warnings but ended as Resolved - No Change/handled by tooling warning context.",
+    "learned": "Later discussion does not require a blanket source edit marking every nested status-like element as a modifier.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-5723",
+    "command": "bun run zulip:search fts '\"FHIR-5723\"' --limit 10; bun run zulip:search fts '\"Encounter Modifier properties\"' --limit 10; bun run confluence:search refs jira FHIR-5723; bun run confluence:search fts '\"FHIR-5723\"' --limit 10",
+    "query": "FHIR-5723; Encounter Modifier properties",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence discussion for FHIR-5723 or the exact summary was found.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

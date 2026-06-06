@@ -1,0 +1,132 @@
+FHIR-22653: Add Bundle search parameter constraints
+
+Issue request:
+FHIR-22653 was Published/Persuasive for FHIR-I. It asked to add a SearchParameter attribute holding a FHIRPath constraint that describes when a SearchParameter applies, motivated by Bundle-composition and Bundle-message needing Bundle.type-specific applicability conditions.
+
+Initial application:
+The issue was initially applied by HL7/fhir#2144, merged as 435d9997524b26dd3a648c0237dcae1fe7f4a834. The implementation commit 76ce0e716b7f3a31f6573fe90b24ee0443e77707, despite the subject typo "FHIR-22635 add SearchParameter.constraint", added SearchParameter.constraint to source/searchparameter/structuredefinition-SearchParameter.xml and added SearchParameter/example-constraint. It did not add constraint values to the active Bundle-composition or Bundle-message search parameter definitions.
+
+Additional context:
+FHIR-I minutes and the linked Zulip thread confirm that the work group wanted the document/message applicability condition called out explicitly instead of burying it inside SearchParameter.expression. Later FHIR-31664 narrowed the Bundle-composition and Bundle-message expressions to Composition and MessageHeader, and FHIR-48363 converted them from reference to the new resource search type for embedded-resource chaining; neither later change made the Bundle.type applicability condition machine-readable. source/fhir.ini keeps both bundle and searchparameter in the current build.
+
+AutoFHIR reconciliation:
+This commit adds SearchParameter.constraint values to source/bundle/bundle-Bundle-search-params.xml for Bundle-composition and Bundle-message, preserving the existing resource-type expressions while adding the approved document/message Bundle.type applicability tests.
+
+Recommendation:
+Keep this commit as-is. It completes the published issue in the current active source without revisiting later resource-type/chaining decisions; broader SearchParameter FHIRPath validation or tooling policies should remain separate work.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22653
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-31664: same-change-family - later narrowed the same Bundle-composition and Bundle-message expressions to Composition and MessageHeader, but did not encode the Bundle.type applicability condition.
+FHIR-48363: later-change - later changed the same Bundle search parameters from reference to resource type for embedded-resource chaining; the added constraints are compatible with that current shape.
+FHIR-51587: background - later SearchParameter FHIRPath guidance confirms full FHIRPath is allowed in SearchParameter expressions while leaving cross-resource policy separate from this Bundle applicability fix.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22653: Published/Persuasive issue asking for a SearchParameter constraint attribute with Bundle-composition and Bundle-message examples. Learned: the final work-group decision supports a machine-readable applicability constraint.
+- E2 Confluence FHIR-I minutes 2019-06-03 page 54689871: FHIR-I voted 7-0-0 after noting the condition could be in SearchParameter.expression but was better explicit in its own parameter. Learned: the approved intent includes making the applicability condition explicit.
+- E3 Zulip #implementers > Constraints / rule sets on SearchParameter: discussion identifies Bundle-composition/message and the need to express type=document/type=message outside the expression. Learned: the motivating practical gap was the missing Bundle.type condition on those search parameters.
+- E4 Git 435d999752 / 76ce0e716b7f3a31f6573fe90b24ee0443e77707: PR #2144 added SearchParameter.constraint and a constraint example, but not constraints on the active Bundle search parameters. Learned: this reconciliation is a focused completion, not a duplicate full application.
+- E5 Source source/fhir.ini:245,248: bundle=Bundle and searchparameter=SearchParameter are active resources. Learned: both the edited Bundle search parameter source and SearchParameter definition are in current build scope.
+- E6 Source source/searchparameter/structuredefinition-SearchParameter.xml:586: SearchParameter.constraint exists with the approved FHIRPath applicability definition. Learned: the current model supports adding the missing values to concrete SearchParameter instances.
+- E7 Source source/bundle/bundle-Bundle-search-params.xml:21,60: Bundle-composition and Bundle-message now carry document/message Bundle.type constraints. Learned: the active search parameter definitions now express the approved applicability condition.
+- E8 Jira FHIR-31664 and FHIR-48363 plus commits 39b42e9d93 and 554d2c28aa: later decisions narrowed the expressions and introduced the resource search type. Learned: the current fix must preserve those later decisions and add only the missing applicability constraints.
+- E9 Verification command/query: CRLF-aware git diff --check, Python ElementTree XML parsing, and rg confirmation of the two added constraints all passed. Learned: the edited XML is syntactically safe and contains the intended two active constraint values.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22653",
+    "url": "https://jira.hl7.org/browse/FHIR-22653",
+    "snapshot_path": "contexts/FHIR-22653/jira/FHIR-22653.md",
+    "ref": { "jira_key": "FHIR-22653" },
+    "summary": "Published/Persuasive FHIR-I issue asking to add a FHIRPath constraint attribute to SearchParameter, with Bundle-composition and Bundle-message examples.",
+    "learned": "This is the final work-group decision supporting machine-readable SearchParameter applicability constraints.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2019-06-03 page 54689871",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/54689871/FHIR+Infrastructure+Minutes+CC+20190603",
+    "snapshot_path": "contexts/FHIR-22653/confluence/54689871.md",
+    "ref": { "confluence_page_id": 54689871 },
+    "summary": "Minutes record discussion of GF#22653 and a 7-0-0 vote, noting the condition could be put in SearchParameter.expression but was better called out explicitly.",
+    "learned": "The approval was about making the applicability condition explicit in its own SearchParameter element.",
+    "supports": ["issue_request", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "zulip",
+    "locator": "#implementers > Constraints / rule sets on SearchParameter",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Constraints%20%2F%20rule%20sets%20on%20SearchParameter",
+    "snapshot_path": "contexts/FHIR-22653/zulip/implementers--Constraints-rule-sets-on-SearchParameter.md",
+    "ref": { "stream": "implementers", "topic": "Constraints / rule sets on SearchParameter" },
+    "summary": "The thread identifies Bundle-composition and Bundle-message as the motivating cases and explains that the missing type=document/type=message condition could not be expressed cleanly without a constraint attribute.",
+    "learned": "The concrete implementation gap was the Bundle.type applicability condition on those Bundle search parameters.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "435d9997524b26dd3a648c0237dcae1fe7f4a834 / 76ce0e716b7f3a31f6573fe90b24ee0443e77707",
+    "ref": { "commit": "435d9997524b26dd3a648c0237dcae1fe7f4a834", "implementation_commit": "76ce0e716b7f3a31f6573fe90b24ee0443e77707", "pull_request": 2144 },
+    "summary": "PR #2144 added SearchParameter.constraint and SearchParameter/example-constraint but did not add constraints to Bundle-composition or Bundle-message.",
+    "learned": "The historical application left a concrete source location from the issue's motivating example incomplete.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:245,248",
+    "ref": { "path": "source/fhir.ini", "lines": "245,248" },
+    "summary": "The current [resources] configuration contains active bundle=Bundle and searchparameter=SearchParameter entries.",
+    "learned": "Both the edited Bundle search parameter source and the SearchParameter definition are in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/searchparameter/structuredefinition-SearchParameter.xml:586",
+    "ref": { "path": "source/searchparameter/structuredefinition-SearchParameter.xml", "line": 586, "element": "SearchParameter.constraint" },
+    "summary": "SearchParameter.constraint is present with the FHIRPath applicability definition requested in FHIR-22653.",
+    "learned": "The current SearchParameter model supports adding the missing concrete constraint values.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/bundle/bundle-Bundle-search-params.xml:21,60",
+    "ref": { "path": "source/bundle/bundle-Bundle-search-params.xml", "lines": "21,60" },
+    "summary": "Bundle-composition and Bundle-message now contain constraints for Bundle.type='document' with Composition and Bundle.type='message' with MessageHeader.",
+    "learned": "The active search parameter definitions now carry the approved machine-readable applicability conditions.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-31664 and FHIR-48363",
+    "url": "https://jira.hl7.org/browse/FHIR-48363",
+    "snapshot_path": "contexts/FHIR-22653/jira/FHIR-48363.md",
+    "ref": { "jira_key": "FHIR-48363", "related_jira_key": "FHIR-31664", "commits": "39b42e9d93,554d2c28aa" },
+    "summary": "FHIR-31664 narrowed the same Bundle search parameter expressions, and FHIR-48363 later converted them to the resource search type for embedded-resource chaining.",
+    "learned": "The reconciliation should preserve the later expression and type decisions while adding only the missing Bundle.type applicability constraints.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Local XML and diff validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/bundle/bundle-Bundle-search-params.xml; Python ElementTree parse of touched XML files; rg confirmation of Bundle.type constraints",
+    "summary": "Whitespace validation passed, XML parsing succeeded, and rg found the two intended constraint values in the Bundle search parameter source.",
+    "learned": "The source change is syntactically safe and targeted to the intended two active definitions.",
+    "supports": ["confidence", "reconciliation"]
+  }
+]
+</evidence-manifest>

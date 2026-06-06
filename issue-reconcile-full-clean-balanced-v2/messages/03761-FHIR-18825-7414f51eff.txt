@@ -1,0 +1,108 @@
+FHIR-18825: Audit Appointment reason Observation support
+
+Issue request:
+FHIR-18825 was a Published/Persuasive with Modification Patient Administration change request, raised against STU3 and applied for STU3. It asked to open Appointment.indication's reference target set beyond existing Condition and Procedure to include Observation, and the approved disposition also added ImmunizationRecommendation.
+
+Initial application:
+The original application appears in commit 87ce43db92, whose subject includes GF#18825 and says Appointment indication supports Observation references. That same Appointment change family also renamed the old indication/reason split toward reasonCode/reasonReference, and the duplicate FHIR-18828 records that the coded-or-referenced Appointment indication request was handled as part of FHIR-18825.
+
+Additional context:
+FHIR-18829 and the later R5 CodeableReference refactor changed the current source shape from Appointment.indication/reasonReference into Appointment.reason as a CodeableReference. FHIR-48869 later added DiagnosticReport to Appointment.reason. ImmunizationRecommendation is no longer an active core resource in source/fhir.ini, and commit e073fb45ec removed ImmunizationRecommendation from Appointment.reason and Appointment.basedOn after removing ImmunizationRecommendation and ImmunizationEvaluation from the current core build. A stale generated-looking Appointment SVG still shows the older ImmunizationRecommendation target, but the authoritative StructureDefinition source no longer does.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Appointment is active in source/fhir.ini, and the current Appointment.reason StructureDefinition includes Observation in its targetProfile list alongside the current Condition, DiagnosticReport, and Procedure targets. Re-adding ImmunizationRecommendation would point at a resource removed from the active core build, and editing only the stale SVG/diagram artifact would not be an authoritative source correction for this issue.
+
+Recommendation:
+Keep this no-change audit commit as-is. No core source fix is needed for FHIR-18825; any future cleanup should regenerate or review stale diagram artifacts separately rather than reintroducing removed ImmunizationRecommendation references into Appointment.reason.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-18825
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-18828: duplicate - records that the related request for Appointment indication to allow a coded value or Condition/Observation/Procedure reference was handled as part of FHIR-18825.
+FHIR-18829: same-change-family - renamed and aligned Appointment/Encounter reason modeling; already represented on the combined branch and explains the current Appointment.reason CodeableReference shape.
+FHIR-48869: later-change - added DiagnosticReport to Appointment.reason, explaining why the current target set is broader than the original STU3 resolution.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-18825: Published/Persuasive with Modification PA issue requests adding Observation, plus ImmunizationRecommendation in the approved disposition, to Appointment.indication. Learned: this is the final seed request to check against current Appointment source.
+- E2 Confluence PA 2018-10 Baltimore WGM Minutes page 26574975: minutes record the same disposition text for opening Appointment.indication to Condition, Procedure, Observation, and ImmunizationRecommendation. Learned: community/work-group minutes corroborate the Jira disposition and reveal no narrower scope.
+- E3 Source source/fhir.ini:170-232 and source/appointment/structuredefinition-Appointment.xml:393-405: Appointment is active and Appointment.reason is a CodeableReference targeting Condition, DiagnosticReport, Procedure, and Observation. Learned: the authoritative current source already includes Observation for the current Appointment reason element.
+- E4 Git 87ce43db92: Appointment commit subject includes GF#18825 Appointment indication supporting Observation reference and changed examples away from indication toward reasonReference. Learned: the original application path is visible in source history even though the current element name later changed.
+- E5 Git e073fb45ec and source/fhir.ini:170-232,1458-1468: removal commit deleted ImmunizationRecommendation from Appointment.reason and removed immunizationrecommendation from the active resource list. Learned: ImmunizationRecommendation's current absence is a later source/build-scope change, not a missed FHIR-18825 application.
+- E6 Jira FHIR-18828, FHIR-18829, FHIR-48869 and existing combined commit fe02041250: duplicate, same-family, and later-change records explain the current coded/reference model and added DiagnosticReport target. Learned: later decisions/refactors preserve the seed semantics while changing names and target set details.
+- E7 Verification command/query: exact combined-branch idempotency check for FHIR-18825 found no prior seed audit; Zulip searches for FHIR-18825 plus Appointment/Observation/ImmunizationRecommendation found no direct hits; Confluence search found the corroborating PA minutes and no conflict. Learned: a no-change audit is safe and avoids duplicate publishing or unsupported source edits.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-18825",
+    "url": "https://jira.hl7.org/browse/FHIR-18825",
+    "snapshot_path": "contexts/FHIR-18825/jira/FHIR-18825.md",
+    "ref": { "jira_key": "FHIR-18825" },
+    "summary": "Published/Persuasive with Modification PA issue requesting Observation, and also ImmunizationRecommendation in the disposition, as Appointment.indication reference targets.",
+    "learned": "This establishes the final seed request that must be reconciled against the current Appointment source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "PA 2018-10 Baltimore Working Group Meeting Minutes page 26574975",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/26574975/2018-10+Baltimore+Working+Group+Meeting+Minutes",
+    "ref": { "confluence_page_id": 26574975 },
+    "summary": "Minutes include the FHIR-18825 disposition text opening Appointment.indication to Condition, Procedure, Observation, and ImmunizationRecommendation.",
+    "learned": "The minutes corroborate Jira's approved scope and reveal no conflicting work-group instruction.",
+    "supports": ["issue_request", "additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-232; source/appointment/structuredefinition-Appointment.xml:393-405",
+    "ref": { "path": "source/appointment/structuredefinition-Appointment.xml" },
+    "summary": "Appointment is an active resource; current Appointment.reason is CodeableReference with Condition, DiagnosticReport, Procedure, and Observation targetProfile entries.",
+    "learned": "The authoritative current source already includes Observation for the current Appointment reason element.",
+    "supports": ["build_scope", "source_check", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "87ce43db922810cf7461a4b098916209234ae0be",
+    "ref": { "commit": "87ce43db922810cf7461a4b098916209234ae0be" },
+    "summary": "Commit subject includes GF#18825 Appointment indication supporting Observation reference and changes Appointment examples from indication toward reasonReference.",
+    "learned": "This shows the original source application path for the seed issue before later model refactors.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "e073fb45ec6f5a738a9f674baf63406bfe90fb78; source/fhir.ini:170-232,1458-1468",
+    "ref": { "commit": "e073fb45ec6f5a738a9f674baf63406bfe90fb78" },
+    "summary": "Removal commit deleted ImmunizationRecommendation from Appointment.reason and removed immunizationrecommendation from the active core resource list.",
+    "learned": "ImmunizationRecommendation should not be reintroduced as an Appointment.reason target in the current core build.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-18828; FHIR-18829; FHIR-48869",
+    "url": "https://jira.hl7.org/browse/FHIR-48869",
+    "summary": "Related duplicate, same-family, and later-change Jira records explain the current CodeableReference shape and DiagnosticReport addition.",
+    "learned": "The current source differs from the STU3 element names and original target list for documented later reasons while preserving Observation support.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local idempotency, source, git, Zulip, and Confluence checks for FHIR-18825",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-18825' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n 'Appointment.reason|Observation|ImmunizationRecommendation' source/appointment source/fhir.ini; git log --all --grep='FHIR-18825' --grep='ImmunizationRecommendation' -- source/appointment; bun run zulip:search fts '\"FHIR-18825\" Appointment Observation ImmunizationRecommendation' --limit 10; bun run confluence:search fts 'Appointment Observation ImmunizationRecommendation' --limit 10",
+    "query": "FHIR-18825 Appointment Observation ImmunizationRecommendation",
+    "summary": "No prior combined-branch seed commit or direct Zulip conflict was found; source/history confirm Observation support and later ImmunizationRecommendation removal; Confluence found corroborating PA minutes.",
+    "learned": "A no-change audit is appropriate and avoids duplicate publishing or unsupported source edits.",
+    "supports": ["idempotency", "absence_of_conflict", "verification", "confidence"]
+  }
+]
+</evidence-manifest>

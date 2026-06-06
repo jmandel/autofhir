@@ -1,0 +1,107 @@
+FHIR-14079: Anchor RESTful reference regex
+
+Issue request:
+FHIR-14079 was a Published/Persuasive STU3 FHIR-I correction for the References page RESTful URL regex. It reported that the STU3 absolute-URL prefix failed common hostnames such as https://my-server.com/fhir, used literal // in a way the reporter challenged, and lacked an explicit start-of-string anchor; the accepted resolution was to add '-' to valid hostname characters, not use // literally, and make sure the regex start matches the string start.
+
+Initial application:
+The issue was initially applied in svn revision 14244, represented in git by c51bffe9cbffd3b25097ebd472f9162262027e5d, which added '-' to the URL-prefix character class in source/references.html. Earlier same-day history for related FHIR-17172 changed the scheme separator to escaped slashes and required slash-delimited URL segments. Before this reconciliation, the current source had the hyphen allowance and escaped slashes, but it still did not include the requested start anchor.
+
+Additional context:
+source/references.html is the active References page source for the FHIR-core-references page, and source/fhir.ini maps the Reference type page to references. Later Published issue FHIR-34405 appended the optional contained-resource fragment suffix to the same regex and did not supersede the FHIR-14079 start-anchor request. A current combined-branch AutoFHIR commit for FHIR-17172 tightened the first URL segment while preserving the FHIR-14079 hyphen allowance, but explicitly left FHIR-14079's separate anchoring wording undecided. Zulip and Confluence searches for FHIR-14079 found no conflicting community record.
+
+AutoFHIR reconciliation:
+This commit adds the missing ^ start anchor to the active References page regex and leaves the already-applied hyphen allowance, escaped slashes, host-segment fix, and optional fragment suffix unchanged.
+
+Recommendation:
+Keep this source fix. It completes the remaining explicit FHIR-14079 resolution item without broadening the regex or revisiting later related issues that have already been reconciled separately.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14079
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-17172: same-change-family - Same References-page regex family; its later reconciliation required a non-empty host segment and preserved this issue's hyphen allowance but did not decide the missing start anchor.
+FHIR-34405: later-change - Later Published issue appended an optional contained-resource fragment suffix to the same regex and did not change the start-anchor requirement.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14079: Published/Persuasive STU3 issue requested correcting the References-page RESTful URL regex by adding '-' to hostnames, escaping slashes, and anchoring the regex at the start. Learned: the current source must include all three accepted resolution items.
+- E2 Source source/references.html:152: the active References page regex had the hyphen allowance, escaped slashes, and later fragment suffix but no ^ anchor before this commit. Learned: a source edit was still required for the explicit start-anchor item.
+- E3 Source source/fhir.ini:82: the Reference type page maps to references. Learned: source/references.html is in current build scope for the References page.
+- E4 Git c51bffe9cbffd3b25097ebd472f9162262027e5d: original FHIR-14079 application added '-' to the URL-prefix character class. Learned: FHIR-14079 was only partially applied in source history.
+- E5 Git 075cd55564e68888a3325e4c90f920d74aa5fe53, 16b1441801576a8bd9fac41bae05f2353e3904e9, and 9af4169b9d53037cd7d966019b5ed326d6dc1ac2: related regex commits fixed scheme/host handling and added a fragment suffix. Learned: later related work does not conflict with adding the missing start anchor.
+- E6 Command community search: Zulip search for "FHIR-14079" and Confluence refs/FTS search for FHIR-14079 found no results; broader RESTful reference regex Zulip search found background discussions but no conflict with this issue. Learned: no discovered community record changes the Jira/source/git conclusion.
+- E7 Verification command: local regex examples passed and CRLF-aware git diff check passed. Learned: the edited regex still accepts Patient/123, hosted URLs including https://my-server.com/fhir/Patient/123 and http://example.com////////Patient/1, rejects prefixed strings under regex-search semantics, and preserves the related empty-host rejection.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14079",
+    "url": "https://jira.hl7.org/browse/FHIR-14079",
+    "snapshot_path": "contexts/FHIR-14079/jira/FHIR-14079.md",
+    "ref": { "jira_key": "FHIR-14079" },
+    "summary": "Published/Persuasive STU3 FHIR-I issue requested correcting the References-page RESTful URL regex by allowing '-' in hostnames, escaping slashes, and anchoring the regex at the start.",
+    "learned": "This establishes the final approved behavior to check in the current references page source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/references.html:152",
+    "ref": { "path": "source/references.html", "line": 152 },
+    "summary": "The active References page regex already had the hyphen allowance, escaped slashes, host fix, and fragment suffix, but lacked the requested start anchor before this commit.",
+    "learned": "A narrow source change was needed to complete the remaining FHIR-14079 resolution item.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:82",
+    "ref": { "path": "source/fhir.ini", "line": 82 },
+    "summary": "The type-page configuration maps reference to the references page.",
+    "learned": "source/references.html is in current build scope for the Reference documentation page.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "c51bffe9cbffd3b25097ebd472f9162262027e5d",
+    "ref": { "commit": "c51bffe9cbffd3b25097ebd472f9162262027e5d" },
+    "summary": "Original GF#14079 application added '-' to the URL-prefix character class in source/references.html.",
+    "learned": "The issue was partially applied historically, but the accepted start-anchor item was not present in current source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "075cd55564e68888a3325e4c90f920d74aa5fe53; 16b1441801576a8bd9fac41bae05f2353e3904e9; 9af4169b9d53037cd7d966019b5ed326d6dc1ac2",
+    "ref": { "commits": "075cd55564e68888a3325e4c90f920d74aa5fe53,16b1441801576a8bd9fac41bae05f2353e3904e9,9af4169b9d53037cd7d966019b5ed326d6dc1ac2" },
+    "summary": "Related regex history fixed scheme/host handling and later appended an optional fragment suffix.",
+    "learned": "Later same-line changes do not conflict with adding the FHIR-14079 start anchor.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-14079 plus RESTful reference regex terms",
+    "command": "bun run zulip:search fts '\"FHIR-14079\"' --limit 10; bun run confluence:search refs jira FHIR-14079; bun run confluence:search fts '\"FHIR-14079\"' --limit 10; bun run zulip:search fts '\"RESTful\" '\"reference\"' regex' --limit 10",
+    "query": "FHIR-14079; RESTful reference regex",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence hits for FHIR-14079 were found; broader regex search found background discussions but no conflicting decision.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local regex behavior and CRLF-aware diff checks",
+    "command": "python3 regex example check; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Targeted examples passed and the whitespace check reported no issues.",
+    "learned": "The source change anchors regex-search behavior while preserving valid relative and hosted absolute reference examples and related empty-host rejection.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

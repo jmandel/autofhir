@@ -1,0 +1,97 @@
+FHIR-15964: Audit ele-1 id-only enforcement
+
+Issue request:
+FHIR-15964 was a Published/Persuasive FHIR-core change request from STU3, applied for R5, reporting that an IG contained an element with only an XML id attribute (`<package id="foo"/>`) and the validator did not reject it. The accepted resolution was to enforce that an element with only id is invalid.
+
+Initial application:
+No FHIR-15964-tagged source commit was found in the current repository history. The relevant common Element invariant was already shaped to ignore Element.id when testing for substantive content, and FHIR-I minutes from 2019-12-02 record the issue as "Already applied by tooling update." Related ele-1 history includes the 2018 correction from FHIRPath `|` to boolean `or`, but that commit was not explicitly tagged to this Jira.
+
+Additional context:
+A 2022 Zulip thread reopened the question because of normative-break concerns; Lloyd McKenzie replied that the current ele-1 invariant already fixed the issue with `hasValue() or (children().count() > id.count())`. Later FHIR-43103 clarified the human wording to say "or both," and FHIR-26565 added the empty Parameters exception; neither later change permits ordinary elements whose only content is Element.id.
+
+AutoFHIR reconciliation:
+Made no source change. The active datatype source `source/datatypes/element.xml` defines ele-1 as `hasValue() or (children().count() > id.count()) or $this is Parameters`, so an element whose only child/property is Element.id fails the invariant. The companion XML XPath is `@value|f:*|h:div|self::f:Parameters`, which also does not count an XML `id` attribute as content. `source/fhir.ini` lists Element as an active infrastructure type, so this source is in current build scope.
+
+Recommendation:
+Keep this audit commit as-is. The current spec source already expresses the intended rule; if a current validator still accepts id-only elements outside the empty Parameters exception, that should be handled as validator/tooling follow-up rather than by changing the FHIR source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15964
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-26565: later-change - added the empty Parameters exception to the same ele-1 invariant while preserving the id-only exclusion for ordinary elements.
+FHIR-43103: later-change - clarified the ele-1 human wording to say "or both" without changing the id-only rule.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15964: Published/Persuasive issue asking that elements with only Element.id be rejected. Learned: establishes the final issue request and expected behavior.
+- E2 Source source/datatypes/element.xml:3094-3097 and source/fhir.ini:63-69: active Element invariant uses `children().count() > id.count()` and the XML XPath does not count `@id`. Learned: the current source already enforces the requested rule in build scope.
+- E3 Confluence FHIR-I Minutes 2019-12-02 page 66934519: minutes say "FHIR-15964 Resource should not have just ID. Already applied by tooling update." Learned: the work group considered the application already handled before publication.
+- E4 Zulip #fhir/infrastructure-wg > Element with id only should be invalid: Grahame raised normative-break concerns in 2022 and Lloyd replied that current ele-1 already fixed it. Learned: later community review supports no additional source change.
+- E5 Git history query: no FHIR-15964-tagged commit was found; ele-1 history shows the id-count expression predates the issue, the 2018 `or` correction is an ancestor, and FHIR-26565 later added only the Parameters exception. Learned: no missing FHIR-15964-specific source hunk was discovered.
+- E6 Verification commands: current source search found the active ele-1 expression only in `source/datatypes/element.xml`, and the combined-branch idempotency check found no existing FHIR-15964 audit. Learned: the decision is unique for this run and scoped to the authoritative source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15964",
+    "url": "https://jira.hl7.org/browse/FHIR-15964",
+    "snapshot_path": "contexts/FHIR-15964/jira/FHIR-15964.md",
+    "ref": { "jira_key": "FHIR-15964" },
+    "summary": "Published/Persuasive FHIR-core issue asking that an element with only Element.id be rejected by validation.",
+    "learned": "This establishes final WG intent that id-only elements should be invalid.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/element.xml:3094-3097; source/fhir.ini:63-69",
+    "ref": { "file": "source/datatypes/element.xml", "line_start": 3094, "line_end": 3097 },
+    "summary": "The active Element invariant uses `hasValue() or (children().count() > id.count()) or $this is Parameters`, and the XML XPath omits the XML `id` attribute.",
+    "learned": "The current build source already rejects id-only ordinary elements.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20191202 page 66934519",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/66934519/FHIR+Infrastructure+Minutes+CC+20191202",
+    "ref": { "confluence_page_id": 66934519 },
+    "summary": "FHIR-I minutes record FHIR-15964 as 'Resource should not have just ID. Already applied by tooling update.'",
+    "learned": "The work group treated the issue as already applied before the later Published state.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "zulip",
+    "locator": "#fhir/infrastructure-wg > Element with id only should be invalid",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir%2Finfrastructure-wg/topic/Element%20with%20id%20only%20should%20be%20invalid",
+    "ref": { "stream": "fhir/infrastructure-wg", "topic": "Element with id only should be invalid" },
+    "summary": "In 2022, Grahame noted FHIR-15964 might need revisiting and Lloyd replied that the current ele-1 invariant already fixed it.",
+    "learned": "Later community review did not identify a needed source change beyond the existing ele-1 expression.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "git log --grep=FHIR-15964; c50ea493463a70377e635b86153c803b73948953c; 6bf6d264f8b1d1ef33091c8e8752a9d7628a5ebc",
+    "command": "git log --all --grep='FHIR-15964'; git log --all -G 'children\\(\\).*id\\.count|id\\.count\\(\\)|Content Required|All FHIR elements must have' -- source/datatypes/element.xml",
+    "summary": "No FHIR-15964-tagged commit was found; relevant ele-1 history preserves the id-count rule, with later edits only fixing syntax, wording, and the Parameters exception.",
+    "learned": "History supports an audit/no-change decision rather than a missing source correction.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current-source and idempotency checks",
+    "command": "rg -n 'children\\(\\)\\.count\\(\\).*id\\.count|@value\\|f:\\*\\|h:div' source; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-15964' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "The current-source search found the active ele-1 expression in source/datatypes/element.xml and the combined branch had no existing FHIR-15964 reconcile commit.",
+    "learned": "This audit commit is needed for tracking but no source edit is required.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

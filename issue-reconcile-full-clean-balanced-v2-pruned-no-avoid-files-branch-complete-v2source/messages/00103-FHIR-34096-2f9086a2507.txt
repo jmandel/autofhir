@@ -1,0 +1,110 @@
+FHIR-34096: Restore MessageHeader sender event mapping
+
+Issue request:
+FHIR-34096 was Published/Persuasive for R5 and asked that MessageHeader be mapped to the Workflow Event pattern. The approved mapping included MessageHeader to Event, event[x] to Event.code, sender/author/responsible to Event.performer.actor, and reason to Event.reason.
+
+Initial application:
+The issue was initially applied in source commits 36d2d8b693 and ea7d85776d, which added the workflow mapping identity, mapped MessageHeader and MessageHeader.event[x], mapped the then-current sender/author/responsible elements to Event.performer.actor, and mapped MessageHeader.reason to Event.reason. The current source retained the resource, event[x], and reason mappings but no longer retained an Event.performer.actor mapping for the surviving sender concept.
+
+Additional context:
+Later MessageHeader work, especially FHIR-41269 and FHIR-32403, moved sender under MessageHeader.source.sender and removed author and responsible for R6. Commit 21db7ce856 applied that refactor and removed the old Event.performer.actor exception entries without adding the corresponding workflow mapping to MessageHeader.source.sender. MessageHeader is in the active build scope via source/fhir.ini, and no Zulip or Confluence search result for FHIR-34096 changed the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+This commit restores the Event.performer.actor workflow mapping on the current MessageHeader.source.sender element and updates the Event mapping exception source so Event.performer.actor is represented as a divergent mapping to MessageHeader.source.sender rather than as unmapped. It does not reintroduce mappings for author or responsible because those elements were intentionally removed by later applied decisions.
+
+Recommendation:
+Keep this commit as-is. It restores the surviving part of the FHIR-34096 Event pattern mapping after the later MessageHeader refactor while respecting the later decision to remove author and responsible. Any non-workflow mappings for MessageHeader.source.sender should be reviewed separately under the issues that moved the sender element.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34096
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-41269: later-change - moved sender under MessageHeader.source.sender and removed author/responsible, constraining the current FHIR-34096 fix to the surviving sender element.
+FHIR-32403: same-change-family - shares the later decision to remove author/responsible and move sender rather than clarify those separate elements.
+FHIR-41266: supporting-decision - changed sender wording from sending system to sending entity, reflected in the current divergent mapping exception text.
+FHIR-40264: background - records related discussion about sender/author/responsible usage in Da Vinci Alerts but did not create a separate core source change for this reconciliation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34096: Published/Persuasive issue asks to map MessageHeader to the Event workflow pattern. Learned: the final WG request requires an Event mapping including a sender-to-performer relationship where the sender concept still exists.
+- E2 Source source/fhir.ini:206 and source/messageheader/structuredefinition-MessageHeader.xml:379-404: MessageHeader is an active resource and the surviving sender element is MessageHeader.source.sender. Learned: the authoritative current build-scope target is source.sender, not removed top-level sender/author/responsible elements.
+- E3 Git 36d2d8b693 and ea7d85776d: initial FHIR-34096 source commits added the workflow mapping identity and MessageHeader/Event mappings. Learned: the issue was applied before later refactoring and the missing performer mapping is a regression against that application.
+- E4 Jira FHIR-41269/FHIR-32403/FHIR-41266: later applied MessageHeader decisions moved sender under source, removed author/responsible, and revised sender wording to entity. Learned: the fix must not restore removed elements and should use the current source.sender wording.
+- E5 Git 21db7ce856: later MessageHeader refactor removed the old sender/author/responsible Event.performer.actor mapping exceptions and added Event.performer.actor as unmapped. Learned: the current mismatch was introduced by the refactor rather than by a reversal of FHIR-34096.
+- E6 Command Zulip/Confluence search for FHIR-34096 and MessageHeader Event pattern: no directly relevant community hits were found. Learned: no discovered community evidence conflicts with the Jira/source/history conclusion.
+- E7 Verification command: xmllint validated both changed XML files, the mapping exception file validated against tools/schema/mappingExceptions.xsd, and CRLF-aware git diff --check passed. Learned: the targeted source edit is syntactically valid and whitespace-clean for this CRLF-containing file.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34096",
+    "url": "https://jira.hl7.org/browse/FHIR-34096",
+    "snapshot_path": "contexts/FHIR-34096/jira/FHIR-34096.md",
+    "ref": { "jira_key": "FHIR-34096" },
+    "summary": "Published/Persuasive InM change request to map MessageHeader to the Workflow Event pattern, including event[x], sender/author/responsible, and reason mappings.",
+    "learned": "This is the final WG request and establishes the Event mapping target for current MessageHeader source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:206; source/messageheader/structuredefinition-MessageHeader.xml:379-404",
+    "summary": "MessageHeader is active in fhir.ini, and the current surviving sender concept is MessageHeader.source.sender.",
+    "learned": "The source-changing fix belongs in the active MessageHeader resource source and should target source.sender rather than removed top-level elements.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "36d2d8b693; ea7d85776d",
+    "ref": { "commit_1": "36d2d8b693d82f1d5fe6bcb61929b72fc51e5ce6", "commit_2": "ea7d85776d316b2b661d5aed1cf8fbaae29306dd" },
+    "summary": "Initial FHIR-34096 commits added the workflow mapping identity, MessageHeader/Event mappings, and MessageHeader.reason to Event.reason.",
+    "learned": "The Event mapping existed before later MessageHeader refactoring and should be preserved for remaining equivalent elements.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-41269",
+    "url": "https://jira.hl7.org/browse/FHIR-41269",
+    "snapshot_path": "contexts/FHIR-41269/jira/FHIR-41269.md",
+    "ref": { "jira_key": "FHIR-41269" },
+    "summary": "Applied/Persuasive with Modification issue moved sender under source and removed author and responsible.",
+    "learned": "Later final WG intent narrows the current FHIR-34096 reconciliation to MessageHeader.source.sender and rules out restoring author/responsible mappings.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "21db7ce85648ecbcc2a88295b74e4a4015053b22",
+    "ref": { "commit": "21db7ce85648ecbcc2a88295b74e4a4015053b22" },
+    "summary": "The later MessageHeader refactor removed old Event.performer.actor mappings and marked Event.performer.actor as unmapped.",
+    "learned": "The current missing performer mapping is a refactor regression, not a later reversal of the FHIR-34096 Event mapping decision.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-34096 and MessageHeader Event pattern",
+    "command": "bun run zulip:search fts '\"FHIR-34096\" MessageHeader Event pattern' --limit 10; bun run confluence:search refs jira FHIR-34096; bun run confluence:search fts '\"FHIR-34096\" MessageHeader Event pattern' --limit 10",
+    "query": "\"FHIR-34096\" MessageHeader Event pattern",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found for the seed issue and Event mapping terms.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted XML and whitespace validation",
+    "command": "xmllint --noout source/messageheader/structuredefinition-MessageHeader.xml; xmllint --noout --schema tools/schema/mappingExceptions.xsd source/messageheader/messageheader-event-mapping-exceptions.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Changed XML is well formed, the mapping exception file validates against its schema, and the CRLF-aware whitespace check passes.",
+    "learned": "The targeted source edit is syntactically valid and whitespace-clean.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

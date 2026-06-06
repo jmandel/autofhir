@@ -1,0 +1,118 @@
+FHIR-17157: Audit XML string whitespace guidance
+
+Issue request:
+FHIR-17157 was a Published/Persuasive with Modification FHIR-core issue raised against STU3 after the Java RI Validator warned that values should not start or finish with whitespace even though the old string regex appeared to allow whitespace-only, leading-whitespace, and trailing-whitespace strings. The accepted decision was that the validator would raise a warning for leading or trailing whitespace when the instance was loaded from XML, while the separate regex correction would be handled by the related datatype tracker.
+
+Initial application:
+No git commit explicitly names FHIR-17157 or GF#17157 in this checkout. The underlying XML/source rule predated the issue in commit a8566ea065d07d44c6a49ebb58bdd6e478b1a8a0, which added XML attribute trimming guidance. The related datatype regex and string/markdown clarification work was applied separately through GF#16940 in commit a5c90c3db3cc87902faf8b096c1fdc5f179853fc, and the later GF#17639 commit f8e58880f9ee09717f279992dbbaebce6a1601d7 added the current whitespace-only string warning and validator-alignment note.
+
+Additional context:
+The active datatype page is routed by source/fhir.ini's type-page defaults and the current source/datatypes.html, source/xml.html, source/resource-formats.html, and source/datatypes/primitives.xml files are the authoritative core source for the primitive string and format-specific whitespace behavior. Current source says leading and trailing whitespace is allowed for string but SHOULD be removed in XML, explains that whitespace-only strings may trim to invalid emptiness, requires primitive types other than string to avoid leading/trailing whitespace, and states that JSON preserves string whitespace. The related FHIR-16940 and FHIR-17639 decisions are already represented on the combined branch and do not require duplicate commits here. The relevant 2018 Zulip thread records the same interpretation: the validator warning was enforcing XML format rules, not banning meaningful string whitespace in every syntax.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Adding a new statement about the Java validator warning would duplicate implementation behavior rather than improve the normative core source, and the current build-scope source already captures the accepted distinction between XML trimming/warnings and JSON string preservation.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR-core source follow-up is needed for FHIR-17157 unless a future work-group decision changes primitive string whitespace policy or asks for validator-specific documentation outside the core datatype and format pages.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17157
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-16940: same-change-family - the separate datatype tracker identified in the FHIR-17157 comments handled the weak string/markdown regex and is already represented on the combined branch.
+FHIR-17639: later-change - later clarified whitespace-only strings and validator behavior while preserving the XML trimming model, and is already represented on the combined branch.
+FHIR-7538: background - earlier XML-format work added the attribute trimming rule that FHIR-17157's validator warning was enforcing.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17157: Published/Persuasive with Modification issue requesting reconciliation of the Java RI Validator whitespace warning with the old string regex. Learned: the final WG decision was validator warning behavior for XML-loaded instances, with regex correction explicitly out of scope for this issue.
+- E2 Source source/datatypes.html:308-317 and 531-536: current datatype narrative allows string leading/trailing whitespace generally, says it SHOULD be removed in XML, warns whitespace-only strings can trim to invalid emptiness, and requires non-string primitive values to avoid leading/trailing whitespace. Learned: the build-scope datatype page already conveys the accepted rule.
+- E3 Source source/xml.html:59-61 and source/resource-formats.html:63-76: XML attributes must have non-whitespace content and SHOULD be trimmed on read/write, while JSON string leading/trailing whitespace is expected to be preserved. Learned: current format pages explain why XML-loaded values can produce warnings without imposing the same behavior on JSON.
+- E4 Source source/datatypes/primitives.xml:161-167: the current string primitive regex is ^[\s\S]+$, replacing the old weak pattern and rejecting empty strings. Learned: the regex concern was handled by related datatype work, not by a missing FHIR-17157 source change.
+- E5 Git a8566ea065d07d44c6a49ebb58bdd6e478b1a8a0, a5c90c3db3cc87902faf8b096c1fdc5f179853fc, and f8e58880f9ee09717f279992dbbaebce6a1601d7: history added XML trim guidance, GF#16940 datatype regex/markdown clarification, and GF#17639 whitespace-only/validator compliance wording. Learned: current source reached the intended state through adjacent final issues even though no commit explicitly names FHIR-17157.
+- E6 Zulip #conformance > "value should not start or finish with whitespace: Patrick Werner raised GF17157; Grahame Grieve said the validator was enforcing XML format rules after discussion of legitimate string whitespace use cases. Learned: community discussion supports the no-change interpretation and the syntax-specific source wording.
+- E7 Community search for FHIR-17157 and the exact warning phrase: Jira found FHIR-17157 plus related whitespace/validator issues, Zulip found the 2018 conformance thread and later validator-warning examples, and Confluence refs/FTS found no direct FHIR-17157 record. Learned: no conflicting community or meeting evidence was found.
+- E8 Idempotency and worker checks: combined-branch grep for Issue-Reconcile-Key: FHIR-17157 returned no existing commit before publishing and the worker branch had no source diff. Learned: this audit commit is not a duplicate and introduces no unintended source edits.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17157",
+    "url": "https://jira.hl7.org/browse/FHIR-17157",
+    "snapshot_path": "contexts/FHIR-17157/jira/FHIR-17157.md",
+    "ref": { "jira_key": "FHIR-17157" },
+    "summary": "Published/Persuasive with Modification issue asking why the Java RI Validator warned that values should not start or finish with whitespace despite the old string regex.",
+    "learned": "The final decision was to warn only for leading or trailing whitespace when instances are loaded from XML, while handling regex correction in a separate tracker.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes.html:308-317,531-536",
+    "ref": { "path": "source/datatypes.html", "line": 308 },
+    "summary": "The current datatype page allows string leading/trailing whitespace generally, says it SHOULD be removed in XML, warns whitespace-only strings can trim to invalid emptiness, and forbids leading/trailing whitespace for non-string primitives.",
+    "learned": "The build-scope datatype narrative already states the string whitespace behavior required by the issue decision.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/xml.html:59-61; source/resource-formats.html:63-76",
+    "ref": { "path": "source/xml.html", "line": 59 },
+    "summary": "The XML page requires non-empty attributes and recommends trimming attribute values on read/write, while the format comparison says JSON preserves string leading/trailing whitespace.",
+    "learned": "The current source explains why XML-loaded values can trigger validator warnings without banning meaningful string whitespace in every syntax.",
+    "supports": ["source_check", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:161-167",
+    "ref": { "path": "source/datatypes/primitives.xml", "line": 161 },
+    "summary": "The authoritative primitive datatype source gives string the regex ^[\\s\\S]+$.",
+    "learned": "The old ineffective regex called out by FHIR-17157 is no longer present and was handled through related datatype work.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "a8566ea065d07d44c6a49ebb58bdd6e478b1a8a0; a5c90c3db3cc87902faf8b096c1fdc5f179853fc; f8e58880f9ee09717f279992dbbaebce6a1601d7",
+    "ref": { "commit": "f8e58880f9ee09717f279992dbbaebce6a1601d7" },
+    "summary": "Git history has no explicit FHIR-17157 commit, but earlier and adjacent commits added XML trimming, GF#16940 datatype regex/string clarification, and GF#17639 whitespace-only validator compliance wording.",
+    "learned": "The current source state was produced by related final decisions, so FHIR-17157 does not need a separate source hunk now.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#conformance > \"value should not start or finish with whitespace",
+    "url": "https://chat.fhir.org/#narrow/stream/conformance/topic/%22value%20should%20not%20start%20or%20finish%20with%20whitespace",
+    "ref": { "stream": "conformance", "topic": "\"value should not start or finish with whitespace", "message_id": 153963311 },
+    "summary": "The 2018 thread where Patrick Werner raised GF17157 discussed legitimate string whitespace use cases and Grahame Grieve clarified that the validator was enforcing XML format rules.",
+    "learned": "Community discussion supports the current syntax-specific source wording and does not require a new blanket string restriction.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-17157 and exact warning phrase",
+    "command": "bun run jira:search fts '\"value should not start or finish with whitespace\"' --limit 10; bun run jira:search fts '\"leading and trailing whitespace\" string XML validator' --limit 20; bun run zulip:search fts '\"value should not start or finish with whitespace\"' --limit 10; bun run confluence:search refs jira FHIR-17157; bun run confluence:search fts '\"value should not start or finish with whitespace\"' --limit 10",
+    "query": "FHIR-17157 value should not start or finish with whitespace leading and trailing whitespace string XML validator",
+    "summary": "Searches found the seed Jira, related FHIR-17639 context, the 2018 Zulip conformance thread, later validator-warning examples, and no direct Confluence records.",
+    "learned": "No discovered community or meeting evidence conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Idempotency and local source-diff checks for FHIR-17157",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-17157' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git status --short",
+    "summary": "No existing FHIR-17157 reconcile commit was found before publishing and the worker branch had no source diff.",
+    "learned": "Publishing this empty audit commit does not duplicate another worker and introduces no source edits.",
+    "supports": ["idempotency", "verification"]
+  }
+]
+</evidence-manifest>

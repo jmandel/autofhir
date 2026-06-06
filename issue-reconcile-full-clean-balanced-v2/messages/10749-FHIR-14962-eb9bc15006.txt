@@ -1,0 +1,99 @@
+FHIR-14962: Audit Questionnaire nested constraints
+
+Issue request:
+FHIR-14962 was a Published/Persuasive FHIR-core issue for STU3 Questionnaire and QuestionnaireResponse. It reported that constraints on Questionnaire.item and QuestionnaireResponse.item appeared to apply only to first-level items even though they should apply to nested groups and questions too, and the accepted resolution was to correct the tooling using repeat() / descendant item paths.
+
+Initial application:
+The issue was applied in the historical source by git-svn commit 3b483e96923e67c5be3bd98447b285b06a66f24f, "GF#14962 - fix generated schematrons," which changed the old SchematronGenerator to emit a descendant path when an element recurses to itself. That matches the Jira comment citing SVN revision 14842 as the generated-schematron fix. The remaining Jira comments characterize the issue as tooling/rendering/validation behavior, not a requested change to the Questionnaire business rules.
+
+Additional context:
+Questionnaire and QuestionnaireResponse are active current-build resources in source/fhir.ini. The old tools/java SchematronGenerator path edited for FHIR-14962 is absent from the current checkout after later build refactoring, and the current resource definitions are StructureDefinition XML sources rather than the old spreadsheets/generator inputs. Current Questionnaire.item and QuestionnaireResponse.item are recursive through contentReference entries, so constraints declared on those item ElementDefinitions apply to nested items. Current cross-tree Questionnaire constraints already use recursive FHIRPath where needed, including Questionnaire que-2 using repeat(item).linkId.isDistinct() and the later enableWhen existence check using %resource.repeat(item).linkId. Current Questionnaire and QuestionnaireResponse source contains no live XPath or checked-in schematron path such as f:Questionnaire/f:item that would need the historical // fix.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical schematron generator defect was applied before publication, and the current source representation either encodes recursive item constraints directly through contentReference or uses repeat(item) FHIRPath for whole-questionnaire traversal. There is no current build-scope source hunk that would improve implementer understanding or conformance behavior for FHIR-14962.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR-core source follow-up is needed unless the current build reintroduces checked-in schematron/XPath generation or a concrete current rendering/validator defect shows nested Questionnaire.item or QuestionnaireResponse.item constraints being skipped.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14962
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13171: background - another published invariant/XPath propagation issue already audited that current refactored resource StructureDefinitions do not carry live XPath constraints.
+FHIR-43704: later-change - the later enableWhen linkId check changed Questionnaire source to use repeat(item), reinforcing that current source uses recursive traversal where a whole-questionnaire constraint needs it.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14962: Published/Persuasive issue requested fixing Questionnaire and QuestionnaireResponse nested item constraints, with resolution "Correct using repeat() as indicated." Learned: the final decision was a tooling/source-generation correction for recursive item constraint application.
+- E2 Git 3b483e96923e67c5be3bd98447b285b06a66f24f: "GF#14962 - fix generated schematrons" changed the old SchematronGenerator to insert descendant paths for recursive elements. Learned: the historical generated-schematron fix was applied in the source history.
+- E3 Source source/fhir.ini:219-220; source/questionnaire/structuredefinition-Questionnaire.xml:101-106,727-859,1502-1511; source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:374-409,566-588. Learned: the affected resources are active, their item constraints are on recursive item definitions, and Questionnaire whole-tree checks already use repeat(item).
+- E4 Git 33b409a4b6d544598262f2f074ebb4b6dc466157 and current checkout: the 2021 source rework replaced Questionnaire and QuestionnaireResponse spreadsheets with StructureDefinition XML, and the old tools/java SchematronGenerator path is no longer present. Learned: the old generator source fixed for FHIR-14962 is not a current build-scope edit target.
+- E5 Command rg '<xpath|f:Questionnaire/f:item|f:QuestionnaireResponse/f:item' over current Questionnaire and QuestionnaireResponse source returned no matches. Learned: there is no current checked-in XPath/schematron expression retaining the first-level-only defect.
+- E6 Community/Jira search: Jira FTS found only FHIR-14962 for the nested Questionnaire schematron terms, and Zulip/Confluence searches for FHIR-14962 and nested Questionnaire constraint terms found no relevant hits. Learned: no discovered later or external decision conflicts with the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14962",
+    "url": "https://jira.hl7.org/browse/FHIR-14962",
+    "snapshot_path": "contexts/FHIR-14962/jira/FHIR-14962.md",
+    "ref": { "jira_key": "FHIR-14962" },
+    "summary": "Published/Persuasive STU3 issue reporting that Questionnaire and QuestionnaireResponse item constraints only worked at first-level nesting and should use repeat()/descendant paths.",
+    "learned": "This establishes the final issue request as a recursive item constraint tooling/source-generation correction.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "3b483e96923e67c5be3bd98447b285b06a66f24f",
+    "ref": { "commit": "3b483e96923e67c5be3bd98447b285b06a66f24f" },
+    "summary": "2018-08-16 git-svn commit 'GF#14962 - fix generated schematrons' changed SchematronGenerator to use descendant paths for recursive elements.",
+    "learned": "The historical source application matches the Jira resolution and comments about SVN revision 14842.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini and current Questionnaire/QuestionnaireResponse StructureDefinitions",
+    "ref": { "paths": "source/fhir.ini; source/questionnaire/structuredefinition-Questionnaire.xml; source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml" },
+    "summary": "Questionnaire and QuestionnaireResponse are active resources; current item constraints are declared on recursive item ElementDefinitions and the recursive contentReference entries point back to those items, while Questionnaire whole-tree checks use repeat(item).",
+    "learned": "Current build-scope source already models nested item constraints without a first-level-only source defect.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "33b409a4b6d544598262f2f074ebb4b6dc466157 plus current checkout",
+    "ref": { "commit": "33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "The 2021 'rework source for new build core' commit replaced Questionnaire and QuestionnaireResponse spreadsheets with StructureDefinition XML; the old tools/java SchematronGenerator source path is absent now.",
+    "learned": "The historical generator fixed for FHIR-14962 is not a current source file that should be edited.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current source negative XPath/schematron search",
+    "command": "rg -n '<xpath|xpath value|schematron|f:Questionnaire/f:item|f:QuestionnaireResponse/f:item' source/questionnaire source/questionnaireresponse",
+    "query": "<xpath OR f:Questionnaire/f:item OR f:QuestionnaireResponse/f:item",
+    "result_count": 0,
+    "summary": "No live XPath, schematron, or first-level-only Questionnaire item paths were found in current Questionnaire or QuestionnaireResponse source.",
+    "learned": "There is no checked-in current XPath/schematron source needing the historical // descendant correction.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Jira, Zulip, and Confluence searches for FHIR-14962 and nested Questionnaire constraints",
+    "command": "bun run jira:search fts '\"FHIR-14962\"' --limit 10; bun run jira:search fts 'Questionnaire QuestionnaireResponse constraints nesting repeat item schematron' --limit 20; bun run zulip:search fts '\"FHIR-14962\"' --limit 10; bun run zulip:search fts 'Questionnaire constraints nested item schematron repeat' --limit 10; bun run confluence:search refs jira FHIR-14962; bun run confluence:search fts '\"FHIR-14962\" Questionnaire constraints' --limit 10",
+    "query": "FHIR-14962 Questionnaire QuestionnaireResponse constraints nesting repeat item schematron",
+    "result_count": 1,
+    "summary": "Jira FTS found only the seed issue for the nested Questionnaire schematron terms; Zulip and Confluence searches found no relevant hits.",
+    "learned": "No discovered community or neighboring Jira evidence changes the Jira/source-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

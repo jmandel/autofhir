@@ -1,0 +1,108 @@
+FHIR-14216: Audit Location near-distance merge
+
+Issue request:
+FHIR-14216 was a Published/Persuasive PA change request raised against STU3 Location. It said near-distance was not useful without a location and could not be safely matched during chained searching, and its resolution requested merging the search parameter pair so the distance stayed with the location in chained search use.
+
+Initial application:
+The explicit history uses the older GForge key rather than the Jira key: git commit 1d2f0c3e02b3ad1f21c8b3c4d8b88bce34fe9587, "GF#14216 location near parameter searching updates", replaced the STU3 example `near=latitude:longitude&near-distance=...` with `near=latitude|longitude|distance|unit`, updated the Location spreadsheet source, and added notes that the new format supports multiples and chaining while deprecating near-distance.
+
+Additional context:
+The committers Zulip thread for "Composite Search" records that this was first considered as a composite, but the implementer/editor discussion settled on a manually coded single search parameter because the distance is relative to the supplied point rather than a second resource element. A later implementers Zulip preview described the R4 format as a `special` type search parameter that works with multiples and chaining, with near-distance merged into the single parameter. FHIR-22749 later removed stale Location-near text saying near-distance was still required, and FHIR-27157/FHIR-33976 added unit and sorting clarifications without reviving a separate near-distance parameter.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. `source/fhir.ini` includes Location as an active resource, and the current active Location search parameter source defines only `Location-near` with syntax `[latitude]|[longitude]|[distance]|[units]`. The Location notes still explain that the STU3 syntax did not support multiples or chaining and that near-distance was deprecated by the new format. A current source search found no remaining near-distance requirement outside that historical deprecation note.
+
+Recommendation:
+Keep this audit commit as-is. Do not rewrite the current `near` parameter as a literal composite search parameter: the surviving source and later issue history show the intended current representation is the single `special` Location-near parameter with embedded distance and unit components.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14216
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-22749: later-change - removed stale text that still said Location-near required near-distance after near-distance had been folded into the single near parameter.
+FHIR-27157: later-change - clarified Location-near unit handling while preserving the single near parameter syntax.
+FHIR-33976: later-change - clarified sorting by Location-near and the returned location-distance extension without changing the FHIR-14216 syntax decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14216: Published/Persuasive PA issue requested merging near and near-distance so chained searching could keep the location and distance together. Learned: this is the final issue request being audited.
+- E2 Git 1d2f0c3e02b3ad1f21c8b3c4d8b88bce34fe9587: GF#14216 changed Location notes from separate near/near-distance syntax to `near=latitude|longitude|distance|unit` and said the new format supports multiples and chaining. Learned: the issue was applied historically even though the commit used the older GForge key.
+- E3 Source source/fhir.ini:199 and source/location/bundle-Location-search-params.xml:179: Location is active in the build and its current SearchParameter is Location-near with embedded distance/unit syntax and type special. Learned: the current authoritative source contains the merged parameter.
+- E4 Source source/location/location-notes.xml:95: the current positional-searching notes show `Location?near=-83.694810|42.256500|11.20|km` and state near-distance was deprecated by this change. Learned: the narrative source still explains the STU3-to-current transition.
+- E5 Jira FHIR-22749 and Git eef7df40667d772031a1f7bd313612d0d91e4398: the later Published correction removed stale wording saying near-distance was required. Learned: later PA decisions support the single-parameter state rather than a missing current fix.
+- E6 Zulip #committers > Composite Search and #implementers > Saving multiple Location positions: discussion records why the change became a manually coded/special single parameter and confirms near-distance would disappear because it was merged. Learned: community discussion explains the representation mismatch between the Jira word "composite" and current source type `special`.
+- E7 Verification command/query: `git grep -n 'near-distance\|Requires the near-distance parameter' -- source/location` finds only the deprecation note; Confluence refs for FHIR-14216 found no hits. Learned: no stale current-source requirement or conflicting meeting evidence was discovered.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14216",
+    "url": "https://jira.hl7.org/browse/FHIR-14216",
+    "snapshot_path": "contexts/FHIR-14216/jira/FHIR-14216.md",
+    "ref": { "jira_key": "FHIR-14216" },
+    "summary": "Published/Persuasive PA issue requesting that near-distance be merged with the Location near search parameter so chained searching keeps the location and distance together.",
+    "learned": "This establishes the final request being reconciled.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "1d2f0c3e02b3ad1f21c8b3c4d8b88bce34fe9587",
+    "ref": { "commit": "1d2f0c3e02b3ad1f21c8b3c4d8b88bce34fe9587" },
+    "summary": "GF#14216 replaced the separate STU3 near/near-distance example with a single near parameter containing latitude, longitude, distance, and unit components.",
+    "learned": "The issue was applied in source history under the older tracker key and intentionally deprecated near-distance.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:199; source/location/bundle-Location-search-params.xml:179-190",
+    "ref": { "path": "source/location/bundle-Location-search-params.xml" },
+    "summary": "Location is active in fhir.ini, and Location-near is the active special search parameter whose description includes distance and unit components in the single near value.",
+    "learned": "The current build source contains the merged search parameter in scope.",
+    "supports": ["reconciliation", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/location/location-notes.xml:95-107",
+    "ref": { "path": "source/location/location-notes.xml" },
+    "summary": "The positional-searching narrative shows `Location?near=-83.694810|42.256500|11.20|km` and says near-distance was deprecated by the new format.",
+    "learned": "The narrative source still communicates the requested transition and its rationale.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-22749 and commit eef7df40667d772031a1f7bd313612d0d91e4398",
+    "url": "https://jira.hl7.org/browse/FHIR-22749",
+    "ref": { "jira_key": "FHIR-22749", "commit": "eef7df40667d772031a1f7bd313612d0d91e4398" },
+    "summary": "Published correction removed stale Location-near wording that still said near-distance was required.",
+    "learned": "Later issue history confirms the single near parameter is the intended state, not an incomplete application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#committers > Composite Search; #implementers > Saving multiple Location positions",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/Composite%20Search",
+    "summary": "Editors discussed that the Location near change looked like a composite but needed a single manually coded/special parameter, and later previewed the R4 format where near-distance disappears into the single near parameter.",
+    "learned": "The discussion explains why current source uses type `special` while still satisfying the issue's chaining goal.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source and community checks for FHIR-14216 near-distance",
+    "command": "git grep -n 'near-distance\\|Requires the near-distance parameter' -- source/location; bun run confluence:search refs jira FHIR-14216",
+    "query": "FHIR-14216 near-distance Location near",
+    "summary": "Current source contains only the near-distance deprecation note and no remaining requirement; Confluence references for FHIR-14216 returned no hits.",
+    "learned": "No stale source requirement or conflicting meeting evidence was found.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

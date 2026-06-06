@@ -1,0 +1,107 @@
+FHIR-7742: Audit administration method value set correction
+
+Issue request:
+FHIR-7742 was a Published/Persuasive Pharmacy change request for DSTU1 MedicationAdministration. It said the administration method value set could confuse readers because many values were not appropriate for medications, and the accepted resolution was to fix the link to the correct value set and add SNOMED CT 422096002 Dosing instruction fragment as an exemplar value set.
+
+Initial application:
+The historical application is commit adf4e89f89fd, whose subject explicitly includes GF#7742 and GF#5990 and says it added the administration method exemplar value set binding. That commit changed MedicationAdministrationMethod from unbound to an example value-set binding to http://hl7.org/fhir/ValueSet/administration-method-codes and rewrote the then medication order administration-method value set around SNOMED CT 422096002.
+
+Additional context:
+FHIR-5990 is the same value-set correction family for neighboring medication resources. A later Published/Persuasive with Modification Pharmacy decision, FHIR-19913, changed the active Dosage.method value set basis from 422096002 to SNOMED CT 736665006 Dose form administration method; historical commit 1dcdc4c567 applied that to source/datatypes/valueset-administration-method-codes.xml. The combined branch already contains FHIR-19913 commit 8f91c3f2e034, which fixed the remaining example wording and documented that the old source/medicationrequest copy containing 422096002 is not the active current binding source. Current source/fhir.ini lists MedicationAdministration and Dosage as active build inputs, MedicationAdministration.dosage.method remains example-bound to the administration-method canonical, and the active datatypes value set now filters on 736665006.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The seed request was applied historically, and the current active source is correct after the later FHIR-19913 decision. Reverting the active value set to 422096002 would contradict that later published decision, while editing the unreferenced MedicationRequest duplicate would not change current built content for this issue.
+
+Recommendation:
+Keep this empty audit commit as-is. No FHIR-7742 follow-up is needed in core; any future cleanup of duplicate, unreferenced value-set source files should be handled as a separate terminology/source hygiene task.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7742
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-5990: same-change-family - the parallel Published issue for the same wrong administration-method expansion/link, applied in the same historical commit.
+FHIR-19913: later-change - later Published Pharmacy decision changed the active value set basis from 422096002 to 736665006 and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7742: Published/Persuasive issue requesting a less confusing MedicationAdministration administration-method exemplar value set using SNOMED CT 422096002. Learned: this establishes the seed request and original accepted target.
+- E2 Git adf4e89f89fd: historical GF#7742/GF#5990 commit added the administration-method exemplar binding and 422096002 value set content. Learned: the issue was initially applied in source history.
+- E3 Source source/fhir.ini:51,200 and source/medicationadministration/structuredefinition-MedicationAdministration.xml:717-733: Dosage and MedicationAdministration are active, and MedicationAdministration.dosage.method is example-bound to the administration-method canonical. Learned: the active seed artifact still carries the requested binding.
+- E4 Jira/Git FHIR-19913 and 1dcdc4c567 plus combined commit 8f91c3f2e034: later Published decision changed the active value set basis to SNOMED CT 736665006 and fixed remaining examples. Learned: current source should not be restored to 422096002.
+- E5 Source source/datatypes/dosage.xml:1146-1160,5907-5911 and source/datatypes/valueset-administration-method-codes.xml:33: active Dosage.method binding points to valueset-administration-method-codes, whose active filter is 736665006. Learned: current active value-set content matches the later decision.
+- E6 Published spec R4/R5/build.fhir.org value set checks: R4 used 422096002, while R5 and the current CI value set use 736665006. Learned: the publication boundary confirms FHIR-19913 superseded the original exemplar.
+- E7 Community search command: Zulip and Confluence searches for FHIR-7742, administration method, and 422096002 found no relevant hits. Learned: no discovered community record changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7742",
+    "url": "https://jira.hl7.org/browse/FHIR-7742",
+    "snapshot_path": "contexts/FHIR-7742/jira/FHIR-7742.md",
+    "ref": { "jira_key": "FHIR-7742" },
+    "summary": "Published/Persuasive Pharmacy issue asking to fix the MedicationAdministration administration-method value set link and add SNOMED CT 422096002 Dosing instruction fragment as an exemplar.",
+    "learned": "This establishes the seed request and the original accepted value-set target.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "adf4e89f89fd",
+    "ref": { "commit": "adf4e89f89fd36602f6b6e7520c1025949477424" },
+    "summary": "Historical GF#7742/GF#5990 commit added the administration-method exemplar binding and 422096002 value set content.",
+    "learned": "The issue was initially applied before this reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:51,200; source/medicationadministration/structuredefinition-MedicationAdministration.xml:717-733",
+    "summary": "Dosage and MedicationAdministration are active, and MedicationAdministration.dosage.method is example-bound to the administration-method canonical value set.",
+    "learned": "The active seed artifact still carries the requested binding to the administration-method value set.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "FHIR-19913 / 1dcdc4c567 / 8f91c3f2e034",
+    "url": "https://jira.hl7.org/browse/FHIR-19913",
+    "snapshot_path": "contexts/FHIR-19913/jira/FHIR-19913.md",
+    "ref": { "jira_key": "FHIR-19913", "commit": "1dcdc4c567b23fc3748c6474ab1688bf53d662e1" },
+    "summary": "Later Published Pharmacy decision changed the active Dosage.method value set basis from 422096002 to 736665006 and the combined branch already contains the FHIR-19913 reconciliation commit.",
+    "learned": "Current source should preserve 736665006 rather than revert to the FHIR-7742-era exemplar.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/dosage.xml:1146-1160,5907-5911; source/datatypes/valueset-administration-method-codes.xml:33",
+    "summary": "Active Dosage.method binding points to valueset-administration-method-codes, and that value set filters on SNOMED CT 736665006.",
+    "learned": "The current active value-set content matches the later accepted Pharmacy decision.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "R4/R5/current administration-method-codes value set",
+    "url": "https://build.fhir.org/valueset-administration-method-codes.json",
+    "summary": "R4 publication used 422096002, while R5 and current CI use 736665006 for the administration-method value set.",
+    "learned": "Published output confirms the later FHIR-19913 boundary rather than an unapplied FHIR-7742 change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-7742 administration method 422096002",
+    "command": "bun run zulip:search fts '\"FHIR-7742\" \"administration method\" \"422096002\"' --limit 10; bun run confluence:search refs jira FHIR-7742; bun run confluence:search fts '\"FHIR-7742\" \"administration method\" \"422096002\"' --limit 10",
+    "query": "FHIR-7742 administration method 422096002",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

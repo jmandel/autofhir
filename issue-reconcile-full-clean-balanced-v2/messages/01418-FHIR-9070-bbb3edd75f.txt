@@ -1,0 +1,103 @@
+FHIR-9070: Audit Immunization status value set
+
+Issue request:
+FHIR-9070 was a Published FHIR-core Immunization change request, resolved Persuasive with Modification, asking that Immunization.status stop using the full MedicationAdministration status value set because codes such as on-hold, in-progress, and stopped were not relevant to an immunization event. The approved resolution trimmed the allowed values to completed and entered-in-error, with refused/deferred concepts handled through the then-current reasonNotGiven path.
+
+Initial application:
+The issue was applied in historical source by commit 1212b3f471b75003758b78b258e740eed23a98dd, whose message explicitly says it addressed tracker items 9070 and 11122. That commit changed the Immunization spreadsheet status short list from in-progress/on-hold/completed/entered-in-error/stopped to completed/entered-in-error, pointed the binding at a new Immunization-specific status value set, and added source/immunization/valueset-immunization-status.xml containing only completed and entered-in-error from the then-current pharmacy status code system. The Jira comment also records the change as committed on 2016-11-04.
+
+Additional context:
+Later R4 work changed the modeling rather than reverting FHIR-9070. Commit 4c5a8902abffdfb5b6e9f07b4bca119d875dc64a synchronized Immunization with the Event workflow pattern, removed the separate notGiven representation, moved refused/not-administered events into Immunization.status as not-done, and changed the status value set to a narrow event-status subset. PHWG 2018 WGM minutes and FHIR-14377 record the Event-pattern statusReason/not-done rationale. More recent PHWG decisions, including FHIR-54325 and FHIR-55330, reaffirm that current Immunization.status has exactly completed, entered-in-error, and not-done and that statusReason is limited to not-done or entered-in-error. The combined branch already contains a separate FHIR-14377 audit commit, so this commit does not duplicate that decision.
+
+AutoFHIR reconciliation:
+No source change was made. source/fhir.ini keeps Immunization in the active build, and the current authoritative source already has a required binding to http://hl7.org/fhir/ValueSet/immunization-status. That value set includes only completed, entered-in-error, and the later-approved not-done code from event-status; it does not include the irrelevant MedicationAdministration codes called out by FHIR-9070.
+
+Recommendation:
+Keep this audit commit as-is. Do not remove not-done in an attempt to match the 2016 wording literally; it is the result of later PHER/Event-pattern decisions, while the original FHIR-9070 concern remains satisfied because the broad MedicationAdministration statuses are not allowed.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-9070
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-11122: same-change-family - follow-up tracker saying GForge item 9070 had not made it into STU3; the same 2016 commit applied both items.
+FHIR-5758: later-change - R4 Immunization/Event alignment commit added not-done while preserving a narrow status set.
+FHIR-14377: supporting-decision - later PHER decision aligned Immunization reason/statusReason with Event for not-done; already represented on the combined branch.
+FHIR-54325: later-change - R6 decision reaffirmed statusReason scope for not-done and entered-in-error.
+FHIR-55330: supporting-decision - R6 no-change decision explicitly kept the three existing Immunization.status options without adding unknown/other.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-9070: Published/Persuasive with Modification request to trim Immunization.status away from broad MedicationAdministration statuses. Learned: this establishes the original approved change.
+- E2 Git 1212b3f471: historical commit addressed tracker items 9070 and 11122, added the Immunization-specific status value set, and limited it to completed and entered-in-error. Learned: the requested change was applied before this reconciliation.
+- E3 Source source/immunization/valueset-immunization-status.xml:35 and :37-44 plus source/immunization/structuredefinition-Immunization.xml:176 and :196: current active source binds Immunization.status to a value set containing completed, entered-in-error, and not-done. Learned: the current build remains narrowed and excludes on-hold, in-progress, and stopped.
+- E4 Git 4c5a8902 and Confluence PHWG page 5998816: R4 Event-pattern synchronization moved notGiven semantics into status=not-done and PHWG minutes approved related Immunization tracker changes. Learned: current not-done is a later approved evolution, not an unapplied FHIR-9070 regression.
+- E5 Jira FHIR-54325 and FHIR-55330: current-cycle PHWG decisions kept the three existing Immunization.status options and constrained statusReason to not-done or entered-in-error. Learned: later decisions support the current three-code status set.
+- E6 Command searches: direct Zulip searches for FHIR-9070/FHIR-11122 returned no hits, and Confluence refs for both keys returned no direct references. Learned: no direct community record was found that conflicts with the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-9070",
+    "url": "https://jira.hl7.org/browse/FHIR-9070",
+    "snapshot_path": "contexts/FHIR-9070/jira/FHIR-9070.md",
+    "ref": { "jira_key": "FHIR-9070" },
+    "summary": "Published/Persuasive with Modification request to trim Immunization.status from the broad MedicationAdministration status set to completed and entered-in-error.",
+    "learned": "This establishes the original approved change and the irrelevant status codes that should remain excluded.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "1212b3f471b75003758b78b258e740eed23a98dd",
+    "ref": { "commit": "1212b3f471b75003758b78b258e740eed23a98dd" },
+    "summary": "Historical commit explicitly addressed tracker items 9070 and 11122, created the Immunization status value set, and limited the status short list to completed and entered-in-error.",
+    "learned": "The FHIR-9070 source change was applied in historical source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/immunization/valueset-immunization-status.xml:35-44; source/immunization/structuredefinition-Immunization.xml:176,196",
+    "summary": "Current source binds Immunization.status to the Immunization status value set containing completed, entered-in-error, and not-done from event-status.",
+    "learned": "The current build excludes the broad MedicationAdministration statuses targeted by FHIR-9070 while retaining the later-approved not-done code.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "confluence",
+    "locator": "PHWG 2018-01 WGM Meeting Notes page 5998816",
+    "url": "https://confluence.hl7.org/spaces/PHWG/pages/5998816/2018-01+WGM+Meeting+Notes",
+    "snapshot_path": "contexts/FHIR-5758/confluence/5998816.md",
+    "ref": { "confluence_page_id": 5998816 },
+    "summary": "PHWG minutes record Immunization tracker discussion where the Event workflow pattern uses statusReason for exceptional statuses such as not-done and approved related changes 6-0-0.",
+    "learned": "The later not-done modeling has documented work-group context.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-54325 and FHIR-55330",
+    "url": "https://jira.hl7.org/browse/FHIR-55330",
+    "snapshot_path": "contexts/FHIR-55330/jira/FHIR-55330.md",
+    "ref": { "jira_key": "FHIR-55330" },
+    "summary": "Recent PHWG no-change decision says Immunization events fit one of the three existing status options: completed, entered-in-error, or not-done.",
+    "learned": "Current status cardinality and value-set scope are intentional and should not be narrowed back to two codes.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative direct community search for FHIR-9070 and FHIR-11122",
+    "command": "bun run zulip:search fts '\"FHIR 9070\" Immunization status' --limit 10; bun run zulip:search fts '\"FHIR 11122\" Immunization status' --limit 10; bun run confluence:search refs jira FHIR-9070; bun run confluence:search refs jira FHIR-11122",
+    "query": "FHIR-9070 FHIR-11122 Immunization status",
+    "result_count": 0,
+    "summary": "No direct Zulip hits or direct Confluence Jira references were found for the two tracker keys.",
+    "learned": "No discovered direct community record conflicts with the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

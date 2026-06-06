@@ -1,0 +1,102 @@
+FHIR-46256: Record ClaimResponse adjudication date as R6 change
+
+Issue request:
+FHIR-46256 was Applied with resolution Persuasive with Modification for R6. It asked to add .decisionDate 0..1 dateTime to the adjudication elements on ClaimResponse and ExplanationOfBenefit because a single ClaimResponse.created timestamp and the absence of an EOB timestamp were insufficient for tracking when adjudication decisions were made.
+
+Initial application:
+The issue was applied by 385d56bffbad3d7572b4cc12d57203a1e389514d, which added decisionDate to ClaimResponse.item.adjudication and ExplanationOfBenefit.item.adjudication. The other ClaimResponse and ExplanationOfBenefit adjudication sites are contentReferences to those item adjudication backbones, so the element is available throughout the repeated adjudication structures. Commit a2d4dd1a93d76c4077c5d9ab14b73deb9d5bbb2d later refined the short and definition text. The later R5-to-R6 change metadata recorded the EOB addition but omitted the parallel ClaimResponse addition.
+
+Additional context:
+ClaimResponse and ExplanationOfBenefit are active resources in source/fhir.ini. The linked FHIR-43309 issue concerns multi-patient EOB/claim response support and is a separate change family that does not alter the adjudication date decision. Jira, Zulip, and Confluence searches did not reveal a later reversal or conflicting work-group instruction for FHIR-46256.
+
+AutoFHIR reconciliation:
+This commit adds ClaimResponse.item.adjudication.decisionDate=+ to the [r5-r6-changes] section in source/fhir.ini so generated R5-to-R6 change notes can recognize the ClaimResponse decisionDate addition consistently with ExplanationOfBenefit. No StructureDefinition edit was needed because the authoritative ClaimResponse and ExplanationOfBenefit XML already contains the dateTime element and the other adjudication paths reuse it by contentReference.
+
+Recommendation:
+Keep this commit as-is. No further core source change or work-group review appears necessary for FHIR-46256; generated diagram artifacts should be refreshed by the normal build rather than edited manually.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-46256
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-43309: background - linked EOB multiple-patient support issue touched neighboring ClaimResponse/EOB structures but does not change the adjudication-date resolution.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-46256: Applied/Persuasive with Modification; resolution adds .decisionDate 0..1 dateTime to ClaimResponse and ExplanationOfBenefit adjudication elements. Learned: this is final WG intent for R6.
+- E2 Source source/claimresponse/structuredefinition-ClaimResponse.xml:866 and source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:1949: both item adjudication backbones now define decisionDate as dateTime. Learned: the core conformance source already carries the requested element.
+- E3 Source source/claimresponse/structuredefinition-ClaimResponse.xml:939,1008,1458,1662,1866,1877 and source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:2222,2491,2940,3152,3364,3375: additional adjudication sites contentReference the item adjudication backbone. Learned: separate child definitions are not needed for each repeated adjudication location.
+- E4 Source source/fhir.ini:2123 and source/fhir.ini:2283: R5-to-R6 metadata now records ClaimResponse.item.adjudication.decisionDate=+ alongside the existing ExplanationOfBenefit item. Learned: generated version-diff metadata is now consistent for both resources.
+- E5 Git 385d56bffbad3d7572b4cc12d57203a1e389514d and a2d4dd1a93d76c4077c5d9ab14b73deb9d5bbb2d: initial implementation added the elements and later refined wording. Learned: this reconciliation only needed to fill a missed metadata location.
+- E6 Command Zulip/Confluence/Jira searches for FHIR-46256, decisionDate, ClaimResponse, and ExplanationOfBenefit found no relevant community reversal or conflicting Jira issue. Learned: no discovered later decision changes the source conclusion.
+- E7 Verification command: git diff --check and targeted rg checks of source/fhir.ini succeeded. Learned: the metadata edit is syntactically clean and present once for each affected resource.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-46256",
+    "url": "https://jira.hl7.org/browse/FHIR-46256",
+    "snapshot_path": "contexts/FHIR-46256/jira/FHIR-46256.md",
+    "ref": { "jira_key": "FHIR-46256" },
+    "summary": "Applied/Persuasive with Modification R6 issue requiring .decisionDate 0..1 dateTime on ClaimResponse and ExplanationOfBenefit adjudication elements.",
+    "learned": "This establishes final WG intent and the target source behavior for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/claimresponse/structuredefinition-ClaimResponse.xml:866; source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:1949",
+    "summary": "The authoritative StructureDefinition XML defines ClaimResponse.item.adjudication.decisionDate and ExplanationOfBenefit.item.adjudication.decisionDate as dateTime elements.",
+    "learned": "The primary conformance source already applies the requested elements.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "ClaimResponse/EOB adjudication contentReference paths in structuredefinition XML",
+    "summary": "Detail, subDetail, addItem, addItem.detail, addItem.detail.subDetail, and header-level adjudication sites contentReference the item adjudication backbone.",
+    "learned": "The decisionDate child is inherited by the repeated adjudication structures, so duplicating children would be wrong.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:2123; source/fhir.ini:2283",
+    "summary": "The R5-to-R6 change metadata now includes ClaimResponse.item.adjudication.decisionDate=+ and already includes ExplanationOfBenefit.item.adjudication.decisionDate=+.",
+    "learned": "The remaining source gap was generated version-diff metadata for ClaimResponse.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "385d56bffbad3d7572b4cc12d57203a1e389514d; a2d4dd1a93d76c4077c5d9ab14b73deb9d5bbb2d",
+    "summary": "The first commit added adjudication decisionDate elements to ClaimResponse and EOB; the second refined the short and definition text.",
+    "learned": "Prior application was substantively complete except for the missing ClaimResponse R5-to-R6 metadata marker.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Jira/Zulip/Confluence searches for FHIR-46256 and adjudication decisionDate terms",
+    "command": "bun run jira:search fts 'decisionDate ClaimResponse ExplanationOfBenefit adjudication' --limit 20; bun run zulip:search fts '\"FHIR-46256\"' --limit 10; bun run zulip:search fts 'decisionDate ClaimResponse' --limit 10; bun run confluence:search refs jira FHIR-46256; bun run confluence:search fts '\"FHIR-46256\"' --limit 10",
+    "query": "FHIR-46256 decisionDate ClaimResponse ExplanationOfBenefit adjudication",
+    "result_count": 1,
+    "summary": "Jira term searches only found FHIR-46256 as an in-scope core issue, and Zulip/Confluence searches found no relevant hits or references.",
+    "learned": "No discovered community record or later Jira decision changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted validation of fhir.ini edit",
+    "command": "rg -n '^ClaimResponse\\.item\\.adjudication\\.decisionDate=\\+|^ExplanationOfBenefit\\.item\\.adjudication\\.decisionDate=\\+' source/fhir.ini; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/fhir.ini",
+    "summary": "The metadata markers are present for both resources and the diff has no whitespace errors.",
+    "learned": "The source edit is clean and satisfies the missing metadata requirement.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

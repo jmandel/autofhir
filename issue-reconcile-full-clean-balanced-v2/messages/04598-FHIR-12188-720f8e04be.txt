@@ -1,0 +1,128 @@
+FHIR-12188: Audit ProcedureRequest search parameters
+
+Issue request:
+FHIR-12188 was a Published/Persuasive DSTU2 Patient Care change request asking to add ProcedureRequest search parameters for code and bodySite, so radiology workflows could find requests such as CT studies of the chest.
+
+Initial application:
+The request was applied in historical source by bd9f60dbff, which explicitly mentions #12188 and added ProcedureRequest search parameters named code and body-site to source/procedurerequest/procedurerequest-spreadsheet.xml and its sheet text. No additional source-changing application is needed for the original ProcedureRequest artifact.
+
+Additional context:
+ProcedureRequest is no longer an active resource in the current build: fhir.ini lists ServiceRequest as active and records ProcedureRequest as merged into ServiceRequest. FHIR-13867 renamed ProcedureRequest to ServiceRequest. Later final ServiceRequest changes changed the relevant model: FHIR-33075 changed ServiceRequest.code from CodeableConcept to CodeableReference(ActivityDefinition|PlanDefinition), reflected now by code-concept and code-reference search parameters, and FHIR-53203 replaced bodySite/body-site usage on OO resources with bodyStructure as a CodeableReference, reflected now by body-structure-code and body-structure-reference search parameters. The deprecated body-site search parameter was intentionally removed after that later change.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scoped ServiceRequest source already preserves the implementer capability requested by FHIR-12188 through the current R6 model: token search on ServiceRequest.code.concept and ServiceRequest.bodyStructure.concept, with reference companions for the CodeableReference/reference halves. Reintroducing ProcedureRequest, bodySite, body-site, or a simple ServiceRequest code search parameter would contradict later final modeling decisions rather than complete FHIR-12188.
+
+Recommendation:
+Keep this audit commit as-is. If a future work group wants compatibility aliases such as ServiceRequest?code= or ServiceRequest?body-site= in R6, that should be raised as a new ServiceRequest search-parameter compatibility decision because FHIR-12188 itself was already applied and later superseded by model changes.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12188
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13867: later-change - renamed ProcedureRequest to ServiceRequest, establishing the current build artifact for this audit.
+FHIR-33075: later-change - changed ServiceRequest.code to CodeableReference, explaining the current code-concept and code-reference search parameters.
+FHIR-53203: later-change - replaced bodySite/search params on OO resources with bodyStructure CodeableReference, explaining the current body-structure-code and body-structure-reference search parameters.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12188: Published/Persuasive issue requested ProcedureRequest code and bodySite search parameters for imaging workflows. Learned: this is the final seed request to audit.
+- E2 Git bd9f60dbff: historical application commit explicitly mentions #12188 and added ProcedureRequest code and body-site search parameters. Learned: the original DSTU2 request was applied before later resource/model changes.
+- E3 Source source/fhir.ini:169-213 and source/fhir.ini:1474: ServiceRequest is active and ProcedureRequest is recorded as merged into ServiceRequest. Learned: ServiceRequest, not ProcedureRequest, is the current build-scoped artifact.
+- E4 Source source/servicerequest/bundle-ServiceRequest-search-params.xml:46-77,104-134: current source defines body-structure-reference, body-structure-code, code-concept, and code-reference search parameters. Learned: the current model supports searching by requested service code concept and body structure code concept.
+- E5 Source source/servicerequest/structuredefinition-ServiceRequest.xml:479-503,1170-1191: ServiceRequest.code and ServiceRequest.bodyStructure are CodeableReference-backed elements with appropriate code bindings. Learned: the split search parameters match the current element datatypes.
+- E6 Jira/Git FHIR-13867 and 06bd9f6ffe: Published/Persuasive rename changed ProcedureRequest to ServiceRequest in source and fhir.ini. Learned: the seed's artifact name was intentionally superseded.
+- E7 Jira/Git FHIR-33075 and PR #2084 history: Published/Persuasive with Modification changed ServiceRequest.code to CodeableReference(ActivityDefinition|PlanDefinition). Learned: current code-concept/code-reference search names are explained by later final modeling.
+- E8 Jira/Git FHIR-53203 and 696ac9113f/6efa714832: Applied/Persuasive R6 decision replaced bodySite search params with bodyStructure CodeableReference and removed deprecated body-site. Learned: restoring body-site would conflict with later OO resolution.
+- E9 Community search: Confluence refs for FHIR-12188 and Zulip search for ProcedureRequest/ServiceRequest search-parameter terms found no relevant hits. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12188",
+    "url": "https://jira.hl7.org/browse/FHIR-12188",
+    "snapshot_path": "contexts/FHIR-12188/jira/FHIR-12188.md",
+    "ref": { "jira_key": "FHIR-12188" },
+    "summary": "Published/Persuasive DSTU2 request to add ProcedureRequest code and bodySite search parameters for imaging workflows.",
+    "learned": "This establishes the seed request and its final workflow status.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "bd9f60dbff",
+    "ref": { "commit": "bd9f60dbff" },
+    "summary": "Commit explicitly mentions #12188 and added ProcedureRequest code and body-site search parameters.",
+    "learned": "The original ProcedureRequest search-parameter request was applied historically.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-213,1474",
+    "summary": "fhir.ini lists servicerequest=ServiceRequest as active and records ProcedureRequest as merged into ServiceRequest.",
+    "learned": "Current reconciliation must evaluate ServiceRequest source, not an inactive ProcedureRequest resource.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/servicerequest/bundle-ServiceRequest-search-params.xml:46-77,104-134",
+    "summary": "Current ServiceRequest search bundle defines body-structure-reference, body-structure-code, code-concept, and code-reference.",
+    "learned": "The current build already provides search parameters for the requested code and anatomical-site concepts under current R6 names.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:479-503,1170-1191",
+    "summary": "ServiceRequest.code and bodyStructure are CodeableReference-backed elements with code bindings.",
+    "learned": "The split search parameters align with current datatypes and are not an omission.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-13867 / git 06bd9f6ffe",
+    "url": "https://jira.hl7.org/browse/FHIR-13867",
+    "ref": { "jira_key": "FHIR-13867", "commit": "06bd9f6ffe" },
+    "summary": "Published/Persuasive decision and source commit renamed ProcedureRequest to ServiceRequest.",
+    "learned": "The current artifact name was intentionally changed after FHIR-12188.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-33075 / PR #2084 history",
+    "url": "https://jira.hl7.org/browse/FHIR-33075",
+    "ref": { "jira_key": "FHIR-33075", "commit": "d12bf7b846" },
+    "summary": "Published/Persuasive with Modification decision changed ServiceRequest.code to CodeableReference(ActivityDefinition|PlanDefinition).",
+    "learned": "This later decision explains code-concept and code-reference rather than a single code search parameter.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-53203 / git 696ac9113f and 6efa714832",
+    "url": "https://jira.hl7.org/browse/FHIR-53203",
+    "ref": { "jira_key": "FHIR-53203", "commit": "696ac9113f" },
+    "summary": "Applied/Persuasive R6 decision replaced bodySite/search params on OO resources with bodyStructure CodeableReference and removed deprecated body-site.",
+    "learned": "The absence of body-site in current ServiceRequest is intentional and should not be reverted for FHIR-12188.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-12188 and ProcedureRequest/ServiceRequest search parameters",
+    "command": "bun run confluence:search refs jira FHIR-12188; bun run zulip:search fts 'ProcedureRequest code bodySite ServiceRequest search parameter' --limit 20",
+    "query": "FHIR-12188 ProcedureRequest code bodySite ServiceRequest search parameter",
+    "result_count": 0,
+    "summary": "No directly relevant Confluence references or Zulip hits were found.",
+    "learned": "No discovered community discussion changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

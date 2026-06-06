@@ -1,0 +1,87 @@
+FHIR-39141: Allow multiple Transport reasons
+
+Issue request:
+FHIR-39141 was a Published/Persuasive-with-Modification OO change request for R5 asking to replace Transport.reasonCode and Transport.reasonReference with a single Transport.reason CodeableReference and to give that replacement element cardinality 0..*.
+
+Initial application:
+The Jira-tagged implementation commit 69b0fca978 removed the old Transport.reasonCode/reasonReference material and introduced Transport.reason as a CodeableReference, but it retained the old 0..1 maximum from the prior element. Later Transport refactoring changed mappings and removed request-oriented elements, but no discovered later Jira or source-history event superseded the 0..* cardinality part of FHIR-39141.
+
+Additional context:
+Transport is an active core resource in source/fhir.ini. The current resource is now Event-aligned, Event.reason is repeatable, and source/transport/transport-event-mapping-exceptions.xml still recorded the only cardinality divergence as Event.reason * versus Transport.reason 1. FHIR-40310 later reaffirmed that the reasonCode conflict was gone and that the remaining Transport.reason work was terminology binding, not a new cardinality restriction.
+
+AutoFHIR reconciliation:
+This commit changes Transport.reason from 0..1 to 0..* and removes the obsolete Event.reason upper-cardinality mapping exception. It deliberately leaves the stale reasonCode prose for the separate FHIR-40310 reconciliation commit, because that seed specifically records the later no-rename/TransportReason decision.
+
+Recommendation:
+Keep this source fix. It completes the explicit FHIR-39141 cardinality requirement and aligns Transport.reason with the Event pattern without reintroducing removed reasonCode or reasonReference elements.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-39141
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-40310: same-change-family - later Transport.reason issue confirming no rename was needed because reasonCode was gone and TransportReason needed an example ValueSet.
+FHIR-50911: later-change - removed remaining request-oriented Transport elements and left Transport as an event resource, supporting alignment with Event.reason.
+FHIR-50649: background - related Transport ValueSet audit already represented on the combined branch and not re-decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-39141: Published/Persuasive with Modification issue requested Transport.reason CodeableReference with cardinality 0..*. Learned: the repeatable cardinality is final WG intent for this element.
+- E2 Git 69b0fca978: implemented FHIR-39141 by replacing reasonCode/reasonReference with Transport.reason, but the resulting source retained max 1. Learned: the cardinality part of the applied issue was missed.
+- E3 Source source/transport/structuredefinition-Transport.xml:580 and source/transport/transport-event-mapping-exceptions.xml:138: current source had Transport.reason max 1 and a mapping exception documenting Event.reason * versus Transport.reason 1. Learned: the active build source still contained the semantic mismatch.
+- E4 Source source/fhir.ini:637,782,921: Transport is an active OO resource with security categorization and FMM entries. Learned: the edited StructureDefinition and mapping exception are in current core build scope.
+- E5 Jira/community search for Transport.reason cardinality: no later final Jira decision superseding the 0..* cardinality was found; Confluence 2023-02-03 minutes recorded the same FHIR-39141 motion. Learned: later evidence does not justify keeping max 1.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-39141",
+    "url": "https://jira.hl7.org/browse/FHIR-39141",
+    "snapshot_path": "contexts/FHIR-39141/jira/FHIR-39141.md",
+    "ref": { "jira_key": "FHIR-39141" },
+    "summary": "Published/Persuasive-with-Modification issue requiring Transport.reasonCode and Transport.reasonReference to be replaced by repeatable Transport.reason CodeableReference.",
+    "learned": "This establishes the final WG intent that Transport.reason should have cardinality 0..*.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "69b0fca978ce6e1a9f25e20e8970982a46c2babe",
+    "ref": { "commit": "69b0fca978ce6e1a9f25e20e8970982a46c2babe" },
+    "summary": "The original FHIR-39141 commit removed reasonCode/reasonReference and introduced Transport.reason CodeableReference but left max 1.",
+    "learned": "The application was incomplete for the explicit cardinality requirement.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/transport/structuredefinition-Transport.xml:580 and source/transport/transport-event-mapping-exceptions.xml:138",
+    "ref": { "file": "source/transport/structuredefinition-Transport.xml" },
+    "summary": "Transport.reason was max 1 and the Event mapping exception recorded the upper-cardinality mismatch against repeatable Event.reason.",
+    "learned": "The active source still diverged from the approved repeatable cardinality.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:637,782,921",
+    "ref": { "file": "source/fhir.ini" },
+    "summary": "fhir.ini lists Transport as an active OO resource with current build metadata.",
+    "learned": "The edited Transport source files are in current FHIR core build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Search for later Transport.reason cardinality decisions",
+    "command": "bun run jira:search fts 'Transport reason' --limit 40; bun run jira:search fts '\"Transport.reason\" cardinality max CodeableReference' --limit 20; bun run confluence:search refs jira FHIR-40310",
+    "query": "Transport.reason cardinality CodeableReference",
+    "summary": "Searches found FHIR-39141, FHIR-40310, FHIR-50649, and FHIR-50911 context but no later final decision preserving a 0..1 Transport.reason maximum.",
+    "learned": "No discovered later Jira or community evidence supersedes the repeatable cardinality requirement.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,86 @@
+FHIR-7837: Remove MedicationStatement PID-3 mapping
+
+Issue request:
+FHIR-7837 was a Published/Persuasive Pharmacy change request from the DSTU1 QA cycle asking to blank the HL7 v2 mapping for MedicationStatement.patient/subject by removing "PID-3-Patient ID List" because MedicationStatement is not a v2 transaction-domain concept and mapping from a v2 message that carries a patient was not expected to be a likely scenario.
+
+Initial application:
+The 2015 Pharmacy v2-mapping batch commit 5bb461af1063efe577bac2b8b17b6992be7560bf explicitly listed tracker item 7837, but inspection of the MedicationStatement spreadsheet before and after that commit showed that MedicationStatement.patient still retained the PID-3 v2 mapping while adjacent RXA/RXR/RAS mappings were removed. Later MedicationStatement/MedicationUsage refactors carried the PID-3 mapping forward into StructureDefinition XML, and the 2022 commit b9257918056a31ebdc080627432cc94db78637e0 only normalized the punctuation from "PID-3-Patient ID List" to "PID-3 Patient ID List" while applying unrelated MedicationUsage changes.
+
+Additional context:
+MedicationStatement is active in source/fhir.ini and assigned to Pharmacy, so source/medicationstatement/structuredefinition-MedicationStatement.xml is current build-scope source. Before this reconciliation, the only element-level HL7 v2 mapping left in the current MedicationStatement source was the subject mapping to PID-3, which contradicted FHIR-7837's final request while the rest of the old MedicationStatement v2 mapping cleanup had already been preserved or separately audited. Corrected Jira, Zulip, and Confluence searches found no later decision or community record that reintroduced or justified the PID-3 MedicationStatement mapping.
+
+AutoFHIR reconciliation:
+This commit removes the v2 mapping block from MedicationStatement.subject in the active StructureDefinition source. The top-level v2 mapping identity is left in place because other current StructureDefinition sources also retain mapping namespace declarations without element rows; the semantic fix is the removal of the subject row's PID-3 map value.
+
+Recommendation:
+Keep this source fix. It completes the Published FHIR-7837 request in the current core build and does not require broader MedicationStatement v2 mapping policy work unless Pharmacy decides to revisit that mapping surface separately.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7837
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-7838: same-change-family - adjacent Published/Persuasive MedicationStatement v2 mapping cleanup issue already represented on the combined branch and useful evidence that the RXA/RXR mapping removals were preserved separately from the PID-3 subject mapping.
+FHIR-7839: same-change-family - adjacent Published/Persuasive MedicationStatement v2 mapping cleanup issue already represented on the combined branch and useful context for the 2015 batch application.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7837: Published/Persuasive Pharmacy issue asking to blank the MedicationStatement patient PID-3 v2 mapping. Learned: this establishes the final requested source behavior.
+- E2 Source source/fhir.ini:203,577,1184,1393: MedicationStatement is active, assigned to Pharmacy, abbreviated mst, and approved. Learned: the MedicationStatement StructureDefinition source is in current build scope.
+- E3 Source source/medicationstatement/structuredefinition-MedicationStatement.xml:253-264: after reconciliation, MedicationStatement.subject has workflow, w5, and RIM mappings but no v2/PID-3 mapping. Learned: the current authoritative source now implements the requested blank patient v2 mapping.
+- E4 Git 5bb461af1063efe577bac2b8b17b6992be7560bf and b9257918056a31ebdc080627432cc94db78637e0: the historical batch commit named tracker 7837 but did not remove PID-3 from the spreadsheet, and the later MedicationUsage commit only reformatted the carried-forward PID-3 value. Learned: the current PID-3 value appears to be an uncorrected carry-forward rather than a later substantive reversal.
+- E5 Command/community searches: current-source grep verified no remaining PID-3 MedicationStatement map after the edit; Jira returned only FHIR-7837 for the targeted issue query, and Zulip/Confluence searches found no conflicting issue-key evidence. Learned: no discovered source or community evidence changes the fixed conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7837",
+    "url": "https://jira.hl7.org/browse/FHIR-7837",
+    "snapshot_path": "contexts/FHIR-7837/jira/FHIR-7837.md",
+    "ref": { "jira_key": "FHIR-7837" },
+    "summary": "Published/Persuasive Pharmacy issue requesting removal of the MedicationStatement patient PID-3 v2 mapping.",
+    "learned": "This establishes the final request to leave the MedicationStatement patient/subject v2 mapping blank.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:203,577,1184,1393",
+    "ref": { "path": "source/fhir.ini", "lines": "203,577,1184,1393" },
+    "summary": "MedicationStatement is configured as an active Pharmacy resource in the current build.",
+    "learned": "The MedicationStatement StructureDefinition source is in scope for a core source fix.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationstatement/structuredefinition-MedicationStatement.xml:253-264",
+    "ref": { "path": "source/medicationstatement/structuredefinition-MedicationStatement.xml", "start_line": 253, "end_line": 264 },
+    "summary": "MedicationStatement.subject now has workflow, w5, and RIM mappings but no v2 PID-3 mapping.",
+    "learned": "The active source now matches the requested blank v2 patient mapping.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "5bb461af1063efe577bac2b8b17b6992be7560bf; b9257918056a31ebdc080627432cc94db78637e0",
+    "ref": { "commit": "5bb461af1063efe577bac2b8b17b6992be7560bf" },
+    "summary": "The 2015 batch commit named tracker 7837 but left the PID-3 patient mapping in the MedicationStatement spreadsheet; a 2022 MedicationUsage commit later only changed the carried-forward spelling to PID-3 Patient ID List.",
+    "learned": "The current source's PID-3 mapping was not supported by a discovered later reversal and appears to be an uncorrected carry-forward.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Source and community searches for FHIR-7837 MedicationStatement PID-3",
+    "command": "rg -n 'PID-3|Patient ID List' source/medicationstatement/structuredefinition-MedicationStatement.xml; cd /home/jmandel/work/fhir-community-search && bun run jira:search fts '\"FHIR-7837\" MedicationStatement PID' --limit 10; bun run zulip:search fts '\"FHIR-7837\" MedicationStatement PID' --limit 10; bun run confluence:search refs jira FHIR-7837; bun run confluence:search fts '\"FHIR-7837\" MedicationStatement PID' --limit 10",
+    "query": "FHIR-7837 MedicationStatement PID-3",
+    "summary": "After the edit no PID-3/Patient ID List mapping remains in the MedicationStatement source; Jira returned the seed issue and Zulip/Confluence returned no directly relevant conflicting records.",
+    "learned": "No discovered source, Jira-neighborhood, Zulip, or Confluence evidence conflicts with removing the stale mapping.",
+    "supports": ["verification", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

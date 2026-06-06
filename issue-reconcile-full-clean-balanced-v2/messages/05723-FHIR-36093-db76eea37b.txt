@@ -1,0 +1,119 @@
+FHIR-36093: Audit Vital Signs category slicing
+
+Issue request:
+FHIR-36093 is an Applied FHIR-core Observation issue from OO, resolved Not Persuasive with Modification for R6. It reported that the R4 VitalSigns.category slicing by value:coding.code and value:coding.system prevented derived Vital Signs profiles from allowing alternate codings in an added category slice. The approved resolution text said to change category:VSCat.coding cardinality to 1:1, but later Jira comments clarified that the submitter's original concern was already addressed by changing the slicing to pattern:$this and that applying the literal 1:1 cardinality change would be incorrect.
+
+Initial application:
+No git commit explicitly mentioning FHIR-36093 was found. The substantive source application appears to have happened through later Vital Signs profile rework, especially git 71babbf5ac for FHIR-46418, which replaced Observation.category slicing by value:coding.code/value:coding.system and fixed VSCat.coding child constraints with open pattern:$this slicing and a VSCat patternCodeableConcept. The current combined branch already has a separate FHIR-46418 audit commit, so this commit does not duplicate that related issue.
+
+Additional context:
+The current source is in build scope: Observation is active in source/fhir.ini, source/igs.xml marks the Vital Signs IG as core, and source/observation/implementationguide-Observation-vitalsigns.xml includes StructureDefinition/vitalsigns. A 2022 Zulip thread confirmed the original fixed-repeated-coding problem and linked FHIR-36093. Later Jira comments on FHIR-36093 say the current pattern:$this slicing and unconstrained category:VSCat.coding cardinality allow alternate translation codings and require no further source change. FHIR-44798 later added current narrative stating that additional category codes may be included with the vital-signs category code, and that related issue is also already represented on the combined branch.
+
+AutoFHIR reconciliation:
+This is an empty audit commit. The current formal Vital Signs Base Profile has Observation.category sliced as unordered/open by pattern:$this, defines Observation.category:VSCat with a patternCodeableConcept for the vital-signs coding, and has no Observation.category:VSCat.coding child element that would force all codings in that CodeableConcept to the same system/code. The nearby Vital Signs introduction also explicitly allows one or more additional category codes. No source change is needed for FHIR-36093.
+
+Recommendation:
+Keep this audit commit as-is. If the work group wants Jira's older resolution description changed from the literal 1:1 cardinality wording, handle that as Jira cleanup or human review; the current FHIR source already implements the behavior needed for this issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36093
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-46418: same-change-family - Applied Vital Signs profile rework whose git 71babbf5ac changed the category slicing to pattern:$this and removed the fixed coding child constraints that caused the FHIR-36093 problem.
+FHIR-44798: later-change - Applied Vital Signs scope clarification that preserved category extensibility and added narrative allowing additional category codes with the vital-signs category code.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36093: Applied/Not Persuasive with Modification issue describing the alternate-coding failure and later comments saying pattern:$this already addressed it. Learned: establishes both the original problem and the final no-further-change interpretation.
+- E2 Source source/observation/structuredefinition-profile-vitalsigns.xml:107-130: current Observation.category slicing is pattern:$this/open and VSCat is a patternCodeableConcept. Learned: the formal profile no longer slices by coding.system/code and does not constrain all VSCat codings to vital-signs.
+- E3 Git 71babbf5ac: FHIR-46418 Vital Signs profile rework removed value:coding.code/value:coding.system discriminators and VSCat.coding fixed child elements. Learned: explains how the FHIR-36093 concern was applied even though the commit did not name this issue.
+- E4 Source source/fhir.ini:169-208, source/igs.xml:4-5, and source/observation/implementationguide-Observation-vitalsigns.xml:28-31: Observation and the Vital Signs IG/profile are active current-build inputs. Learned: the source checks are in build scope.
+- E5 Zulip #implementers > VitalSigns VSCat slice, 2022-11-08: Grahame Grieve confirmed fixed values on repeated codings require all matches but the intent was to allow other codings; Richard Townley-O'Neill linked FHIR-36093. Learned: community discussion corroborates the exact technical problem.
+- E6 Jira FHIR-46418 and FHIR-44798: FHIR-46418 records pre-applied git 71babbf5ac; FHIR-44798 later clarified Vital Signs category scope and current source allows additional category codes. Learned: related final decisions support leaving the current source unchanged.
+- E7 Confluence search for FHIR-36093: 2022 WGM minutes record the issue discussion; 2025 OO minutes raised whether to reopen because the literal resolution did not appear applied, but no final reopened decision was found and Jira remains Applied. Learned: meeting evidence does not override the Jira/source conclusion.
+- E8 Verification command: Ruby parsed the current profile and asserted pattern:$this/open slicing, VSCat patternCodeableConcept vital-signs coding, and absence of a constrained VSCat.coding child; git grep confirmed the introduction allows additional category codes. Learned: targeted checks confirm the current source permits the intended alternate codings.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36093",
+    "url": "https://jira.hl7.org/browse/FHIR-36093",
+    "snapshot_path": "contexts/FHIR-36093/jira/FHIR-36093.md",
+    "ref": { "jira_key": "FHIR-36093" },
+    "summary": "Applied OO issue reporting that VitalSigns.category slicing by coding system/code prevented alternate codings in derived category slices; later comments say pattern:$this already resolved it.",
+    "learned": "This establishes the issue request and the final interpretation that no additional source change is required.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-vitalsigns.xml:107-130",
+    "ref": { "path": "source/observation/structuredefinition-profile-vitalsigns.xml", "start_line": 107, "end_line": 130 },
+    "summary": "The current Vital Signs Base Profile slices Observation.category by pattern:$this with open rules and defines VSCat by patternCodeableConcept.",
+    "learned": "The formal profile no longer has the old slicing that blocked alternate codings.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "71babbf5ac7b63bce2d61d23ecf4f9d8c1bae164",
+    "ref": { "commit": "71babbf5ac7b63bce2d61d23ecf4f9d8c1bae164" },
+    "summary": "FHIR-46418 reworked the Vital Signs profile, replacing value:coding.code/value:coding.system slicing and fixed VSCat.coding children with pattern:$this and a CodeableConcept pattern.",
+    "learned": "This is the historical source application that resolved the FHIR-36093 technical problem.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-208; source/igs.xml:4-5; source/observation/implementationguide-Observation-vitalsigns.xml:28-31",
+    "ref": { "path": "source/observation/implementationguide-Observation-vitalsigns.xml", "start_line": 28, "end_line": 31 },
+    "summary": "Observation is an active resource, the Vital Signs IG is marked core, and the IG includes StructureDefinition/vitalsigns.",
+    "learned": "The inspected Vital Signs profile source is part of the current core build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > VitalSigns VSCat slice",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/VitalSigns%20VSCat%20slice",
+    "ref": { "stream": "implementers", "topic": "VitalSigns VSCat slice" },
+    "summary": "A 2022 thread confirmed fixed values on repeated codings require all matches, even though the intended Vital Signs behavior was to allow other codings; FHIR-36093 was linked.",
+    "learned": "The community discussion matches the Jira problem and supports the pattern-based correction.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-46418; FHIR-44798",
+    "url": "https://jira.hl7.org/browse/FHIR-46418",
+    "snapshot_path": "contexts/FHIR-46418/jira/FHIR-46418.md",
+    "ref": { "jira_key": "FHIR-46418" },
+    "summary": "FHIR-46418 records pre-applied git 71babbf5ac for Vital Signs rework; FHIR-44798 later added category-scope narrative that allows using the vital-signs category with other category coding needs.",
+    "learned": "Related final decisions explain and preserve the current source state without requiring a separate FHIR-36093 edit.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "2022-05-09-13 WGM page 101358457; 2025-07-22 OO on FHIR page 358262879",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/358262879/2025-07-22+OO+on+FHIR",
+    "ref": { "confluence_page_id": 358262879 },
+    "summary": "Minutes reference FHIR-36093 and later ask whether it should be reopened because the literal resolution did not appear applied, but no final reopened or conflicting decision was found.",
+    "learned": "Meeting evidence does not change the Applied Jira/source conclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted Vital Signs category verification",
+    "command": "ruby -rrexml/document -e 'assert pattern:$this/open slicing, VSCat patternCodeableConcept, and no VSCat.coding child' source/observation/structuredefinition-profile-vitalsigns.xml; git grep -n -F 'When needed, one or more additional category codes' -- source/observation/observation-vitalsigns-profile-introduction.xml",
+    "summary": "The structural assertion passed and current narrative explicitly allows additional category codes.",
+    "learned": "The current source permits the alternate codings that FHIR-36093 was concerned about.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

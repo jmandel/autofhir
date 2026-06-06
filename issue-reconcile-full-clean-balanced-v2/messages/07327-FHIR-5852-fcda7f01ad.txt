@@ -1,0 +1,130 @@
+FHIR-5852: Audit BodySite qualifier handling
+
+Issue request:
+FHIR-5852 was Published with a Persuasive with Modification OO decision for the DSTU1 BodySite resource. It asked how to represent anatomical qualifiers such as upper, lower, deep, basal, and top, whether those should live only in terminology, why side had an element but comparable qualifiers did not, and whether pre-coordinated local body-site codes such as right arm or right upper quadrant had to be decomposed before use.
+
+Initial application:
+The issue appears to have been applied before this reconciliation in commit 30f165af9ed7458068df3a2b54b7b6b474f9772d, whose subject explicitly says it pre-applied #5716, #5731, and #5852 for the BodySite resource. That commit marked the old BodySite.specificLocation path as deleted, introduced BodySite.code as a CodeableConcept, introduced BodySite.modifier 0..* CodeableConcept for laterality, relative location, directionality, number, and plane, and changed the BodySite narrative from modifiers to qualifiers. FHIR-5731 records the companion resolution from the same OO call to collapse the previous specific/relative location options into one code plus modifier model.
+
+Additional context:
+The current build no longer has an active BodySite resource: source/fhir.ini actively builds bodystructure=BodyStructure, lists BodySite as a removed resource, records that BodySite became BodyStructure, and retains BodySite.modifier=BodySite.qualifier only as a legacy rename map. Later same-artifact decisions explain the current shape: FHIR-11194 renamed modifier to qualifier, FHIR-33129 restructured BodyStructure into includedStructure/excludedStructure with structure, laterality, and qualifier children, FHIR-45256 separated laterality from the qualifier value set, and FHIR-48789 removed confusing precoordination wording while preserving the rule that BodyStructure provides detail when a corresponding code does not already indicate it.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current in-build source already supports the FHIR-5852 substance: coded body-site elements can carry pre-coordinated anatomical concepts, BodyStructure.includedStructure.structure is bound to body-site codes that may include laterality, BodyStructure.includedStructure.qualifier represents non-laterality qualifiers, and examples/value sets include requested concepts such as Upper and Lower. Restoring obsolete BodySite-specific wording or the removed precoordination narrative would conflict with later applied BodyStructure decisions rather than improve implementer understanding.
+
+Recommendation:
+Keep this audit commit as-is. Do not edit retired BodySite source for FHIR-5852; future body-site qualifier or precoordination clarifications should be made under current BodyStructure/bodyStructure trackers and should account for FHIR-33129, FHIR-45256, and FHIR-48789.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5852
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-5731: same-change-family - same OO call and implementation commit collapsed BodySite specific/relative location fields into code plus qualifier/modifier; audited separately in this reconciliation.
+FHIR-11194: later-change - renamed BodySite.modifier to BodySite.qualifier and is already represented on the combined branch.
+FHIR-33129: later-change - restructured BodyStructure into includedStructure/excludedStructure with laterality and qualifier children and is already represented on the combined branch.
+FHIR-45256: later-change - split laterality from the qualifier value set and is already represented on the combined branch.
+FHIR-48789: later-change - removed confusing BodyStructure precoordination wording while keeping current detail-when-not-in-code guidance and is already represented on the combined branch.
+FHIR-5716: background - was applied by the same historical commit but concerns BodySite.patient cardinality, a separate question not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5852: Published/Persuasive with Modification; asks how BodySite represents non-side qualifiers and pre-coordinated body-site codes. Learned: this establishes the seed issue and approved no-shredding/code-or-resource intent.
+- E2 Jira FHIR-5731: Published/Persuasive with Modification; same OO call directed removal of relativeLocation/specificLocation, renaming name to code, and collapsing side/aspect/plane/number into a repeating modifier. Learned: this is the companion modeling decision that answers the qualifier part of FHIR-5852.
+- E3 Git 30f165af9e: pre-applied #5716, #5731, and #5852 by deleting BodySite.specificLocation and adding BodySite.code plus BodySite.modifier 0..*. Learned: the seed was explicitly applied in historical BodySite source.
+- E4 Source source/fhir.ini:177,324,1449,2739: BodyStructure is active, BodySite is removed, BodySite became BodyStructure, and BodySite.modifier maps to BodySite.qualifier. Learned: current reconciliation should evaluate BodyStructure and not edit retired BodySite source.
+- E5 Source source/bodystructure/structuredefinition-BodyStructure.xml:166-185,208-223,394-409 and source/bodystructure/bodystructure-introduction.xml:25,33-36. Learned: current BodyStructure supports coded structure, laterality, qualifier, and additional detail when not already in a code.
+- E6 Source source/bodystructure/bodystructure-example.xml:24-39 and source/bodystructure/valueset-bodystructure-relative-location.xml:34-80. Learned: current examples and qualifier value set include requested qualifier concepts such as Upper and Lower.
+- E7 Source source/condition/structuredefinition-Condition.xml:348-371, source/procedure/structuredefinition-Procedure.xml:768-789, source/observation/structuredefinition-Observation.xml:878-925, source/specimen/structuredefinition-Specimen.xml:585-597, and source/servicerequest/structuredefinition-ServiceRequest.xml:1172-1183. Learned: active body-site surfaces support coded body sites and/or BodyStructure references/CodeableReferences according to later current-version decisions.
+- E8 Community search: quoted Zulip searches for FHIR-5852 and BodySite qualifier/precoordination terms plus Confluence refs/FTS searches found no directly relevant or conflicting hits. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+- E9 Verification command: git diff --check with CRLF-aware whitespace settings completed without output before the empty audit commit. Learned: there were no source edits or whitespace issues to publish for this audit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5852",
+    "url": "https://jira.hl7.org/browse/FHIR-5852",
+    "snapshot_path": "contexts/FHIR-5852/jira/FHIR-5852.md",
+    "ref": { "jira_key": "FHIR-5852" },
+    "summary": "Published/Persuasive with Modification OO issue asking how BodySite should represent anatomical qualifiers and pre-coordinated body-site codes.",
+    "learned": "This establishes the seed request and approved intent to support qualifiers and precoordination through BodySite/body-site coded representations.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-5731",
+    "url": "https://jira.hl7.org/browse/FHIR-5731",
+    "snapshot_path": "contexts/FHIR-5731/jira/FHIR-5731.md",
+    "ref": { "jira_key": "FHIR-5731" },
+    "summary": "Published/Persuasive with Modification companion issue from the same OO call requiring BodySite specific/relative location options to collapse into code plus modifier.",
+    "learned": "This companion decision supplies the concrete qualifier modeling change referenced by the FHIR-5852 resolution.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "30f165af9ed7458068df3a2b54b7b6b474f9772d",
+    "ref": { "commit": "30f165af9ed7458068df3a2b54b7b6b474f9772d" },
+    "summary": "Historical commit explicitly pre-applied #5716, #5731, and #5852 by deleting BodySite.specificLocation and adding BodySite.code plus BodySite.modifier 0..*.",
+    "learned": "The seed issue was applied in source history before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:177,324,1449,2739",
+    "ref": { "path": "source/fhir.ini", "lines": "177,324,1449,2739" },
+    "summary": "Current configuration builds BodyStructure, lists BodySite as removed, notes BodySite became BodyStructure, and maps BodySite.modifier to BodySite.qualifier.",
+    "learned": "Current build-scope review belongs on BodyStructure, not retired BodySite source.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/bodystructure/structuredefinition-BodyStructure.xml:166-185,208-223,394-409; source/bodystructure/bodystructure-introduction.xml:25,33-36",
+    "ref": { "path": "source/bodystructure/structuredefinition-BodyStructure.xml", "lines": "166-185,208-223,394-409" },
+    "summary": "Current BodyStructure has coded structure, laterality, qualifier, and narrative explaining extra detail when not represented by the code.",
+    "learned": "The active resource carries forward the qualifier and coded-location capabilities needed for FHIR-5852.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/bodystructure/bodystructure-example.xml:24-39; source/bodystructure/valueset-bodystructure-relative-location.xml:34-80",
+    "summary": "The example encodes Left plus Upper/Anterior qualifiers, and the qualifier value set includes relative-location concepts including Upper and Lower.",
+    "learned": "The current source directly covers the type of qualifier examples named by the seed issue.",
+    "supports": ["current_source", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "Condition, Procedure, Observation, Specimen, and ServiceRequest body-site definitions",
+    "summary": "Active body-site surfaces use CodeableConcept body-site codes and/or BodyStructure Reference/CodeableReference according to later resource-specific decisions.",
+    "learned": "The current spec still supports pre-coordinated coded body-site concepts and detailed BodyStructure representations without a new seed edit.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community searches for FHIR-5852 BodySite qualifier precoordination",
+    "command": "bun run zulip:search fts '\"FHIR-5852\"' --limit 10; bun run zulip:search fts 'BodySite qualifier upper lower precoordination' --limit 10; bun run confluence:search refs jira FHIR-5852; bun run confluence:search fts 'BodySite qualifier upper lower precoordination' --limit 10",
+    "query": "FHIR-5852 BodySite qualifier upper lower precoordination",
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community evidence conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Worker diff check",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The command completed without output before creating the empty audit commit.",
+    "learned": "There were no source edits or whitespace issues to publish for FHIR-5852.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

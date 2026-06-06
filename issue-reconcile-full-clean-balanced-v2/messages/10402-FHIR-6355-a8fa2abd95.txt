@@ -1,0 +1,93 @@
+FHIR-6355: Audit profile requirements generation fix
+
+Issue request:
+FHIR-6355 was a Published/Persuasive DSTU1 FHIR-core profile tooling issue. It reported that the Requirements column from derived profile spreadsheets was read by SpreadsheetParser but was not propagated into generated profile.xml StructureDefinition snapshot or differential elements.
+
+Initial application:
+The Jira comments identify svn revision 5910. Git history maps that revision to 71ac047a42bc16f33f5267a6ed257d9cebc8be80, "#6355 - add missing requirements to structure definitions", which added ProfileGenerator logic to copy non-empty element requirements into generated StructureDefinition element definitions.
+
+Additional context:
+The affected in-repository ProfileGenerator.java was removed during the 2021 Gradle/Kindling build migration, and the current FHIR checkout builds with org.hl7.fhir:kindling rather than carrying that generator source. Current fhir.ini still registers active profile spreadsheets, while current checked-in StructureDefinition source files already contain serialized requirements elements. The QICore patient profile named in the DSTU1 report is not present in the current core checkout, and no relevant Zulip or Confluence record was found that changes the Jira/git conclusion.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical source fix was applied, the old generator is no longer an editable current-build source file in this repository, and there is no current FHIR-core source location where adding or changing requirements text would correct the reported generator propagation bug.
+
+Recommendation:
+Keep this no-change audit. If requirements propagation regresses in generated profiles, handle it in the current Kindling/publisher tooling rather than by editing FHIR core source files; no follow-up core source change is indicated for FHIR-6355.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6355
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6355: Published/Persuasive DSTU1 issue for Requirements column values not propagating from profile spreadsheets to generated profile.xml. Learned: this is the final issue request and scope.
+- E2 Git 71ac047a42bc16f33f5267a6ed257d9cebc8be80: svn revision 5910 added ce.setRequirements(e.getRequirements()) in ProfileGenerator.java. Learned: the historical application directly implemented the requested propagation fix.
+- E3 Git 9f549566d1346cad7db6d2afca6080d7cebdfbbe: the 2021 Gradle/Kindling migration deleted the old in-repo ProfileGenerator.java. Learned: the originally affected generator is no longer current editable source in this checkout.
+- E4 Source build.gradle.kts:46-48,132-139 and source/fhir.ini:449-459: the current build depends on org.hl7.fhir:kindling and still registers active profile spreadsheet inputs. Learned: profile generation is now performed through current publisher tooling, not the old checked-in generator class.
+- E5 Source source/guidanceresponse/structuredefinition-GuidanceResponse.xml:99-104 plus repository searches: current StructureDefinition XML includes requirements elements, while ProfileGenerator.java and QICore profile sources are absent. Learned: no current core source omission matching the DSTU1 bug was found.
+- E6 Community search: quoted Zulip and Confluence searches for FHIR-6355, requirements, profile spreadsheet, and missing requirements in structure definitions found no relevant hits. Learned: no discovered community record changes the Jira/history-based decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6355",
+    "url": "https://jira.hl7.org/browse/FHIR-6355",
+    "snapshot_path": "contexts/FHIR-6355/jira/FHIR-6355.md",
+    "ref": { "jira_key": "FHIR-6355" },
+    "summary": "Published/Persuasive DSTU1 issue reporting that Requirements column values from derived profile spreadsheets were not written to generated profile.xml StructureDefinition elements.",
+    "learned": "This establishes the final request and confines the problem to profile spreadsheet-to-StructureDefinition generation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "71ac047a42bc16f33f5267a6ed257d9cebc8be80",
+    "ref": { "commit": "71ac047a42bc16f33f5267a6ed257d9cebc8be80", "svn_revision": 5910 },
+    "summary": "Commit '#6355 - add missing requirements to structure definitions' added a ProfileGenerator call to set requirements on generated element definitions.",
+    "learned": "The Jira's referenced SVN revision directly applied the requested generator propagation fix.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "9f549566d1346cad7db6d2afca6080d7cebdfbbe",
+    "ref": { "commit": "9f549566d1346cad7db6d2afca6080d7cebdfbbe" },
+    "summary": "The Gradle/Kindling migration deleted tools/java/.../ProfileGenerator.java from the FHIR repository.",
+    "learned": "The file changed for FHIR-6355 is no longer current editable source in this checkout.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "build.gradle.kts:46-48,132-139; source/fhir.ini:449-459",
+    "summary": "The current build depends on org.hl7.fhir:kindling for publishing and fhir.ini still lists active profile spreadsheet inputs such as elementdefinition-11179.",
+    "learned": "Current profile generation is delegated to Kindling/publisher tooling while profile spreadsheet sources remain configured for the build.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/guidanceresponse/structuredefinition-GuidanceResponse.xml:99-104 and repository search results",
+    "summary": "Current StructureDefinition XML includes serialized requirements elements; searches found no current ProfileGenerator.java or QICore profile source in the core checkout.",
+    "learned": "There is no current core source omission matching the old DSTU1 propagation bug.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community searches for FHIR-6355 and profile requirements propagation",
+    "command": "bun run zulip:search fts '\"FHIR-6355\" requirements \"profile spreadsheet\"' --limit 10; bun run zulip:search fts '\"missing requirements\" \"structure definitions\"' --limit 10; bun run confluence:search refs jira FHIR-6355; bun run confluence:search fts '\"FHIR-6355\" requirements \"profile spreadsheet\"' --limit 10; bun run confluence:search fts '\"missing requirements\" \"structure definitions\"' --limit 10",
+    "query": "FHIR-6355 requirements profile spreadsheet; missing requirements structure definitions",
+    "result_count": 0,
+    "summary": "No relevant Zulip or Confluence hits were found.",
+    "learned": "No community evidence was discovered that conflicts with the Jira and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

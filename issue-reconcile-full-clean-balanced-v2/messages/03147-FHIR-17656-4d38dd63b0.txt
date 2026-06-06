@@ -1,0 +1,109 @@
+FHIR-17656: Audit preauthorization reference placement
+
+Issue request:
+FHIR-17656 was a Published/Persuasive with Modification FM change request for STU3. It asked to move the preauthorization reference for ClaimResponse and ExplanationOfBenefit out from insurance-level placement to root-level representation and to use a single root preauthorization reference where the reference identifies the overall preauthorization response; the final Jira resolution said not to remove the current field and only to add a root-level field.
+
+Initial application:
+The issue was explicitly applied in two August 2018 tracker commits. Commit 056a20b34652ecc196253948abcb3cf2e2a14067 added ClaimResponse.preAuthRef with cardinality 0..1 and removed the generated ClaimResponse.insurance.preAuthRef row from the then-current spreadsheet source. Commit cd41718346186cc9bcfcbd35e62113863824122d added root ExplanationOfBenefit.preAuthRef while leaving the existing EOB insurance-level preAuthRef family available. The later 2018 financial-management bulk commit afb5ec66f68641293bb7950b6e0eeb118fa1444a carried those changes forward and explicitly listed FHIR-17656.
+
+Additional context:
+ClaimResponse and ExplanationOfBenefit are active approved resources in the current build configuration. The current source has root ClaimResponse.preAuthRef as 0..1 and no ClaimResponse.insurance.preAuthRef, matching the direct 2018 Zulip rationale that ClaimResponse's overall preauthorization number belonged at the root. The current EOB source has root ExplanationOfBenefit.preAuthRef and preserves ExplanationOfBenefit.insurance.preAuthRef as repeating elements, matching the historical application and the published R4, R4B, and R5 conformance surfaces. Later Published issues FHIR-18083, FHIR-22662, and FHIR-40082 added or audited related period and item-level reviewOutcome preAuthRef/preAuthPeriod structures without changing this root/insurance distinction.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Narrowing ExplanationOfBenefit.preAuthRef from 0..* to 0..1 or re-adding ClaimResponse.insurance.preAuthRef would be a substantive current-model change not supported by the complete history: the seed was applied before R4, shipped through R4/R4B/R5 in this shape, and later related decisions preserved it.
+
+Recommendation:
+Keep this no-change audit commit as-is. If FM wants to harmonize ExplanationOfBenefit.preAuthRef cardinality with ClaimResponse or restore a ClaimResponse insurance-level reference, that should be handled as a new work-group decision because it would alter long-published behavior rather than complete a clearly missing FHIR-17656 edit.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17656
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-18083: same-change-family - added root preauthorization effective-period semantics for the same ClaimResponse/EOB preauthorization response area and was already represented on the combined branch.
+FHIR-22662: later-change - added item-level preAuthRef/preAuthPeriod reviewOutcome structures while preserving root-level preAuthRef semantics.
+FHIR-40082: later-change - completed and normalized the FHIR-22662 reviewOutcome structures for ClaimResponse and ExplanationOfBenefit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17656: Published/Persuasive with Modification issue for ClaimResponse and ExplanationOfBenefit preAuthRef placement, voted 6-0-0 on 2018-10-26 and applied for STU3. Learned: this is the final issue being reconciled.
+- E2 Source source/fhir.ini:1111,1157,1339,1372: ClaimResponse and ExplanationOfBenefit are active and approved current-build resources. Learned: their StructureDefinition XML files are authoritative source for this decision.
+- E3 Source source/claimresponse/structuredefinition-ClaimResponse.xml:398-409 and source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:763-780,1269-1280: current ClaimResponse has root preAuthRef 0..1; current EOB has root preAuthRef/preAuthRefPeriod and retained insurance.preAuthRef as repeating elements. Learned: current source matches the historically applied and published resource shape.
+- E4 Git 056a20b34652ecc196253948abcb3cf2e2a14067, cd41718346186cc9bcfcbd35e62113863824122d, and afb5ec66f68641293bb7950b6e0eeb118fa1444a: tracker and bulk commits added root preAuthRef rows and carried FHIR-17656 forward. Learned: the issue was applied historically before the later XML source refactor.
+- E5 Zulip #implementers > ClaimResponse.Insurance.preAuthRef: 2018 discussion says the ClaimResponse auth number should move from insurance to root and that only preAuthRef, not insurance cardinality, was the cut-and-paste problem. Learned: community rationale supports leaving ClaimResponse with a root 0..1 reference rather than restoring insurance.preAuthRef.
+- E6 Published-spec check for R4/R4B/R5 ClaimResponse and ExplanationOfBenefit profile JSON: ClaimResponse.preAuthRef is 0..1; EOB root and insurance preAuthRef entries remain 0..* through published releases. Learned: the current source is consistent with the published application history.
+- E7 Command searches: direct Jira search found only FHIR-17656 and later related FHIR-40082 in core; direct Zulip search found the 2018 seed thread and no conflicting core discussion; Confluence refs for FHIR-17656 and Confluence preAuthRef search found no relevant hits. Learned: no discovered later WG/community evidence supports a current source change for this seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17656",
+    "url": "https://jira.hl7.org/browse/FHIR-17656",
+    "snapshot_path": "contexts/FHIR-17656/jira/FHIR-17656.md",
+    "ref": { "jira_key": "FHIR-17656" },
+    "summary": "Published/Persuasive with Modification FM issue asking to move preAuthRef placement for ClaimResponse and ExplanationOfBenefit and add a root-level field.",
+    "learned": "This establishes the final issue request being reconciled.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1111,1157,1339,1372",
+    "ref": { "path": "source/fhir.ini", "lines": "1111,1157,1339,1372" },
+    "summary": "ClaimResponse and ExplanationOfBenefit are active resource entries and are marked approved in the current build configuration.",
+    "learned": "The checked StructureDefinition XML files are in current build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/claimresponse/structuredefinition-ClaimResponse.xml:398-409; source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:763-780,1269-1280",
+    "ref": { "claimresponse_path": "source/claimresponse/structuredefinition-ClaimResponse.xml", "claimresponse_lines": "398-409", "eob_path": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml", "eob_lines": "763-780,1269-1280" },
+    "summary": "Current source defines ClaimResponse.preAuthRef at root as 0..1 and defines EOB root preAuthRef/preAuthRefPeriod plus retained EOB insurance.preAuthRef as repeating elements.",
+    "learned": "The current active source already reflects the historically applied preAuthRef placement and EOB retention pattern.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "056a20b34652ecc196253948abcb3cf2e2a14067; cd41718346186cc9bcfcbd35e62113863824122d; afb5ec66f68641293bb7950b6e0eeb118fa1444a",
+    "ref": { "commit_1": "056a20b34652ecc196253948abcb3cf2e2a14067", "commit_2": "cd41718346186cc9bcfcbd35e62113863824122d", "commit_3": "afb5ec66f68641293bb7950b6e0eeb118fa1444a" },
+    "summary": "The August 2018 tracker commits added root preAuthRef rows for ClaimResponse/EOB and the November 2018 FM bulk commit explicitly carried FHIR-17656 forward.",
+    "learned": "FHIR-17656 was historically applied before the source was refactored into current StructureDefinition XML.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > ClaimResponse.Insurance.preAuthRef",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/ClaimResponse.Insurance.preAuthRef",
+    "snapshot_path": "contexts/FHIR-17656/zulip/implementers--ClaimResponse.Insurance.preAuthRef.md",
+    "ref": { "stream": "implementers", "topic": "ClaimResponse.Insurance.preAuthRef" },
+    "summary": "The 2018 discussion says the ClaimResponse authorization number belongs at the resource root and that the cut-and-paste error was on preAuthRef, not insurance cardinality.",
+    "learned": "This supports not restoring ClaimResponse.insurance.preAuthRef in current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "R4/R4B/R5 claimresponse.profile.json and explanationofbenefit.profile.json",
+    "command": "for v in R4 R4B R5; do curl -fsSL https://hl7.org/fhir/$v/claimresponse.profile.json | jq -r '.snapshot.element[] | select(.path|test(\"preAuthRef\")) | [.path,.min,.max] | @tsv'; curl -fsSL https://hl7.org/fhir/$v/explanationofbenefit.profile.json | jq -r '.snapshot.element[] | select(.path|test(\"preAuthRef\")) | [.path,.min,.max] | @tsv'; done",
+    "summary": "Published R4/R4B/R5 keep ClaimResponse.preAuthRef at 0..1 and EOB root/insurance preAuthRef entries at 0..*.",
+    "learned": "The current source matches the published application history, so changing cardinalities now would be a new substantive decision.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-17656 and preAuthRef",
+    "command": "bun run jira:search fts '\"preAuthRef\" ClaimResponse ExplanationOfBenefit' --limit 20; bun run zulip:search fts '\"insurance.preAuthRef\"' --limit 10; bun run confluence:search refs jira FHIR-17656; bun run confluence:search fts '\"preAuthRef\"' --limit 10",
+    "query": "preAuthRef ClaimResponse ExplanationOfBenefit FHIR-17656",
+    "summary": "Searches found the seed, the later core FHIR-40082 reviewOutcome issue, and the 2018 ClaimResponse Zulip thread; no Confluence references or conflicting core community records were found.",
+    "learned": "No discovered later WG or community evidence requires a source edit for FHIR-17656.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

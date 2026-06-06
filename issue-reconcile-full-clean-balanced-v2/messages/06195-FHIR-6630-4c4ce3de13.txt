@@ -1,0 +1,99 @@
+FHIR-6630: Audit Patient death-date XPath correction
+
+Issue request:
+FHIR-6630 was a Published/Persuasive Patient Administration change request from DSTU1. It reported that the Patient deathdate search parameter XPath used f:Patient/*[starts-with(local-name(.), 'deceased')], which matched both deceasedBoolean and deceasedDateTime, and requested the target be f:Patient/f:deceasedDateTime.
+
+Initial application:
+No Jira-keyed commit for FHIR-6630 was found in the current git history. The checked-in release history and the R4B-era Patient search parameter source show the issue's requested correction already applied: the deathdate/death-date search parameter targets Patient.deceasedDateTime and used f:Patient/f:deceasedDateTime while XPath was still present.
+
+Additional context:
+FHIR-9772 later renamed the same search parameter from deathdate to death-date for style-guide conformance. FHIR-32530 later removed SearchParameter.xpath from current FHIR sources and renamed xpathUsage to processingMode, so the current absence of an XPath element is intentional and should not be treated as a missing application of FHIR-6630. A separate Patient-deceased token search issue, FHIR-23068, confirms later XPath-specific fixes were not applied because XPath definitions were being removed.
+
+AutoFHIR reconciliation:
+This commit makes no source change. The active Patient resource is in build scope, and source/patient/bundle-Patient-search-params.xml currently defines Patient-death-date with path Patient.deceasedDateTime and expression Patient.deceased.ofType(dateTime), which excludes deceasedBoolean and preserves the FHIR-6630 intent without an XPath field.
+
+Recommendation:
+Keep this no-change audit commit. Do not reintroduce SearchParameter.xpath for this issue; future changes, if any, should concern current FHIRPath search semantics rather than the retired XPath representation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6630
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-9772: same-change-family - later style-guide correction renamed the same Patient deathdate search parameter to death-date.
+FHIR-32530: later-change - global SearchParameter XPath removal explains why current source has no XPath field to edit.
+FHIR-23068: background - separate Patient-deceased token XPath issue references FHIR-6630 and notes no further XPath fix because XPath definitions were being removed.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6630: Published/Persuasive issue requested changing the Patient deathdate XPath so it targets f:Patient/f:deceasedDateTime only. Learned: final PA intent was to avoid indexing deceasedBoolean as a date.
+- E2 Source source/fhir.ini:211 and source/patient/bundle-Patient-search-params.xml:160-172: Patient is an active resource and Patient-death-date points to Patient.deceasedDateTime with expression Patient.deceased.ofType(dateTime). Learned: the current build-scope source already excludes deceasedBoolean.
+- E3 Source tools/history/release2/search-parameters.xml:28726-28756 and tools/history/release3/search-parameters.xml:33088-33118: release history shows the deathdate/death-date search parameter using f:Patient/f:deceasedDateTime. Learned: the requested XPath correction was carried forward after DSTU1.
+- E4 Git c69d71aa and 88a1f3d6: R4B source import contained f:Patient/f:deceasedDateTime, and the later XPath-removal commit deleted Patient search parameter XPath comments including that corrected XPath. Learned: current XPath absence is a later intentional refactor, not a regression.
+- E5 Jira FHIR-32530: Published/Persuasive with Modification issue says SearchParameter.xpath would be dropped and xpathUsage renamed to processingMode. Learned: current source should be evaluated through expression/path, not XPath.
+- E6 Command community search: Zulip and Confluence searches for FHIR-6630 and Patient deathdate/deceasedDateTime found no relevant hits. Learned: no discovered community evidence contradicts the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6630",
+    "url": "https://jira.hl7.org/browse/FHIR-6630",
+    "snapshot_path": "contexts/FHIR-6630/jira/FHIR-6630.md",
+    "ref": { "jira_key": "FHIR-6630" },
+    "summary": "Published/Persuasive issue reporting that Patient deathdate XPath matched deceasedBoolean and deceasedDateTime and should be f:Patient/f:deceasedDateTime.",
+    "learned": "The final requested correction is to target only the deceasedDateTime choice element for the date search parameter.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:211; source/patient/bundle-Patient-search-params.xml:160-172",
+    "ref": { "path": "source/patient/bundle-Patient-search-params.xml", "start_line": 160, "end_line": 172 },
+    "summary": "Patient is an active resource and Patient-death-date has path Patient.deceasedDateTime with expression Patient.deceased.ofType(dateTime).",
+    "learned": "The current build-scope source already encodes a date-only search parameter and does not include deceasedBoolean.",
+    "supports": ["current_source", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "tools/history/release2/search-parameters.xml:28726-28756; tools/history/release3/search-parameters.xml:33088-33118",
+    "ref": { "path": "tools/history/release2/search-parameters.xml", "start_line": 28726, "end_line": 28756 },
+    "summary": "Checked-in release history shows Patient-deathdate/death-date using XPath f:Patient/f:deceasedDateTime after the DSTU1 report.",
+    "learned": "The original XPath correction was applied in historical published artifacts before current source refactors.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "c69d71aa213de86d55e0261339c15e4bacd509e6; 88a1f3d6bd60f7618ae140179b008ac5686e8a08",
+    "ref": { "commit": "88a1f3d6bd60f7618ae140179b008ac5686e8a08" },
+    "summary": "R4B Patient source contained f:Patient/f:deceasedDateTime; the later XPath-removal commit deleted Patient search parameter XPath comments globally.",
+    "learned": "The current lack of XPath is an intentional later refactor and not a missing FHIR-6630 fix.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-32530",
+    "url": "https://jira.hl7.org/browse/FHIR-32530",
+    "ref": { "jira_key": "FHIR-32530" },
+    "summary": "Published/Persuasive with Modification issue resolving to drop SearchParameter.xpath and rename xpathUsage to processingMode.",
+    "learned": "Current source should not reintroduce XPath fields to satisfy old XPath-specific trackers.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-6630 and Patient deathdate terms",
+    "command": "bun run zulip:search fts '\"FHIR-6630\"' --limit 10; bun run zulip:search fts 'Patient deathdate deceasedDateTime' --limit 10; bun run confluence:search refs jira FHIR-6630; bun run confluence:search fts '\"FHIR-6630\"' --limit 10; bun run confluence:search fts 'Patient deathdate deceasedDateTime' --limit 10",
+    "query": "FHIR-6630 Patient deathdate deceasedDateTime",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence references were found.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

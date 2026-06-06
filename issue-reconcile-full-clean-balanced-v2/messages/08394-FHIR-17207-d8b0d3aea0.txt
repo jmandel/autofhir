@@ -1,0 +1,96 @@
+FHIR-17207: Audit StructureDefinition snapshot parameter fix
+
+Issue request:
+FHIR-17207 was a Published/Persuasive FHIR-I change request against the StructureDefinition $snapshot OperationDefinition. It reported that the "definition" parameter had a search/searchType marker despite a non-string type, violating the OperationDefinition invariant that searchType exists only when type = string. The accepted resolution was to remove the search parameter marker from the definition parameter.
+
+Initial application:
+No git commit explicitly tagged FHIR-17207 was found. The Jira record says "already fixed" in the only comment, and the current source-backed OperationDefinition already has the corrected shape: the definition parameter is type StructureDefinition with no searchType, while the separate url parameter is type string and may carry searchType="token".
+
+Additional context:
+The file is in current build scope: StructureDefinition is an active resource in source/fhir.ini, OperationDefinition is an active conformance resource, and source/structuredefinition/list-StructureDefinition-operations.xml references OperationDefinition/StructureDefinition-snapshot. A 2018 Zulip committers thread reported the same invariant failure before the Jira was resolved. Later source history touched the operation for unrelated metadata and wording, but did not reintroduce a searchType on the definition parameter.
+
+AutoFHIR reconciliation:
+Made no source change. The authoritative current source already satisfies the FHIR-17207 resolution and the invariant-oriented check confirms every parameter with searchType in this operation has type string.
+
+Recommendation:
+Keep this empty audit commit as-is. No follow-up source work is needed for FHIR-17207 unless a future build artifact again shows searchType/searchParameter on the non-string definition parameter.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17207
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17207: Published/Persuasive; requested removing the invalid search parameter marker from StructureDefinition/$snapshot definition. Learned: the final WG decision was a non-substantive correction to this OperationDefinition parameter.
+- E2 Source source/structuredefinition/operationdefinition-StructureDefinition-snapshot.xml:65: definition is type StructureDefinition with no searchType; url is type string with searchType token. Learned: the current source already implements the requested fix.
+- E3 Source source/fhir.ini:258 and source/structuredefinition/list-StructureDefinition-operations.xml:9: StructureDefinition is active and the snapshot OperationDefinition is listed for the resource. Learned: the checked source is build-scoped evidence for the current specification.
+- E4 Git 33b409a4b6: introduced the current source file with definition type StructureDefinition and no searchType. Learned: no FHIR-17207-tagged commit was found, but the current source lineage already starts in the corrected state.
+- E5 Zulip #committers > R4 core invariant validations: Brian Postlethwaite reported the same operation invariant failure on 2018-04-05. Learned: community evidence corroborates the defect but does not conflict with the current no-change conclusion.
+- E6 Verification command/query: quoted Zulip/Confluence searches for FHIR-17207 found no conflicting follow-up, and an awk check reported the definition parameter has no searchType and all searchType parameters have type string. Learned: no discovered community or source evidence requires further edits.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17207",
+    "url": "https://jira.hl7.org/browse/FHIR-17207",
+    "snapshot_path": "contexts/FHIR-17207/jira/FHIR-17207.md",
+    "ref": { "jira_key": "FHIR-17207" },
+    "summary": "Published/Persuasive issue reporting an invalid search/searchType marker on the StructureDefinition $snapshot definition parameter.",
+    "learned": "The accepted resolution was to remove the search parameter marker from the non-string definition parameter.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/structuredefinition/operationdefinition-StructureDefinition-snapshot.xml:65-83",
+    "ref": { "path": "source/structuredefinition/operationdefinition-StructureDefinition-snapshot.xml", "start_line": 65, "end_line": 83 },
+    "summary": "The definition parameter is type StructureDefinition with no searchType; the url parameter is type string with searchType token.",
+    "learned": "The current OperationDefinition already satisfies FHIR-17207 and the OperationDefinition searchType invariant.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:258; source/fhir.ini:940-941; source/structuredefinition/list-StructureDefinition-operations.xml:9",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "StructureDefinition and OperationDefinition are active build resources, and the StructureDefinition operation list references OperationDefinition/StructureDefinition-snapshot.",
+    "learned": "The inspected OperationDefinition source is in current FHIR build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "33b409a4b6d544598262f2f074ebb4b6dc466157",
+    "ref": { "commit": "33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "The current OperationDefinition source file was introduced during the 2021 source rework already showing definition without searchType.",
+    "learned": "No explicit FHIR-17207 commit was found, but current source history does not show an outstanding defect for this parameter.",
+    "supports": ["initial_application", "source_history"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#committers > R4 core invariant validations",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/R4%20core%20invariant%20validations",
+    "ref": { "stream": "committers", "topic": "R4 core invariant validations" },
+    "summary": "A 2018-04-05 message reported that operation-structuredefinition-snapshot violated the invariant limiting searchType to string parameters.",
+    "learned": "The community thread corroborates the historical defect that FHIR-17207 later recorded.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search and local invariant check",
+    "command": "bun run zulip:search fts '\"FHIR-17207\" StructureDefinition snapshot OperationDefinition' --limit 10; bun run confluence:search refs jira FHIR-17207; awk invariant check over source/structuredefinition/operationdefinition-StructureDefinition-snapshot.xml",
+    "query": "FHIR-17207 StructureDefinition snapshot OperationDefinition",
+    "result_count": 0,
+    "summary": "Quoted FHIR-17207 Zulip and Confluence searches found no conflicting follow-up; the local parameter scan found no non-string parameter with searchType.",
+    "learned": "No discovered evidence changes the conclusion that the current source is already correct.",
+    "supports": ["absence_of_conflict", "verification"]
+  }
+]
+</evidence-manifest>

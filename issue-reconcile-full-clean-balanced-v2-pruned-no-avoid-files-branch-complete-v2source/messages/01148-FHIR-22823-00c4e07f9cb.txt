@@ -1,0 +1,126 @@
+FHIR-22823: Clarify Specimen container nesting
+
+Issue request:
+FHIR-22823 was a Published/Persuasive with Modification OO change request raised against STU3 and applied for R5. It asked for arbitrary nesting of specimen containers, removal of the old "Direct" container wording and the statement that recursive containers were not addressed, and the final resolution kept Specimen.container while adding a Device reference; if a container is in a holder, the referenced Device points to its parent Device.
+
+Initial application:
+The original PR #1889 history includes Jira-linked commit 29192683e49ddd240fe9cf6620eaf7c80f2104e4 and structural commit 4d596144595f5c42835f097054592c5fffb8babd, later merged as 18485e915a. That application removed Specimen.container.identifier, Specimen.container.description, and Specimen.container.type and added Specimen.container.device, but it left active Specimen definition and introduction text saying the container was "Direct" and that recursive containers were not addressed.
+
+Additional context:
+Specimen and Device are active current-build resources in source/fhir.ini, so source/specimen/structuredefinition-Specimen.xml, source/specimen/specimen-introduction.xml, and Device.parent/Device.location are current core source. OO minutes and Zulip discussion show the WG moved away from a recursive Specimen.container backbone toward Device-based container/holder modeling. Later FHIR-36029 and FHIR-40559 decisions stayed in the same direction by keeping container details and location under the container Device rather than restoring direct Specimen.container fields.
+
+AutoFHIR reconciliation:
+This commit updates the authoritative Specimen StructureDefinition short/definition and the Specimen introduction so they no longer say nesting is unsupported. The new text points implementers to Specimen.container.device[x] and, for referenced Device instances, Device.parent and Device.location for holder hierarchy and location. The generated-looking source/specimen/specimen.svg still contains the old tooltip text and was intentionally not hand-edited; it should be refreshed by the normal build if generated artifacts are updated.
+
+Recommendation:
+Keep this source fix as the bounded FHIR-22823 reconciliation. No further core source change is needed for the seed unless the work group wants a broader example specifically demonstrating nested specimen container Devices.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22823
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-21280: background - earlier Published issue added Specimen.container.location, later discussion questioned duplication once FHIR-22823 moved container modeling to Device.
+FHIR-36029: same-change-family - later Published issue moved more container attributes from Specimen.container to Device-backed modeling and has an existing combined-branch reconciliation commit.
+FHIR-40559: later-change - later Applied issue removed Specimen.container.location because Specimen.container.device.location carries location information, reinforcing the Device-based approach.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22823: Published/Persuasive with Modification; final resolution kept Specimen.container, added a Device reference, removed identifier/description/type, and used parent Device for holders. Learned: this establishes the required current Specimen.container semantics.
+- E2 Source source/fhir.ini:169-224,620-629: Specimen and Device are active resources owned by OO. Learned: the edited StructureDefinition and narrative files are current build-scope core source.
+- E3 Source source/specimen/structuredefinition-Specimen.xml:792-814 before reconciliation: Specimen.container had device[x] but still said "Direct" and that recursive containers were not addressed. Learned: the structural application was incomplete in active element text.
+- E4 Source source/specimen/specimen-introduction.xml:29-33 before reconciliation: the Background and Context narrative said recursive containers and container location tracking were not addressed. Learned: active narrative contradicted the Device-based FHIR-22823/FHIR-40559 approach.
+- E5 Git 4d596144595f and merge 18485e915a: initial FHIR-22823 implementation removed old container detail elements and added device-backed examples/structure. Learned: prior application handled the main structure but missed stale descriptive text.
+- E6 Confluence OO 2020-12-03 Main and 2022-04-25 Specimen minutes: the vote accepted FHIR-22823 and later minutes reviewed that container now references Device and container attributes are under Device.property. Learned: meeting evidence supports the Device-based reconciliation.
+- E7 Zulip #Orders and Observation WG > Specimen Containers and holders: discussion favored representing holders/storage equipment through Device and notes that FHIR-22823 relates to avoiding duplicate Specimen.container.location. Learned: community discussion supports removing the old unsupported-nesting statement.
+- E8 Jira FHIR-40559 and combined commit 3ad33f1b5d: later final work removed Specimen.container.location because Specimen.container.device.location has location information. Learned: later source history confirms the current way to express container location is through Device.
+- E9 Verification command: CRLF-aware git diff --check and xmllint passed for the edited files. Learned: the source edit is mechanically clean.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22823",
+    "url": "https://jira.hl7.org/browse/FHIR-22823",
+    "snapshot_path": "contexts/FHIR-22823/jira/FHIR-22823.md",
+    "ref": { "jira_key": "FHIR-22823" },
+    "summary": "Published/Persuasive with Modification OO issue requiring Specimen container nesting support through Device-backed holder modeling and removal of stale direct/recursive wording.",
+    "learned": "This is the final WG decision that defines the target semantics for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-224; source/fhir.ini:620-629",
+    "summary": "Specimen and Device are active resources in the current build configuration and Specimen is assigned to OO.",
+    "learned": "The edited Specimen source and referenced Device elements are current-build core source.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/specimen/structuredefinition-Specimen.xml:792-814",
+    "summary": "Before this reconciliation, Specimen.container had device[x] but still described a direct container and said recursive containers were not addressed.",
+    "learned": "Active element text retained a semantic contradiction after the FHIR-22823 structural change.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/specimen/specimen-introduction.xml:29-33",
+    "summary": "Before this reconciliation, the Specimen narrative said recursive containers and parent-container location tracking were not addressed.",
+    "learned": "Active narrative still contradicted the Device-based container hierarchy approach.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "4d596144595f5c42835f097054592c5fffb8babd; 18485e915a",
+    "ref": { "commit": "4d596144595f5c42835f097054592c5fffb8babd" },
+    "summary": "The initial FHIR-22823 implementation removed old Specimen.container detail elements and added a container Device reference and examples.",
+    "learned": "The prior application covered the main structure but missed stale descriptive text.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "OO 2020-12-03 Main page 97468525; OO 2022-04-25 Specimen page 101351903",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/97468525/2020-12-03+Main",
+    "ref": { "confluence_page_id": 97468525 },
+    "summary": "Minutes record the FHIR-22823 vote and later review that Specimen.container now references Device and container attributes are under Device.property.",
+    "learned": "Meeting evidence confirms that the intended model is Device-backed rather than recursive Specimen.container text.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#Orders and Observation WG > Specimen Containers and holders",
+    "url": "https://chat.fhir.org/#narrow/stream/Orders%20and%20Observation%20WG/topic/Specimen%20Containers%20and%20holders",
+    "ref": { "stream": "Orders and Observation WG", "topic": "Specimen Containers and holders" },
+    "summary": "Discussion describes using Device for containers, holders, storage equipment, location, and the relationship to FHIR-22823.",
+    "learned": "Community discussion supports removing source text that says nested containers are not addressed.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-40559 and combined commit 3ad33f1b5ddaa1c4fb78d7d6de3cffcf35dc4354",
+    "url": "https://jira.hl7.org/browse/FHIR-40559",
+    "ref": { "jira_key": "FHIR-40559", "commit": "3ad33f1b5ddaa1c4fb78d7d6de3cffcf35dc4354" },
+    "summary": "Later Applied issue removed Specimen.container.location because Specimen.container.device.location carries container location information.",
+    "learned": "Later final source history reinforces the current Device-based container hierarchy and location model.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Whitespace and XML validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/specimen/structuredefinition-Specimen.xml source/specimen/specimen-introduction.xml; xmllint --noout source/specimen/structuredefinition-Specimen.xml source/specimen/specimen-introduction.xml",
+    "summary": "CRLF-aware whitespace checking and XML parsing passed for the edited files.",
+    "learned": "The source edit is mechanically clean.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

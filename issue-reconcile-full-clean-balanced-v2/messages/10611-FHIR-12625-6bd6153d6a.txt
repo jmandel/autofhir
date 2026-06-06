@@ -1,0 +1,105 @@
+FHIR-12625: Audit patient search parameter validation
+
+Issue request:
+FHIR-12625 was a Published/Persuasive DSTU2 FHIR-core issue reporting that the build no longer caught resources whose patient-capable subject reference lacked a patient search parameter. The concrete examples were MedicationStatement and MedicationRequest, and the intended fix was to restore the build warning/check for patient search parameter coverage.
+
+Initial application:
+Jira records svn revision 11446. In git history this maps to 5362a6a50040a3da339ccf786dea36204185034b, titled "#12625 - Check for patient search parameter", which added a ResourceValidator warning when a resource has subject as a Reference including Patient but lacks a patient search parameter. The current in-repository tools/java source has since moved out to Kindling, but the current build depends on org.hl7.fhir:kindling and the installed Kindling source still contains the same FHIR-12625 validation rule.
+
+Additional context:
+MedicationRequest and MedicationStatement are active resources in source/fhir.ini. Their current StructureDefinition sources both define subject as Reference(Patient, Group), and their current search-parameter bundles define patient search parameters over subject with target Patient. A bounded audit across active resource StructureDefinitions found 50 resources with either subject or patient references to Patient and no missing patient search parameter. FHIR-32876 is a later SearchParameter target-only issue in the same broad patient-search area, but it is separate from this build-coverage check and was not decided here.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already contains the patient search parameters that motivated the issue, and the current build toolchain still carries the validation rule that catches the missing-parameter condition.
+
+Recommendation:
+Keep this no-change audit commit as-is. Revisit only if the Kindling dependency is replaced or if a future active resource adds a Patient-capable subject/patient reference without a patient search parameter; otherwise no core source follow-up is needed for FHIR-12625.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12625
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32876: background - later Published issue about the target list for the generated clinical-patient SearchParameter; it concerns target narrowing rather than the FHIR-12625 build check for per-resource patient search parameter presence.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12625: Published/Persuasive issue saying resources with subject ref(Patient), specifically MedicationStatement and MedicationRequest, should have patient search parameters and build checking should catch omissions. Learned: the final request was a build/source consistency check, not a new clinical rule.
+- E2 Git 5362a6a50040a3da339ccf786dea36204185034b: git-svn build@11446 commit titled "#12625 - Check for patient search parameter" added the ResourceValidator warning for subject references that can be Patient. Learned: Jira's application maps to a concrete build validation change.
+- E3 Source build.gradle.kts:46-48,132-138 and gradle.properties:2: the current build runs org.hl7.fhir.tools.publisher.Publisher from org.hl7.fhir:kindling 1.25.5-SNAPSHOT. Learned: current validation logic lives in the Kindling dependency rather than the old in-repository tools/java tree.
+- E4 Command inspection of kindling-1.25.5-SNAPSHOT-sources.jar ResourceValidator.java:223-235: current Kindling checks subject search parameters, patient elements, and warns when subject can reference Patient but patient search is missing. Learned: the FHIR-12625 validation behavior is still present in the active build toolchain.
+- E5 Source source/medicationrequest/structuredefinition-MedicationRequest.xml:457-468 and source/medicationrequest/bundle-MedicationRequest-search-params.xml:238-251; source/medicationstatement/structuredefinition-MedicationStatement.xml:241-251 and source/medicationstatement/bundle-MedicationStatement-search-params.xml:141-154. Learned: the two Jira-named example resources currently have Patient-capable subject references and matching patient search parameters targeting Patient.
+- E6 Verification command: parsed active source/fhir.ini resources and matching StructureDefinition/search-parameter bundles; found 50 active resources with subject/patient references to Patient and MISSING_PATIENT_SEARCH_PARAMS=none. Learned: no current active core resource appears to violate the rule.
+- E7 Community/Jira search: direct Jira search found FHIR-12625; broader search surfaced FHIR-32876 as target-only background; quoted Zulip and Confluence issue-key searches found no relevant hits or conflicting minutes. Learned: no discovered later community evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12625",
+    "url": "https://jira.hl7.org/browse/FHIR-12625",
+    "snapshot_path": "contexts/FHIR-12625/jira/FHIR-12625.md",
+    "ref": { "jira_key": "FHIR-12625" },
+    "summary": "Published/Persuasive DSTU2 issue asking that resources with subject ref(Patient), including MedicationStatement and MedicationRequest, have patient search parameters and that the build catch omissions.",
+    "learned": "This establishes the approved request as a build validation and search-parameter coverage correction.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "5362a6a50040a3da339ccf786dea36204185034b",
+    "ref": { "commit": "5362a6a50040a3da339ccf786dea36204185034b", "svn_revision": 11446 },
+    "summary": "The git-svn build@11446 commit titled '#12625 - Check for patient search parameter' added a ResourceValidator warning for subject references that can be Patient but lack a patient search parameter.",
+    "learned": "The Jira application was a concrete build validation change.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "build.gradle.kts:46-48,132-138 and gradle.properties:2",
+    "ref": { "path": "build.gradle.kts", "line": 47 },
+    "summary": "The current FHIR build depends on org.hl7.fhir:kindling and runs org.hl7.fhir.tools.publisher.Publisher; gradle.properties selects kindlingVersion 1.25.5-SNAPSHOT.",
+    "learned": "The relevant current validator source is supplied by the Kindling dependency, not by the old in-repository tools/java tree.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Kindling ResourceValidator.java lines 223-235",
+    "command": "unzip -p ~/.m2/repository/org/hl7/fhir/kindling/1.25.5-SNAPSHOT/kindling-1.25.5-SNAPSHOT-sources.jar org/hl7/fhir/definitions/validation/ResourceValidator.java | nl -ba | sed -n '220,238p'",
+    "summary": "Current Kindling ResourceValidator checks subject search parameters, patient element search parameters, and warns when subject can reference Patient but patient search is missing.",
+    "learned": "The FHIR-12625 validation behavior remains present in the active build toolchain.",
+    "supports": ["initial_application", "reconciliation", "verification"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "MedicationRequest and MedicationStatement subject/search-parameter source",
+    "ref": { "path": "source/medicationrequest/bundle-MedicationRequest-search-params.xml", "line": 238 },
+    "summary": "MedicationRequest and MedicationStatement define subject as Reference(Patient, Group) and define patient search parameters over subject with target Patient.",
+    "learned": "The two resources named by the Jira issue currently satisfy the patient search parameter rule.",
+    "supports": ["reconciliation", "source_check"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Active-resource patient search parameter audit",
+    "command": "python3 script parsing source/fhir.ini active resources, source/*/structuredefinition-*.xml, and source/*/bundle-*-search-params.xml",
+    "summary": "The audit found 50 active resources with subject/patient references to Patient and MISSING_PATIENT_SEARCH_PARAMS=none.",
+    "learned": "No current active core resource appears to violate the FHIR-12625 rule.",
+    "supports": ["verification", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community and neighborhood search for FHIR-12625",
+    "command": "bun run jira:search fts '\"Build no longer catching\" patient parameter missing resource' --limit 10; bun run zulip:search fts '\"FHIR-12625\" \"patient\" \"search parameter\"' --limit 10; bun run confluence:search refs jira FHIR-12625; bun run confluence:search fts '\"FHIR-12625\" \"patient\" \"search parameter\"' --limit 10",
+    "query": "FHIR-12625 patient search parameter subject MedicationRequest",
+    "summary": "Direct Jira search returned FHIR-12625; quoted Zulip and Confluence issue-key searches found no direct relevant hits, and broader hits did not conflict with the source/git conclusion.",
+    "learned": "No discovered community evidence changes the no-change decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

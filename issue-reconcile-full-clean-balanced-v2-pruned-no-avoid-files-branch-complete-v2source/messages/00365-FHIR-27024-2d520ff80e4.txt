@@ -1,0 +1,117 @@
+FHIR-27024: Require Coverage cost value or exception
+
+Issue request:
+FHIR-27024 was a Published/Persuasive FHIR-core Coverage change request, raised in R4 and applied for R5. It asked to change Coverage.costToBeneficiary.value[x] from 1..1 to 0..1 because costToBeneficiary.exception can represent copayment exception cases where a fixed amount or percentage is irrelevant, and it also asked for an invariant requiring value[x] or exception or both.
+
+Initial application:
+Coverage is an active current-build resource through source/fhir.ini, and source history shows commit 720258c80a99566e1259c4c1a1dcacd8fbc5abbf changed Coverage.costToBeneficiary.value[x] from min 1 to min 0 in source/coverage/structuredefinition-Coverage.xml. No Jira-tagged FHIR-27024 source commit was found, and the current source/build surface lacked the requested value-or-exception invariant, so the prior application was partial.
+
+Additional context:
+FHIR-18122 introduced Coverage.costToBeneficiary.exception as the supporting element for copayment exceptions. Targeted Jira, Zulip, and Confluence searches found no later core decision reversing FHIR-27024's invariant request. The current build profile surface already exposed value[x] as 0..1 but had no Coverage.costToBeneficiary constraint beyond the generic ele-1 invariant.
+
+AutoFHIR reconciliation:
+Added cov-ctb-1 to Coverage.costToBeneficiary with FHIRPath expression value.exists() or exception.exists(), and linked that condition from the value[x] and exception child elements. Existing Coverage examples with costToBeneficiary already include value[x], exception, or both, so no example source changes were needed.
+
+Recommendation:
+Keep this commit as the completion of the Published R5 application. If the Financial Management work group later wants to allow costToBeneficiary entries that contain only categorization details without a value or exception, that should be handled by a new reversing Jira decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27024
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-18122: supporting-decision - introduced Coverage.costToBeneficiary.exception, which is the reason FHIR-27024 made value[x] optional while still requiring value[x] or exception.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27024: Published/Persuasive Coverage issue requested value[x] 1..1 -> 0..1 plus an invariant requiring value[x] or exception or both. Learned: final WG intent includes both the cardinality change and invariant.
+- E2 Source source/fhir.ini:1126: Coverage=cov is active. Learned: source/coverage/structuredefinition-Coverage.xml is in current build scope.
+- E3 Source source/coverage/structuredefinition-Coverage.xml:649: cov-ctb-1 now enforces value.exists() or exception.exists() with conditions on value[x] and exception. Learned: this commit applies the missing semantic requirement in authoritative source.
+- E4 Git 720258c80a99566e1259c4c1a1dcacd8fbc5abbf: broad FHIR code updates changed Coverage.costToBeneficiary.value[x] min from 1 to 0. Learned: the earlier R5 application handled the cardinality but not the accepted invariant.
+- E5 Jira FHIR-18122: Published/Persuasive with Modification issue introduced Coverage.costToBeneficiary.exception 0..*. Learned: exception is an accepted Coverage element and explains the FHIR-27024 rationale.
+- E6 Command community/search: targeted Jira, Zulip, and Confluence searches for FHIR-27024 and Coverage.costToBeneficiary value/exception found no reversal or competing decision. Learned: no discovered later evidence changes the Jira/source conclusion.
+- E7 Published spec https://build.fhir.org/coverage.profile.json: current build surface showed Coverage.costToBeneficiary.value[x] min=0 max=1 and no cov-ctb constraint. Learned: the missing invariant is present in the current built specification, not just stale local output.
+- E8 Verification command: git diff --check; xmllint --noout source/coverage/structuredefinition-Coverage.xml; Coverage example scan. Learned: the edited XML is well-formed, whitespace-clean, and existing Coverage examples satisfy the new invariant.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27024",
+    "url": "https://jira.hl7.org/browse/FHIR-27024",
+    "snapshot_path": "contexts/FHIR-27024/jira/FHIR-27024.md",
+    "ref": { "jira_key": "FHIR-27024" },
+    "summary": "Published/Persuasive FHIR-core Coverage issue requesting Coverage.costToBeneficiary.value[x] 1..1 -> 0..1 and an invariant requiring value[x] or exception or both.",
+    "learned": "The final WG decision requires both the optional value[x] cardinality and the value-or-exception invariant.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1126",
+    "ref": { "path": "source/fhir.ini", "line": 1126 },
+    "summary": "The active fhir.ini resource list maps Coverage=cov.",
+    "learned": "Coverage StructureDefinition source is in current build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/coverage/structuredefinition-Coverage.xml:649",
+    "ref": { "path": "source/coverage/structuredefinition-Coverage.xml", "line": 649 },
+    "summary": "Coverage.costToBeneficiary now has cov-ctb-1 with expression value.exists() or exception.exists(), with condition links on value[x] and exception.",
+    "learned": "The authoritative current source now enforces the missing invariant requested by FHIR-27024.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "720258c80a99566e1259c4c1a1dcacd8fbc5abbf",
+    "ref": { "commit": "720258c80a99566e1259c4c1a1dcacd8fbc5abbf" },
+    "summary": "The August 2022 FHIR code updates changed Coverage.costToBeneficiary.value[x] min from 1 to 0.",
+    "learned": "The previous R5 application handled the cardinality portion but did not add the requested invariant.",
+    "supports": ["initial_application", "gap_analysis"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-18122",
+    "url": "https://jira.hl7.org/browse/FHIR-18122",
+    "ref": { "jira_key": "FHIR-18122" },
+    "summary": "Published/Persuasive with Modification issue introducing Coverage.costToBeneficiary.exception 0..* for copayment exceptions.",
+    "learned": "This supplies the accepted element that FHIR-27024 relies on when value[x] is absent.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Jira/Zulip/Confluence search for FHIR-27024 and Coverage.costToBeneficiary value/exception",
+    "command": "bun run jira:search fts '\"Coverage.costToBeneficiary\" exception value cardinality' --limit 20; bun run zulip:search fts '\"FHIR-27024\"' --limit 10; bun run zulip:search fts '\"Coverage.costToBeneficiary\" exception value cardinality' --limit 10; bun run confluence:search refs jira FHIR-27024; bun run confluence:search fts '\"Coverage.costToBeneficiary\" exception value cardinality' --limit 10",
+    "query": "FHIR-27024 Coverage.costToBeneficiary exception value cardinality",
+    "result_count": 0,
+    "summary": "No directly relevant later or conflicting core decision was found in Jira, Zulip, or Confluence searches.",
+    "learned": "No discovered community or later tracker evidence changes the Published FHIR-27024 source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/coverage.profile.json",
+    "url": "https://build.fhir.org/coverage.profile.json",
+    "summary": "The current build profile had Coverage.costToBeneficiary.value[x] min=0 max=1 and no cov-ctb constraint beyond generic ele-1.",
+    "learned": "The invariant was missing from the current built surface before this reconciliation.",
+    "supports": ["gap_analysis", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local validation commands",
+    "command": "git diff --check; xmllint --noout source/coverage/structuredefinition-Coverage.xml; scan source/coverage examples for costToBeneficiary blocks lacking value[x] and exception",
+    "summary": "Whitespace and XML well-formedness checks passed, and the only Coverage example costToBeneficiary block already has both valueMoney and exception.",
+    "learned": "The source edit is syntactically safe and does not make existing Coverage examples violate the new invariant.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

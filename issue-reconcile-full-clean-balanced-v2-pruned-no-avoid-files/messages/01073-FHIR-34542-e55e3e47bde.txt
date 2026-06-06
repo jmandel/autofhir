@@ -1,0 +1,129 @@
+FHIR-34542: Restore Device.status record short
+
+Issue request:
+FHIR-34542 was a Published OO change request, resolved Persuasive with Modification for R5, asking that Device.status stop using the literal status-code list as the attribute short and instead use "The status of the Device Record." The same resolution also required the device-status ValueSet definition to describe the Device record status rather than device availability.
+
+Initial application:
+The issue was partly applied in commit 0cd35c3c18, which changed Device.status to the requested record-status short and updated the binding wording while also applying FHIR-32557 Device status/availability work. Commit 7e1bcb46e5 immediately reverted the Device.status short back to the status-code list, and commit 428be56a05 was the Jira-linked PR commit but only made a whitespace adjustment in the same area. The current source therefore retained the corrected CodeSystem/ValueSet descriptions but not the requested attribute short.
+
+Additional context:
+Device is an active current-build resource in source/fhir.ini. FHIR-32557 explains the related separation between Device.status as record status and Device.availabilityStatus as device availability. Later Applied issue FHIR-53243 re-added the unknown code to the Device status CodeSystem/ValueSet for R6, but it did not supersede FHIR-34542's direction that the Device.status short should be descriptive rather than a literal value list.
+
+AutoFHIR reconciliation:
+This commit restores the Device.status short in source/device/structuredefinition-Device.xml to "The status of the Device record." It also updates the active Device status SearchParameter description and Participant mapping-exception source copy that had inherited the stale status-value list, while preserving the later FHIR-53243 unknown code in source/device/codesystem-device-status.xml and source/device/valueset-device-status.xml.
+
+Recommendation:
+Keep this source fix. It implements the Published FHIR-34542 decision without reversing the later FHIR-53243 value-set change. No further core-source change is recommended for this issue unless the work group later changes the intended wording of Device.status itself.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34542
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-32557: same-change-family - clarified that Device.status is about the record and Device.availabilityStatus is about device availability, supporting the short-description correction.
+FHIR-53243: later-change - re-added the unknown status code to the Device status CodeSystem/ValueSet, so this reconciliation preserves unknown while removing the value list from the attribute short.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34542: Published/Persuasive with Modification issue requiring Device.status short to be "The status of the Device Record." and the device-status ValueSet definition to describe Device record status. Learned: this is final WG intent for the seed issue.
+- E2 Source source/fhir.ini:169-185: Device is listed as an active resource. Learned: source/device files are in current build scope.
+- E3 Source source/device/structuredefinition-Device.xml:420-438: Device.status was still using "active | inactive | entered-in-error | unknown" as the short while binding to device-status. Learned: the current authoritative resource source did not satisfy the seed request.
+- E4 Source source/device/codesystem-device-status.xml:41-64 and source/device/valueset-device-status.xml:41-47: the terminology descriptions already say "The status of the Device record." and include unknown in the current value set through the CodeSystem. Learned: only the stale short/derived source copies needed correction; the later unknown code should be preserved.
+- E5 Git 0cd35c3c18, 7e1bcb46e5, 428be56a05, b76fa6ef19: history shows the requested short was introduced, reverted to a code list, later linked from Jira, and then expanded with unknown for FHIR-53243. Learned: current mismatch is a real application gap rather than a later supersession of the short-description decision.
+- E6 Jira/Confluence FHIR-32557 and OO HCP minutes 2022-03-14 page 94639445: related Device status work resolved FHIR-34542 by the Device.status versus availabilityStatus distinction. Learned: surrounding WG context supports describing Device.status as record status.
+- E7 Jira/Confluence FHIR-53243 and OO HCP minutes 2025-10-27 page 391651171: later applied decision re-added unknown to device-status. Learned: the value-set membership changed later, but the attribute short need not list the values.
+- E8 Community search: quoted Zulip searches for FHIR-34542/Device.status found no relevant discussion; Confluence searches found OO HCP minutes. Learned: no discovered Zulip discussion conflicts with the Jira/source conclusion.
+- E9 Verification command: XML parsing and ripgrep checks over the edited Device source files succeeded and no stale Device.status short/description/resource copies of "active | inactive | entered-in-error | unknown" remain. Learned: the edited XML is well-formed and the targeted stale copies were removed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34542",
+    "url": "https://jira.hl7.org/browse/FHIR-34542",
+    "snapshot_path": "contexts/FHIR-34542/jira/FHIR-34542.md",
+    "ref": { "jira_key": "FHIR-34542" },
+    "summary": "Published/Persuasive with Modification issue requiring Device.status to use a record-status short instead of literal status codes.",
+    "learned": "This establishes the final seed decision to restore a descriptive Device.status short.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-185",
+    "ref": { "path": "source/fhir.ini", "start_line": 169, "end_line": 185 },
+    "summary": "Device is listed as an active current-build resource.",
+    "learned": "The source/device resource inputs are in scope for a core-source fix.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:420-438",
+    "ref": { "path": "source/device/structuredefinition-Device.xml", "start_line": 420, "end_line": 438 },
+    "summary": "Before this commit Device.status still used the status-code list as its short description.",
+    "learned": "The current authoritative Device source had not retained the FHIR-34542 short-description change.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/device/codesystem-device-status.xml:41-64 and source/device/valueset-device-status.xml:41-47",
+    "ref": { "path": "source/device/codesystem-device-status.xml", "start_line": 41, "end_line": 64 },
+    "summary": "The Device status terminology descriptions already say the status is of the Device record and the current CodeSystem includes unknown.",
+    "learned": "The terminology side of FHIR-34542 is already correct and the later FHIR-53243 unknown code should not be removed.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "0cd35c3c18, 7e1bcb46e5, 428be56a05, b76fa6ef19",
+    "ref": { "commits": "0cd35c3c18,7e1bcb46e5,428be56a05,b76fa6ef19" },
+    "summary": "Git history shows the requested short was added, reverted to a code list, linked from Jira, and later expanded with unknown for FHIR-53243.",
+    "learned": "The present code-list short is a historical application gap, not a later supersession of FHIR-34542's short-description request.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-32557",
+    "url": "https://jira.hl7.org/browse/FHIR-32557",
+    "ref": { "jira_key": "FHIR-32557" },
+    "summary": "Published related issue separated Device.status as record status from Device availability status.",
+    "learned": "This supports using record-status wording for Device.status.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-53243",
+    "url": "https://jira.hl7.org/browse/FHIR-53243",
+    "ref": { "jira_key": "FHIR-53243" },
+    "summary": "Applied R6 issue re-added unknown to the Device status CodeSystem/ValueSet.",
+    "learned": "The reconciliation must preserve unknown while fixing the Device.status short.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community search for FHIR-34542 and Device.status",
+    "command": "bun run zulip:search fts '\"FHIR-34542\" Device status' --limit 10; bun run confluence:search fts '\"FHIR-34542\" Device status' --limit 10; bun run confluence:search refs jira FHIR-34542",
+    "query": "\"FHIR-34542\" Device status",
+    "result_count": 6,
+    "summary": "Zulip had no relevant hits; Confluence returned OO HCP minutes including the March 2022 status discussion and resolution path.",
+    "learned": "No discovered community discussion conflicts with the Jira/source conclusion, and OO minutes support the related Device.status/availabilityStatus context.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "XML parse and stale-short checks",
+    "command": "python3 XML parse over edited Device XML files; rg for stale Device.status code-list short/description/resource copies",
+    "summary": "The edited XML parsed successfully and no targeted stale copies of the Device.status code-list short remained in source/device.",
+    "learned": "The source edit is syntactically valid and covers the active stale source copies found during reconciliation.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

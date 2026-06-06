@@ -1,0 +1,109 @@
+FHIR-12728: Add missing workflow encounter search parameters
+
+Issue request:
+FHIR-12728 was Published/Persuasive for DSTU2 by FHIR-I and asked that all Event and Request pattern resources have an `encounter` search parameter, in addition to the historical `context` parameter, because implementers naturally search by encounter when the pattern context points to Encounter or EpisodeOfCare.
+
+Initial application:
+The request was applied in two historical git-svn commits: 0565e3795f added `encounter` as a standard search criterion to both the Event and Request pattern spreadsheets, and df6f87077f (svn build@11224, named in Jira) added a build-validator warning for Event/Request resources. Later FHIR-17901 work renamed the pattern element itself from `context` to `encounter`, and that related reconciliation is already on the combined branch.
+
+Additional context:
+Current source/fhir.ini keeps Event and Request as active logical patterns and keeps AdverseEvent, ClaimResponse, DetectedIssue, and GuidanceResponse as active resources. Current source search showed these active Event-family resources have Encounter-bearing `encounter` elements or Event.encounter mappings but lacked authored `encounter` SearchParameter resources. DocumentReference was intentionally not changed because later FHIR-29801 renamed its encounter search surface to `context` while broadening targets to Appointment and EpisodeOfCare, and FHIR-54170 later clarified that broadened context wording. The historical Java ResourceValidator source that contained the original build warning is no longer present in this checkout, so this reconciliation fixes the concrete current conformance surface rather than reviving retired tooling.
+
+AutoFHIR reconciliation:
+This commit adds resource-specific `encounter` SearchParameter entries for AdverseEvent, ClaimResponse, DetectedIssue, and GuidanceResponse, using the existing resource encounter elements as expressions. It does not add an AllergyIntolerance search parameter because that resource is not an Event/Request pattern resource in the checked workflow evidence, and it does not add DocumentReference-encounter because the later approved search code is `context`.
+
+Recommendation:
+Keep this source fix. If the work group wants a generalized future build-time warning for missing Event/Request encounter search parameters, handle that in the current publisher/tooling repository separately; the active core search-parameter sources inspected here now satisfy the issue's current-spec requirement.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12728
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-17901: later-change - renamed Event/Request context to encounter and moved EpisodeOfCare support to a workflow extension; already represented on the combined branch.
+FHIR-29801: later-change - renamed DocumentReference.encounter/search parameter to DocumentReference.context and broadened targets, so DocumentReference is not re-added as encounter here.
+FHIR-54170: later-change - clarified the later DocumentReference.context wording after Appointment/EpisodeOfCare support.
+FHIR-12733: same-change-family - separate MedicationStatement/MedicationDispense encounter/context search request already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12728: Published/Persuasive FHIR-I issue asking for encounter search parameters on all Event and Request resources and a missing-parameter build warning. Learned: establishes the final request and scope.
+- E2 Git 0565e3795f and df6f87077f: historical git-svn application added Event/Request encounter search criteria and the svn r11224 validator warning. Learned: the issue was initially applied but needed current-source reconciliation after later refactors and resources.
+- E3 Source source/fhir.ini:154-157,174-306 and source/event/event-spreadsheet.xml:2133-2143 plus source/request/request-spreadsheet.xml:2376-2386: Event/Request are active logical patterns, the edited resources are active, and the pattern spreadsheets define encounter search criteria. Learned: the edited search-parameter bundles are current build-scope inputs aligned to the pattern.
+- E4 Source source/adverseevent/structuredefinition-AdverseEvent.xml:262-280, source/claimresponse/structuredefinition-ClaimResponse.xml:506-518, source/detectedissue/structuredefinition-DetectedIssue.xml:311-328, source/guidanceresponse/structuredefinition-GuidanceResponse.xml:196-212 and the four edited bundle-*-search-params.xml files. Learned: these active Event-family resources have Encounter-bearing elements and now have matching encounter search parameters.
+- E5 Jira/Git FHIR-29801 and FHIR-54170 plus source/documentreference/bundle-DocumentReference-search-params.xml:195-211: later OO decisions intentionally use DocumentReference.context rather than DocumentReference.encounter. Learned: DocumentReference is a deliberate exception, not a remaining FHIR-12728 miss.
+- E6 Community searches for FHIR-12728 and encounter search parameters in Zulip and Confluence found no relevant conflicting discussion or minutes. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E7 Verification command/query: XML parse of edited search-parameter bundles, CRLF-aware git diff --check, and a targeted script comparing active Event/Request encounter mappings to search surfaces all passed. Learned: the edited XML is well formed and the bounded current-source gap is closed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12728",
+    "url": "https://jira.hl7.org/browse/FHIR-12728",
+    "snapshot_path": "contexts/FHIR-12728/jira/FHIR-12728.md",
+    "ref": { "jira_key": "FHIR-12728" },
+    "summary": "Published/Persuasive FHIR-I issue asking all Event and Request resources to have an encounter search parameter and a warning when it is missing.",
+    "learned": "This establishes the approved request and the workflow-pattern scope for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "0565e3795f and df6f87077f",
+    "ref": { "commits": "0565e3795f4432dd38ab5dd6c86491d983d85bdf,df6f87077f921a157590db5f9ed25b6da8630a5b" },
+    "summary": "Historical git-svn commits added Event/Request encounter search criteria and the svn r11224 ResourceValidator warning for FHIR-12728.",
+    "learned": "The original issue was applied historically, but later source refactors and added resources required checking the current authored search-parameter bundles.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini and Event/Request pattern spreadsheets",
+    "summary": "source/fhir.ini lists Event and Request as active logical patterns and the edited resources as active; the pattern spreadsheets include encounter search criteria.",
+    "learned": "The current build scope includes the pattern and resource search-parameter inputs touched by this commit.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "AdverseEvent, ClaimResponse, DetectedIssue, and GuidanceResponse search-parameter bundles",
+    "summary": "The four active Event-family resources have Encounter-bearing elements and now have matching encounter SearchParameter entries.",
+    "learned": "These were the bounded current-source omissions under FHIR-12728 after excluding later approved exceptions.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-29801 and FHIR-54170",
+    "url": "https://jira.hl7.org/browse/FHIR-29801",
+    "snapshot_path": "contexts/FHIR-29801/jira/FHIR-29801.md",
+    "ref": { "jira_key": "FHIR-29801" },
+    "summary": "Later OO decision renamed DocumentReference.encounter to context and broadened the targets; FHIR-54170 later clarified that context wording.",
+    "learned": "DocumentReference should retain the current context search parameter rather than reintroducing an encounter code under this old issue.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-12728 encounter search parameters",
+    "command": "bun run zulip:search fts '\"FHIR-12728\" \"encounter search\" \"context\"' --limit 10; bun run confluence:search refs jira FHIR-12728; bun run confluence:search fts '\"encounter search parameter\" \"event\" \"request\"' --limit 10",
+    "query": "FHIR-12728 encounter search context; encounter search parameter event request",
+    "result_count": 0,
+    "summary": "No relevant Zulip messages or Confluence references were found for the seed or encounter-search wording.",
+    "learned": "No discovered community evidence conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and search-surface verification",
+    "command": "python3 XML parse for edited bundles; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; targeted Event/Request encounter mapping comparison",
+    "summary": "Edited XML parsed successfully, whitespace checks passed, and no active divergent Event/Request encounter mapping was left without an encounter or approved context search surface.",
+    "learned": "The source change is syntactically valid and closes the bounded current-source gap found during reconciliation.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

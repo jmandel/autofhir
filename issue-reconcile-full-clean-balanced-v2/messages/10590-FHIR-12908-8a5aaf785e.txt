@@ -1,0 +1,104 @@
+FHIR-12908: Audit retired DSTU2 IG package fix
+
+Issue request:
+FHIR-12908 was a Published FHIR-core change request raised against DSTU2 reporting that the Argonaut Data Query IG's validator.pack, downloads.xml.zip, and download.json.zip artifacts contained pre-release STU3 StructureDefinitions instead of DSTU2 definitions. Jira records resolution Persuasive/Auto-deferred, with Grahame Grieve commenting in March 2018 that it was already done.
+
+Initial application:
+No source commit was found that explicitly mentions FHIR-12908. The relevant historical IG Publisher code was changed in March 2018: cdef2faff switched dependent IG loading to validator.pack, and dc0eeec9 changed IG Publisher version handling so generated validator.pack contents and spec maps carry/use the IG version and serialize metadata resources through the correct DSTU2/DSTU3/current-version parser path.
+
+Additional context:
+The affected implementation was the old in-repository IG Publisher under tools/java/org.hl7.fhir.igtools. That publisher was removed from the FHIR core checkout by 56ceb0df with the commit subject "Remove IG publisher (it's gone to Maven)". The current checkout has no local Publisher.java sources and instead runs org.hl7.fhir.tools.publisher.Publisher from the Maven kindling dependency. The current source/igs.xml keeps the old Argonaut IG entry commented out, so the reported DSTU2 Argonaut IG packaging path is not active current core build input. Later Zulip discussion about depending on Argonaut confirms the topic moved into package-server/IG Publisher dependency handling, not current core conformance source.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical bug was already addressed before publication, and the remaining implementation surface is outside this core source checkout/current build; editing current narrative or generated download links would not change the retired DSTU2 IG Publisher behavior described by the issue.
+
+Recommendation:
+Keep this audit commit as-is for FHIR-core reconciliation. If similar Argonaut/package dependency behavior still fails in a current publisher, track and fix it in the external IG Publisher/kindling tooling rather than in this core specification checkout.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12908
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12908: Published/Persuasive DSTU2 issue says Argonaut IG downloads and validator.pack were generated with STU3 StructureDefinitions; comment says "already done". Learned: the final Jira disposition is that the publisher defect had already been fixed.
+- E2 Git cdef2faffdfd4e4eab7c369a1a0935a19c1854f6: changed IG dependency loading from definitions.json.zip to validator.pack. Learned: historical IG Publisher behavior was being corrected in the right code area shortly after the Jira report.
+- E3 Git dc0eeec9d0bc0cdecff7ab09b1a75c5be2b395bf: changed IG Publisher version handling, version.info/spec map use, and generated validator.pack serialization by target IG version including DSTU2. Learned: the specific wrong-version packaging class of defect was addressed in historical source.
+- E4 Git 56ceb0df08dd72381a4f98f1ea4ac5ea6d139a8b: removed tools/java/org.hl7.fhir.igtools publisher sources because the IG Publisher had gone to Maven. Learned: the affected implementation is no longer owned as editable core source.
+- E5 Source build.gradle.kts:46-49,132-150: current build depends on org.hl7.fhir:kindling and invokes org.hl7.fhir.tools.publisher.Publisher from that dependency. Learned: current publisher implementation is external to this checkout.
+- E6 Source source/igs.xml:19: the old Argonaut IG entry is commented out. Learned: the seed's Argonaut DSTU2 IG path is not an active current core build input.
+- E7 Command current-source/community searches: rg found no active validator.pack/downloads zip generation code in current source, Jira FTS found only FHIR-12908 for the exact package-artifact terms, Zulip found one Argonaut dependency thread, and Confluence had no FHIR-12908 references. Learned: no current core source location or conflicting community decision requires a source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12908",
+    "url": "https://jira.hl7.org/browse/FHIR-12908",
+    "snapshot_path": "contexts/FHIR-12908/jira/FHIR-12908.md",
+    "ref": { "jira_key": "FHIR-12908" },
+    "summary": "Published/Persuasive DSTU2 issue reports Argonaut IG validator.pack and download zip files using STU3 StructureDefinitions, with a comment that it was already done.",
+    "learned": "The final Jira disposition establishes that the work group considered the publisher defect already fixed.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "cdef2faffdfd4e4eab7c369a1a0935a19c1854f6",
+    "ref": { "commit": "cdef2faffdfd4e4eab7c369a1a0935a19c1854f6" },
+    "summary": "Historical IG Publisher commit changed dependency definition loading from definitions.json.zip to validator.pack.",
+    "learned": "The relevant publisher/package-loading area was corrected shortly after the issue was reported.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "dc0eeec9d0bc0cdecff7ab09b1a75c5be2b395bf",
+    "ref": { "commit": "dc0eeec9d0bc0cdecff7ab09b1a75c5be2b395bf" },
+    "summary": "Historical IG Publisher commit changed version.info/spec-map handling and wrote validator.pack resources using the selected IG version, including DSTU2 conversion.",
+    "learned": "This directly addresses the class of wrong-version definitions described by the seed issue.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "56ceb0df08dd72381a4f98f1ea4ac5ea6d139a8b",
+    "ref": { "commit": "56ceb0df08dd72381a4f98f1ea4ac5ea6d139a8b" },
+    "summary": "Commit removed tools/java/org.hl7.fhir.igtools publisher sources with the subject 'Remove IG publisher (it's gone to Maven)'.",
+    "learned": "The affected implementation is no longer editable current FHIR-core source.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "build.gradle.kts:46-49,132-150",
+    "ref": { "path": "build.gradle.kts", "lines": "46-49,132-150" },
+    "summary": "The current build depends on org.hl7.fhir:kindling and invokes org.hl7.fhir.tools.publisher.Publisher from that dependency.",
+    "learned": "Publisher behavior now belongs to external tooling rather than local core Java sources.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/igs.xml:19",
+    "ref": { "path": "source/igs.xml", "line": 19 },
+    "summary": "The Argonaut IG entry remains commented out in current source/igs.xml.",
+    "learned": "The seed's old Argonaut DSTU2 IG packaging path is not active current build input.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source and community search for FHIR-12908 package terms",
+    "command": "rg -n 'validator\\.pack|downloads\\.xml\\.zip|download\\.json\\.zip' . --glob '!publish/**'; bun run jira:search fts '\"validator.pack\" \"DSTU2\" \"STU3\"'; bun run zulip:search fts '\"FHIR-12908\" OR \"validator.pack\" \"Argonaut\"'; bun run confluence:search refs jira FHIR-12908",
+    "query": "FHIR-12908 validator.pack Argonaut downloads.xml.zip download.json.zip",
+    "summary": "No active current-source generation code or Confluence references were found; Jira returned only FHIR-12908 and Zulip returned an Argonaut dependency thread without a conflicting core-source decision.",
+    "learned": "No discovered current core source location or community record changes the no-source-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

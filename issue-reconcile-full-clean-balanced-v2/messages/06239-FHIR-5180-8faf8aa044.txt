@@ -1,0 +1,110 @@
+FHIR-5180: Audit Procedure not-done handling
+
+Issue request:
+FHIR-5180 was a Published/Persuasive DSTU1 Patient Care ballot comment asking how FHIR can represent that a Procedure did not occur. Its resolution directed adding a Procedure "not done" indicator and "not done reason" with invariants; ProcedureRequest was listed as a related artifact.
+
+Initial application:
+The issue was applied by 41dd59e1c0031104575f31ec53d420561bd65f40, which added Procedure.notDone, Procedure.reasonNotDone, a Procedure.reasonNotDone invariant, and a procedure negation reason value set to the then-authoritative Procedure spreadsheet source. No separate current ProcedureRequest edit remains to apply because ProcedureRequest is no longer an active resource.
+
+Additional context:
+FHIR-5707 added Procedure lifecycle status context in the same DSTU1 Patient Care neighborhood. FHIR-11027 later clarified the scope of negated Procedures, and that guidance is preserved in the current Procedure.status comment. FHIR-14063 then intentionally refactored the old boolean representation to the current event-pattern model by removing notDone, adding status value not-done, and renaming notDoneReason to statusReason. Current fhir.ini lists Procedure and ServiceRequest as active resources and records ProcedureRequest as merged into ServiceRequest.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active Procedure source represents non-occurrence as Procedure.status = not-done plus Procedure.statusReason bound to the procedure-not-performed-reason value set, with explanatory scope guidance. The ProcedureRequest side of the old request is now covered by active ServiceRequest request-pattern elements including statusReason and doNotPerform. Reintroducing the DSTU1 notDone/notDoneReason fields would reverse later applied workflow/event-pattern decisions.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-5180; future changes to negated Procedure semantics should be handled as new Patient Care/workflow decisions rather than by reapplying the superseded DSTU1 element shape.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5180
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-5707: same-change-family - Procedure status lifecycle work was explicitly referenced from FHIR-5180 and explains the status-based context now used for non-occurrence.
+FHIR-11027: later-change - Clarified scope guidance for negated Procedures; current Procedure.status comment preserves that guidance after the representation refactor.
+FHIR-14063: later-change - Published event-pattern synchronization intentionally superseded Procedure.notDone/notDoneReason with status not-done and statusReason.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5180: Published/Persuasive Patient Care issue requested Procedure not-done and not-done reason with invariants. Learned: the final work-group intent was to support structured Procedure non-occurrence.
+- E2 Git 41dd59e1c0031104575f31ec53d420561bd65f40: #5180 application added Procedure.notDone, Procedure.reasonNotDone, an invariant, and a negation reason value set to Procedure spreadsheet source. Learned: the issue was historically applied.
+- E3 Jira/Git FHIR-14063 and 52ac1cc0e7288f26eca9df7e2fb559dcbcbc1efd: Published event-pattern sync removed notDone, added status not-done, and renamed notDoneReason to statusReason. Learned: the current representation is an intentional later refactor, not a missing FHIR-5180 application.
+- E4 Source source/procedure/structuredefinition-Procedure.xml:195-255 and source/procedure/valueset-procedure-not-performed-reason.xml:1-112: Procedure.status includes not-done guidance and Procedure.statusReason binds to procedure-not-performed-reason. Learned: active Procedure source already carries the requested semantics.
+- E5 Source source/fhir.ini:212-213 and source/fhir.ini:1474 plus source/servicerequest/structuredefinition-ServiceRequest.xml:309-329,452-472: Procedure and ServiceRequest are active, ProcedureRequest is merged into ServiceRequest, and ServiceRequest has statusReason and doNotPerform. Learned: the related ProcedureRequest artifact is handled by the active successor resource.
+- E6 Zulip #implementers > Negation in resources and negative key searches: 2017 discussion distinguishes Procedure.notDone for scheduled/ordered procedures from general absence assertions; direct FHIR-5180 Zulip and Confluence searches found no conflicting records. Learned: community evidence supports the current scoped interpretation and does not require a source edit.
+- E7 Verification commands: idempotency check found no existing FHIR-5180 audit on the combined branch; current source grep confirmed not-done/statusReason/doNotPerform elements and no need for an authoritative source edit. Learned: publishing one no-change audit commit is the correct reconciliation action.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5180",
+    "url": "https://jira.hl7.org/browse/FHIR-5180",
+    "snapshot_path": "contexts/FHIR-5180/jira/FHIR-5180.md",
+    "ref": { "jira_key": "FHIR-5180" },
+    "summary": "Published/Persuasive DSTU1 Patient Care issue asking for structured Procedure not-done and not-done reason support with invariants.",
+    "learned": "This establishes the final approved request to support Procedure non-occurrence in structured source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "41dd59e1c0031104575f31ec53d420561bd65f40",
+    "ref": { "commit": "41dd59e1c0031104575f31ec53d420561bd65f40" },
+    "summary": "Historical #5180 application commit added Procedure.notDone, Procedure.reasonNotDone, a reasonNotDone invariant, and a procedure negation reason value set to Procedure spreadsheet source.",
+    "learned": "FHIR-5180 was applied before later workflow refactoring changed the representation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-14063 / 52ac1cc0e7288f26eca9df7e2fb559dcbcbc1efd",
+    "url": "https://jira.hl7.org/browse/FHIR-14063",
+    "snapshot_path": "contexts/FHIR-5180/jira/FHIR-14063.md",
+    "ref": { "jira_key": "FHIR-14063", "commit": "52ac1cc0e7288f26eca9df7e2fb559dcbcbc1efd" },
+    "summary": "Published event-pattern synchronization removed Procedure.notDone, introduced status value not-done, and renamed notDoneReason to statusReason.",
+    "learned": "The current status/statusReason model intentionally supersedes the original FHIR-5180 boolean fields.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/procedure/structuredefinition-Procedure.xml:195-255; source/procedure/valueset-procedure-not-performed-reason.xml:1-112",
+    "summary": "Active Procedure source has status not-done guidance and statusReason bound to the procedure-not-performed-reason value set.",
+    "learned": "The current source already conveys the approved non-occurrence semantics for Procedure.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:212-213,1474; source/servicerequest/structuredefinition-ServiceRequest.xml:309-329,452-472",
+    "summary": "fhir.ini lists Procedure and ServiceRequest as active and notes ProcedureRequest was merged into ServiceRequest; ServiceRequest includes statusReason and doNotPerform.",
+    "learned": "The ProcedureRequest-related part of the old issue belongs to the current active ServiceRequest model, not retired ProcedureRequest source.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Negation in resources",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Negation%20in%20resources",
+    "snapshot_path": "contexts/FHIR-5180/zulip/implementers--Negation-in-resources.md",
+    "ref": { "stream": "implementers", "topic": "Negation in resources" },
+    "summary": "2017 community discussion distinguishes Procedure.notDone for scheduled or ordered procedures from general absence assertions better represented by Observation or QuestionnaireResponse.",
+    "learned": "The scoped Procedure non-occurrence interpretation is consistent with current source guidance.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "FHIR-5180 idempotency and negative community/source checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-5180' -n 1 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run zulip:search fts '\"FHIR-5180\" Procedure \"not done\"' --limit 10; bun run confluence:search refs jira FHIR-5180; rg -n 'not-done|statusReason|doNotPerform' source/procedure/structuredefinition-Procedure.xml source/servicerequest/structuredefinition-ServiceRequest.xml",
+    "query": "FHIR-5180 Procedure not done",
+    "result_count": 0,
+    "summary": "No prior combined-branch FHIR-5180 commit and no direct conflicting community records were found; source grep confirmed current not-done/statusReason/doNotPerform support.",
+    "learned": "A single no-change audit commit is needed and sufficient.",
+    "supports": ["absence_of_conflict", "verification"]
+  }
+]
+</evidence-manifest>

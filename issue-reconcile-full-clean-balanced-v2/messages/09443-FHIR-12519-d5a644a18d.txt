@@ -1,0 +1,119 @@
+FHIR-12519: Audit Request requester invariant
+
+Issue request:
+FHIR-12519 was Published/Persuasive for FHIR-core _Request in the workflow area. It reported that Request.requester inv-1 used an invalid XPath contains() expression involving agent/onBehalfOf and recorded the approved correction as the FHIRPath expression `(agent.resolve().empty()) or (agent.resolve() is Device) or (agent.resolve() is Practitioner) or onBehalfOf.exists().not()`.
+
+Initial application:
+The Jira comment records svn @11105. Git history maps that to 5c1a24e73bdb67c0666527e5e9788c1b19b5ef9f, `#12519 - updated Request.requestor invariant inv-1`, which changed the invariant expression to use agent.resolve(). A later unkeyed schematron cleanup, 759f5178356c92faad909caa6ed46aa17b92b10e, corrected the XPath from `contains(f:agent, ...)` to `contains(f:agent/f:reference/@value, ...)`. Related FHIR-12811 was later noted in Jira as a duplicate of this tracker and already done.
+
+Additional context:
+The Request logical model is an active current-build source under source/fhir.ini's [logical] section. Subsequent workflow-pattern changes removed the old Request.requester.agent/onBehalfOf backbone, and 14b69a1c6dd33918b20d53ffd6cfbab523f840ba removed the obsolete inv-1 row entirely. FHIR-13445 formally recorded that the invariant was no longer relevant because onBehalfOf was being dropped from the pattern. FHIR-15128 later confirmed that onBehalfOf should not be restored to core Request/Event patterns and is already represented on the combined branch by ed79f31e79a3d4d5b47cb390e2d27e6cea324247.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current source/request/request-spreadsheet.xml defines Request.requester as a direct Reference including PractitionerRole and Device, has no Request.requester.agent or Request.requester.onBehalfOf subelements, and contains no inv-1 expression or XPath needing correction.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce the old inv-1 XPath or requester backbone; any future onBehalfOf change would require a new work-group decision that supersedes FHIR-13445 and FHIR-15128.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12519
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12811: duplicate - later Published issue describing the same Request.requester invariant expression and explicitly commented as a duplicate of tracker 12519.
+FHIR-13445: supporting-decision - Resolved - No Change issue stating the invariant was no longer relevant because onBehalfOf was being dropped from the Request pattern.
+FHIR-15128: later-change - Published issue confirming onBehalfOf should not be restored to core Request/Event workflow patterns; already reconciled on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12519: Published/Persuasive issue reporting invalid Request.requester inv-1 XPath and approving an agent.resolve()-based expression; Jira comment records svn @11105. Learned: establishes the final seed request and historical application marker.
+- E2 Git 5c1a24e73bdb67c0666527e5e9788c1b19b5ef9f: `#12519 - updated Request.requestor invariant inv-1` at git-svn build@11105. Learned: the Jira-tagged application changed the invariant expression to agent.resolve().
+- E3 Git 759f5178356c92faad909caa6ed46aa17b92b10e: `Fixed schematron issues` changed the Request requester XPath to `f:agent/f:reference/@value`. Learned: the remaining XPath-form correction was applied in nearby history even though not keyed to the issue.
+- E4 Git 14b69a1c6dd33918b20d53ffd6cfbab523f840ba: removed the obsolete Request.requester onBehalfOf invariant row after workflow-pattern refactoring. Learned: current source no longer contains the problematic invariant.
+- E5 Source source/fhir.ini:154-157 and source/request/request-spreadsheet.xml:1398-1414: request is an active logical model and Request.requester is now a direct Reference without the old agent/onBehalfOf substructure. Learned: the current build input has no remaining seed defect.
+- E6 Jira FHIR-13445 and FHIR-15128: later decisions say the onBehalfOf invariant became irrelevant and should not be restored to core workflow patterns. Learned: later WG context supports leaving the invariant absent.
+- E7 Community search: Zulip and Confluence searches for FHIR-12519 and `Request.requester onBehalfOf` found no conflicting community record. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+- E8 Verification command: `rg 'Request\.requester\.(agent|onBehalfOf)|agent\.resolve\(\)|contains\(f:agent|onBehalfOf can only' source/request/request-spreadsheet.xml` found no matches. Learned: the current Request source does not contain the bad invariant or stale subpaths.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12519",
+    "url": "https://jira.hl7.org/browse/FHIR-12519",
+    "snapshot_path": "contexts/FHIR-12519/jira/FHIR-12519.md",
+    "ref": { "jira_key": "FHIR-12519" },
+    "summary": "Published/Persuasive FHIR-core _Request issue reporting an invalid Request.requester inv-1 XPath and recording svn @11105 as applied.",
+    "learned": "This establishes the seed request, its final workflow status, and the historical application marker.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "5c1a24e73bdb67c0666527e5e9788c1b19b5ef9f",
+    "ref": { "commit": "5c1a24e73bdb67c0666527e5e9788c1b19b5ef9f" },
+    "summary": "Git-svn build@11105 commit named `#12519 - updated Request.requestor invariant inv-1` changed the invariant expression to use agent.resolve().",
+    "learned": "The Jira-tagged application was present in source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "759f5178356c92faad909caa6ed46aa17b92b10e",
+    "ref": { "commit": "759f5178356c92faad909caa6ed46aa17b92b10e" },
+    "summary": "The later `Fixed schematron issues` commit changed the Request requester XPath from contains(f:agent, ...) to contains(f:agent/f:reference/@value, ...).",
+    "learned": "The XPath-form defect was corrected in nearby history even though the commit did not cite FHIR-12519.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "14b69a1c6dd33918b20d53ffd6cfbab523f840ba",
+    "ref": { "commit": "14b69a1c6dd33918b20d53ffd6cfbab523f840ba" },
+    "summary": "The 2018 workflow-pattern update removed the obsolete Request.requester onBehalfOf invariant row.",
+    "learned": "Current source should not contain the old inv-1 at all after later pattern refactoring.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:154-157; source/request/request-spreadsheet.xml:1398-1414",
+    "ref": { "path": "source/request/request-spreadsheet.xml", "line": 1398 },
+    "summary": "The active Request logical model now defines Request.requester as a direct Reference including PractitionerRole and Device, with no agent/onBehalfOf backbone.",
+    "learned": "The current build input no longer has the structure or invariant that caused the reported error.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-13445; FHIR-15128",
+    "url": "https://jira.hl7.org/browse/FHIR-13445",
+    "summary": "FHIR-13445 resolved no-change because the invariant was no longer relevant after dropping onBehalfOf; FHIR-15128 later confirmed core should not restore workflow onBehalfOf and is already reconciled on the combined branch.",
+    "learned": "Later decisions support leaving Request.requester without the old onBehalfOf constraint.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-12519 and Request.requester onBehalfOf",
+    "command": "bun run zulip:search fts '\"FHIR-12519\"' --limit 10; bun run zulip:search fts '\"Request.requester\" onBehalfOf' --limit 10; bun run confluence:search refs jira FHIR-12519; bun run confluence:search fts '\"Request.requester\" onBehalfOf' --limit 10",
+    "query": "FHIR-12519; Request.requester onBehalfOf",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found for the seed or related Request requester terms.",
+    "learned": "No discovered community record conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Current Request source invariant search",
+    "command": "rg 'Request\\.requester\\.(agent|onBehalfOf)|agent\\.resolve\\(\\)|contains\\(f:agent|onBehalfOf can only' source/request/request-spreadsheet.xml",
+    "result_count": 0,
+    "summary": "The current Request spreadsheet contains no old Request.requester agent/onBehalfOf paths, agent.resolve invariant, or f:agent XPath expression.",
+    "learned": "There is no remaining source text to change for FHIR-12519.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,113 @@
+FHIR-3976: Audit Condition status and certainty cleanup
+
+Issue request:
+FHIR-3976 was a Published/Persuasive with Modification DSTU1 Patient Care issue about overlapping ways to say a Condition did not exist: the then-current certainty value set included known absent/not suspected/known possible/probably present/definitely present concepts that overlapped status values such as provisional, working, confirmed, and refuted. The approved PC WG motion was to rename Condition.status to clinicalStatus and remove the concept of certainty.
+
+Initial application:
+The issue appears to have been applied by git commit 1f32e2833bae9fb8cc45636c39142020e353b5c6, whose subject is "#3976 - rename Condition.status to Condition.clinicalStatus" and whose git-svn-id records build@4789, matching the Jira comment. That commit renamed Condition.status references in the then-current Condition spreadsheet, renamed the status search parameter to clinicalstatus, and marked Condition.certainty as removed in the spreadsheet source.
+
+Additional context:
+FHIR-5708 and FHIR-5734 are the same early Condition status/certainty family and both point back to #3976; FHIR-5708 already has an AutoFHIR audit commit on the combined branch. Later Published issues FHIR-7581 and FHIR-7864 split the post-rename status model into clinicalStatus and verificationStatus, while FHIR-7617 refined the verification-status values by dropping working. Current source therefore should not be expected to literally preserve the one-element 2015 clinicalStatus proposal, but it should have no Condition.status or Condition.certainty element and should express absence/refutation through the later approved model.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Condition is active in source/fhir.ini, and the active Condition StructureDefinition now defines Condition.clinicalStatus and Condition.verificationStatus with required bindings. Searches of the current Condition source find no Condition.status or Condition.certainty element/path, and the current search parameters target clinical-status and verification-status. Two legacy condition-certainty value-set XML files and OID entries remain in source, but they are not bound from Condition, are not listed as active fhir.ini value sets, and the corresponding CI build value-set pages return 404, so removing them would be an out-of-scope cleanup rather than a necessary current-spec correction for this issue.
+
+Recommendation:
+Keep this audit commit as-is. No current core source edit is needed for FHIR-3976; future Condition absence or refutation changes should be handled through the later clinicalStatus/verificationStatus issue family, and any cleanup of unreferenced historical certainty files should be a deliberate terminology/source-hygiene task rather than part of this seed.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3976
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-5708: same-change-family - Published issue asking to rename Condition.status; its resolution points to GForge #3976 and it is already represented by a combined-branch audit commit.
+FHIR-5734: background - Resolved - No Change request to remove the overlapping Condition.status/certainty model; its resolution says to see #3976.
+FHIR-7581: later-change - Published issue that split the post-3976 status concept into verificationStatus and clinicalStatus.
+FHIR-7864: same-change-family - Published duplicate-family issue resolved as per FHIR-7581 for separating record/clinical and confirmation status.
+FHIR-7617: later-change - Published issue refining the verification/confirmation status values by dropping working.
+FHIR-28458: later-change - Published issue clarifying current refuted Condition guidance through verificationStatus rather than a certainty element.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3976: Published/Persuasive with Modification PC WG motion to rename status to clinical status and remove certainty. Learned: this is the final seed decision to check against current Condition source.
+- E2 Git 1f32e2833bae9fb8cc45636c39142020e353b5c6: commit "#3976 - rename Condition.status to Condition.clinicalStatus" with git-svn build@4789. Learned: the Jira application comment maps to a real source-history change that also marked Condition.certainty removed.
+- E3 Source source/fhir.ini:169-180 and source/condition/structuredefinition-Condition.xml:143-207: Condition is active and defines clinicalStatus plus verificationStatus. Learned: the current build-scope model reflects the approved rename after later status split decisions.
+- E4 Source source/condition/bundle-Condition-search-params.xml:159-170 and 446-457: Condition search parameters use clinical-status and verification-status expressions. Learned: dependent current search surfaces follow the post-rename element names.
+- E5 Command current source/build-scope searches: no Condition.status or Condition.certainty paths; condition-certainty files only self-reference plus oids.ini; build.fhir.org certainty value-set pages return 404. Learned: no current built Condition semantics still expose the removed certainty concept.
+- E6 Jira FHIR-7581/FHIR-7864/FHIR-7617/FHIR-28458 and combined commit af5c60cca60919bcbbdd87e9f882101f2892ad47 for FHIR-5708. Learned: later final decisions explain why current source has verificationStatus as well as clinicalStatus, and related FHIR-5708 has already been audited.
+- E7 Community search for FHIR-3976 and Condition certainty/status terms: no exact-key Zulip or Confluence references were found; broader Confluence hits concerned later clinicalStatus/verificationStatus issues, not a conflicting #3976 decision. Learned: no discovered community record changes the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3976",
+    "url": "https://jira.hl7.org/browse/FHIR-3976",
+    "snapshot_path": "contexts/FHIR-3976/jira/FHIR-3976.md",
+    "ref": { "jira_key": "FHIR-3976" },
+    "summary": "Published/Persuasive with Modification issue whose PC WG motion renamed Condition.status to clinical status and removed certainty.",
+    "learned": "This establishes the final seed request to compare with the current Condition source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "1f32e2833bae9fb8cc45636c39142020e353b5c6",
+    "ref": { "commit": "1f32e2833bae9fb8cc45636c39142020e353b5c6" },
+    "summary": "Commit subject '#3976 - rename Condition.status to Condition.clinicalStatus' records git-svn build@4789 and changed the then-current Condition spreadsheet source.",
+    "learned": "The Jira application comment maps to an actual source-history application of the seed decision.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-180; source/condition/structuredefinition-Condition.xml:143-207",
+    "ref": { "path": "source/condition/structuredefinition-Condition.xml", "start_line": 143, "end_line": 207 },
+    "summary": "The active Condition resource defines Condition.clinicalStatus and Condition.verificationStatus with required bindings to current value sets.",
+    "learned": "The current build-scope source has the post-rename/split status model rather than Condition.status or certainty.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/condition/bundle-Condition-search-params.xml:159-170,446-457",
+    "ref": { "path": "source/condition/bundle-Condition-search-params.xml" },
+    "summary": "Condition search parameters expose clinical-status as Condition.clinicalStatus and verification-status as Condition.verificationStatus.",
+    "learned": "Dependent search surfaces align with the current element names and do not preserve a Condition.status search parameter.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current source and CI build checks for Condition status/certainty",
+    "command": "git grep -n 'Condition\\.status' HEAD -- source/condition; git grep -n 'Condition\\.certainty' HEAD -- source/condition; rg -n 'condition-certainty|ConditionDiagnosisCertainty' source/condition source/fhir.ini source/oids.ini; curl -L -s -o /tmp/fetch.tmp -w '%{http_code}' https://build.fhir.org/valueset-condition-certainty-absent.html https://build.fhir.org/valueset-condition-certainty-present.html",
+    "query": "Condition.status, Condition.certainty, condition-certainty",
+    "summary": "No Condition.status or Condition.certainty element/path remains; condition-certainty appears only in two legacy value-set files and oids.ini, and the CI build pages for those value sets return 404.",
+    "learned": "The removed certainty concept is not exposed by the current built Condition semantics, so source cleanup is not required for this seed.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-7581/FHIR-7864/FHIR-7617/FHIR-28458 and FHIR-5708 audit commit",
+    "url": "https://jira.hl7.org/browse/FHIR-7581",
+    "snapshot_path": "contexts/FHIR-7581/jira/FHIR-7581.md",
+    "summary": "Later Published Condition issues split and refined the post-3976 status model; FHIR-5708, which points to #3976, is already audited on the combined branch.",
+    "learned": "These related decisions explain current verificationStatus wording without requiring another source change for FHIR-3976.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-3976 plus Condition certainty/status terms",
+    "command": "bun run zulip:search fts '\"FHIR-3976\" Condition certainty clinicalStatus' --limit 10; bun run zulip:search fts 'Condition certainty clinicalStatus verificationStatus' --limit 10; bun run confluence:search refs jira FHIR-3976 --limit 10; bun run confluence:search fts '\"FHIR-3976\" Condition certainty clinicalStatus' --limit 10",
+    "query": "FHIR-3976 Condition certainty clinicalStatus verificationStatus",
+    "result_count": 0,
+    "summary": "No exact-key Zulip or Confluence references and no conflicting community evidence were found for FHIR-3976.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,119 @@
+FHIR-26639: Audit Device property value choice
+
+Issue request:
+FHIR-26639 was Published/Persuasive for R5 by OO and asked to rationalize Device.property and DeviceDefinition.property so a single property value is represented as a choice value[x], rather than separate valueQuantity and valueCode elements that could both appear.
+
+Initial application:
+Commit 5af20b6658ab34965b88e626e6052eb5b8c759a2 applied the issue to Device by replacing Device.property.valueQuantity and Device.property.valueCode with Device.property.value[x]. DeviceDefinition still had the old split immediately after that commit, but the same artifact family was subsequently reconciled through the published FHIR-26424 work: f7809084c6ff4cb26ba4773a2eadaab473e86641 converted DeviceDefinition.property.valueQuantity/valueCode to DeviceDefinition.property.value[x], and FHIR-26424 commits broadened both resources' value[x] choices to the approved property datatype set. Commit 23d0f3c36f2244f7636e70edcfbd21cf074c49db later made the value mandatory on both resources, matching the single-value expectation recorded for FHIR-26639 and FHIR-32568.
+
+Additional context:
+Current source/fhir.ini actively includes both Device and DeviceDefinition in the build. Current source has Device.property.value[x] and DeviceDefinition.property.value[x], each with 1..1 cardinality and no remaining valueQuantity/valueCode element definitions. The current additional datatypes beyond Quantity and CodeableConcept are not a regression against FHIR-26639; FHIR-26424 is a later Published/Persuasive-with-Modification OO decision that explicitly approved valueBoolean, valueInteger, valueString, valueRange, and valueAttachment for the same property value choice. FHIR-39322 is later resolved-change-required context that updated nearby definitions/comments but does not require reverting the choice shape.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current authoritative source already satisfies FHIR-26639's structural requirement, and narrowing value[x] back to only Quantity|CodeableConcept would incorrectly undo later approved OO changes.
+
+Recommendation:
+Keep this no-change audit commit as-is. Any future cleanup should be handled under the later Device/DeviceDefinition property clarification issues, not by reopening FHIR-26639's already-applied choice conversion.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26639
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-26424: same-change-family - later Published/Persuasive-with-Modification OO decision broadened Device and DeviceDefinition property.value[x] to the current datatype set and completed DeviceDefinition conversion.
+FHIR-32568: later-change - later Published/Persuasive OO decision made Device.property.value mandatory, reinforcing the single-value expectation.
+FHIR-39322: later-change - later resolved-change-required clarification updated nearby Device/DeviceDefinition property definitions and comments without changing the choice-element conclusion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26639: Published/Persuasive OO issue requested replacing Device and DeviceDefinition property valueQuantity/valueCode with a single value[x] choice. Learned: this establishes the seed issue's approved target.
+- E2 Source source/fhir.ini:169,185,297: Device and DeviceDefinition are active resources in the current build. Learned: the checked StructureDefinition source is in scope.
+- E3 Source source/device/structuredefinition-Device.xml:1105 and source/devicedefinition/structuredefinition-DeviceDefinition.xml:1250: both resources now define property.value[x] with 1..1 cardinality. Learned: the approved choice shape is present in current source.
+- E4 Git 5af20b6658ab34965b88e626e6052eb5b8c759a2 and f7809084c6ff4cb26ba4773a2eadaab473e86641: FHIR-26639 converted Device; FHIR-26424 later converted DeviceDefinition and broadened choices. Learned: the initial partial application was completed through the later same-family issue.
+- E5 Jira FHIR-26424: Published/Persuasive with Modification and explicitly approved valueBoolean, valueInteger, valueCodeableConcept, valueQuantity, valueRange, valueString, and valueAttachment for property.value[x]. Learned: current extra datatypes are intentional later WG intent.
+- E6 Jira FHIR-32568: Published/Persuasive requested Device.property.value be mandatory when documenting a property. Learned: current 1..1 cardinality is consistent with later final OO context.
+- E7 Community Zulip #Orders and Observation WG / Confluence 2020-09-03 Main: the OO healthcare product block vote including FHIR-26639 passed 4-0-7. Learned: community/minutes evidence aligns with Jira disposition.
+- E8 Verification command: grep of Device/DeviceDefinition StructureDefinitions found no remaining valueQuantity/valueCode element definitions, and sed inspection showed the current value[x] blocks. Learned: no source hunk is needed for the seed request.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26639",
+    "url": "https://jira.hl7.org/browse/FHIR-26639",
+    "snapshot_path": "contexts/FHIR-26639/jira/FHIR-26639.md",
+    "ref": { "jira_key": "FHIR-26639" },
+    "summary": "Published/Persuasive OO issue requested replacing Device and DeviceDefinition property valueQuantity/valueCode with a single value[x] choice.",
+    "learned": "This is final WG intent for the seed and establishes that the current source should use a choice element.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,185,297",
+    "summary": "The resources section actively lists device=Device and devicedefinition=DeviceDefinition.",
+    "learned": "The inspected StructureDefinition source files are in current build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:1105; source/devicedefinition/structuredefinition-DeviceDefinition.xml:1250",
+    "summary": "Both resources define property.value[x] with 1..1 cardinality and no old split element definitions.",
+    "learned": "The current authoritative source already implements the seed issue's structural requirement.",
+    "supports": ["reconciliation", "source_state"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "5af20b6658ab34965b88e626e6052eb5b8c759a2; f7809084c6ff4cb26ba4773a2eadaab473e86641; 23d0f3c36f2244f7636e70edcfbd21cf074c49db",
+    "ref": {
+      "commit": "5af20b6658ab34965b88e626e6052eb5b8c759a2"
+    },
+    "summary": "History shows Device was converted under FHIR-26639, DeviceDefinition was converted under FHIR-26424, and later cardinality was made mandatory.",
+    "learned": "The apparent gap in the original FHIR-26639 commit was closed by later same-family work now present in source.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-26424",
+    "url": "https://jira.hl7.org/browse/FHIR-26424",
+    "ref": { "jira_key": "FHIR-26424" },
+    "summary": "Published/Persuasive with Modification OO issue approved the broader property.value[x] datatype set for Device and DeviceDefinition.",
+    "learned": "The current extra datatypes beyond Quantity and CodeableConcept are later approved WG intent, not an FHIR-26639 regression.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-32568",
+    "url": "https://jira.hl7.org/browse/FHIR-32568",
+    "ref": { "jira_key": "FHIR-32568" },
+    "summary": "Published/Persuasive issue requested Device.property.value be mandatory when a property is documented.",
+    "learned": "The current 1..1 property.value[x] cardinality is consistent with later final OO context.",
+    "supports": ["additional_context", "source_state"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "OO 2020-09-03 Main page 91986582",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/91986582/2020-09-03+Main",
+    "ref": { "confluence_page_id": 91986582 },
+    "summary": "OO minutes record the healthcare product block vote including FHIR-26639 passing 4-0-7.",
+    "learned": "Meeting evidence is consistent with Jira's final disposition and vote.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Current source verification for Device and DeviceDefinition property values",
+    "command": "sed -n '1105,1133p' source/device/structuredefinition-Device.xml; sed -n '1250,1278p' source/devicedefinition/structuredefinition-DeviceDefinition.xml; grep -RIn --include='structuredefinition-*.xml' -E '<element id=\"Device(Definition)?\\.property\\.value(Code|Quantity)\"' source/device source/devicedefinition || true",
+    "summary": "Inspection showed current value[x] blocks and no remaining old split element definitions.",
+    "learned": "There is no necessary source edit for FHIR-26639.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

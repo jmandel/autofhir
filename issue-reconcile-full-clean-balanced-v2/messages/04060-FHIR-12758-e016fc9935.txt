@@ -1,0 +1,110 @@
+FHIR-12758: Audit Medication batch packaging placement
+
+Issue request:
+FHIR-12758 was a Published/Persuasive with Modification DSTU2 Pharmacy change request asking whether batch/lot should be on product or Medication. The approved resolution was to move the Batch backbone to be a child of Package and leave its cardinality unchanged.
+
+Initial application:
+The issue was applied in historical source by commit 491a59353e4244177fb0b6cd8a2de31e46f7f448, whose Medication spreadsheet diff removed Medication.batch and added Medication.package.batch, Medication.package.batch.lotNumber, and Medication.package.batch.expirationDate. The Jira comment for FHIR-12758 points to the same TR#12758 commit.
+
+Additional context:
+Medication is an active current-build resource in source/fhir.ini. The exact DSTU2/STU3 package backbone no longer exists in the current Medication model because later final Pharmacy decisions refactored the same area: FHIR-13879 reshaped the Medication package model, and FHIR-47622 renamed the current batch backbone to Medication.instance while adding physical-instance identifiers. Those related decisions are already represented on the combined branch, including the FHIR-47622 source fix that aligns current Medication.instance search parameters and identifier guidance.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Current source/medication/structuredefinition-Medication.xml represents lot number and expiration date under Medication.instance, whose definition is "Information that only applies to packages (not products)," and active examples use <instance> for lot/expiration content. Reintroducing Medication.package.batch for FHIR-12758 would conflict with later applied Medication model decisions rather than completing this old issue.
+
+Recommendation:
+Keep this no-change audit as-is. Future Medication packaging or physical-instance changes should be handled under the later Medication issue family, especially FHIR-47622 and subsequent Pharmacy decisions, not by restoring the obsolete DSTU2 package backbone shape.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12758
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13879: later-change - Published/Persuasive Medication resource cleanup later reshaped the Medication package content model, explaining why the current source should not still expose Medication.package.batch.
+FHIR-47622: later-change - Applied/Persuasive R6 issue renamed Medication.batch to Medication.instance and added physical-instance identifiers, establishing the current location for lot/expiration and serial-number information.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12758: Published/Persuasive with Modification issue whose resolution moved Batch under Package with unchanged cardinality. Learned: this establishes the approved historical change to audit.
+- E2 Git 491a59353e42: TR#12758 implementation removed Medication.batch and added Medication.package.batch, lotNumber, and expirationDate in the Medication spreadsheet. Learned: the original requested move was applied in source.
+- E3 Source source/fhir.ini:1182,1391: Medication is listed as an active resource and approved resource. Learned: current source/medication/structuredefinition-Medication.xml is in build scope.
+- E4 Jira/Git FHIR-13879 and commit 2559032b9b1c: later Published/Persuasive Pharmacy issue reshaped the Medication package model after FHIR-12758. Learned: the old package child shape was intentionally superseded by later model work.
+- E5 Jira/Git FHIR-47622 and commit 6b4f960128ac: later Applied/Persuasive R6 issue renamed the current batch backbone to instance and completed related search-parameter/identifier alignment. Learned: the current model's physical-instance location is governed by a later final decision.
+- E6 Source source/medication/structuredefinition-Medication.xml:389-448 and source/medication/medicationexample0305.xml:51-54: Medication.instance is package-only information and contains lotNumber/expirationDate; examples place lot data under instance. Learned: current active source retains the FHIR-12758 semantic separation without the obsolete Package backbone.
+- E7 Command/community searches: current source searches found no active Medication.package.batch references outside Archive and only fhir.ini compatibility aliases for old Medication.batch; Confluence had no FHIR-12758 refs, exact-key Zulip had no hits, and a broader 2017 Zulip thread described the historical Medication.package.batch cardinality without conflicting with the later refactors. Learned: no active stale source or community conflict requires a source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12758",
+    "url": "https://jira.hl7.org/browse/FHIR-12758",
+    "snapshot_path": "contexts/FHIR-12758/jira/FHIR-12758.md",
+    "ref": { "jira_key": "FHIR-12758" },
+    "summary": "Published/Persuasive with Modification DSTU2 Pharmacy issue resolving to move the Batch backbone under Package while leaving cardinality unchanged.",
+    "learned": "This establishes the historical approved change that must be reconciled against current Medication source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "491a59353e4244177fb0b6cd8a2de31e46f7f448",
+    "ref": { "commit": "491a59353e4244177fb0b6cd8a2de31e46f7f448" },
+    "summary": "TR#12758 implementation commit removed Medication.batch and added Medication.package.batch, Medication.package.batch.lotNumber, and Medication.package.batch.expirationDate.",
+    "learned": "The seed issue had concrete historical source application.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:1182,1391",
+    "ref": { "path": "source/fhir.ini", "lines": "1182,1391" },
+    "summary": "Medication is listed as an active resource and as approved in the current build configuration.",
+    "learned": "The current Medication StructureDefinition is the authoritative build-scope source to audit.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-13879 and commit 2559032b9b1cd17a3f528abbe59749fff309ed69",
+    "url": "https://jira.hl7.org/browse/FHIR-13879",
+    "snapshot_path": "contexts/FHIR-13879/jira/FHIR-13879.md",
+    "ref": { "jira_key": "FHIR-13879", "commit": "2559032b9b1cd17a3f528abbe59749fff309ed69" },
+    "summary": "Later Published/Persuasive Pharmacy issue and implementation commit reshaped the Medication package model after FHIR-12758.",
+    "learned": "The absence of the old Medication.package.batch backbone in current source is explained by later final Medication model work.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-47622 and commit 6b4f960128acaeaaa8484b46d7ef6b47ef85440f",
+    "url": "https://jira.hl7.org/browse/FHIR-47622",
+    "snapshot_path": "contexts/FHIR-47622/jira/FHIR-47622.md",
+    "ref": { "jira_key": "FHIR-47622", "commit": "6b4f960128acaeaaa8484b46d7ef6b47ef85440f" },
+    "summary": "Later Applied/Persuasive R6 issue renamed Medication.batch to Medication.instance and completed current source alignment for physical-instance identifiers and search parameters.",
+    "learned": "The current location for lot/expiration and physical-instance data is governed by a later final decision, not by the obsolete package backbone shape.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/medication/structuredefinition-Medication.xml:389-448; source/medication/medicationexample0305.xml:51-54",
+    "ref": { "paths": "source/medication/structuredefinition-Medication.xml; source/medication/medicationexample0305.xml", "lines": "389-448;51-54" },
+    "summary": "Medication.instance is defined as package-only information and contains lotNumber and expirationDate; active examples place lot and expiration data under instance.",
+    "learned": "Current active source preserves the package/physical-instance semantics relevant to FHIR-12758 using the later Medication.instance model.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source and community searches for FHIR-12758 Medication batch/package context",
+    "command": "rg 'Medication\\.package\\.batch|Medication\\.batch|<batch>|</batch>' source; bun run confluence:search refs jira FHIR-12758; bun run confluence:search fts '\"FHIR-12758\" Medication batch lot package' --limit 10; bun run zulip:search fts '\"FHIR-12758\" Medication batch lot package' --limit 10; bun run zulip:search snapshot implementers 'Medication module questions'",
+    "query": "FHIR-12758 Medication batch lot package",
+    "summary": "No active Medication.package.batch source remains outside Archive and fhir.ini compatibility aliases; no direct Confluence or exact-key Zulip conflict was found, and the relevant 2017 Zulip thread only explains the historical package.batch cardinality.",
+    "learned": "There is no active stale source or community evidence that would justify restoring the old package child structure.",
+    "supports": ["absence_of_stale_source", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

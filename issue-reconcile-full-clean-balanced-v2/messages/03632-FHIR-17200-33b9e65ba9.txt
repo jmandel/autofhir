@@ -1,0 +1,92 @@
+FHIR-17200: Audit PlanDefinition profile support
+
+Issue request:
+FHIR-17200 was a Published/Persuasive CDS change request raised for STU3 asking to support workflow conformance profiles from PlanDefinition actions, with the concrete need to associate a StructureDefinition with a step. The recorded resolution was to add an optional profile element to ActivityDefinition and PlanDefinition to allow a profile to constrain resources that can satisfy an action requirement.
+
+Initial application:
+The issue was applied in the git-svn history by 3c199cb863/a9e864411d, whose message includes GF#17200 and whose patch added ActivityDefinition.profile as 0..1 canonical(StructureDefinition) with text saying it identifies the profile the target resource needs to conform to. The same commit touched PlanDefinition operation plumbing, but the relevant profile-row patch is in ActivityDefinition; no current or historical source evidence found a separate PlanDefinition.profile element.
+
+Additional context:
+The current build-scope resources include both ActivityDefinition and PlanDefinition in source/fhir.ini. Current ActivityDefinition still contains the optional canonical(StructureDefinition) profile element. Current PlanDefinition.action.definition[x] allows canonical(ActivityDefinition) among other definition resources, and the PlanDefinition narrative says atomic actions with an ActivityDefinition are realized by applying the ActivityDefinition and then applying PlanDefinition action overrides. The overlap table includes transform and dynamicValue overrides but not a separate profile override, so adding a PlanDefinition-level profile now would not be the action-level constraint requested and could create ambiguity.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already provides the requested conformance-profile support through ActivityDefinition.profile, reachable from PlanDefinition.action.definition[x] for action steps, and does not need a direct StructureDefinition target or a redundant PlanDefinition.profile element.
+
+Recommendation:
+Keep this no-change audit as-is. Revisit only if the CDS work group explicitly wants a new action-level profile override on PlanDefinition.action; that would be a new design change rather than completion of FHIR-17200.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17200
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-48393: background - later Applied CDS issue removed shareable/publishable profile StructureDefinitions from core, but it did not remove ActivityDefinition.profile and does not change this issue's action-profile support.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17200: Published/Persuasive issue requested support for associating a StructureDefinition/profile with a PlanDefinition action step. Learned: this is the final issue request and resolution being audited.
+- E2 Source source/fhir.ini:273-274,486,608,790,892: ActivityDefinition and PlanDefinition are active CDS resources in the current build. Learned: the checked StructureDefinition sources are in build scope.
+- E3 Source source/activitydefinition/structuredefinition-ActivityDefinition.xml:894-904: ActivityDefinition.profile is 0..1 canonical(StructureDefinition) and describes the profile the activity target must conform to. Learned: the requested conformance profile support exists in the active source.
+- E4 Source source/plandefinition/structuredefinition-PlanDefinition.xml:2228-2245 and source/plandefinition/plandefinition-notes.xml:29-37,77-128: PlanDefinition.action.definition[x] can reference ActivityDefinition, and PlanDefinition action processing applies ActivityDefinition before action-level overrides. Learned: PlanDefinition reaches the profile-bearing definition resource without needing a direct StructureDefinition target.
+- E5 Git 3c199cb863/a9e864411d: GF#17200 implementation commit added ActivityDefinition.profile as canonical(StructureDefinition); searches found no durable PlanDefinition.profile source row. Learned: the historical application matches the current mechanism.
+- E6 Jira/community search: FHIR-48393 concerns removal of shareable/publishable profile definitions, and Zulip/Confluence searches found no directly relevant conflicting discussion for FHIR-17200. Learned: no later discovered decision requires changing the current element model.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17200",
+    "url": "https://jira.hl7.org/browse/FHIR-17200",
+    "snapshot_path": "contexts/FHIR-17200/jira/FHIR-17200.md",
+    "ref": { "jira_key": "FHIR-17200" },
+    "summary": "Published/Persuasive CDS change request to support associating a StructureDefinition/profile with a PlanDefinition action step.",
+    "learned": "Establishes the final request and the resolution to provide optional profile support for action requirements.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:273-274,486,608,790,892",
+    "summary": "ActivityDefinition and PlanDefinition are active resources with CDS ownership and FMM entries in the current build configuration.",
+    "learned": "Confirms the inspected resource StructureDefinitions are in current build scope.",
+    "supports": ["build_scope", "source_check"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/activitydefinition/structuredefinition-ActivityDefinition.xml:894-904",
+    "summary": "ActivityDefinition.profile is 0..1 canonical targeting StructureDefinition with definition text for the activity target profile.",
+    "learned": "Shows the current source includes the conformance profile element needed by the issue.",
+    "supports": ["reconciliation", "no_source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/plandefinition/structuredefinition-PlanDefinition.xml:2228-2245; source/plandefinition/plandefinition-notes.xml:29-37,77-128",
+    "summary": "PlanDefinition.action.definition[x] can reference ActivityDefinition, and the PlanDefinition narrative delegates atomic activity realization to ActivityDefinition before applying action overrides.",
+    "learned": "Explains why the ActivityDefinition.profile mechanism satisfies the PlanDefinition action use case without adding a direct StructureDefinition target.",
+    "supports": ["additional_context", "no_source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "3c199cb863 / a9e864411d",
+    "ref": { "commit": "3c199cb863" },
+    "summary": "Git-svn implementation commit for GF#17200 added ActivityDefinition.profile as canonical(StructureDefinition); profile history searches did not find a separate PlanDefinition.profile source element.",
+    "learned": "Shows how the Jira was historically applied and that the current mechanism is not accidental drift.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community and related Jira search for FHIR-17200 profile support",
+    "command": "bun run jira:search fts '\"PlanDefinition\" \"ActivityDefinition\" \"profile\" \"StructureDefinition\"' --limit 20; bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-17200%'\"; bun run confluence:search refs jira FHIR-17200",
+    "query": "FHIR-17200 PlanDefinition ActivityDefinition profile StructureDefinition",
+    "summary": "Searches found FHIR-17200 and later unrelated profile-definition cleanup, with no direct Zulip or Confluence conflict for this issue.",
+    "learned": "No discovered community or later-Jira evidence changes the source-based no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

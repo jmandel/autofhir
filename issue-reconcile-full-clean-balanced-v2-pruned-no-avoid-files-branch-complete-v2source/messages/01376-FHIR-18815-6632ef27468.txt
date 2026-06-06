@@ -1,0 +1,104 @@
+FHIR-18815: Clarify FHIRPath Patch Bundle-local resolve
+
+Issue request:
+FHIR-18815 was a Published/Persuasive FHIR-core change request asking the FHIRPath Patch page to clarify four rules: add may add another occurrence when cardinality allows, insert must specify an index, missing paths are errors except for delete, and FHIRPath expressions must not refer outside the patched resource except that resolve() may refer to contained resources or, for Bundles, resources within the same Bundle.
+
+Initial application:
+Jira comment GH#e04b204635 corresponds to git commit e04b204635956d32e6009669b760f411b43e2b00, which added the add, insert, delete, missing-path, sequencing, and resolve() guardrail text to source/fhirpatch.html. That application carried forward the contained-resource allowance but did not include the approved Bundle-local resolve() allowance, leaving current wording stricter than the Jira resolution for patching Bundles.
+
+Additional context:
+Later FHIRPath Patch page commits such as FHIR-34214 changed headings and introductory wording, and existing AutoFHIR FHIR-26324 work clarified move indexes, but neither revisited the FHIR-18815 resolve() scope rule. Current Bundle reference-resolution source defines how references resolve within a Bundle, and source/fhirpatch.html is an active build input via publish.ini and source/hierarchy.xml. Zulip and Confluence searches found no FHIR-18815-specific discussion or later decision that removes the Bundle exception.
+
+AutoFHIR reconciliation:
+This commit updates the FHIRPath Patch base rule so resolve() is prohibited from crossing outside the resource being patched, but is expressly allowed to resolve contained resources or, when the patched resource is a Bundle, resources within the same Bundle. It also narrows the server safety sentence to resources outside the nominated target so Bundle entries are not accidentally excluded when the Bundle is the patch target.
+
+Recommendation:
+Keep this source correction as-is. It completes the published FHIR-18815 resolution without changing the other already-applied patch rules; any future decision to forbid Bundle-local resolve() in FHIRPath Patch should be handled as a new work-group change because it would reverse the published Jira text.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-18815
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-29271: supporting-decision - its current Bundle reference-resolution wording explains the same in-Bundle reference resolution model used by the FHIR-18815 Bundle exception.
+FHIR-34214: later-change - later FHIRPath Patch page cleanup confirms the page remained active but did not revisit the FHIR-18815 resolve() scope rule.
+FHIR-26324: same-change-family - another FHIRPath Patch clarification already represented on the combined branch; it concerns move indexes, not the FHIR-18815 resolve() rule.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-18815: Published/Persuasive request to clarify FHIRPath Patch add, insert, missing-path, and resolve() rules, including contained or Bundle-local resolve() only. Learned: the final WG decision requires a Bundle exception in the resolve() rule.
+- E2 Git e04b204635956d32e6009669b760f411b43e2b00: the Jira-referenced application commit added the FHIRPath Patch clarifications but only allowed resolve() to contained resources. Learned: the prior application was real but incomplete for the Bundle portion of the resolution.
+- E3 Source source/fhirpatch.html:94-100: before this reconciliation the active base rules allowed contained-resource resolve() and missing-path errors but omitted Bundle-local resolve(). Learned: current source still had a semantic gap relative to FHIR-18815.
+- E4 Source publish.ini:284 and source/hierarchy.xml:160: fhirpatch.html is listed as a published page and in the page hierarchy. Learned: the edited narrative is a current build input.
+- E5 Source source/bundle/bundle-notes.xml:235-328: current Bundle notes define how references are resolved within Bundles and note undefined behavior when Bundle fullUrls are absent. Learned: Bundle-local resolve() has an existing current-spec reference-resolution model.
+- E6 Community search: Zulip and Confluence searches for FHIR-18815/FHIRPath Patch resolve terms found no later conflicting decision; a later implementers thread treats resolve() as the boundary for leaving the resource instance. Learned: no discovered community evidence reverses the Jira/source conclusion.
+- E7 Verification command: git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/fhirpatch.html. Learned: the source edit is clean under the CRLF-aware whitespace check used for integration.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-18815",
+    "url": "https://jira.hl7.org/browse/FHIR-18815",
+    "snapshot_path": "contexts/FHIR-18815/jira/FHIR-18815.md",
+    "ref": { "jira_key": "FHIR-18815" },
+    "summary": "Published/Persuasive FHIR-core change request to clarify FHIRPath Patch add, insert, missing-path, and resolve() rules, including a contained-or-Bundle-local resolve() limit.",
+    "learned": "The final work-group decision establishes that Bundle-local resolve() should be allowed while references outside the patched resource remain prohibited.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e04b204635956d32e6009669b760f411b43e2b00",
+    "ref": { "commit": "e04b204635956d32e6009669b760f411b43e2b00" },
+    "summary": "The Jira-commented application commit added FHIRPath Patch clarifications for add, insert, delete, missing paths, operation order, and resolve(), but only mentioned contained resources for resolve().",
+    "learned": "The issue was initially applied, but the current source did not preserve the approved Bundle exception.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhirpatch.html:94-100",
+    "summary": "The active FHIRPath Patch base rules contained the add/insert/delete/missing-path clarifications and restricted resolve() to contained resources before this edit.",
+    "learned": "The current build input still needed a narrow correction for Bundle-local resolve().",
+    "supports": ["initial_application", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "publish.ini:284; source/hierarchy.xml:160; source/http.html:953; source/documentation.html:35",
+    "summary": "fhirpatch.html is listed in the publish configuration and page hierarchy and is linked from HTTP patch and documentation pages.",
+    "learned": "The edited page is in current build scope, not stale or generated-only source.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/bundle/bundle-notes.xml:235-328",
+    "summary": "The current Bundle notes describe reference resolution within Bundles and the importance of Bundle.entry.fullUrl for cross-Bundle references.",
+    "learned": "The FHIRPath Patch Bundle exception can rely on the current specification's existing in-Bundle reference-resolution model.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community searches for FHIR-18815 and FHIRPath Patch resolve scope",
+    "command": "bun run zulip:search fts '\"FHIR-18815\" FHIRPatch' --limit 20; bun run zulip:search fts '\"FHIRPath Patch\" \"resolve()\"' --limit 20; bun run confluence:search refs jira FHIR-18815; bun run confluence:search fts '\"FHIR-18815\" FHIRPatch' --limit 10",
+    "query": "FHIR-18815 FHIRPath Patch resolve Bundle",
+    "summary": "No FHIR-18815-specific Zulip or Confluence records and no conflicting Bundle-scope discussion were found; a later implementers thread summarized the resolve() rule as preventing leaving the resource instance.",
+    "learned": "No discovered community record changes the Jira/git/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "CRLF-aware whitespace check for source/fhirpatch.html",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/fhirpatch.html",
+    "summary": "The edited fhirpatch.html diff passed the CRLF-aware whitespace check.",
+    "learned": "The source-changing commit is syntactically safe for the integration recipe's whitespace validation.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

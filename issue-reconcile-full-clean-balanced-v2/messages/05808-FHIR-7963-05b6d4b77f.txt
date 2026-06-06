@@ -1,0 +1,106 @@
+FHIR-7963: Audit Patient generalPractitioner rename
+
+Issue request:
+FHIR-7963 was a Published/Persuasive with Modification Patient Administration change request from the DSTU1 ballot asking that Patient.careProvider account for provider roles. The accepted disposition was not to add a type backbone to Patient, but to rename careProvider to generalPractitioner, keep the cardinality multiple, describe it as the gatekeeper/primary provider for the patient's care, point other role-based care providers toward CareTeam, and create preferred dentist/pharmacy-style extensions outside the core element.
+
+Initial application:
+The change was applied in git commit fb14d2fad1, which renamed Patient.careProvider to Patient.generalPractitioner in the Patient source, retained careProvider as an alias, updated the search parameter name, and updated nearby Patient guidance. That implementation commit also bundled unrelated Patient/RelatedPerson work for FHIR-9366 and FHIR-3408, so those trackers are not independently decided here.
+
+Additional context:
+Current source/fhir.ini lists Patient as an active resource, so source/patient/structuredefinition-Patient.xml is in the current build. The current Patient.generalPractitioner element is 0..*, has the short "Patient's nominated primary care provider", retains careProvider as an alias, explains that CareTeam should carry broader care team roles and history, and includes later FHIR-14224/FHIR-14442 changes adding PractitionerRole and multiplicity guidance. FHIR-14734 later rejected consolidation with CareTeam and explicitly confirmed that generalPractitioner is distinct from role-specific CareTeam members. The only current extension-pack evidence found for the extension part is patient-preferredPharmacy in the FHIR Extension Pack; no core source edit is appropriate merely to restate that external extension evidence or to create a new dentist extension without fresh work-group review.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The active current Patient source already preserves the approved semantic outcome for core: the old careProvider name is no longer the element name, the element is primary/general-practitioner focused rather than a general typed care-team member, role/history use cases are directed to CareTeam, and later source history addresses the PractitionerRole role-disambiguation concern.
+
+Recommendation:
+Keep this no-change audit as-is for FHIR core. If Patient Administration still wants a preferred dentist or pharmacist extension beyond the existing patient-preferredPharmacy extension, that should be raised and reviewed as FHIR Extension Pack work rather than patched into the core Patient element during this reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7963
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-14224: later-change - added PractitionerRole as an allowed Patient.generalPractitioner target, addressing the role/organization disambiguation concern.
+FHIR-14442: later-change - added current multiplicity guidance for multiple generalPractitioner repetitions.
+FHIR-14734: supporting-decision - rejected consolidating Patient.generalPractitioner with CareTeam and confirmed their distinct purposes.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7963: Published/Persuasive with Modification disposition to rename careProvider to generalPractitioner, keep multiple cardinality, and use CareTeam/extensions for other roles. Learned: establishes the final seed request and accepted shape of the change.
+- E2 Source source/fhir.ini:169,211,944 and source/patient/structuredefinition-Patient.xml:894-910: Patient is active in the current build and Patient.generalPractitioner is the build-scoped element with alias careProvider and Reference targets Organization, Practitioner, and PractitionerRole. Learned: current core source carries the renamed element in build scope.
+- E3 Source source/patient/structuredefinition-Patient.xml:895-901: current short/comment identify the element as a nominated primary care provider and distinguish it from CareTeam role/history use. Learned: current wording preserves the approved distinction without needing duplicate gatekeeper prose.
+- E4 Git fb14d2fad1: "Trackers 9366, 7963, 3408 Patient/RelatedPerson careProvider -> GeneralPractitioner changes" changed Patient source from careProvider to generalPractitioner and updated related examples/search parameters. Learned: the seed was previously applied in source history.
+- E5 Jira FHIR-14224, FHIR-14442, and FHIR-14734: later decisions added PractitionerRole, added multiple-GP guidance, and rejected CareTeam consolidation. Learned: later approved decisions refine and support leaving the current Patient element as-is.
+- E6 Zulip #implementers > Patient.careProvider and #implementers > FMM5 Patient Change - GeneralPracitioner: PA announced the rename, clarified cardinality stayed multiple, steered other provider types to CareTeam, and sought implementer feedback for adding PractitionerRole. Learned: community evidence aligns with the source/Jira interpretation and shows no conflicting current requirement.
+- E7 Command searches for FHIR-7963/generalPractitioner in Zulip and Confluence plus extension-pack searches: no direct Confluence records or conflicting community records were found; extension-pack search found patient-preferredPharmacy but no preferredDentist/preferredPharmacist definition. Learned: no discovered community/source evidence justifies a core source edit for the extension part.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7963",
+    "url": "https://jira.hl7.org/browse/FHIR-7963",
+    "snapshot_path": "contexts/FHIR-7963/jira/FHIR-7963.md",
+    "ref": { "jira_key": "FHIR-7963" },
+    "summary": "Published/Persuasive with Modification Patient issue asking to address careProvider roles by renaming Patient.careProvider to Patient.generalPractitioner, keeping multiple cardinality, and steering other roles to CareTeam/extensions.",
+    "learned": "This is the final seed decision and defines the core source behavior to check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini and source/patient/structuredefinition-Patient.xml:894-910",
+    "ref": { "path": "source/patient/structuredefinition-Patient.xml", "start_line": 894, "end_line": 910 },
+    "summary": "Patient is active in fhir.ini and Patient.generalPractitioner is the current build-scoped element with alias careProvider and Organization, Practitioner, and PractitionerRole targets.",
+    "learned": "The renamed element is present in current authoritative core source.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/patient/structuredefinition-Patient.xml:895-901",
+    "ref": { "path": "source/patient/structuredefinition-Patient.xml", "start_line": 895, "end_line": 901 },
+    "summary": "The current short/comment call the element the nominated primary care provider and explain that CareTeam carries broader team roles and history.",
+    "learned": "Current wording preserves the approved primary-provider versus CareTeam distinction.",
+    "supports": ["reconciliation", "no_source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "fb14d2fad1",
+    "ref": { "commit": "fb14d2fad17858e1b603cb0032db8a62b3563517" },
+    "summary": "Implementation commit titled 'Trackers 9366, 7963, 3408 Patient/RelatedPerson careProvider -> GeneralPractitioner changes' renamed Patient.careProvider in Patient source and examples.",
+    "learned": "The seed was applied historically in the source tree.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-14224, FHIR-14442, FHIR-14734",
+    "url": "https://jira.hl7.org/browse/FHIR-14224",
+    "summary": "Later Patient issues added PractitionerRole, added guidance for multiple GPs, and rejected consolidating generalPractitioner with CareTeam.",
+    "learned": "Later decisions support the current Patient.generalPractitioner shape and avoid re-opening the older careProvider role request.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Patient.careProvider; #implementers > FMM5 Patient Change - GeneralPracitioner",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Patient.careProvider",
+    "summary": "PA announced the careProvider to generalPractitioner rename, clarified cardinality stayed multiple, steered other provider types to CareTeam, and later sought feedback for PractitionerRole support.",
+    "learned": "Community evidence aligns with the Jira/source interpretation and reveals no conflicting current requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community and extension-pack searches for FHIR-7963 preferred provider extensions",
+    "command": "bun run zulip:search fts '\"FHIR-7963\"'; bun run confluence:search refs jira FHIR-7963; rg -n -i 'preferred.*(dent|pharmac)|patient-preferred' source /home/jmandel/work/fhir-extensions/input",
+    "summary": "No direct Confluence or conflicting community record was found; extension-pack search found patient-preferredPharmacy but not preferredDentist or preferredPharmacist.",
+    "learned": "The extension portion does not justify a core source edit in this reconciliation; any missing extension would require extension-pack/work-group follow-up.",
+    "supports": ["absence_of_conflict", "recommendation"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,113 @@
+FHIR-40505: Audit Vital Signs component UCUM binding
+
+Issue request:
+FHIR-40505 was a Published/Persuasive OO change request for the R5 Vital Signs profile. It reported that the UCUM binding on Observation.component.value[x] incorrectly constrained valueCodeableConcept and asked that the UCUM binding apply only to valueQuantity.
+
+Initial application:
+No prior reconcile commit exists for this issue on the combined branch. The source history does contain the original application as git commit 0c05783eb5c324f149285a686a68a2b84a87513c, subject "40505", which changed source/observation/structuredefinition-profile-vitalsigns.xml by removing the UCUM wording and binding from Observation.component.value[x] and adding a separate Observation.component.valueQuantity element with the UCUM binding. That commit is contained in the v5.0.0 tag.
+
+Additional context:
+The Zulip thread linked from Jira shows the interoperability problem: a blood pressure body-position component using valueCodeableConcept was rejected because the generic component.value[x] binding forced UCUM. OO minutes from 2023-02-28 record the motion to find FHIR-40505 persuasive with the UCUM binding only on valueQuantity. Later Observation/Vital Signs cleanup, including FHIR-47136, refactored the profile representation to the current Observation.component.value[x]:valueQuantity slice and adjusted related slicing details without reintroducing the generic binding. The Observation resource is active in source/fhir.ini, and implementationguide-Observation-vitalsigns.xml includes StructureDefinition/vitalsigns, so this source is in current build scope.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current profile has an unbound generic Observation.component.value[x] element and a dedicated Observation.component.value[x]:valueQuantity slice typed as Quantity with the UCUM value set binding. That satisfies the FHIR-40505 request and does not constrain valueCodeableConcept to UCUM.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR core source follow-up is needed for FHIR-40505 unless a future work group decision changes the desired UCUM binding strength or value set for the valueQuantity slice.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-40505
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-47136: later-change - Later Vital Signs profile cleanup refactored the component value slicing and preserved the binding on the Quantity-specific slice rather than the generic choice element.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-40505: Published/Persuasive OO issue asking to apply the UCUM binding only to valueQuantity. Learned: this is the final work-group request being reconciled.
+- E2 Zulip #shorthand > component.value[x] binding in vital-signs: the linked thread shows the body-position valueCodeableConcept failure caused by the generic UCUM binding, followed by agreement that the binding should move to component.valueQuantity. Learned: this confirms the implementation problem and intended correction.
+- E3 Confluence 2023-02-28 OO on FHIR page 156545775: OO minutes record the persuasive motion that the UCUM binding should only be on valueQuantity. Learned: this corroborates the Jira disposition and vote.
+- E4 Git 0c05783eb5c324f149285a686a68a2b84a87513c: source/observation/structuredefinition-profile-vitalsigns.xml was changed to remove the generic component.value[x] UCUM binding and add Observation.component.valueQuantity with the UCUM binding. Learned: FHIR-40505 was initially applied before R5 publication.
+- E5 Source source/observation/structuredefinition-profile-vitalsigns.xml:220-243: the current generic Observation.component.value[x] has no binding, while Observation.component.value[x]:valueQuantity is Quantity-typed and has the UCUM binding. Learned: the current source already implements the requested binding placement.
+- E6 Source source/fhir.ini:169-208 and source/observation/implementationguide-Observation-vitalsigns.xml:28-31: Observation is an active resource and the Vital Signs IG includes StructureDefinition/vitalsigns. Learned: the checked profile source is in current build scope.
+- E7 Git 51f56178b686661b77368513b5f7d758ea6e43ee and current source history: later FHIR-47136-related cleanup clarified component.value[x] slicing and proper path/sliceName values. Learned: the current slice representation is a later refactor, not a missing FHIR-40505 application.
+- E8 Verification command/query: git log on the combined branch found no existing Issue-Reconcile-Key: FHIR-40505, and current source grep showed no UCUM binding under generic Observation.component.value[x]. Learned: publishing this single no-change audit commit is idempotent and sufficient.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-40505",
+    "url": "https://jira.hl7.org/browse/FHIR-40505",
+    "snapshot_path": "contexts/FHIR-40505/jira/FHIR-40505.md",
+    "ref": { "jira_key": "FHIR-40505" },
+    "summary": "Published/Persuasive OO change request reporting that the Vital Signs component.value[x] UCUM binding should apply only to valueQuantity.",
+    "learned": "This establishes the final requested correction for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#shorthand > component.value[x] binding in vital-signs",
+    "url": "https://chat.fhir.org/#narrow/stream/215610-shorthand/topic/component.2Evalue.5Bx.5D.20binding.20in.20vital-signs",
+    "summary": "The thread shows a body-position valueCodeableConcept component failing validation because the generic component.value[x] binding required UCUM, followed by agreement that the binding should move to component.valueQuantity.",
+    "learned": "The community discussion matches the Jira request and confirms that valueCodeableConcept must not inherit the UCUM binding.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "2023-02-28 OO on FHIR page 156545775",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/156545775/2023-02-28+OO+on+FHIR",
+    "ref": { "confluence_page_id": 156545775 },
+    "summary": "OO minutes record the FHIR-40505 motion to find persuasive that the UCUM binding should only be on valueQuantity, vote 5-0-1.",
+    "learned": "This corroborates the Jira disposition and approved scope.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "0c05783eb5c324f149285a686a68a2b84a87513c",
+    "ref": { "commit": "0c05783eb5c324f149285a686a68a2b84a87513c" },
+    "summary": "Commit subject '40505' changed the Vital Signs profile by removing the UCUM binding from Observation.component.value[x] and adding Observation.component.valueQuantity with the binding.",
+    "learned": "FHIR-40505 was initially applied in source before R5 publication.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-vitalsigns.xml:220-243",
+    "summary": "The current generic Observation.component.value[x] element has no binding, while Observation.component.value[x]:valueQuantity is Quantity-typed and carries the UCUM value set binding.",
+    "learned": "The current source already satisfies the binding placement requested by FHIR-40505.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-208; source/observation/implementationguide-Observation-vitalsigns.xml:28-31",
+    "summary": "Observation is listed as an active resource and the Observation Vital Signs implementation guide includes StructureDefinition/vitalsigns.",
+    "learned": "The inspected Vital Signs profile source is part of the current FHIR build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "51f56178b686661b77368513b5f7d758ea6e43ee",
+    "ref": { "commit": "51f56178b686661b77368513b5f7d758ea6e43ee", "jira_key": "FHIR-47136" },
+    "summary": "Later Vital Signs cleanup clarified value[x] slicing and proper path/sliceName values for the component valueQuantity slice.",
+    "learned": "The current Observation.component.value[x]:valueQuantity representation is a later refactor that preserves the FHIR-40505 outcome.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Idempotency and current-source verification for FHIR-40505",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-40505' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n -C 2 'Observation\\.component\\.value\\[x\\]|unitsofmeasure.org/vs|ucum-vitals' source/observation/structuredefinition-profile-vitalsigns.xml",
+    "summary": "No existing reconcile commit was found, and the current profile shows the UCUM binding only on the valueQuantity slice.",
+    "learned": "A single empty no-change audit commit is the correct idempotent reconciliation result.",
+    "supports": ["confidence", "reconciliation"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,89 @@
+FHIR-12179: Audit inherited snapshot constraints
+
+Issue request:
+FHIR-12179 was Published/Persuasive for DSTU2 and asked that the official build snapshot inherit all applicable constraints from applied base and type profiles, with ele-1 applied to all elements as the example. The Jira comments also clarified that mappings, aliases, and other aggregable ElementDefinition content should be inherited, with full snapshot guidance to follow.
+
+Initial application:
+Jira records svn revision 10025 as the application. In this Git history that is commit 82e1ca4af69d33f527a180c7bfa003e811feb4c0, whose subject names Tasks 12180, 12182, and 12179. The visible source change added ElementDefinition.constraint.source so generated snapshots can retain inherited constraints while preserving their originating StructureDefinition for rendering and traceability.
+
+Additional context:
+Current build scope still includes ElementDefinition as an active datatype in source/fhir.ini and StructureDefinition as an active resource. Current StructureDefinition source says specialization snapshots include inherited elements and rules, profiling guidance says generated snapshots are complete and retain inherited constraints, and the StructureDefinition notes explain that inherited interface constraints are propagated into snapshots with ElementDefinition.constraint.source. A current CI-build check of Patient.name in patient.profile.json shows ele-1 inherited from http://hl7.org/fhir/StructureDefinition/Element, and inherited mappings are also present.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical build/source change was applied, current authoritative source documents the retained-in-snapshot behavior, and the current generated specification demonstrates that inherited Element constraints such as ele-1 are present in snapshots with source provenance.
+
+Recommendation:
+Keep this audit commit as-is. Revisit only if a future publisher/build regression omits inherited constraints or other aggregable ElementDefinition content from generated snapshots, or drops ElementDefinition.constraint.source provenance needed to distinguish inherited constraints during rendering.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12179
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12180: same-change-family - applied by the same svn revision 10025/Git commit but concerns primitive extension ElementDefinition.base.path values and is already represented on the combined branch.
+FHIR-12182: same-change-family - applied by nearby/same historical ElementDefinition.id work but concerns element.id format/location rather than snapshot constraint inheritance, so it was left for a separate decision.
+FHIR-20500: later-change - later documentation for ElementDefinition.constraint.suppress reinforces that inherited constraints remain in snapshots and can be suppressed for profile-specific warnings rather than removed.
+FHIR-37791: later-change - later interface documentation explicitly describes propagated inherited constraints and ElementDefinition.constraint.source provenance.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12179: Published/Persuasive request for official build snapshots to inherit applicable constraints and other aggregable ElementDefinition content from base/type profiles. Learned: establishes the final issue scope and target behavior.
+- E2 Git 82e1ca4af69d33f527a180c7bfa003e811feb4c0: svn revision 10025 commit for Tasks 12180/12182/12179 added ElementDefinition.constraint.source. Learned: confirms the historical application mechanism for retaining inherited constraints with provenance.
+- E3 Source source/fhir.ini:11-68, source/datatypes/elementdefinition.xml:2364-2380, source/structuredefinition/structuredefinition-StructureDefinition.xml:857-918, source/profiling.html:511-523, and source/structuredefinition/structuredefinition-notes.xml:187-193: current active source defines ElementDefinition.constraint.source and describes inherited rules/constraints retained in snapshots. Learned: the current authoritative source still carries the intended behavior in build scope.
+- E4 Published-spec/current CI check: curl of build.fhir.org patient.profile.json found Patient.name snapshot constraints include ele-1 with source http://hl7.org/fhir/StructureDefinition/Element and inherited mappings. Learned: verifies the current generated specification demonstrates the requested snapshot inheritance.
+- E5 Community/Jira search commands: quoted Zulip and Confluence searches for FHIR-12179/inherited constraints found no relevant conflicting decision; a Zulip commit notification references svn revision 10025, and Confluence refs found no direct FHIR-12179 page references. Learned: no discovered community record changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12179",
+    "url": "https://jira.hl7.org/browse/FHIR-12179",
+    "snapshot_path": "contexts/FHIR-12179/jira/FHIR-12179.md",
+    "ref": { "jira_key": "FHIR-12179" },
+    "summary": "Published/Persuasive issue requiring official build snapshots to inherit constraints and other aggregable ElementDefinition content from applied base and type profiles.",
+    "learned": "This establishes the requested current behavior for snapshot generation, with ele-1 inheritance as the stated example.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "82e1ca4af69d33f527a180c7bfa003e811feb4c0",
+    "ref": { "commit": "82e1ca4af69d33f527a180c7bfa003e811feb4c0" },
+    "summary": "Git import of svn revision 10025 for Tasks 12180/12182/12179 added ElementDefinition.constraint.source for inherited constraint traceability.",
+    "learned": "The historical application changed the StructureDefinition/ElementDefinition model to support retaining inherited constraints while identifying their source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:11-68; source/datatypes/elementdefinition.xml:2364-2380; source/structuredefinition/structuredefinition-StructureDefinition.xml:857-918; source/profiling.html:511-523; source/structuredefinition/structuredefinition-notes.xml:187-193",
+    "ref": { "path": "source/datatypes/elementdefinition.xml" },
+    "summary": "Current active source defines ElementDefinition.constraint.source and states that snapshots include inherited rules/constraints while retaining constraint source provenance.",
+    "learned": "The current build-scope source still embodies the intended inherited-snapshot behavior and does not need a corrective edit.",
+    "supports": ["additional_context", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current CI Patient snapshot inheritance check",
+    "command": "curl -fsSL https://build.fhir.org/patient.profile.json | jq -r '.snapshot.element[] | select(.id==\"Patient.name\") | {constraintKeys:[.constraint[]?.key] | unique, mappingIds:[.mapping[]?.identity] | unique, source:(.constraint[]? | select(.key==\"ele-1\") | .source)}'",
+    "summary": "The current CI Patient.name snapshot includes inherited ele-1 from http://hl7.org/fhir/StructureDefinition/Element and inherited mapping identities.",
+    "learned": "The generated specification demonstrates the requested inherited ElementDefinition content in a representative resource snapshot.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-12179 and snapshot inheritance",
+    "command": "bun run zulip:search fts '\"FHIR-12179\" OR \"inherit constraints\" OR \"snapshot generation\"' --limit 10; bun run confluence:search refs jira FHIR-12179; bun run confluence:search fts '\"FHIR-12179\" OR \"inherit constraints\" OR \"snapshot generation\"' --limit 10",
+    "query": "FHIR-12179 inherit constraints snapshot generation",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting community decision was found; the only specific historical community hit located was a Zulip commit notification for svn revision 10025.",
+    "learned": "No discovered community record changes the conclusion based on Jira, source, git history, and current generated output.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

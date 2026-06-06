@@ -1,0 +1,95 @@
+FHIR-6233: Audit AuditEvent network address rename
+
+Issue request:
+FHIR-6233 was a Published Security WG change request for DSTU1. It reported confusion in AuditEvent because participant.network.identifier was a string, not an Identifier, and asked to rename AuditEvent.participant.network.identifier to address; the issue also noted that any search for this value should be string, not token. The accepted resolution was: AuditEvent.participant.network.identifier --> address.
+
+Initial application:
+The issue appears to have been applied in git commit 8e1a48066d70501f76de61f4511ec19b48da2df2, whose message lists item 6233 and whose AuditEvent spreadsheet/examples patch renamed AuditEvent.participant.network.identifier to AuditEvent.participant.network.address. Later AuditEvent refactoring moved participant to agent, and a subsequent security block vote commit replaced the network backbone (including address/type children) with AuditEvent.agent.network[x].
+
+Additional context:
+AuditEvent is active in source/fhir.ini, so source/auditevent/structuredefinition-AuditEvent.xml and source/auditevent/bundle-AuditEvent-search-params.xml are current build inputs. Current source has AuditEvent.agent.network[x] as Reference(Endpoint), uri, or string, with fhir.ini conversion notes mapping the old AuditEvent.agent.network.address/type children to network[x]. The current AuditEvent search parameter bundle contains no network/address search parameter, so there is no lingering token search for the old string value. Zulip and Confluence searches for FHIR-6233 plus AuditEvent did not find conflicting community evidence.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current specification no longer exposes an element named participant.network.identifier or agent.network.identifier, and it does not define the problematic token search parameter. The remaining checked-in DICOM ATNA test XML uses DICOM NetworkAccessPointID attributes, not FHIR element names, and does not reintroduce the issue.
+
+Recommendation:
+Keep this empty audit commit as-is. No follow-up core source work is needed for FHIR-6233 unless a future work group decision wants to add a new, explicitly specified AuditEvent network search parameter.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6233
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6233: Published/Persuasive with Modification issue accepted the rename from AuditEvent.participant.network.identifier to address and noted search should not be token. Learned: this establishes the final requested change.
+- E2 Git 8e1a48066d70501f76de61f4511ec19b48da2df2: AuditEvent update commit lists item 6233 and renames participant.network.identifier to participant.network.address in the spreadsheet/examples. Learned: the original source application occurred historically.
+- E3 Source source/auditevent/structuredefinition-AuditEvent.xml:838-855: Current AuditEvent defines AuditEvent.agent.network[x] as Reference(Endpoint), uri, or string. Learned: the old identifier-named child is gone from the current authoritative resource definition.
+- E4 Source source/auditevent/bundle-AuditEvent-search-params.xml:1-275 and verification command: current AuditEvent search parameters are action, agent, agent-role, based-on, date, encounter, entity, entity-role, outcome, patient, policy, purpose, source, subtype, type, entity-desc, and when, with no network/address token search. Learned: the search-parameter concern no longer needs a source edit.
+- E5 Source source/fhir.ini:224 and source/fhir.ini:1584-1585: AuditEvent is active in the build and old AuditEvent.agent.network.address/type map to network[x]. Learned: the inspected files are in build scope and the old element lineage is explicitly mapped.
+- E6 Community search: quoted Zulip and Confluence FTS/refs searches for FHIR-6233 and AuditEvent found no relevant hits. Learned: no discovered community record conflicts with the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6233",
+    "url": "https://jira.hl7.org/browse/FHIR-6233",
+    "snapshot_path": "contexts/FHIR-6233/jira/FHIR-6233.md",
+    "ref": { "jira_key": "FHIR-6233" },
+    "summary": "Published/Persuasive with Modification Security WG issue accepted renaming AuditEvent.participant.network.identifier to address and noted the value should not have token search semantics.",
+    "learned": "This establishes the final requested correction for the AuditEvent network element and search behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "8e1a48066d70501f76de61f4511ec19b48da2df2",
+    "ref": { "commit": "8e1a48066d70501f76de61f4511ec19b48da2df2" },
+    "summary": "Commit 'Updates for items 6233, 6269, 7431, 7564, 7566, 8123, and 8589' renamed AuditEvent.participant.network.identifier to AuditEvent.participant.network.address in the AuditEvent spreadsheet and examples.",
+    "learned": "The accepted FHIR-6233 rename was historically applied in source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:838-855",
+    "ref": { "path": "source/auditevent/structuredefinition-AuditEvent.xml", "line_start": 838, "line_end": 855 },
+    "summary": "Current AuditEvent source defines AuditEvent.agent.network[x] as Reference(Endpoint), uri, or string.",
+    "learned": "The old identifier-named child no longer exists in the current authoritative resource definition.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "AuditEvent search parameter inspection",
+    "command": "perl -0ne 'while (/<SearchParameter>.*?<id value=\"([^\"]+)\".*?<code value=\"([^\"]+)\".*?<type value=\"([^\"]+)\"/sg) { print \"$1\\t$2\\t$3\\n\" }' source/auditevent/bundle-AuditEvent-search-params.xml; rg -n 'participant\\.network\\.identifier|agent\\.network\\.identifier|AuditEvent-network|<code value=\"network\"' source",
+    "summary": "The current AuditEvent search parameter bundle contains no network/address search parameter, and repository search found no old network identifier element or AuditEvent-network search parameter.",
+    "learned": "There is no remaining token search issue for the old string network address value.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:224,1584-1585",
+    "ref": { "path": "source/fhir.ini", "line_start": 224, "line_end": 1585 },
+    "summary": "source/fhir.ini lists auditevent as an active resource and maps old AuditEvent.agent.network.address/type to network[x].",
+    "learned": "The inspected AuditEvent files are in current build scope and the old address/type lineage is handled by conversion metadata.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-6233 AuditEvent",
+    "command": "bun run confluence:search refs jira FHIR-6233 --limit 10; bun run zulip:search fts '\"FHIR-6233\" AuditEvent' --limit 10; bun run confluence:search fts '\"FHIR-6233\" AuditEvent' --limit 10",
+    "query": "\"FHIR-6233\" AuditEvent",
+    "result_count": 0,
+    "summary": "No Confluence references and no relevant Zulip or Confluence full-text hits were found for FHIR-6233 with AuditEvent.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

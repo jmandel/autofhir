@@ -1,0 +1,115 @@
+FHIR-5539: Audit transaction response HTTP semantics
+
+Issue request:
+FHIR-5539 was a Published/Persuasive FHIR-core Feed change request from DSTU1 asking to reuse RESTful HTTP status semantics in transaction results instead of relying on the older implicit mix of Bundle entry status, resource metadata, and deleted-entry modeling.
+
+Initial application:
+No git commit explicitly names FHIR-5539. The relevant 2015 history shows the Bundle transaction model was reworked shortly after the issue was filed, including explicit transaction/response-related entry structures, and the approved header follow-up appears in the March 2015 http-response-header extension commit. A later Published/Persuasive related tracker, FHIR-8878, clarified the same response status element to require at least a three-digit HTTP code.
+
+Additional context:
+Bundle is an active current-build resource in source/fhir.ini and is normative. Current source requires response elements for transaction-response and batch-response bundles, defines Bundle.entry.response as the result of processing the corresponding request, makes Bundle.entry.response.status mandatory, and defines that status as starting with a three-digit HTTP code with optional standard HTTP description text. The RESTful HTTP page also explains that batch/transaction response entries carry the HTTP status code plus Location and ETag values where applicable. The older http-response-header extension was removed from core R5 source when extensions moved out of core and now exists in the FHIR Extension Pack, so re-adding it to core would be the wrong current-build fix.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change because current build-scope core source already conveys the FHIR-5539 decision: transaction response entries use explicit response elements with HTTP status/header semantics rather than the obsolete implicit status/resource meta/deleted model.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce the old core http-response-header extension into core; any future work on arbitrary response headers should be handled in the Extension Pack, while the core Bundle response status/location/etag/lastModified model is already correct.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5539
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-8878: same-change-family - Published clarification of Bundle.entry.response.status possible values; it confirms the current HTTP-code wording on the status element but is not decided by this seed audit.
+FHIR-19619: later-change - Published history-response status wording audit already exists on the combined branch and does not change the FHIR-5539 transaction-response conclusion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5539: Published/Persuasive issue requested reuse of RESTful HTTP status semantics in transaction results. Learned: this is final WG intent for the seed decision.
+- E2 Source source/fhir.ini:169,245 and source/fhir.ini:929-952: Bundle is an active resource and normative infrastructure resource. Learned: Bundle source is in current build scope.
+- E3 Source source/bundle/structuredefinition-Bundle.xml:121-126,585-653: transaction-response/batch-response bundles require entry.response; response.status is mandatory and starts with a three-digit HTTP code, with response location/etag/lastModified/outcome fields. Learned: current conformance source implements explicit HTTP-style transaction response semantics.
+- E4 Source source/http.html:1959-1976: batch/transaction response narrative says each response entry details the HTTP status code and applicable Location and ETag header values. Learned: current RESTful API narrative is consistent with the Bundle model.
+- E5 Git 368c9c3074eeb60fb30efdb8d319e75345501ebc: January 2015 Bundle rework after Connectathon changed the older entry status/deleted modeling and transaction documentation. Learned: the issue was applied through unkeyed early Bundle transaction rework rather than an explicit FHIR-5539 commit.
+- E6 Git fc670fcfd7cab982db09fb06bb9a6240c097a816 and source /home/jmandel/work/fhir-extensions/input/definitions/Bundle/StructureDefinition-http-response-header.xml: March 2015 added the response-header extension, later removed from core R5 and present in the Extension Pack. Learned: header-extension follow-up is not a missing current core source change.
+- E7 Jira FHIR-8878 and Git c814cb5197d8af7fda5e02cd894f81de49cbe19b: FHIR-8878 clarified response.status to require at least the HTTP code; c814cb applied that wording. Learned: later same-element clarification supports the current status wording.
+- E8 Command community searches: quoted Zulip and Confluence searches for FHIR-5539 and Bundle.entry.response.status/HTTP status found no directly relevant records. Learned: no discovered community evidence conflicts with the source/Jira conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5539",
+    "url": "https://jira.hl7.org/browse/FHIR-5539",
+    "snapshot_path": "contexts/FHIR-5539/jira/FHIR-5539.md",
+    "ref": { "jira_key": "FHIR-5539" },
+    "summary": "Published/Persuasive FHIR-core Feed issue requesting reuse of RESTful HTTP status semantics in transaction results.",
+    "learned": "This establishes the final seed issue intent to check against current Bundle transaction response source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,245,929-952",
+    "summary": "fhir.ini lists Bundle as an active resource and normative infrastructure resource with first normative version 4.0.0.",
+    "learned": "Bundle source is current build-scope source for the reconciliation decision.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/bundle/structuredefinition-Bundle.xml:121-126,585-653",
+    "summary": "Bundle requires entry.response for transaction-response/batch-response and defines mandatory response.status as a three-digit HTTP code plus optional text, with location, etag, lastModified, and outcome response fields.",
+    "learned": "The authoritative Bundle StructureDefinition already implements explicit HTTP-style transaction response semantics.",
+    "supports": ["reconciliation", "source_correct"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/http.html:1959-1976",
+    "summary": "The RESTful batch/transaction response narrative says each response entry contains the HTTP status code and applicable Location and ETag header values.",
+    "learned": "Current narrative guidance is consistent with the Bundle response model and does not need a source edit.",
+    "supports": ["reconciliation", "source_correct"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "368c9c3074eeb60fb30efdb8d319e75345501ebc",
+    "ref": { "commit": "368c9c3074eeb60fb30efdb8d319e75345501ebc" },
+    "summary": "January 2015 commit reworked Bundle after Connectathon discussion and updated transaction/history documentation, including replacing older entry status/deleted modeling with transaction-related structures.",
+    "learned": "FHIR-5539 appears to have been applied through early unkeyed Bundle transaction rework rather than an explicit FHIR-5539 commit.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "fc670fcfd7cab982db09fb06bb9a6240c097a816; /home/jmandel/work/fhir-extensions/input/definitions/Bundle/StructureDefinition-http-response-header.xml",
+    "ref": { "commit": "fc670fcfd7cab982db09fb06bb9a6240c097a816" },
+    "summary": "March 2015 added the HTTP response-header extension; current core removed extensions from R5 source and the definition is present in the FHIR Extension Pack.",
+    "learned": "The header-extension part of the historical change is not a missing current core edit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-8878 and c814cb5197d8af7fda5e02cd894f81de49cbe19b",
+    "url": "https://jira.hl7.org/browse/FHIR-8878",
+    "ref": { "jira_key": "FHIR-8878", "commit": "c814cb5197d8af7fda5e02cd894f81de49cbe19b" },
+    "summary": "Published/Persuasive clarification that Bundle.entry.response.status must include at least the HTTP status code; commit c814cb applied the current wording.",
+    "learned": "A later same-element decision supports the current response.status wording used to satisfy FHIR-5539.",
+    "supports": ["additional_context", "source_correct"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-5539 and Bundle.entry.response.status HTTP status",
+    "command": "bun run zulip:search fts '\"FHIR-5539\"' --limit 10; bun run zulip:search fts '\"Bundle.entry.response.status\" \"HTTP status\"' --limit 10; bun run confluence:search refs jira FHIR-5539; bun run confluence:search fts '\"FHIR-5539\"' --limit 10; bun run confluence:search fts '\"Bundle.entry.response.status\" \"HTTP status\"' --limit 10",
+    "query": "FHIR-5539; Bundle.entry.response.status HTTP status",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence records were found for the seed or the current status wording.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

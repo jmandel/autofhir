@@ -1,0 +1,95 @@
+FHIR-27762: Audit CodeSystem unique-code invariant
+
+Issue request:
+FHIR-27762 was a Published/Persuasive with Modification Vocab change request for R5. It reported that CodeSystem csd-1 used `concept.code.combine($this.descendants().concept.code).isDistinct()`, where `$this.descendants()` did not correctly collect nested concept codes, and the accepted resolution was Bryn Rhodes' final expression: `concept.exists() implies concept.code.combine(%resource.concept.descendants().concept.code).isDistinct()`.
+
+Initial application:
+The issue was applied before this reconciliation. Commit ade907ca5b1bc08efb093bc524c5b00bdc7fa5ac, "2nd batch of vocab R5 tickets", explicitly listed FHIR-27762 and changed source/codesystem/structuredefinition-CodeSystem.xml from the old `$this.descendants()` expression to the final `concept.exists() implies ... %resource.concept.descendants().concept.code ... isDistinct()` expression.
+
+Additional context:
+CodeSystem is an active current-build resource in source/fhir.ini and remains owned by Vocab/normative core source. The current authoritative StructureDefinition still carries the applied csd-1 expression and attaches csd-1 to CodeSystem.concept. A repository-wide scan found the old expression only in frozen tools/history/release4 and release4b artifacts, while current source and release5 history contain the corrected expression. Confluence minutes record the 2021-07-08 Vocab motion approving the resolution 9-0-0, and the original community.fhir.org thread explains the `$this` problem that led to the Jira. Corrected Zulip searches found no direct FHIR-27762 discussion or later superseding decision.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scope source already implements the final Jira-approved CodeSystem csd-1 FHIRPath expression, so editing it again would only duplicate the prior application. Historical R4/R4B snapshot files were left unchanged because they preserve prior published release surfaces rather than drive the current build.
+
+Recommendation:
+Keep this no-change audit commit. No current-core follow-up is needed for FHIR-27762; any desire to retroactively correct R4/R4B historical publication artifacts should be handled as separate release-maintenance work, not by changing current build source during this reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27762
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27762: Published/Persuasive with Modification issue and comments identify Bryn Rhodes' final `concept.exists() implies concept.code.combine(%resource.concept.descendants().concept.code).isDistinct()` expression. Learned: establishes the final WG-approved target expression.
+- E2 Source source/fhir.ini:270,503,944,961 and source/codesystem/structuredefinition-CodeSystem.xml:92-96,909: CodeSystem is active/current core source and csd-1 already uses the approved expression with a condition on CodeSystem.concept. Learned: the authoritative current source is in build scope and already correct.
+- E3 Git ade907ca5b1bc08efb093bc524c5b00bdc7fa5ac: R5 vocab batch commit explicitly included FHIR-27762 and replaced the old `$this.descendants()` expression with the approved expression. Learned: the issue was already applied in source history.
+- E4 Confluence 2021-07-08 Vocab WG Call Agenda/Minutes page 116464421: minutes record a motion to approve the FHIR-27762 resolution, seconded by Reuben, vote 9/0/0. Learned: confirms the Jira resolution was formally approved by the responsible work group.
+- E5 Web community.fhir.org thread 1999: original discussion shows implementers identifying that the old csd-1 expression did not correctly validate unique CodeSystem concept codes. Learned: corroborates the problem statement and why `$this` was the relevant error.
+- E6 Verification command/query: `rg` found the approved expression in current source and release5 history, with the old expression only in tools/history/release4 and release4b; corrected Zulip searches found no direct FHIR-27762 hits or superseding discussion. Learned: no current-source stale location or later community conflict was found.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27762",
+    "url": "https://jira.hl7.org/browse/FHIR-27762",
+    "snapshot_path": "contexts/FHIR-27762/jira/FHIR-27762.md",
+    "ref": { "jira_key": "FHIR-27762" },
+    "summary": "Published/Persuasive with Modification Vocab issue reporting that CodeSystem csd-1 used an incorrect `$this.descendants()` FHIRPath expression and recording Bryn Rhodes' final replacement expression.",
+    "learned": "This establishes the final WG-approved target expression for the current source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:270,503,944,961; source/codesystem/structuredefinition-CodeSystem.xml:92-96,909",
+    "ref": { "path": "source/codesystem/structuredefinition-CodeSystem.xml" },
+    "summary": "CodeSystem is an active current-build resource, and csd-1 already uses `concept.exists() implies concept.code.combine(%resource.concept.descendants().concept.code).isDistinct()` with a condition on CodeSystem.concept.",
+    "learned": "The authoritative current source is in scope and already matches the approved FHIR-27762 resolution.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "ade907ca5b1bc08efb093bc524c5b00bdc7fa5ac",
+    "ref": { "commit": "ade907ca5b1bc08efb093bc524c5b00bdc7fa5ac" },
+    "summary": "The R5 vocab batch commit explicitly listed FHIR-27762 and changed source/codesystem/structuredefinition-CodeSystem.xml from the old `$this.descendants()` expression to the approved expression.",
+    "learned": "The issue was already applied in the authoritative CodeSystem StructureDefinition source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "confluence",
+    "locator": "2021-07-08 Vocab WG Call Agenda/Minutes page 116464421",
+    "url": "https://confluence.hl7.org/spaces/VOC/pages/116464421/2021-07-08+Vocab+WG+Call+Agenda+Minutes",
+    "ref": { "confluence_page_id": 116464421 },
+    "summary": "Minutes record a motion to approve the FHIR-27762 resolution, seconded by Reuben, with a 9/0/0 vote.",
+    "learned": "This confirms responsible-work-group approval of the Jira resolution.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "web",
+    "locator": "community.fhir.org thread 1999",
+    "url": "http://community.fhir.org/t/codesystem-constraint-fhir-path-expression-seems-to-always-be-false/1999",
+    "summary": "The original community discussion shows implementers identifying that the old csd-1 expression failed to correctly validate unique CodeSystem concept codes and debating replacement expressions.",
+    "learned": "This corroborates the Jira problem statement and explains why `$this` was the relevant error.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Source and community conflict checks for FHIR-27762",
+    "command": "rg 'concept\\.code\\.combine\\(\\$this\\.descendants\\(\\)\\.concept\\.code\\)\\.isDistinct\\(\\)|concept\\.exists\\(\\) implies concept\\.code\\.combine' .; bun run zulip:search fts '\"FHIR-27762\" CodeSystem' --limit 10; bun run zulip:search fts 'CodeSystem FHIRPath expression incorrect unique concept code' --limit 10",
+    "query": "FHIR-27762 CodeSystem FHIRPath expression unique concept code",
+    "summary": "The approved expression appears in current source and release5 history; the old expression appears only in tools/history/release4 and release4b. Corrected Zulip searches found no direct FHIR-27762 hits and no superseding community decision.",
+    "learned": "No current-source stale location or later contradictory community evidence was found.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,104 @@
+FHIR-22486: Audit Claim cardinality relaxation
+
+Issue request:
+FHIR-22486 is Published/Persuasive with Modification for R5. It reported that Claim cardinalities were too tight for lightweight reference or summary use and asked to relax provider, priority, and insurance cardinalities on Claim, ClaimResponse, and ExplanationOfBenefit where those elements are present.
+
+Initial application:
+No local git commit explicitly mentioning FHIR-22486 was found. The change appears to have been applied implicitly in Paul Knapp's 2022-08-13 commit f952b5321de9cdbcb7b2521862890c757e21d530, which changed Claim.provider, Claim.priority, Claim.insurance, ClaimResponse.insurer, ExplanationOfBenefit.provider, and ExplanationOfBenefit.insurance minimum cardinalities from 1 to 0 while preserving their existing maximum cardinalities. ClaimResponse.requestor, ClaimResponse.insurance, and ExplanationOfBenefit.priority were already optional in the immediately preceding source.
+
+Additional context:
+The literal Jira resolution says to change the named elements to 0..1, but the issue rationale and compatible change impact are about removing mandatory submission-only data for summary/reference use. Current source and published R5 keep insurance repeatable at 0..*, and the insurance comments describe multiple coverages, one focal coverage, and preceding coverages used for coordination of benefits. Reducing insurance maximum cardinality to 1 would be an incompatible semantic change and would contradict that current source text. Zulip and Confluence searches found no conflicting community evidence for FHIR-22486.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. The current build source already reflects the safe and published interpretation of the issue: provider/requestor/insurer and priority elements are optional where present, and insurance is optional while remaining repeatable for coordination-of-benefits scenarios.
+
+Recommendation:
+Keep this audit commit as-is. Do not reduce Claim.insurance, ClaimResponse.insurance, or ExplanationOfBenefit.insurance to 0..1 without a new explicit work-group decision, because that would be a breaking constraint and would invalidate the existing multi-coverage narrative.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22486
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22486: Published/Persuasive with Modification issue for R5 asking to relax too-tight Claim-family cardinalities. Learned: final WG intent was to permit lightweight summary/reference use by removing mandatory submission-only fields.
+- E2 Source source/fhir.ini:241-244: Claim, ClaimResponse, and ExplanationOfBenefit are active current-build resources. Learned: the checked StructureDefinition XML files are in build scope.
+- E3 Source source/claim/structuredefinition-Claim.xml:339-369,1086-1099; source/claimresponse/structuredefinition-ClaimResponse.xml:277-300,2267-2280; source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:351-377,1219-1232: current provider/requestor/insurer and priority elements are 0..1 while insurance is 0..*. Learned: the current source has relaxed mandatory cardinalities but preserves repeatable insurance.
+- E4 Git f952b5321de9cdbcb7b2521862890c757e21d530: 2022-08-13 FHIR core updates changed the relevant Claim-family minimum cardinalities from 1 to 0 without mentioning FHIR-22486. Learned: this is the apparent implicit application of the seed before R5 publication.
+- E5 Published R5 spec check: https://hl7.org/fhir/R5/claim.profile.json, claimresponse.profile.json, and explanationofbenefit.profile.json show the same matrix: provider/requestor/insurer and priority optional, insurance 0..*. Learned: the current source matches the published R5 application.
+- E6 Command Zulip/Confluence searches for FHIR-22486 and Claim cardinality terms: no directly relevant hits were found. Learned: no discovered community record changes the Jira/source conclusion.
+- E7 Verification command: namespace-safe XML parse of current source and R5 JSON cardinality check. Learned: the audit conclusion is based on structured cardinality values rather than rendered text.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22486",
+    "url": "https://jira.hl7.org/browse/FHIR-22486",
+    "snapshot_path": "contexts/FHIR-22486/jira/FHIR-22486.md",
+    "ref": { "jira_key": "FHIR-22486" },
+    "summary": "Published/Persuasive with Modification issue for R5 reporting that Claim cardinalities were too tight for lightweight reference or summary use.",
+    "learned": "The final work-group intent was to relax mandatory submission-oriented fields so Claim-family resources can be used in lighter contexts.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:241-244",
+    "ref": { "path": "source/fhir.ini", "lines": "241-244" },
+    "summary": "fhir.ini lists Claim, ClaimResponse, and ExplanationOfBenefit as active resources in the current build.",
+    "learned": "The checked StructureDefinition XML files are current build source.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/claim/structuredefinition-Claim.xml:339-369,1086-1099; source/claimresponse/structuredefinition-ClaimResponse.xml:277-300,2267-2280; source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:351-377,1219-1232",
+    "summary": "Current source cardinalities are Claim.provider 0..1, Claim.priority 0..1, Claim.insurance 0..*, ClaimResponse.insurer/requestor 0..1, ClaimResponse.insurance 0..*, ExplanationOfBenefit.provider 0..1, ExplanationOfBenefit.priority 0..1, and ExplanationOfBenefit.insurance 0..*.",
+    "learned": "The source relaxes mandatory fields while preserving repeatable insurance for multi-coverage coordination.",
+    "supports": ["additional_context", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "f952b5321de9cdbcb7b2521862890c757e21d530",
+    "ref": { "commit": "f952b5321de9cdbcb7b2521862890c757e21d530" },
+    "summary": "The 2022-08-13 'FHIR core updates' commit changed relevant Claim-family minimum cardinalities from 1 to 0 while preserving maximum cardinalities.",
+    "learned": "This appears to be the implicit pre-R5 source application of FHIR-22486.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "R5 Claim, ClaimResponse, and ExplanationOfBenefit profile JSON",
+    "url": "https://hl7.org/fhir/R5/claim.profile.json",
+    "summary": "Published R5 profile JSON uses the same cardinality matrix as current source, including repeatable insurance at 0..*.",
+    "learned": "The current source matches the R5 published application, so no source correction is needed for this reconciliation.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-22486 and Claim cardinality terms",
+    "command": "bun run zulip:search fts '\"FHIR-22486\" Claim cardinalities provider priority insurance' --limit 10; bun run zulip:search fts 'Claim cardinalities provider priority insurance' --limit 10; bun run confluence:search refs jira FHIR-22486; bun run confluence:search fts '\"FHIR-22486\" Claim cardinalities provider priority insurance' --limit 10",
+    "query": "FHIR-22486 Claim cardinalities provider priority insurance",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community evidence conflicts with the source/history interpretation.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Structured cardinality checks",
+    "command": "python3 namespace-safe XML parse of current StructureDefinition XML; python3 urllib/json check of hl7.org/fhir/R5 profile JSON",
+    "summary": "The structured checks confirmed current source and R5 published cardinalities rather than relying on rendered text.",
+    "learned": "The no-change decision rests on exact cardinality values in authoritative structured artifacts.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

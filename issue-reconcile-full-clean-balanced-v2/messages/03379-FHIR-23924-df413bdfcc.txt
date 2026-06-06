@@ -1,0 +1,113 @@
+FHIR-23924: Audit manufactured item quantity relocation
+
+Issue request:
+FHIR-23924 was a Published FHIR-core BR&R change request, resolved Persuasive with Modification for R5, asking how to model 100-, 60-, and 30-tablet package configurations that share the same manufactured item. The approved resolution was that the count belongs on the referring package item in PackagedProductDefinition, not on the referred ManufacturedItemDefinition, because an item should not count itself.
+
+Initial application:
+There was no explicit FHIR-23924-tagged source commit found. The same September 2019 Zulip discussion that prompted the Jira was followed immediately by source-history changes: 6f506840ae changed the packaged-product source so the count moved to the packaged level, 7512379e82 removed ManufacturedItemDefinition.quantity and added a contained item with an amount, and b0893a67ea added narrative explaining that one ManufacturedItemDefinition can be reused by package definitions with different numeric quantities.
+
+Additional context:
+The current R5/R6-era resource names are ManufacturedItemDefinition and PackagedProductDefinition, with source/fhir.ini redirecting the old MedicinalProductManufactured and MedicinalProductPackaged names. Both current resources are active build inputs. A later Published issue, FHIR-39130, confirmed the same model by rejecting a quantity on ManufacturedItemDefinition and clarifying that PackagedProductDefinition.packaging.containedItem.amount is where item amount or continuous quantity belongs.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Current source already has no ManufacturedItemDefinition.quantity element, defines PackagedProductDefinition.packaging.containedItem.amount for the number or quantity of the contained item, and includes module/resource narrative plus examples that show package-level quantities for contained manufactured items.
+
+Recommendation:
+Keep this no-change audit as-is. No core source follow-up is needed for FHIR-23924; related package-quantity clarifications such as FHIR-39130 can be audited separately if they are assigned as their own reconciliation seeds.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-23924
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-39130: supporting-decision - later Published clarification says containedItem.amount, not ManufacturedItemDefinition, carries continuous manufactured item quantities.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-23924: Published/Persuasive with Modification; resolution says move quantity to the referring PackagedProductDefinition item and that an item should not count itself. Learned: this establishes the final seed intent.
+- E2 Zulip #BRR - Pharmacy model > How to just express the ingredients of a product?: Jean Duteau raised the package-configuration problem and Rik Smithies agreed a backbone item reference plus item count was needed. Learned: this is the community discussion behind the Jira and matches the source direction.
+- E3 Source source/fhir.ini:148-149,289-291,1031-1033,1935-1936 plus current resource XML: the renamed resources are active build inputs and old MedicinalProduct names redirect to the current definitions. Learned: current ManufacturedItemDefinition and PackagedProductDefinition source is in build scope.
+- E4 Source source/packagedproductdefinition/structuredefinition-PackagedProductDefinition.xml:207-210,634-647 and source/manufactureditemdefinition/structuredefinition-ManufacturedItemDefinition.xml:180-234. Learned: package-level contained item quantities exist and the manufactured item definition proceeds from unitOfPresentation to manufacturer/ingredients with no count element.
+- E5 Source source/manufactureditemdefinition/manufactureditemdefinition-introduction.xml:34-46, source/medication-definition-module.html:117-123, and source/packagedproductdefinition/packagedproductdefinition-example.xml:144-154. Learned: narrative and examples tell implementers to reuse one manufactured item and put counts on package-contained items.
+- E6 Git 6f506840ae, 7512379e82, b0893a67ea, c9d8e5b4e4. Learned: history shows the seed-era move to package-level count, the removal of ManufacturedItemDefinition.quantity, the later explanatory narrative, and the later FHIR-39130 wording clarification.
+- E7 Jira FHIR-39130: Published/Persuasive clarification for manufactured item/package item quantity. Learned: later BR&R decision supports leaving quantity outside ManufacturedItemDefinition and using containedItem.amount.
+- E8 Verification command/query: git log grep for the issue key on the combined branch was empty before this commit; Confluence refs/FTS searches for FHIR-23924 found no relevant minutes; Zulip and Jira searches found the relevant discussion and later FHIR-39130 context. Learned: there was no duplicate audit and no discovered community conflict requiring a source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-23924",
+    "url": "https://jira.hl7.org/browse/FHIR-23924",
+    "snapshot_path": "contexts/FHIR-23924/jira/FHIR-23924.md",
+    "ref": { "jira_key": "FHIR-23924" },
+    "summary": "Published/Persuasive with Modification issue asking how to model multiple package configurations of the same manufactured item.",
+    "learned": "The approved decision was to put the package-specific quantity on the referring PackagedProductDefinition item, not on ManufacturedItemDefinition.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#BRR - Pharmacy model > How to just express the ingredients of a product?",
+    "url": "https://chat.fhir.org/#narrow/stream/BRR%20-%20Pharmacy%20model/topic/How%20to%20just%20express%20the%20ingredients%20of%20a%20product%3F",
+    "ref": { "stream": "BRR - Pharmacy model", "topic": "How to just express the ingredients of a product?" },
+    "summary": "Jean Duteau described the same package-configuration quantity problem, and Rik Smithies concluded the package needed an item reference and item count.",
+    "learned": "The informal discussion aligns with the Jira request and source-history direction.",
+    "supports": ["additional_context", "initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:148-149,289-291,1031-1033,1935-1936",
+    "summary": "PackagedProductDefinition and ManufacturedItemDefinition are active build resources and the old MedicinalProductPackaged/Manufactured names redirect to them.",
+    "learned": "The current resource files inspected for this decision are in build scope for the core specification.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/packagedproductdefinition/structuredefinition-PackagedProductDefinition.xml:207-210,634-647; source/manufactureditemdefinition/structuredefinition-ManufacturedItemDefinition.xml:180-234",
+    "summary": "The package resource defines containedItemQuantity and packaging.containedItem.amount, while ManufacturedItemDefinition has unitOfPresentation followed by manufacturer/marketing/ingredient elements and no quantity element.",
+    "learned": "The current element model already implements the approved package-level count semantics.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/manufactureditemdefinition/manufactureditemdefinition-introduction.xml:34-46; source/medication-definition-module.html:117-123; source/packagedproductdefinition/packagedproductdefinition-example.xml:144-154",
+    "summary": "Narrative and example content explain that package definitions carry item quantities and show a packaged contained item amount of 10 for a referenced tablet.",
+    "learned": "The implementer-facing narrative already conveys the same modeling guidance requested by the issue.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "6f506840ae; 7512379e82; b0893a67ea; c9d8e5b4e4",
+    "summary": "Seed-era commits moved count to packaged-level content, removed ManufacturedItemDefinition.quantity, and added explanatory narrative; a later commit clarified containedItem.amount for FHIR-39130.",
+    "learned": "History explains why the current model differs from the original STU3 wording and confirms the change was applied before publication.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-39130",
+    "url": "https://jira.hl7.org/browse/FHIR-39130",
+    "ref": { "jira_key": "FHIR-39130" },
+    "summary": "Published/Persuasive clarification says continuous item quantities belong in PackagedProductDefinition.packaging.containedItem.amount and not in ManufacturedItemDefinition.",
+    "learned": "Later BR&R decision supports the no-change conclusion for FHIR-23924.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Duplicate and community-conflict checks for FHIR-23924",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-23924' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run confluence:search refs jira FHIR-23924; bun run confluence:search fts '\"multiple package configurations\" manufactured item quantity'; bun run zulip:search fts 'PackagedProductDefinition ManufacturedItemDefinition quantity'",
+    "query": "FHIR-23924; multiple package configurations manufactured item quantity; PackagedProductDefinition ManufacturedItemDefinition quantity",
+    "summary": "No prior combined-branch audit commit or relevant Confluence minute was found; Zulip search found the directly relevant BR&R Pharmacy model discussion.",
+    "learned": "There is no duplicate publication or discovered conflicting community evidence.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,133 @@
+FHIR-25381: Correct Organization availability example hours
+
+Issue request:
+FHIR-25381 is a Published/Persuasive PA change request raised against R4 and applied for R5. It asked for a standard way to communicate Organization telephone/opening hours. The accepted resolution created the Availability datatype, made it available through a standard extension on ExtendedContactDetail, and replaced the prior resource-specific availability structures on PractitionerRole, Location, and HealthcareService with Availability.
+
+Initial application:
+The core source history shows substantial prior application. Commit a9d7aa77e8 migrated Organization.contact to ExtendedContactDetail through the related Organization contact work, commit 447e89f4a4 introduced the shared Availability datatype and moved HealthcareService, Location, and PractitionerRole availability structures to it, and commit d763653d2d added the extended-contact-availability standard extension plus an Organization example using valueAvailability. Later source history moved the active Organization example to source/organization/organization-hl7.xml, copied a negative invariant fixture from it, and moved the extension definition itself out of core into the FHIR Extension Pack.
+
+Additional context:
+Current source/fhir.ini actively includes Availability and ExtendedContactDetail as metadatatypes and Organization, Location, PractitionerRole, and HealthcareService as active resources. The active StructureDefinitions already use Availability where the Jira resolution required it, and the FHIR Extension Pack defines http://hl7.org/fhir/StructureDefinition/extended-contact-availability for ExtendedContactDetail, ContactDetail, and Address with value[x] typed as Availability. PA May 2022 minutes record the 7-0-0 persuasive vote and the action to take the datatype/extension question to FHIR-I/MnM; MnM minutes and the Zulip committers thread confirm Availability was approved as an extension value datatype. The remaining in-scope problem was the Organization example introduced by the extension application: it advertised Monday-Friday availability with a 09:00 start but a 07:00 end, which reads as closing before opening rather than ordinary daytime opening hours.
+
+AutoFHIR reconciliation:
+This commit fixes that seed-scope example error by changing availableEndTime from 07:00:00 to 17:00:00 in the active Organization/hl7 example and in the copied org-1 negative invariant fixture. It leaves the datatype, resource structures, extension URL, extension-pack definition, and related availability guidance unchanged because those already reflect the approved Jira decision and later source refactors.
+
+Recommendation:
+Keep this source fix. It completes the FHIR-25381 reconciliation in core by preserving the already-applied Availability and standard-extension design while correcting the only misleading current core example found during the audit. No additional core source change is needed unless PA or MnM later revisits the extension contexts or the Extension Pack owner chooses to clean up extension-pack-only wording.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25381
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-29034: supporting-decision - changed Organization.contact to ExtendedContactDetail, providing the core contact datatype used by the FHIR-25381 extension.
+FHIR-27005: supporting-decision - relied on ExtendedContactDetail.period to satisfy Organization contact period needs and is part of the same Organization contact migration trail.
+FHIR-26641: same-change-family - shares implementation commit 447e89f4a4, which introduced Availability while addressing Location closure availability.
+FHIR-32498: background - existing combined-branch audit confirms allDay wording survived the later shared Availability refactor.
+FHIR-32499: background - existing combined-branch audit confirms the allDay/start/end invariant belongs on shared Availability.availableTime.
+FHIR-32500: background - existing combined-branch fix corrected related resource availability rendering comments but did not address this Organization example time.
+FHIR-50152: later-change - later core issue confirms Availability and ExtendedContactDetail are already valid Extension.value[x] datatypes when considering VirtualServiceDetail support.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25381: Published/Persuasive PA issue, voted 7-0-0 on 2022-05-11, resolved to create Availability, add an ExtendedContactDetail standard extension, and migrate PractitionerRole, Location, and HealthcareService availability structures. Learned: this establishes the approved target behavior for the reconciliation.
+- E2 Source source/fhir.ini:95-97,170-239,1815-1819,1877-1882,1999-2008 and active StructureDefinitions: Availability and ExtendedContactDetail are in build scope, the affected resources are active, and HealthcareService.availability, Location.hoursOfOperation, and PractitionerRole.availability use Availability. Learned: the main structural parts of the Jira resolution are already current core source.
+- E3 Source source/organization/organization-hl7.xml:29-42 and source/organization/list-Organization-examples.xml:19-29: Organization/hl7 is an active listed example using extended-contact-availability, but before this commit its Monday-Friday availability ended at 07:00 after starting at 09:00. Learned: the only in-scope source defect was a misleading example value in the seed extension example.
+- E4 Source source/organization/invariant-tests/org-1.f1.fail.xml:28-41: the negative org-1 fixture copied the same availability example and the same incorrect end time. Learned: the test fixture needed the same harmless data correction so it stays aligned with the source example except for the intended invariant failure.
+- E5 Git a9d7aa77e8, 447e89f4a4, d763653d2d, e209ad5353, e0db21bd4f: history shows Organization.contact became ExtendedContactDetail, Availability was created and applied to PA resources, the extension/example were added, and later copies preserved the 07:00 typo. Learned: the current fix is a narrow correction to an existing application rather than a new design change.
+- E6 Extension Pack input/definitions/datatypes/StructureDefinition-extended-contact-availability.xml:14-82: the standard extension is now maintained outside core and allows valueAvailability on ExtendedContactDetail, ContactDetail, and Address. Learned: the extension definition is not missing from current core; it has moved to the Extension Pack.
+- E7 Confluence PA 2022 May WGM page 101358522 and MnM 2022-08-17 minutes page 108309812: PA approved FHIR-25381 and sent it to FHIR-I/MnM, and MnM approved FHIR-25381. Learned: community minutes support the source interpretation and extension-value approval.
+- E8 Zulip #committers > Extension Context: Brian Postlethwaite asked about making Availability an extension datatype for FHIR-25381 and later reported Monetary and Availability were approved in MnM minutes. Learned: informal implementation discussion aligns with the Jira/minutes/source trail.
+- E9 Verification commands: XML parsing of both edited files, search for remaining availableEndTime value="07:00:00" under source/organization, and CRLF-aware git diff whitespace check all passed. Learned: the source fix is syntactically safe, scoped, and removes the discovered bad value.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25381",
+    "url": "https://jira.hl7.org/browse/FHIR-25381",
+    "snapshot_path": "contexts/FHIR-25381/jira/FHIR-25381.md",
+    "ref": { "jira_key": "FHIR-25381" },
+    "summary": "Published/Persuasive PA issue requesting a standard way to communicate Organization telephone/opening hours via Availability and an ExtendedContactDetail standard extension.",
+    "learned": "This is the final workflow decision and establishes the target Availability datatype, extension, and affected-resource migration.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini and active PA StructureDefinitions",
+    "ref": { "paths": "source/fhir.ini; source/datatypes/availability.xml; source/datatypes/extendedcontactdetail.xml; source/healthcareservice/structuredefinition-HealthcareService.xml; source/location/structuredefinition-Location.xml; source/practitionerrole/structuredefinition-PractitionerRole.xml" },
+    "summary": "The build config actively includes Availability, ExtendedContactDetail, Organization, Location, PractitionerRole, and HealthcareService, and the affected resources use Availability.",
+    "learned": "The main structural implementation requested by FHIR-25381 is already in current core build scope.",
+    "supports": ["additional_context", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/organization/organization-hl7.xml:29-42; source/organization/list-Organization-examples.xml:19-29",
+    "ref": { "path": "source/organization/organization-hl7.xml", "start_line": 29, "end_line": 42 },
+    "summary": "The active Organization/hl7 example uses extended-contact-availability and previously had availableEndTime 07:00:00 after availableStartTime 09:00:00.",
+    "learned": "The current core source contained a misleading seed-scope example value that needed correction.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/organization/invariant-tests/org-1.f1.fail.xml:28-41",
+    "ref": { "path": "source/organization/invariant-tests/org-1.f1.fail.xml", "start_line": 28, "end_line": 41 },
+    "summary": "The org-1 negative invariant fixture copied the same availability extension example and the same 07:00 end time.",
+    "learned": "Updating the fixture keeps copied example data aligned while preserving the intended invariant failure.",
+    "supports": ["source_change", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "a9d7aa77e8; 447e89f4a4; d763653d2d; e209ad5353; e0db21bd4f",
+    "ref": { "commits": "a9d7aa77e8,447e89f4a4,d763653d2d,e209ad5353,e0db21bd4f" },
+    "summary": "History shows ExtendedContactDetail, Availability, the extension/example, and later example copies were applied before this reconciliation.",
+    "learned": "The 17:00 edit is a narrow correction to an already-applied seed example, not a new model change.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-extended-contact-availability.xml:14-82",
+    "ref": { "path": "/home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-extended-contact-availability.xml", "start_line": 14, "end_line": 82 },
+    "summary": "The FHIR Extension Pack now defines extended-contact-availability for ExtendedContactDetail, ContactDetail, and Address with value[x] typed as Availability.",
+    "learned": "The standard extension requested by the Jira exists outside the current core checkout, so core should not re-add a duplicate definition.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "PA May 2022 WGM page 101358522; MnM Minutes CC 20220817 page 108309812",
+    "url": "https://confluence.hl7.org/spaces/MnM/pages/108309812/MnM+Minutes+CC+20220817",
+    "ref": { "confluence_page_id": 108309812 },
+    "summary": "PA minutes record the FHIR-25381 7-0-0 persuasive vote and action to take it to FHIR-I/MnM; MnM minutes record FHIR-25381 approved.",
+    "learned": "Meeting records corroborate the Jira resolution and explain why extension datatype approval mattered.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#committers > Extension Context",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/Extension%20Context",
+    "summary": "Brian Postlethwaite asked how to make Availability an extension datatype for FHIR-25381 and later reported MnM approval for Availability.",
+    "learned": "Informal implementation discussion aligns with the Jira and Confluence evidence rather than changing the source decision.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Targeted XML parse, bad-value search, and whitespace check",
+    "command": "python - <<'PY' ... ET.parse(...) ...; rg -n 'availableEndTime value=\"07:00:00\"' source/organization; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/organization/organization-hl7.xml source/organization/invariant-tests/org-1.f1.fail.xml",
+    "query": "availableEndTime value=\"07:00:00\" under source/organization",
+    "result_count": 0,
+    "summary": "Both edited XML files parsed successfully, no 07:00 Organization availability example remained, and the diff whitespace check passed.",
+    "learned": "The source fix is syntactically valid and removed the identified misleading example value.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

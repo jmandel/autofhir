@@ -1,0 +1,119 @@
+FHIR-17974: Mark EOB identifier as summary
+
+Issue request:
+FHIR-17974 is Published/Persuasive with Modification for ExplanationOfBenefit and asked to add identifier, patient, created, billingPeriod, provider, insurer, and error to the EOB summary list, with the resolution also requiring any required items to be in the summary list.
+
+Initial application:
+The issue was partially applied in 2018 by 89bb47c31d84c7cc3fb753e5408806226f62d395 and 47922328a9dde56d50550ccb72f1cf7ed7551e49. Those commits marked the then-required top-level fields, patient, created, insurer, provider, outcome/insurance, and billablePeriod as summary, but left ExplanationOfBenefit.identifier without a summary flag.
+
+Additional context:
+ExplanationOfBenefit is an active current-build resource in source/fhir.ini, and source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml is the authoritative current StructureDefinition input. Later FHIR-43309 renamed the root patient element to subject and preserved its summary status. Later FHIR-40763 added the EOB error backbone from ClaimResponse; the current source has summary flags on error.code and error.expression while keeping the backbone itself aligned with ClaimResponse, so adding a top-level error summary flag would broaden the imported error structure rather than complete FHIR-17974.
+
+AutoFHIR reconciliation:
+Added isSummary="true" to ExplanationOfBenefit.identifier. The other still-current requested fields are already summarized under their current names or through the later error child summary flags.
+
+Recommendation:
+Keep this source fix. It completes the remaining current-build FHIR-17974 gap without changing later ClaimResponse-aligned EOB.error semantics; no separate work is recommended for this issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17974
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-40763: later-change - added the current ExplanationOfBenefit.error backbone from ClaimResponse and explains why error.code/error.expression, not the whole backbone, carry summary status now.
+FHIR-43309: later-change - renamed ExplanationOfBenefit.patient to ExplanationOfBenefit.subject while preserving the summary status relevant to this issue.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17974: Published/Persuasive with Modification request to add EOB identifier, patient, created, billingPeriod, provider, insurer, error, and required items to summary. Learned: this is final WG intent for the summary flag check.
+- E2 Source source/fhir.ini:244: active resource entry explanationofbenefit=ExplanationOfBenefit. Learned: the edited StructureDefinition XML is in current build scope.
+- E3 Source source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:96-114: ExplanationOfBenefit.identifier existed without isSummary before reconciliation. Learned: identifier was the remaining current requested field missing summary status.
+- E4 Git 89bb47c31d84c7cc3fb753e5408806226f62d395 and 47922328a9dde56d50550ccb72f1cf7ed7551e49: historical GF #17974 commits marked patient, created, insurer, provider, required top-level fields, and billablePeriod as summary but not identifier. Learned: FHIR-17974 had been only partially applied.
+- E5 Jira FHIR-43309 and source ExplanationOfBenefit.subject: later applied R6 change renamed patient to subject and retained isSummary=true. Learned: the current source already carries the requested patient summary status under its current element name.
+- E6 Jira/commit FHIR-40763 c3867598b51fe2053ab9788a3eba7b73a9d9045f: later applied R6 change added EOB.error from ClaimResponse and marked error.code/error.expression as summary. Learned: current error summary handling is governed by the later ClaimResponse-aligned structure and does not require a broader parent summary flag.
+- E7 Command search: bounded Zulip and Confluence searches for FHIR-17974 and EOB summary terms found no relevant hits. Learned: no discovered community record changes the Jira/source/git conclusion.
+- E8 Verification command: git diff --check plus XML parse/summary check succeeded and showed identifier, subject, billablePeriod, created, insurer, provider, error.code, and error.expression as summarized. Learned: the edit is syntactically safe and satisfies the current summary target.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17974",
+    "url": "https://jira.hl7.org/browse/FHIR-17974",
+    "snapshot_path": "contexts/FHIR-17974/jira/FHIR-17974.md",
+    "ref": { "jira_key": "FHIR-17974" },
+    "summary": "Published/Persuasive with Modification EOB request to add identifier, patient, created, billingPeriod, provider, insurer, error, and required items to the summary list.",
+    "learned": "This establishes the final WG request and the fields that must be checked in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:244",
+    "ref": { "path": "source/fhir.ini", "line": 244 },
+    "summary": "The active resources list includes explanationofbenefit=ExplanationOfBenefit.",
+    "learned": "The edited EOB StructureDefinition source is in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:96-114",
+    "ref": { "path": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml", "lines": "96-114" },
+    "summary": "ExplanationOfBenefit.identifier is the business identifier element and now carries isSummary=true.",
+    "learned": "This is the remaining requested current source fix for FHIR-17974.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "89bb47c31d84c7cc3fb753e5408806226f62d395; 47922328a9dde56d50550ccb72f1cf7ed7551e49",
+    "ref": { "commits": "89bb47c31d84c7cc3fb753e5408806226f62d395,47922328a9dde56d50550ccb72f1cf7ed7551e49" },
+    "summary": "The historical GF #17974 commits marked several requested and required EOB elements as summary but left identifier unmarked.",
+    "learned": "The original application was incomplete for an element that still exists in the current build.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-43309",
+    "url": "https://jira.hl7.org/browse/FHIR-43309",
+    "snapshot_path": "contexts/FHIR-17974/jira/FHIR-43309.md",
+    "ref": { "jira_key": "FHIR-43309" },
+    "summary": "Applied/Persuasive with Modification R6 issue renamed EOB patient to subject to support Patient or Group subjects.",
+    "learned": "The requested patient summary status should be evaluated on the current subject element, which is already summary=true.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "c3867598b51fe2053ab9788a3eba7b73a9d9045f / FHIR-40763",
+    "ref": { "commit": "c3867598b51fe2053ab9788a3eba7b73a9d9045f", "jira_key": "FHIR-40763" },
+    "summary": "The later FHIR-40763 reconciliation added/fixed the current EOB.error backbone from ClaimResponse and retained summary flags on error.code and error.expression.",
+    "learned": "Current error summary behavior is already represented without marking the whole backbone as summary.",
+    "supports": ["additional_context", "reconciliation_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-17974 and EOB summary terms",
+    "command": "bun run zulip:search fts '\"FHIR-17974\"' --limit 10; bun run zulip:search fts 'ExplanationOfBenefit summary identifier error' --limit 10; bun run confluence:search refs jira FHIR-17974; bun run confluence:search fts '\"FHIR-17974\" ExplanationOfBenefit summary identifier error' --limit 10",
+    "query": "FHIR-17974 ExplanationOfBenefit summary identifier error",
+    "result_count": 0,
+    "summary": "No relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community evidence contradicts the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML and diff validation for EOB summary flags",
+    "command": "git diff --check -- source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml; python3 XML parse/summary flag check",
+    "summary": "Whitespace validation passed; XML parsing succeeded; the requested current fields now show summary status where appropriate.",
+    "learned": "The source edit is syntactically safe and satisfies the reconciled FHIR-17974 target.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,107 @@
+FHIR-37372: Clarify MedicationStatement effective timing
+
+Issue request:
+FHIR-37372 was a Published Pharmacy change request, resolved Not Persuasive with Modification for R5, asking how to record both a MedicationUsage usage period and the last administration time when effective[x] has cardinality 0..1. The accepted resolution was to represent those facts as two separate medication usage statements and update the effective[x] comments with guidance.
+
+Initial application:
+The historical application commit 0e463239a18c2754e691aecf97c70119c5891b41 was tagged with FHIR-37372, FHIR-35899, and FHIR-36001, but the visible MedicationUsage source changes added partOf and schema metadata rather than updating the effective[x] comment requested by FHIR-37372. In the current source, MedicationUsage has been normalized back to the active MedicationStatement resource, and MedicationStatement.effective[x] still had the older period-focused comment with no guidance for simultaneously recording a usage period and a last administration time.
+
+Additional context:
+FHIR-35899, resolved and published the day before FHIR-37372, asked how to store the last time a medication was given and established that effectiveDateTime should be used for the last time the medication was taken or administered. Pharmacy WGM minutes reference that decision. FHIR-37372 was created while resolving FHIR-35899 and adds the coupled case where both a usage period and a last administration time must be recorded. The active build scope is MedicationStatement, as source/fhir.ini lists medicationstatement=MedicationStatement and the resource abbreviation MedicationStatement=mst.
+
+AutoFHIR reconciliation:
+Updated the authoritative MedicationStatement StructureDefinition effective[x] comment to describe effectiveDateTime, effectivePeriod, and effectiveTiming use, to retain the effectivePeriod.end guidance, and to explicitly say that a usage period plus a distinct last administration date/time requires two separate MedicationStatement resources. Updated the MedicationStatement Event mapping exception copy of the same comment so the resource mapping metadata remains consistent with the StructureDefinition.
+
+Recommendation:
+Keep this source-changing commit. It directly applies the published Pharmacy clarification in the current active MedicationStatement source and avoids adding a redundant element or changing effective[x] cardinality.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37372
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-35899: same-change-family - established effectiveDateTime as the way to record the last time the medication was taken/administered, which FHIR-37372 extends to the simultaneous period-plus-last-dose case.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37372: Published / Not Persuasive with Modification, resolved 2022-05-10, says usage period plus last administration time should be represented as two MedicationUsage statements and the effective[x] comments should be updated. Learned: this is final WG intent for the seed issue.
+- E2 Source source/fhir.ini:204 and source/fhir.ini:1186: active build configuration lists medicationstatement=MedicationStatement and MedicationStatement=mst. Learned: MedicationStatement is the current build-scope resource source for the former MedicationUsage guidance.
+- E3 Source source/medicationstatement/structuredefinition-MedicationStatement.xml:290 and source/medicationstatement/medicationstatement-event-mapping-exceptions.xml:91: the effective[x] comment now describes date/time, period, and timing use and says to use two MedicationStatement resources for both usage period and last administration date/time. Learned: the current source now carries the requested guidance in both authoritative and mapping metadata locations.
+- E4 Git 0e463239a18c2754e691aecf97c70119c5891b41: historical commit tagged FHIR-37372/FHIR-35899/FHIR-36001 changed MedicationUsage source but did not update the effective[x] comment. Learned: prior application did not fully apply the seed's requested comment clarification.
+- E5 Jira FHIR-35899 and Confluence 90342275: related Published Pharmacy issue and WGM minutes say effectiveDateTime is the way to record the last time the medication was taken/administered. Learned: the seed clarification should preserve the related last-dose guidance while adding the two-statement instruction.
+- E6 Community search: Zulip searches for FHIR-37372/FHIR-35899 with MedicationUsage/effective/last-administration terms found no relevant threads; Confluence refs found no FHIR-37372 page and one FHIR-35899 Pharmacy WGM minutes page. Learned: no discovered community discussion conflicts with the Jira/source conclusion.
+- E7 Verification command: xmllint --noout on the two edited XML files and CRLF-aware git diff --check both passed. Learned: the edited XML is well-formed and the diff has no publish-blocking whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37372",
+    "url": "https://jira.hl7.org/browse/FHIR-37372",
+    "snapshot_path": "contexts/FHIR-37372/jira/FHIR-37372.md",
+    "ref": { "jira_key": "FHIR-37372" },
+    "summary": "Published / Not Persuasive with Modification issue asking how to record both a MedicationUsage usage period and last administration time when effective[x] is 0..1.",
+    "learned": "The accepted resolution requires two separate medication usage statements and an effective[x] comment update.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:204; source/fhir.ini:1186",
+    "ref": { "path": "source/fhir.ini", "lines": "204,1186" },
+    "summary": "The active resource configuration lists medicationstatement=MedicationStatement and MedicationStatement=mst.",
+    "learned": "MedicationStatement is in current build scope and is the correct current source location for the former MedicationUsage guidance.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationstatement/structuredefinition-MedicationStatement.xml:290; source/medicationstatement/medicationstatement-event-mapping-exceptions.xml:91",
+    "ref": { "paths": "source/medicationstatement/structuredefinition-MedicationStatement.xml; source/medicationstatement/medicationstatement-event-mapping-exceptions.xml", "lines": "290;91" },
+    "summary": "The edited effective[x] comments now mention effectiveDateTime, effectivePeriod, effectiveTiming, and two MedicationStatement resources for period plus last administration date/time.",
+    "learned": "The current source now implements the published clarification in both the StructureDefinition and its mapping exception metadata copy.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "0e463239a18c2754e691aecf97c70119c5891b41",
+    "ref": { "commit": "0e463239a18c2754e691aecf97c70119c5891b41" },
+    "summary": "Historical commit tagged FHIR-37372/FHIR-35899/FHIR-36001 changed MedicationUsage source but did not update the effective[x] comment.",
+    "learned": "The issue had a prior tagged application trail, but the seed's requested comment guidance remained missing.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-35899 and Pharmacy WGM minutes page 90342275",
+    "url": "https://jira.hl7.org/browse/FHIR-35899",
+    "snapshot_path": "contexts/FHIR-35899/jira/FHIR-35899.md",
+    "ref": { "jira_key": "FHIR-35899", "confluence_page_id": 90342275 },
+    "summary": "FHIR-35899 says to use effectiveDateTime for the last time the medication was taken/administered; Pharmacy WGM minutes record the related no-persuasive-with-modification vote.",
+    "learned": "FHIR-37372 should be applied as an extension of the related last-dose guidance, not as a new element or cardinality change.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-37372/FHIR-35899 MedicationUsage effective last administration",
+    "command": "bun run zulip:search fts '\"FHIR-37372\" MedicationUsage effective last administration' --limit 10; bun run zulip:search fts 'MedicationUsage effective last administration' --limit 10; bun run confluence:search refs jira FHIR-37372; bun run confluence:search refs jira FHIR-35899",
+    "query": "FHIR-37372 FHIR-35899 MedicationUsage effective last administration",
+    "summary": "No relevant Zulip hits or FHIR-37372 Confluence references were found; Confluence found the related FHIR-35899 Pharmacy WGM minutes.",
+    "learned": "No discovered community evidence conflicts with the Jira resolution and source fix.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "xmllint --noout source/medicationstatement/structuredefinition-MedicationStatement.xml source/medicationstatement/medicationstatement-event-mapping-exceptions.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Both edited XML files are well formed and the CRLF-aware diff check reports no whitespace errors.",
+    "learned": "The reconciliation edit is syntactically safe for the current source files.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

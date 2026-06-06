@@ -1,0 +1,109 @@
+FHIR-43106: Align Bundle fullUrl search exceptions
+
+Issue request:
+FHIR-43106 was Applied with a Persuasive with Modification resolution for R6. It asked to correct the Bundle.entry.fullUrl rule because the FHIR-31354 application inverted the intended search/history exception; fullUrl should be required unless the Bundle is a batch or transaction request or response and the entry is a create, a non-single-resource operation, or a search/history invocation or response/result.
+
+Initial application:
+FHIR-31354 was initially applied in a026c2f242, which changed Bundle.entry.fullUrl to say fullUrl was absent "except when" create/operation/search-history cases applied. The FHIR-43106 wording was later applied in c3a11dc9db, alongside FHIR-43101, to the Bundle.entry.fullUrl ElementDefinition, changing that definition to the current "unless the Bundle is a batch or transaction request or response" form.
+
+Additional context:
+The Bundle resource is active in source/fhir.ini, and source/bundle/structuredefinition-Bundle.xml and source/bundle/bundle-notes.xml feed the current Bundle build. The ElementDefinition already had the applied FHIR-43106 wording, but the nearby Bundle narrative still described only the older request.method = POST omission case and bdl-15 still carried the old POST-specific human/expression logic. Zulip and Confluence searches found the original FHIR-31354 review thread and the FHIR-I 2023-11-13 vote for FHIR-43106, with no later conflicting FHIR-43106-specific Zulip evidence.
+
+AutoFHIR reconciliation:
+Updated the Bundle narrative to point to the Bundle.entry.fullUrl exceptions instead of restating the stale POST-only exception. Updated bdl-15 so it enforces fullUrl for non-batch/non-transaction Bundles and no longer treats request.method = POST as a standalone exception outside the FHIR-43106 batch/transaction scope. Removed the bdl-15 condition from Bundle.entry.request.method because request.method is no longer part of that invariant.
+
+Recommendation:
+Keep this commit. It completes the applied FHIR-43106 correction across the authoritative Bundle definition, invariant, and narrative sources without editing generated-looking bundle.svg output. If a future work group wants machine enforcement of the more granular batch/transaction entry exceptions, that should be a separate FHIRPath design decision because the current prose exceptions distinguish create, operations, search, and history semantics that are not fully encoded in bdl-15.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-43106
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-31354: same-change-family - introduced the fullUrl exception text that FHIR-43106 corrected and narrowed.
+FHIR-43101: same-change-family - was applied in the same 2025 source commit and touched the adjacent Bundle.entry.fullUrl comment.
+FHIR-28364: background - introduced bdl-15 for the older fullUrl requirement, whose POST-specific wording needed alignment with the later FHIR-43106 rule.
+FHIR-27813: background - earlier clarification that aligned the formal definition and Bundle uniqueness narrative before FHIR-31354 and FHIR-43106 refined the exception language.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-43106: Applied/Persuasive with Modification, voted 10-0-0 on 2023-11-13, requiring the fullUrl exception to be scoped to batch or transaction request/response entries for create, non-single-resource operations, and search/history. Learned: this establishes the current target rule.
+- E2 Source source/fhir.ini:170,246: Bundle is listed as an active resource. Learned: Bundle source files are in current build scope.
+- E3 Source source/bundle/structuredefinition-Bundle.xml:178-181,405: bdl-15 still used the old POST-specific exception while Bundle.entry.fullUrl already carried the FHIR-43106 "unless" definition. Learned: the invariant needed alignment with the applied definition.
+- E4 Source source/bundle/bundle-notes.xml:180-190: the Bundle narrative still described only the older request.method = POST omission case. Learned: implementers reading the Bundle notes could miss the applied search/history exception.
+- E5 Git c3a11dc9db: applied FHIR-43106 to the ElementDefinition in the same commit as FHIR-43101. Learned: prior application was partial because related narrative and invariant text remained stale.
+- E6 Community Confluence 204276814 and Zulip search: FHIR-I minutes record the FHIR-43106 motion, and direct FHIR-43106 Zulip search found no conflicting hits. Learned: no community evidence changes the Jira/source conclusion.
+- E7 Verification command: parsed source/bundle/structuredefinition-Bundle.xml, ran CRLF-aware git diff --check, and searched Bundle source for the stale POST-only phrases. Learned: edited authoritative XML is parseable, whitespace-clean, and the stale source phrases are removed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-43106",
+    "url": "https://jira.hl7.org/browse/FHIR-43106",
+    "snapshot_path": "contexts/FHIR-43106/jira/FHIR-43106.md",
+    "ref": { "jira_key": "FHIR-43106" },
+    "summary": "Applied/Persuasive with Modification issue requiring Bundle.entry.fullUrl exceptions to be scoped to batch or transaction request/response entries for create, operation, and search/history cases.",
+    "learned": "This is final FHIR-I intent and establishes the target wording for current Bundle source.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,246",
+    "ref": { "path": "source/fhir.ini", "lines": "170,246" },
+    "summary": "The active [resources] section includes bundle=Bundle.",
+    "learned": "The Bundle resource folder and StructureDefinition source are in current build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/bundle/structuredefinition-Bundle.xml:178-181,405",
+    "ref": { "path": "source/bundle/structuredefinition-Bundle.xml", "lines": "178-181,405" },
+    "summary": "Bundle.entry.fullUrl had the FHIR-43106 definition, but bdl-15 still used the older request.method = POST exception logic.",
+    "learned": "The authoritative invariant was stale relative to the applied fullUrl definition.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/bundle/bundle-notes.xml:180-190",
+    "ref": { "path": "source/bundle/bundle-notes.xml", "lines": "180-190" },
+    "summary": "The Bundle narrative described only the older POST/no-identity omission case for transaction and batch entries.",
+    "learned": "The narrative could mislead implementers about the search/history exception that FHIR-43106 applied.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "c3a11dc9db104fae1e5355ff962f186f09bf4fa2",
+    "ref": { "commit": "c3a11dc9db104fae1e5355ff962f186f09bf4fa2" },
+    "summary": "The 2025 commit applied FHIR-43106 to Bundle.entry.fullUrl and FHIR-43101 to the adjacent comment.",
+    "learned": "FHIR-43106 was partially applied before reconciliation, but not carried into the Bundle notes or bdl-15 invariant.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Confluence/Zulip community search for FHIR-43106 fullUrl",
+    "command": "bun run confluence:search snapshot 204276814; bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-43106%' ...\"; bun run zulip:search fts 'Bundle fullUrl search history batch transaction' --limit 10",
+    "query": "FHIR-43106; Bundle fullUrl search history batch transaction",
+    "result_count": 1,
+    "summary": "Confluence minutes record the 2023-11-13 FHIR-43106 motion; Zulip searches found no direct FHIR-43106 or conflicting fullUrl/search hits.",
+    "learned": "Community evidence supports the Jira disposition and does not reveal a later conflict.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted validation of Bundle fullUrl source edits",
+    "command": "python3 -c 'import xml.etree.ElementTree as ET; ET.parse(\"source/bundle/structuredefinition-Bundle.xml\")'; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/bundle/structuredefinition-Bundle.xml source/bundle/bundle-notes.xml; rg -n \"entries MAY omit fullURLs when|request\\.method='POST'|request\\.method = POST|POST SHALL have Bundle\\.entry\\.fullUrl\" source/bundle/structuredefinition-Bundle.xml source/bundle/bundle-notes.xml",
+    "summary": "The authoritative XML parsed, the diff was whitespace-clean, and stale POST-only phrases were absent from edited Bundle sources.",
+    "learned": "The source fix is syntactically safe and removes the stale rule from current source locations.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

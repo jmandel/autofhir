@@ -1,0 +1,130 @@
+FHIR-13601: Audit patient search parameter target scope
+
+Issue request:
+FHIR-13601 is a Published/Persuasive Patient Administration change request raised against STU3 and applied for R5. It reported that the common clinical-patient search parameter appeared to target both Patient and Group even though patient search parameters should target only Patient. The approved resolution was to remove "or Group" from the Encounter-patient and ClinicalImpression-patient search parameter descriptions because their expressions already filtered to Patient and the separate subject search parameters cover Patient or Group.
+
+Initial application:
+The issue was applied by commit f3156be190fa6b0dcc3acec5f7ef59db4d052b27, which changed source/clinicalimpression/bundle-ClinicalImpression-search-params.xml from "Patient or group assessed" to "Patient assessed" and source/encounter/bundle-Encounter-search-params.xml from "The patient or group present at the encounter" to "The patient present at the encounter". Later source history preserved the FHIR-13601 scope: Encounter-patient now says "The patient related to this encounter" after FHIR-20479, and the patient search parameter still filters Encounter.subject to Patient and declares target Patient.
+
+Additional context:
+Related final issues FHIR-15903 and FHIR-28219 confirmed the broader rule that patient search parameters should target Patient only and use subject search parameters when Group is also searchable. FHIR-31714 addressed the generated/downloaded SearchParameter.target problem by requiring target-constrained reference search parameters to declare their narrowed target, and FHIR-32876 was closed as a duplicate of that work after the reporter confirmed the build showed target ["Patient"]. ClinicalImpression was later mirrored/renamed as ClinicalAssessment, and both retained patient-only patient search parameter wording and target declarations. source/fhir.ini actively lists Encounter and SearchParameter as current build inputs; it no longer actively lists ClinicalImpression, so the current-build check focuses on active Encounter/common SearchParameter source while noting the retained/renamed clinical assessment sources are also consistent.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Current source/searchparameter/common-search-parameters.xml has no Group target in the clinical-patient block, source/encounter/bundle-Encounter-search-params.xml defines Encounter-patient with a Patient-only description, Patient-filtered expression, and target Patient, and the retained ClinicalImpression plus renamed ClinicalAssessment patient search parameter bundles also use "Patient assessed", Patient-filtered expressions, and target Patient. The subject search parameters remain Patient-or-Group as intended and are not part of the FHIR-13601 correction.
+
+Recommendation:
+Keep this no-change audit. The current source already satisfies the published FHIR-13601 decision and later related target-scope fixes; no additional core source edit is needed unless a future build-scope review reactivates or removes the retained ClinicalImpression source directory.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13601
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-15903: same-change-family - Raised the same clinical-patient Patient-vs-Group scope problem across resources and resolved that patient parameters should target Patient while subject parameters cover Patient or Group.
+FHIR-28219: later-change - Confirmed common clinical-patient should have a single Patient target and subject-based expressions should use where(resolve() is Patient).
+FHIR-31714: later-change - Fixed the generated target-list problem for constrained reference SearchParameters by ensuring narrowed target declarations are present.
+FHIR-32876: duplicate - Duplicate of FHIR-31714 that references FHIR-13601/FHIR-15903 and records that R4B/R5 later showed target ["Patient"].
+FHIR-20479: later-change - Updated Encounter patient/subject descriptions from "present" to "related" while preserving the FHIR-13601 patient-only scope for Encounter-patient.
+FHIR-46596: background - Renamed/mirrored ClinicalImpression to ClinicalAssessment; the corresponding patient search parameter retained Patient-only wording and target.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13601: Published/Persuasive PA issue asking to remove Group from the patient search parameter target/description, specifically Encounter and ClinicalImpression patient descriptions. Learned: establishes the final seed decision and source locations to audit.
+- E2 Source source/encounter/bundle-Encounter-search-params.xml:353-366: Encounter-patient currently says "The patient related to this encounter", uses Encounter.subject.where(resolve() is Patient), and declares target Patient. Learned: the active Encounter patient search parameter preserves the approved Patient-only meaning.
+- E3 Source source/clinicalimpression/bundle-ClinicalImpression-search-params.xml:103-116 and source/clinicalassessment/bundle-ClinicalAssessment-search-params.xml:103-116: both retained/renamed clinical assessment patient search parameters say "Patient assessed", use subject.where(resolve() is Patient), and declare target Patient. Learned: the requested ClinicalImpression wording and its later renamed counterpart are already consistent.
+- E4 Source source/searchparameter/common-search-parameters.xml:303-366: the common clinical-patient block lists bases but has no target value and no Group base in the inspected block. Learned: current common search parameter source does not itself assert a Group target for clinical-patient.
+- E5 Source source/fhir.ini:169-190,248 plus search check: Encounter and SearchParameter are active build inputs, while ClinicalImpression/ClinicalAssessment are not active [resources] entries in current fhir.ini. Learned: no current-build source edit is required for inactive retained ClinicalImpression sources, and the active Encounter/searchparameter surfaces are correct.
+- E6 Git f3156be190fa6b0dcc3acec5f7ef59db4d052b27: #FHIR-13601 changed the Encounter and ClinicalImpression patient search parameter descriptions to remove Group. Learned: the historical application directly matches the Jira resolution.
+- E7 Jira/Git FHIR-31714 and a96b79e23a892164f261dcf4c7868ec1ef8023e2/b9ee4c1747: later target-constrained SearchParameter work added explicit Patient targets including ClinicalImpression and Encounter patient search parameters. Learned: the broader downloaded target-list defect was addressed by later final work and should not be re-fixed under FHIR-13601.
+- E8 Zulip #conformance > Common search parameter "patient" and #implementers > Search on AllergyIntolerance.patient: community discussion confirms patient search parameters should point only to Patient and subject should be used for Patient-or-Group searches. Learned: community context supports the Jira/source conclusion and does not call for a different edit.
+- E9 Verification command: xmllint --noout on the relevant search parameter XML, git diff --check, and targeted rg checks for patient descriptions, Patient-filtered expressions, Patient targets, and Group targets completed successfully. Learned: the audited source is XML-valid and the relevant patient parameters are Patient-only.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13601",
+    "url": "https://jira.hl7.org/browse/FHIR-13601",
+    "snapshot_path": "contexts/FHIR-13601/jira/FHIR-13601.md",
+    "ref": { "jira_key": "FHIR-13601" },
+    "summary": "Published/Persuasive PA issue requiring the patient search parameter description for Encounter and ClinicalImpression to remove Group because the patient expression already filters to Patient.",
+    "learned": "This establishes the final seed request and the source locations that need auditing.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/encounter/bundle-Encounter-search-params.xml:353-366",
+    "ref": { "path": "source/encounter/bundle-Encounter-search-params.xml", "lines": "353-366" },
+    "summary": "Encounter-patient currently says the patient is related to the encounter, filters Encounter.subject to Patient, and declares target Patient.",
+    "learned": "The active Encounter patient search parameter preserves the approved Patient-only semantics.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/clinicalimpression/bundle-ClinicalImpression-search-params.xml:103-116; source/clinicalassessment/bundle-ClinicalAssessment-search-params.xml:103-116",
+    "ref": { "path": "source/clinicalimpression/bundle-ClinicalImpression-search-params.xml; source/clinicalassessment/bundle-ClinicalAssessment-search-params.xml", "lines": "103-116" },
+    "summary": "The retained ClinicalImpression and renamed ClinicalAssessment patient search parameters say Patient assessed, filter subject to Patient, and declare target Patient.",
+    "learned": "The requested ClinicalImpression wording and its later renamed counterpart are already consistent with FHIR-13601.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/searchparameter/common-search-parameters.xml:303-366",
+    "ref": { "path": "source/searchparameter/common-search-parameters.xml", "lines": "303-366" },
+    "summary": "The common clinical-patient block lists resource bases and contains no target value or Group base in the audited block.",
+    "learned": "The current common search parameter source does not itself assert a Group target for clinical-patient.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Build-scope search in source/fhir.ini",
+    "command": "rg -n '^clinicalimpression=|^clinicalassessment=|^encounter=|^searchparameter=|\\[resources\\]' source/fhir.ini",
+    "summary": "source/fhir.ini actively lists Encounter and SearchParameter but not ClinicalImpression or ClinicalAssessment as current [resources] entries.",
+    "learned": "The active current-build surfaces relevant to the seed are Encounter and common SearchParameter source; retained ClinicalImpression/ClinicalAssessment sources are consistent but do not require current-build edits.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "f3156be190fa6b0dcc3acec5f7ef59db4d052b27",
+    "ref": { "commit": "f3156be190fa6b0dcc3acec5f7ef59db4d052b27" },
+    "summary": "#FHIR-13601 changed Encounter-patient and ClinicalImpression-patient descriptions to remove Group.",
+    "learned": "The historical source application directly matches the Jira resolution.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-31714 and commits a96b79e23a/b9ee4c1747",
+    "url": "https://jira.hl7.org/browse/FHIR-31714",
+    "ref": { "jira_key": "FHIR-31714", "commit": "a96b79e23a892164f261dcf4c7868ec1ef8023e2" },
+    "summary": "Later Published/Persuasive work fixed constrained reference SearchParameter target declarations, including Patient targets for patient search parameters.",
+    "learned": "The broader generated/downloaded target-list problem was addressed by later final work and is context rather than a remaining FHIR-13601 edit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#conformance > Common search parameter \"patient\"; #implementers > Search on AllergyIntolerance.patient",
+    "url": "https://chat.fhir.org/#narrow/stream/conformance/topic/Common%20search%20parameter%20%22patient%22",
+    "summary": "Community discussion records that patient search parameters should only point to Patient, with subject used when Patient or Group is intended.",
+    "learned": "Community evidence supports the Jira/source conclusion and revealed no conflicting current-source requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Targeted XML and search-parameter checks",
+    "command": "xmllint --noout source/encounter/bundle-Encounter-search-params.xml source/clinicalimpression/bundle-ClinicalImpression-search-params.xml source/clinicalassessment/bundle-ClinicalAssessment-search-params.xml source/searchparameter/common-search-parameters.xml; git diff --check; rg -n '<id value=\"(Encounter|ClinicalImpression|ClinicalAssessment)-patient\"|<description value=\"(The patient related to this encounter|Patient assessed)\"|<expression value=\"(Encounter|ClinicalImpression|ClinicalAssessment)\\.subject\\.where\\(resolve\\(\\) is Patient\\)\"|<target value=\"Patient\"|<target value=\"Group\"' source/encounter/bundle-Encounter-search-params.xml source/clinicalimpression/bundle-ClinicalImpression-search-params.xml source/clinicalassessment/bundle-ClinicalAssessment-search-params.xml",
+    "summary": "The relevant XML parsed successfully, whitespace checks reported no issues, and targeted searches found Patient-only patient parameters with no Group target in those definitions.",
+    "learned": "The audited source is valid and already satisfies the requested Patient-only behavior.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

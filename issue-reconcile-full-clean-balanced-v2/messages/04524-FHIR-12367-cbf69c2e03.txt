@@ -1,0 +1,119 @@
+FHIR-12367: Audit CareTeam context outcome
+
+Issue request:
+FHIR-12367 was Published/Persuasive for DSTU2 by Patient Care. It asked to add CareTeam.context 0..1 Reference(Encounter|EpisodeOfCare), CareTeam.reasonReference 0..* Reference(Condition), and CareTeam.reasonCode 0..* CodeableConcept because CareTeam could exist independently of CarePlan and needed its own encounter/episode/condition context.
+
+Initial application:
+No current git commit explicitly mentions FHIR-12367. The historical R4B source import c69d71aa213de86d55e0261339c15e4bacd509e6 shows the issue carried forward as GF#12367 annotations on CareTeam.encounter and on the separate CareTeam.reasonCode and CareTeam.reasonReference elements. Current source has since been refactored to StructureDefinition XML and CodeableReference: source/careteam/structuredefinition-CareTeam.xml keeps GF#12367 on CareTeam.reason, while source/fhir.ini maps the old reasonCode/reasonReference pair into reason.concept/reason.reference.
+
+Additional context:
+Later published issues changed the relationship direction. FHIR-23029 resolved to remove CareTeam.encounter and the EpisodeOfCare standard extension from CareTeam; its implementation commit 4832b70ae3ebeefb51ab800a1200207eabd0313a disabled CareTeam.encounter in the old spreadsheet. FHIR-23843 added the inverse Encounter.careTeam 0..* Reference(CareTeam). The combined branch already contains separate AutoFHIR audit commits for both related issues, so this commit does not duplicate those decisions. FHIR-44683 later clarified why EpisodeOfCare.careTeam may repeat. Current source/fhir.ini marks CareTeam as an active Patient Care resource and records the R4/R5 map note that CareTeam.encounter was removed because Encounter references CareTeam.
+
+AutoFHIR reconciliation:
+This empty audit commit intentionally makes no source change. Current build-scope source already preserves the issue's reason semantics as CareTeam.reason CodeableReference(Condition), while the original context/encounter/episode direction has been superseded by later published decisions and is represented by inbound references from Encounter.careTeam, EpisodeOfCare.careTeam, and CarePlan.careTeam plus CareTeam narrative that explains those resources can reference CareTeam.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce CareTeam.context or CareTeam.encounter; any apparent mismatch with the 2017 wording is explained by later approved R5-era model changes and existing related audit commits.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12367
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-23029: later-change - superseded the CareTeam.context/encounter direction by resolving to remove CareTeam.encounter and the EpisodeOfCare extension from CareTeam; already audited on the combined branch.
+FHIR-23843: same-change-family - companion PA issue added Encounter.careTeam 0..* Reference(CareTeam) as the inverse relationship; already audited on the combined branch.
+FHIR-44683: later-change - clarified EpisodeOfCare.careTeam repetition and supports the current EpisodeOfCare-side relationship without requiring a seed edit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12367: Published/Persuasive Patient Care issue requested CareTeam.context plus reasonCode and reasonReference. Learned: this establishes the seed request and final 2017 WG intent.
+- E2 Source source/fhir.ini:169-179,498-499,1107,1335,1606-1611: CareTeam is an active PC resource; the version map says CareTeam.encounter was removed because Encounter references CareTeam and old reasonCode/reasonReference map into CareTeam.reason. Learned: current build-scope source records both the preserved and superseded parts of the seed.
+- E3 Source source/careteam/structuredefinition-CareTeam.xml:398-418: CareTeam.reason has GF#12367, cardinality 0..*, and type CodeableReference targeting Condition with a clinical-findings binding. Learned: the seed's reason semantics are present in the current authoritative CareTeam definition.
+- E4 Git c69d71aa213de86d55e0261339c15e4bacd509e6: the R4B source import preserved GF#12367 on CareTeam.encounter and on separate CareTeam.reasonCode/reasonReference elements. Learned: the issue had been applied historically before later refactors and model changes.
+- E5 Jira/Git FHIR-23029 and 4832b70ae3ebeefb51ab800a1200207eabd0313a: Published/Persuasive with Modification later issue resolved to remove CareTeam.encounter and the EpisodeOfCare extension from CareTeam, and the implementation disabled the old CareTeam.encounter row. Learned: the seed's CareTeam.context/encounter direction was intentionally superseded.
+- E6 Jira/Git FHIR-23843 and a573cb7b56ddd13c798c3cc8242784754ed5a5ea: Published/Persuasive companion issue added Encounter.careTeam 0..* Reference(CareTeam). Learned: the approved replacement relationship exists in current Encounter source.
+- E7 Source source/careteam/careteam-introduction.xml:27, source/encounter/structuredefinition-Encounter.xml:524-533, source/episodeofcare/structuredefinition-EpisodeOfCare.xml:433-447, and source/careplan/structuredefinition-CarePlan.xml:492-501: current source represents CareTeam context through inbound references from Encounter, EpisodeOfCare, and CarePlan. Learned: current implementer-facing source conveys how encounter/episode/care-plan context is associated with CareTeam.
+- E8 Community/search evidence: exact Confluence refs for FHIR-12367 found none; a related Zulip workflow thread discussed the R4 context-to-encounter change and EpisodeOfCare extension; Confluence refs/minutes for FHIR-23843 record the later direction that Encounter should reference CareTeam instead of CareTeam referencing Encounter. Learned: discovered community evidence supports, and does not conflict with, the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12367",
+    "url": "https://jira.hl7.org/browse/FHIR-12367",
+    "snapshot_path": "contexts/FHIR-12367/jira/FHIR-12367.md",
+    "ref": { "jira_key": "FHIR-12367" },
+    "summary": "Published/Persuasive issue requested CareTeam.context 0..1 Reference(Encounter|EpisodeOfCare), CareTeam.reasonReference 0..* Reference(Condition), and CareTeam.reasonCode 0..* CodeableConcept.",
+    "learned": "This establishes the seed's final 2017 Patient Care intent before later model changes.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-179,498-499,1107,1335,1606-1611",
+    "ref": { "path": "source/fhir.ini", "line": 1606 },
+    "summary": "CareTeam is an active PC resource; the version map says CareTeam.encounter was removed because Encounter references CareTeam and maps reasonCode/reasonReference into CareTeam.reason.",
+    "learned": "Current build-scope source records both the preserved reason semantics and the superseded context relationship.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/careteam/structuredefinition-CareTeam.xml:398-418",
+    "ref": { "path": "source/careteam/structuredefinition-CareTeam.xml", "line": 398 },
+    "summary": "CareTeam.reason carries GF#12367, is 0..*, and uses CodeableReference targeting Condition with a clinical-findings binding.",
+    "learned": "The seed's reasonCode/reasonReference semantics are present in the current authoritative CareTeam definition.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "c69d71aa213de86d55e0261339c15e4bacd509e6",
+    "ref": { "commit": "c69d71aa213de86d55e0261339c15e4bacd509e6" },
+    "summary": "The R4B source import preserved GF#12367 annotations on CareTeam.encounter and separate CareTeam.reasonCode/CareTeam.reasonReference elements.",
+    "learned": "FHIR-12367 had been applied historically before the current StructureDefinition source layout and later R5-era changes.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-23029 and commit 4832b70ae3ebeefb51ab800a1200207eabd0313a",
+    "url": "https://jira.hl7.org/browse/FHIR-23029",
+    "ref": { "jira_key": "FHIR-23029", "commit": "4832b70ae3ebeefb51ab800a1200207eabd0313a" },
+    "summary": "Published/Persuasive with Modification issue resolved to remove CareTeam.encounter and the EpisodeOfCare extension from CareTeam; the implementation disabled CareTeam.encounter in the old source.",
+    "learned": "The seed's CareTeam.context/encounter direction was intentionally superseded.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-23843 and commit a573cb7b56ddd13c798c3cc8242784754ed5a5ea",
+    "url": "https://jira.hl7.org/browse/FHIR-23843",
+    "ref": { "jira_key": "FHIR-23843", "commit": "a573cb7b56ddd13c798c3cc8242784754ed5a5ea" },
+    "summary": "Published/Persuasive companion issue added Encounter.careTeam 0..* Reference(CareTeam).",
+    "learned": "The approved replacement relationship exists in current Encounter source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/careteam/careteam-introduction.xml:27; source/encounter/structuredefinition-Encounter.xml:524-533; source/episodeofcare/structuredefinition-EpisodeOfCare.xml:433-447; source/careplan/structuredefinition-CarePlan.xml:492-501",
+    "ref": { "path": "source/careteam/careteam-introduction.xml", "line": 27 },
+    "summary": "CareTeam narrative says EpisodeOfCare, Encounter, or CarePlan can reference CareTeam, and those resources define CareTeam references in current source.",
+    "learned": "Current implementer-facing source conveys context association through inbound references to CareTeam rather than CareTeam.context.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community searches for FHIR-12367 and related CareTeam context decisions",
+    "command": "bun run confluence:search refs jira FHIR-12367; bun run zulip:search snapshot committers 'Substantive changes from workflow'; bun run confluence:search refs jira FHIR-23843",
+    "query": "FHIR-12367 CareTeam context Encounter EpisodeOfCare FHIR-23843",
+    "summary": "No Confluence refs were found for FHIR-12367; related Zulip and Confluence evidence documents the later context-to-encounter and Encounter-references-CareTeam direction.",
+    "learned": "Discovered community evidence supports, and does not conflict with, the no-change conclusion.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

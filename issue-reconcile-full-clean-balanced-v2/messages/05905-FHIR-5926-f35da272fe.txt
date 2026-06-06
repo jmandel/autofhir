@@ -1,0 +1,109 @@
+FHIR-5926: Audit MedicationStatement invariant history
+
+Issue request:
+FHIR-5926 was a Published/Persuasive Pharmacy correction for DSTU1 MedicationStatement. It said two invariants were declared on child contexts where their XPath expressions were evaluated against MedicationStatement, and the reasonForUse[x] XPath needed wildcard local-name handling rather than exists(reasonForUse[x]).
+
+Initial application:
+The issue was applied in svn/git commit daa466d3dbfb73541c84cf9e72cb74ee69e107a8 (#5926, svn @6683), which changed the MedicationStatement spreadsheet invariants to use Context = MedicationStatement and changed the reasonForUse XPath to starts-with(local-name(.), 'reasonForUse'). A later expression cleanup commit kept those corrected contexts while normalizing FHIRPath expressions.
+
+Additional context:
+MedicationStatement remained an active current-build resource in source/fhir.ini, but the relevant DSTU1/STU2 elements and invariants were later revised by FHIR-12470/TR#12470 and then removed by FHIR-14023/GF#14023 as MedicationStatement aligned to the Workflow Event pattern. Current source/medicationstatement/structuredefinition-MedicationStatement.xml has no MedicationStatement constraints/invariants and no reasonNotTaken, wasNotTaken, or reasonForUse[x] elements; it now uses MedicationStatement.reason and MedicationStatement.adherence.reason instead. Jira/Zulip/Confluence searches found no later community record requiring the old invariant behavior to be restored.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The original defect was applied in historical spreadsheet source, and the current active StructureDefinition has moved past the affected elements and constraints, so adding or reintroducing an invariant would be incorrect.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up is needed for FHIR-5926 unless a separate work-group decision asks to add new MedicationStatement constraints to the current reason/adherence model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5926
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12470: later-change - revised the MedicationStatement status/taken model after the DSTU1 invariant fix and replaced the original two-invariant situation with a different taken/reasonNotTaken rule.
+FHIR-14023: later-change - aligned MedicationStatement to the Workflow Event pattern and removed the remaining reasonNotTaken/taken invariant context from the current model.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5926: Published/Persuasive Pharmacy correction requesting MedicationStatement-level invariant contexts and wildcard reasonForUse[x] XPath. Learned: establishes the final seed request and applied scope.
+- E2 Git daa466d3dbfb73541c84cf9e72cb74ee69e107a8: #5926/@6683 updated source/medicationstatement/medicationstatement-spreadsheet.sheet.txt invariant Context values to MedicationStatement and fixed the reasonForUse XPath. Learned: the requested DSTU1 correction was applied in source history.
+- E3 Jira FHIR-12470 and git 3b901a8b986348f24b8043298ab9a1d288b13d19: later Published MedicationStatement.status/notTaken work revised the old status/taken semantics and changed the invariant set. Learned: later final Pharmacy decisions superseded the original exact element names and rules.
+- E4 Jira FHIR-14023 and git 9a6a9299297f9ef2a54b4ed2a7f815c7de8600dd: Workflow Event alignment removed the remaining reasonNotTaken/taken invariant and old elements. Learned: the current source intentionally no longer contains the affected invariant context.
+- E5 Source source/fhir.ini:203,1184,1393 and source/medicationstatement/structuredefinition-MedicationStatement.xml:401,522: MedicationStatement is active/approved, current reason elements are MedicationStatement.reason and MedicationStatement.adherence.reason, and no constraint/xpath/invariant or legacy reasonNotTaken/reasonForUse elements are present. Learned: the current build-scope source has no remaining FHIR-5926 defect to edit.
+- E6 Command searches for FHIR-5926 plus MedicationStatement invariant terms in Jira, Zulip, and Confluence: no relevant hits beyond the seed issue and no conflicting community evidence. Learned: no discovered external record changes the no-change conclusion.
+- E7 Verification commands: combined-branch grep found no prior FHIR-5926 audit commit; current-source rg found no MedicationStatement constraints or legacy element names. Learned: publishing one empty audit commit is needed and safe.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5926",
+    "url": "https://jira.hl7.org/browse/FHIR-5926",
+    "snapshot_path": "contexts/FHIR-5926/jira/FHIR-5926.md",
+    "ref": { "jira_key": "FHIR-5926" },
+    "summary": "Published/Persuasive Pharmacy correction requiring MedicationStatement-level invariant contexts and a wildcard XPath for reasonForUse[x].",
+    "learned": "This establishes the seed issue's final request and that it targeted historical MedicationStatement invariant definitions.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "daa466d3dbfb73541c84cf9e72cb74ee69e107a8",
+    "ref": { "commit": "daa466d3dbfb73541c84cf9e72cb74ee69e107a8" },
+    "summary": "#5926/@6683 changed the MedicationStatement spreadsheet invariant contexts to MedicationStatement and changed reasonForUse XPath to starts-with(local-name(.), 'reasonForUse').",
+    "learned": "The exact requested DSTU1 correction was applied in historical source.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-12470",
+    "url": "https://jira.hl7.org/browse/FHIR-12470",
+    "ref": { "jira_key": "FHIR-12470", "commit": "3b901a8b986348f24b8043298ab9a1d288b13d19" },
+    "summary": "Published/Persuasive with Modification MedicationStatement.status and notTaken issue, implemented by TR#12470, revised the status/taken semantics and invariant set.",
+    "learned": "Later final Pharmacy work superseded the original wasNotTaken/reasonForUse invariant shape.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-14023",
+    "url": "https://jira.hl7.org/browse/FHIR-14023",
+    "ref": { "jira_key": "FHIR-14023", "commit": "9a6a9299297f9ef2a54b4ed2a7f815c7de8600dd" },
+    "summary": "Published/Persuasive with Modification alignment of MedicationStatement to the updated Workflow Event pattern removed the remaining reasonNotTaken/taken invariant and old elements.",
+    "learned": "The absence of the old invariant in current source is an intentional later model change, not an unapplied FHIR-5926 defect.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini; source/medicationstatement/structuredefinition-MedicationStatement.xml",
+    "ref": { "paths": "source/fhir.ini, source/medicationstatement/structuredefinition-MedicationStatement.xml" },
+    "summary": "fhir.ini lists MedicationStatement as an active approved resource; the current StructureDefinition contains MedicationStatement.reason and MedicationStatement.adherence.reason but no constraints/invariants or legacy reasonNotTaken/reasonForUse[x] elements.",
+    "learned": "The current build-scope source has no remaining source defect from FHIR-5926 to correct.",
+    "supports": ["build_scope", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community searches for FHIR-5926 MedicationStatement invariant terms",
+    "command": "bun run jira:search fts '\"FHIR-5926\" MedicationStatement invariant reasonForUse reasonNotTaken' --limit 20; bun run zulip:search fts '\"FHIR-5926\" MedicationStatement invariant reasonForUse reasonNotTaken' --limit 10; bun run confluence:search refs jira FHIR-5926; bun run confluence:search fts '\"FHIR-5926\" MedicationStatement invariant' --limit 10",
+    "query": "FHIR-5926 MedicationStatement invariant reasonForUse reasonNotTaken",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence records and no additional Jira FTS hits beyond the known seed context were found.",
+    "learned": "No discovered community evidence conflicts with the Jira/source-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Idempotency and source verification commands",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-5926' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n '<constraint>|<key value=|<xpath value=|<expression value=|MedicationStatement\\.reasonNotGiven|MedicationStatement\\.reasonForUse' source/medicationstatement/structuredefinition-MedicationStatement.xml",
+    "summary": "The combined branch had no prior FHIR-5926 audit commit, and current source search found no relevant constraints or legacy element names.",
+    "learned": "One empty audit commit is required, and no source edit is warranted.",
+    "supports": ["idempotency", "reconciliation"]
+  }
+]
+</evidence-manifest>

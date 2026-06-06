@@ -1,0 +1,108 @@
+FHIR-35965: Audit external THO CodeSystem content fix
+
+Issue request:
+FHIR-35965 was Applied/Persuasive for HealthcareService terminology. It asked that the HL7-defined service-category and service-type CodeSystems stop using content=example and instead use content=complete, because the listed concepts are the complete contents of those CodeSystems even though the HealthcareService bindings may remain example-strength.
+
+Initial application:
+No FHIR-core commit was found that applied FHIR-35965 directly. The current core source contains the HealthcareService resource, example-strength bindings, and ValueSets that include http://terminology.hl7.org/CodeSystem/service-category and http://terminology.hl7.org/CodeSystem/service-type, but it does not contain the source CodeSystem-service-category.xml or CodeSystem-service-type.xml definitions that own the content flag.
+
+Additional context:
+The Jira comment trail says the work was included in UP-529. UP-529 is Proposal Implemented/Done and its change object list includes input/sourceOfTruth/fhir/codeSystems/CodeSystem-service-category.xml and CodeSystem-service-type.xml in the UTG/THO source. Current terminology.hl7.org JSON for both CodeSystems reports content=complete, and Confluence references show PA approval plus publication in THO version 5.5.0. The remaining core HealthcareService value set descriptions and example binding strengths are not the CodeSystem.content field and are consistent with Lloyd McKenzie's distinction in the Jira comments.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no FHIR-core source change. The required source-of-truth change was external to this checkout in UTG/THO and is already visible in the current published THO artifacts; changing the core ValueSets or example bindings would conflate the issue's CodeSystem.content request with separate binding semantics.
+
+Recommendation:
+Keep this audit commit as-is for core. If future work needs to change the service-category or service-type CodeSystem definitions themselves, do it in the UTG/THO source of truth rather than the FHIR-core checkout.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-35965
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+UP-529: supporting-decision - implemented the UTG/THO source change for FHIR-35965 and published the CodeSystem content updates.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-35965: Applied/Persuasive request to set service-category and service-type CodeSystem.content to complete. Learned: this establishes the final requested change and the distinction from example-strength bindings.
+- E2 Jira UP-529: Proposal Implemented/Done with modified UTG source files CodeSystem-service-category.xml and CodeSystem-service-type.xml. Learned: the required source-of-truth edit was made outside FHIR core.
+- E3 Source source/fhir.ini:239 and source/healthcareservice/structuredefinition-HealthcareService.xml:188-222: HealthcareService is active in the core build and binds category/type at example strength to core ValueSets. Learned: core has binding/value set references, not the THO CodeSystem.content definitions targeted by the issue.
+- E4 Source search in source/healthcareservice: only valueset-service-category.xml and valueset-service-type.xml reference the THO service CodeSystems; no core CodeSystem-service-category/type source exists. Learned: there is no in-scope core CodeSystem content flag to edit.
+- E5 Published THO curl check: terminology.hl7.org/CodeSystem-service-category.json and CodeSystem-service-type.json both report content=complete. Learned: the applied external result is present in current published terminology.
+- E6 Community search: Confluence refs show PA approval and THO 5.5.0 publication for FHIR-35965/UP-529; Zulip has a UTG thread pointing to the UP-529 diff and no contrary service-category/service-type discussion. Learned: community evidence supports the Jira/THO path and revealed no conflicting core requirement.
+- E7 Git search: git log --grep for FHIR-35965/UP-529 over HealthcareService core source found no direct core application commit. Learned: the absence aligns with the change being handled in UTG/THO.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-35965",
+    "url": "https://jira.hl7.org/browse/FHIR-35965",
+    "snapshot_path": "contexts/FHIR-35965/jira/FHIR-35965.md",
+    "ref": { "jira_key": "FHIR-35965" },
+    "summary": "Applied/Persuasive issue requesting service-category and service-type CodeSystem.content be changed from example to complete.",
+    "learned": "This establishes the final PA decision and clarifies that the requested change is to CodeSystem.content, not the HealthcareService example bindings.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "UP-529",
+    "url": "https://jira.hl7.org/browse/UP-529",
+    "ref": { "jira_key": "UP-529" },
+    "summary": "Proposal Implemented/Done UTG change proposal listing CodeSystem-service-category.xml and CodeSystem-service-type.xml as modified source-of-truth objects for FHIR-35965.",
+    "learned": "The needed edit was applied in UTG/THO rather than in FHIR-core source.",
+    "supports": ["initial_application", "external_repo"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:239; source/healthcareservice/structuredefinition-HealthcareService.xml:188-222",
+    "ref": { "path": "source/healthcareservice/structuredefinition-HealthcareService.xml", "start_line": 188, "end_line": 222 },
+    "summary": "HealthcareService is active in fhir.ini and its category/type bindings remain example-strength to core ValueSets.",
+    "learned": "The current core build owns the resource bindings, but not the THO CodeSystem.content fields targeted by the issue.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Core source search for service CodeSystems",
+    "command": "find source -iname '*service-category*' -o -iname '*service-type*'; rg -n '<content value=\"example\"|<content value=\"complete\"|http://terminology.hl7.org/CodeSystem/service-(category|type)' source/healthcareservice",
+    "summary": "The core checkout has HealthcareService ValueSets referencing the THO CodeSystems and no CodeSystem-service-category/type source files.",
+    "learned": "There is no in-scope FHIR-core CodeSystem.content flag to change for this issue.",
+    "supports": ["external_repo", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "terminology.hl7.org CodeSystem-service-category.json and CodeSystem-service-type.json",
+    "url": "https://terminology.hl7.org/CodeSystem-service-category.json",
+    "command": "curl -fsSL https://terminology.hl7.org/CodeSystem-service-category.json | jq -r '.content'; curl -fsSL https://terminology.hl7.org/CodeSystem-service-type.json | jq -r '.content'",
+    "summary": "Current THO JSON reports content=complete for both service-category and service-type.",
+    "learned": "The externally applied result matches the FHIR-35965 resolution.",
+    "supports": ["verification", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Confluence and Zulip searches for FHIR-35965/UP-529",
+    "command": "bun run confluence:search refs jira FHIR-35965; bun run confluence:search refs jira UP-529; bun run zulip:search fts '\"FHIR-35965\"' --limit 10; bun run zulip:search fts '\"service-category\" \"service-type\" \"content\"' --limit 10",
+    "query": "FHIR-35965 UP-529 service-category service-type content",
+    "result_count": 7,
+    "summary": "Confluence references include PA approval and THO 5.5.0 publication; Zulip found the UP-529 UTG thread and no direct contrary service-category/service-type content discussion.",
+    "learned": "Community evidence supports the UTG/THO application path and does not indicate an additional core source change.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "git log --grep FHIR-35965/UP-529 over HealthcareService source",
+    "command": "git log --all --oneline --grep='FHIR-35965\\|UP-529' -- source/healthcareservice source/fhir.ini",
+    "summary": "No direct FHIR-core commit mentioning FHIR-35965 or UP-529 was found for HealthcareService source.",
+    "learned": "This supports treating the current reconciliation as an external-repo audit rather than a missing core source edit.",
+    "supports": ["initial_application", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,95 @@
+FHIR-5843: Audit search parameter path rendering
+
+Issue request:
+FHIR-5843 was a Published/Persuasive DSTU1 correction from DAF ballot comment 89 reporting that the Search Parameters table Paths column was generating all values as null.
+
+Initial application:
+The Jira comments recorded "Already fixed" on 2015-03-11, and no Jira-keyed commit was found. Nearby history shows commit a5df1925d8c7bc0d03d8d840ad1b79fcca77eacc on 2015-03-10 added generated search parameter rendering and guarded path output with hasXpath(), avoiding literal null output for search parameters without paths.
+
+Additional context:
+The current build inputs include the search parameter registry template and active resource/search-parameter sources. SearchParameter bundle entries now carry expressions and build path extensions where applicable, and the current CI build registry renders path/expression values such as Patient.active with no literal null path values. Zulip and Confluence searches for this issue found no conflicting community record.
+
+AutoFHIR reconciliation:
+This is an empty no-change audit commit. The current specification source already avoids the reported all-null Paths table problem, so changing current source would be unnecessary and risk broader search registry churn.
+
+Recommendation:
+Keep this audit commit as-is. If a future issue identifies a specific individual SearchParameter with a missing expression/path, handle that as a separate targeted source fix rather than reopening this DSTU1 all-null rendering defect.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5843
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5843: Published/Persuasive DSTU1 correction for DAF ballot comment 89, with comments saying the all-null Search Parameters Paths table was already fixed. Learned: the final Jira disposition requires only confirmation that current rendering no longer has the defect.
+- E2 Source source/searchparameter-registry.html:27: the current registry table includes a Paths (Expression) column populated by <%allsearchparams%>. Learned: this is the current source template for the affected table.
+- E3 Source source/patient/bundle-Patient-search-params.xml:12: Patient-active includes a build path extension and expression Patient.active. Learned: current active search parameter source data contains concrete path/expression values rather than nulls.
+- E4 Git a5df1925d8c7bc0d03d8d840ad1b79fcca77eacc: 2015-03-10 search parameter rendering change guarded path output with hasXpath(). Learned: the likely initial application predates the Jira "Already fixed" comment and specifically avoids null path rendering.
+- E5 Command current source and CI-build checks: no literal null path values were found in search parameter sources or the build.fhir.org searchparameter registry. Learned: the reported all-null display problem is not present in the current specification surface.
+- E6 Command Zulip/Confluence search for FHIR-5843 and Search Parameters: no relevant hits or references found. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5843",
+    "url": "https://jira.hl7.org/browse/FHIR-5843",
+    "snapshot_path": "contexts/FHIR-5843/jira/FHIR-5843.md",
+    "ref": { "jira_key": "FHIR-5843" },
+    "summary": "Published/Persuasive DSTU1 correction reporting that the Search Parameters table Paths column generated all values as null.",
+    "learned": "The Jira record says the defect was already fixed, so reconciliation should verify current source rather than make a new source edit.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/searchparameter-registry.html:27-35",
+    "ref": { "path": "source/searchparameter-registry.html", "start_line": 27, "end_line": 35 },
+    "summary": "The current registry template defines the affected Paths (Expression) column and delegates rows to <%allsearchparams%>.",
+    "learned": "This is the active current source location for the table FHIR-5843 described.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/patient/bundle-Patient-search-params.xml:12-20; source/fhir.ini:169-249",
+    "ref": { "path": "source/patient/bundle-Patient-search-params.xml", "start_line": 12, "end_line": 20 },
+    "summary": "An active resource search parameter source includes both the build path extension and expression Patient.active.",
+    "learned": "Current search parameter source data has concrete path/expression values, not the all-null values reported in the DSTU1 issue.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "a5df1925d8c7bc0d03d8d840ad1b79fcca77eacc",
+    "ref": { "commit": "a5df1925d8c7bc0d03d8d840ad1b79fcca77eacc" },
+    "summary": "2015-03-10 commit 'Generate search parameters + clarify use of abstract flag on StructureDefinition' added search parameter rendering and changed path output to use hasXpath().",
+    "learned": "This nearby pre-comment history is consistent with the Jira comment that the null path rendering was already fixed.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current source and CI registry null checks",
+    "command": "rg -n --glob 'bundle-*-search-params.xml' 'value=\"null\"|>null<|\\bnull\\b' source; python3 search-parameter XML scan; curl -fsSL https://build.fhir.org/searchparameter-registry.html | rg -n '>null<|\\bnull\\b'",
+    "summary": "No literal null values were found in search parameter sources or the current build registry; the source scan counted 2081 SearchParameter entries and the CI registry sample rendered Patient.active.",
+    "learned": "The reported all-null Paths table defect is absent from current source and current rendered output.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-5843 and Search Parameters",
+    "command": "bun run zulip:search fts '\"FHIR-5843\" \"Search Parameters\"' --limit 10; bun run confluence:search refs jira FHIR-5843",
+    "query": "FHIR-5843 Search Parameters",
+    "result_count": 0,
+    "summary": "No relevant Zulip messages or Confluence references were found.",
+    "learned": "No discovered community record conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

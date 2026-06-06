@@ -1,0 +1,116 @@
+FHIR-36244: Audit current ValueSet expansion downloads
+
+Issue request:
+FHIR-36244 was a Published/Persuasive R4B technical correction reporting that the ValueSet expansion download, especially expansions.json, contained thousands of CodeSystem.concept.designation entries without the required designation.value, mostly for zh-CN designations.
+
+Initial application:
+No explicit source commit tagged FHIR-36244 was found in the current checkout history. The current source download page still exposes generated ValueSet expansion downloads, but the published current build and R6 expansions package now contain zero designation entries missing value. The R4B and R5 published expansions.json artifacts still contain historical missing-value designations, so the original publication surface was not cleanly repaired in those archived releases.
+
+Additional context:
+The only checked-in expansion artifacts in this source tree are tools/history/release*/expansions.xml files used as historical/version-diff inputs, not the current root expansions.json download. Current tools/history/release4b/expansions.xml and tools/history/release5/expansions.xml mirror the historical missing-value data, but editing those generated history snapshots would not change the current build.fhir.org expansion download or the published R4B/R5 archives. Zulip only showed the reporter raising this as part of R4B implementation testing, and Confluence searches found no separate work-group direction changing the source conclusion.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change because the current build output that this checkout feeds is already valid for the reported condition: build.fhir.org/expansions.json and hl7.fhir.r6.expansions.tgz both have no designations missing value. A source edit limited to generated historical expansion XML would be broader than the Jira request's current-build effect and would not fix the downloadable artifacts users actually consume from R4B/R5.
+
+Recommendation:
+Keep this no-change audit for the current FHIR source. If HL7 wants to repair the still-invalid R4B/R5 published expansions.json archives, handle that as release/archive publication maintenance or generator/data backport work rather than a current core source hunk.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36244
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36244: Published/Persuasive R4B issue reporting thousands of downloaded expansion designations missing required value. Learned: this is the final issue request to check against current expansion outputs.
+- E2 Source source/downloads.html:116,146: current downloads page links hl7.fhir.r6.expansions.tgz and the generated expansions.xml/expansions.json files. Learned: the relevant current surface is generated download output, not a normal checked-in conformance resource.
+- E3 Command git log --grep FHIR-36244 and git ls-tree expansion artifact scan: no Jira-tagged source commit and no checked-in root expansions.json/xml download exists; only tools/history/release*/expansions.xml files are present. Learned: there is no direct source hunk to preserve or adjust for the current generated download.
+- E4 Published-spec validation command: build.fhir.org/expansions.json has 146159 designations and zero missing values; hl7.org/fhir/R5/expansions.json has 1278 missing values; hl7.org/fhir/R4B/expansions.json has 149 missing values. Learned: current CI output is corrected, while archived R4B/R5 downloadable artifacts remain historically invalid.
+- E5 Published-spec package validation: build.fhir.org/hl7.fhir.r6.expansions.tgz contains 737 JSON ValueSets with 146159 designations and zero missing or empty values. Learned: the current NPM expansion package advertised by the downloads page is also valid for the reported condition.
+- E6 Source tools/history/release4b/expansions.xml and tools/history/release5/expansions.xml: regex checks found 149 and 1278 simple missing-value designation blocks, respectively. Learned: checked-in history snapshots still mirror the old problem but are generated historical inputs, not current downloadable expansions.
+- E7 Zulip #implementers > R4B questions / issues: Lee Surprenant mentioned FHIR-36244 while evaluating R4B expansion downloads; related searches found no contradictory follow-up. Learned: community evidence confirms the R4B implementation-testing context without requiring a current source edit.
+- E8 Confluence search refs jira FHIR-36244 and expansion/designation terms: no direct references or relevant minutes were found. Learned: no discovered work-group minutes alter the Jira/source/output conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36244",
+    "url": "https://jira.hl7.org/browse/FHIR-36244",
+    "snapshot_path": "contexts/FHIR-36244/jira/FHIR-36244.md",
+    "ref": { "jira_key": "FHIR-36244" },
+    "summary": "Published/Persuasive R4B technical correction reporting downloaded ValueSet expansion designations without required value elements.",
+    "learned": "This establishes the final issue request and the validation condition to check in current expansion outputs.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/downloads.html:116,146",
+    "ref": { "path": "source/downloads.html", "lines": "116,146" },
+    "summary": "The current downloads page advertises hl7.fhir.r6.expansions.tgz and generated expansions.xml/expansions.json files for code generation support.",
+    "learned": "The affected current spec surface is generated downloadable output rather than a checked-in root expansions resource.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "command",
+    "locator": "Git history and artifact scan for FHIR-36244 and expansion downloads",
+    "command": "git log --all --grep='FHIR-36244'; git ls-tree -r --name-only HEAD | rg '(^|/)expansions\\.(xml|json)(\\.zip)?$|hl7\\.fhir\\..*\\.expansions\\.tgz'",
+    "summary": "No Jira-tagged source commit was found, and the only checked-in expansion artifacts are tools/history/release*/expansions.xml files.",
+    "learned": "There is no direct current-source expansion download file to edit; historical expansion XML files are not the root generated download output.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "build.fhir.org and hl7.org expansions.json designation-value validation",
+    "url": "https://build.fhir.org/expansions.json",
+    "command": "Python JSON traversal of https://build.fhir.org/expansions.json, https://hl7.org/fhir/R5/expansions.json, and https://hl7.org/fhir/R4B/expansions.json",
+    "summary": "Current build.fhir.org expansions.json has 146159 designations and 0 missing values; R5 has 1278 missing values; R4B has 149 missing values.",
+    "learned": "The current build output is corrected for the reported validation error even though archived R4B/R5 artifacts remain invalid.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "build.fhir.org hl7.fhir.r6.expansions.tgz validation",
+    "url": "https://build.fhir.org/hl7.fhir.r6.expansions.tgz",
+    "command": "Download and traverse all package/*.json files in hl7.fhir.r6.expansions.tgz",
+    "summary": "The current R6 expansion package contains 737 JSON ValueSets, 146159 designations, and 0 missing or empty values.",
+    "learned": "The current expansion package advertised by the downloads page also satisfies the Jira validation requirement.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "tools/history/release4b/expansions.xml and tools/history/release5/expansions.xml",
+    "ref": { "paths": "tools/history/release4b/expansions.xml; tools/history/release5/expansions.xml" },
+    "summary": "Regex checks found 149 simple missing-value designation blocks in release4b and 1278 in release5 history XML.",
+    "learned": "The checked-in history snapshots still mirror the old problem, but changing them would not fix current generated downloads or published archives.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > R4B questions / issues",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/R4B%20questions%20%2F%20issues",
+    "ref": { "stream": "implementers", "topic": "R4B questions / issues" },
+    "summary": "Lee Surprenant mentioned FHIR-36244 while evaluating R4B downloads; broader Zulip searches found no conflicting follow-up.",
+    "learned": "Community evidence confirms the R4B implementation-testing context and does not point to a separate current source requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative Confluence search for FHIR-36244 and expansion designation terms",
+    "command": "bun run confluence:search refs jira FHIR-36244; bun run confluence:search fts '\"FHIR-36244\"'; bun run confluence:search fts 'expansions designation value' --limit 20",
+    "summary": "No direct Confluence references to FHIR-36244 or relevant minutes changing this conclusion were found.",
+    "learned": "No discovered work-group minutes alter the Jira/source/output assessment.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

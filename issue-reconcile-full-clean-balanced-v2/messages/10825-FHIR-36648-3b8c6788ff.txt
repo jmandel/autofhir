@@ -1,0 +1,100 @@
+FHIR-36648: Audit ImagingSelection graphic type reconciliation
+
+Issue request:
+FHIR-36648 was a Published FHIR-core ImagingSelection change request with resolution Not Persuasive with Modification. It reported that the old http://hl7.org/fhir/imagingselection-graphictype code system was missing DICOM graphic types CIRCLE and INTERPOLATED while ImagingSelection used a required binding, and the accepted resolution was to apply the linked Imaging Integration Confluence change set rather than simply loosen the binding.
+
+Initial application:
+The change appears to have been applied through the ImagingSelection update work merged as 471fbc468b8fd5427fcebad076569e16590ac707, with the source-changing commit 5c5a620527e102650cad53df57ff594d1706fe2a splitting the old generic graphic type into separate 2D and 3D graphic type code systems/value sets. That initial application added the 2D CIRCLE and INTERPOLATED concepts and kept the 2D ImagingSelection region type binding required, matching the Confluence resolution instead of changing the binding to extensible.
+
+Additional context:
+ImagingSelection is an active resource in source/fhir.ini, so source/imagingselection feeds the current build. The current source binds ImagingSelection.instance.imageRegion2D.regionType to http://hl7.org/fhir/ValueSet/imagingselection-2dgraphictype with required strength, and that 2D code system now includes circle. The current absence of interpolated is not an unapplied FHIR-36648 gap: later Applied issue FHIR-45266 explicitly corrected the 2D graphic type value set to align with DICOM SCOORD by replacing interpolated with multipoint, and that related issue already has a combined-branch audit commit. Later FHIR-55241 added unknown as an escape valve and corrected the DICOM reference, without reversing the FHIR-45266 replacement.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Re-adding interpolated would conflict with the later Applied FHIR-45266 decision, while changing the binding to extensible would conflict with the FHIR-36648 Confluence resolution and later required-binding escape-valve handling.
+
+Recommendation:
+Keep this audit as-is. Do not re-add interpolated for FHIR-36648 unless the Imaging Integration work group reopens or supersedes FHIR-45266; the current source is correct for the issue family.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36648
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-36649: same-change-family - Shared the 2022 ImagingSelection Confluence change set and implementation commit; already represented on the combined branch.
+FHIR-37409: same-change-family - Referenced by the same Confluence page for ImagingSelection coordinate restructuring; already represented on the combined branch.
+FHIR-45266: later-change - Later Applied correction replaced interpolated with multipoint to align the 2D graphic type value set with DICOM SCOORD, so it controls the current absence of interpolated.
+FHIR-55241: later-change - Later Applied correction added unknown to the required 2D graphic type binding as the escape valve, preserving the required binding approach.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36648: Published/Not Persuasive with Modification; asks for CIRCLE and INTERPOLATED in the required ImagingSelection graphic type binding or an extensible binding alternative, with resolution to apply the Confluence change set. Learned: final WG intent was the Confluence modification, not a simple binding-strength downgrade.
+- E2 Confluence 104764643: Imaging Integration page FHIR-36648 FHIR-36649 FHIR-34709/FHIR-37409 specifies splitting the old graphic type into 2D and 3D code systems and adding 2D POINT, POLYLINE, INTERPOLATED, CIRCLE, and ELLIPSE. Learned: initial application target was a new 2D required value set including the requested values.
+- E3 Git 5c5a620527/471fbc468: ImagingSelection implementation split imagingselection-graphictype into imagingselection-2dgraphictype and imagingselection-3dgraphictype, adding CIRCLE and INTERPOLATED to the 2D code system. Learned: FHIR-36648 was substantively applied before this reconciliation.
+- E4 Jira/Git FHIR-45266 and a4ba8ded88: Applied later decision states the FHIR value set contained interpolated whereas DICOM SCOORD contains multipoint, and source replaced interpolated with multipoint. Learned: current absence of interpolated is intentional later correction rather than drift.
+- E5 Source source/fhir.ini:195 and source/imagingselection/structuredefinition-ImagingSelection.xml:801-819 plus codesystem-imagingselection-2dgraphictype.xml:43-71: ImagingSelection is active, the 2D region type binding remains required, and the active 2D code system includes circle, multipoint, polyline, ellipse, point, and unknown. Learned: current build-scope source matches the issue family after later decisions.
+- E6 Command searches: quoted Zulip search for FHIR-36648/imagingselection/graphictype found no relevant discussion; Confluence refs found page 104764643; combined-branch greps found existing audits for FHIR-36649, FHIR-45266, and FHIR-55241 but none for FHIR-36648. Learned: no discovered community record changes the Jira/source conclusion and no duplicate FHIR-36648 audit already exists.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36648",
+    "url": "https://jira.hl7.org/browse/FHIR-36648",
+    "snapshot_path": "contexts/FHIR-36648/jira/FHIR-36648.md",
+    "ref": { "jira_key": "FHIR-36648" },
+    "summary": "Published/Not Persuasive with Modification ImagingSelection issue asking for DICOM CIRCLE and INTERPOLATED graphic types or an extensible binding alternative.",
+    "learned": "The final decision was to apply the linked Confluence modification rather than simply change the binding strength.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "Confluence page 104764643 FHIR-36648 FHIR-36649 FHIR-34709",
+    "url": "https://confluence.hl7.org/spaces/IMIN/pages/104764643/FHIR-36648+FHIR-36649+FHIR-34709",
+    "ref": { "confluence_page_id": 104764643 },
+    "summary": "The Imaging Integration page specified splitting ImagingSelection graphic types into separate 2D and 3D code systems and adding the 2D CIRCLE and INTERPOLATED entries.",
+    "learned": "This defines the initial application target for FHIR-36648 and explains why the required binding was retained.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "5c5a620527e102650cad53df57ff594d1706fe2a and merge 471fbc468b8fd5427fcebad076569e16590ac707",
+    "ref": { "commit": "5c5a620527e102650cad53df57ff594d1706fe2a" },
+    "summary": "The implementation split imagingselection-graphictype into 2D/3D code systems and added CIRCLE and INTERPOLATED to the 2D code system.",
+    "learned": "FHIR-36648 was applied in source before this reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-45266 and commit a4ba8ded88f9c692ede7f533fd0bd6f7df457ff0",
+    "url": "https://jira.hl7.org/browse/FHIR-45266",
+    "ref": { "jira_key": "FHIR-45266", "commit": "a4ba8ded88f9c692ede7f533fd0bd6f7df457ff0" },
+    "summary": "Applied/Persuasive later issue noted that the FHIR 2D graphic type value set had interpolated while DICOM SCOORD has multipoint, and the implementation replaced interpolated with multipoint.",
+    "learned": "The current omission of interpolated is an intentional later change and should not be reversed for FHIR-36648.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:195; source/imagingselection/structuredefinition-ImagingSelection.xml:801-819; source/imagingselection/codesystem-imagingselection-2dgraphictype.xml:43-71",
+    "summary": "ImagingSelection is active, imageRegion2D.regionType has a required binding to ImagingSelection2DGraphicType, and the active 2D code system contains circle, multipoint, polyline, ellipse, point, and unknown.",
+    "learned": "The current build-scope source is consistent with FHIR-36648 after later Applied decisions.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community and duplicate-audit checks for FHIR-36648",
+    "command": "bun run confluence:search refs jira FHIR-36648; bun run zulip:search fts '\"FHIR-36648\" imagingselection graphictype circle interpolated' --limit 10; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-36648' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "query": "FHIR-36648 imagingselection graphictype circle interpolated",
+    "result_count": 1,
+    "summary": "Confluence refs found the resolution page, the quoted Zulip search found no relevant discussion, and the combined branch had no existing FHIR-36648 audit.",
+    "learned": "There is no discovered conflicting community evidence and no duplicate seed audit commit.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,116 @@
+FHIR-12577: Audit operation definition casing mismatch
+
+Issue request:
+FHIR-12577 was a Published/Persuasive FHIR-core change request from DSTU2 asking that generated complete CapabilityStatement operation references preserve the case of OperationDefinition resource ids, because resource ids and references are case-sensitive. The resolution was auto-approved and also asked why the mismatch was not caught as an error.
+
+Initial application:
+The issue was applied in svn/git history by commit 2c62cd190b768ad0d0494a401c7d1da0c18c6543, which is tagged "#12577 - check URL references are correct" and records SVN revision 11519. That commit added or adjusted URL-reference checking and made broad example/reference cleanups, but the commit subject notes the check was turned off because there were too many references to fix.
+
+Additional context:
+Current source inputs for resource-specific operations still carry the intended mixed-case OperationDefinition ids and references, such as OperationDefinition/Resource-validate and OperationDefinition/StructureDefinition-snapshot. The current build package, however, still emits generated CapabilityStatement-base operation definitions with lower-case resource prefixes, while the package OperationDefinition resources themselves keep the mixed-case canonical URLs. The CapabilityStatement-base example is generated as a tool example, and this checkout delegates that generation to the external org.hl7.fhir:kindling dependency rather than checked-in generator source.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source edit in the FHIR spec checkout. Changing checked-in OperationDefinition ids to lower case would be a broad canonical URL change and would make the source conform to the generator bug rather than fixing the generator to reference the existing canonical OperationDefinition URLs. The needed correction is in the Kindling/publisher generation path for the complete base CapabilityStatement or in the generated-output validation that should catch unresolved canonical references.
+
+Recommendation:
+Keep this audit commit as an external-repo decision for this run. Follow up in the Kindling/publisher code so generated CapabilityStatement-base uses the actual OperationDefinition.url/id casing from the loaded OperationDefinition resources, then rebuild and verify that capabilitystatement-base.xml/json references match the package OperationDefinition canonicals.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12577
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12577: Published/Persuasive issue requesting corrected case for generated complete CapabilityStatement OperationDefinition references. Learned: final WG intent is to preserve case-sensitive OperationDefinition references.
+- E2 Zulip #implementers > resource ids: Brian Postlethwaite raised the resource-id case sensitivity concern and Grahame Grieve agreed it should be logged, leading to FHIR-12577. Learned: the Jira request matches the community discussion and was not later contradicted there.
+- E3 Git 2c62cd190b768ad0d0494a401c7d1da0c18c6543: SVN revision 11519 applied #12577 by URL-reference checking/cleanup while noting the check was turned off because too many references remained. Learned: historical application was partial/tooling-oriented rather than a current source hunk to replay.
+- E4 Source source/resource/operationdefinition-Resource-validate.xml:4,42 and source/resource/list-Resource-operations.xml:9: current authoritative source uses Resource-validate casing for the operation id/url/list reference. Learned: the source inputs are not lower-cased at the relevant operation definitions.
+- E5 Source source/structuredefinition/operationdefinition-StructureDefinition-snapshot.xml:4,36 and source/structuredefinition/list-StructureDefinition-operations.xml:9: current authoritative source uses StructureDefinition-snapshot casing. Learned: the specific operation family named by the issue remains mixed-case in source.
+- E6 Published build/package check: https://build.fhir.org/hl7.fhir.r6.core.tgz contains OperationDefinition-StructureDefinition-snapshot.json with url http://hl7.org/fhir/OperationDefinition/StructureDefinition-snapshot, while CapabilityStatement-base.json references http://hl7.org/fhir/OperationDefinition/structuredefinition-snapshot. Learned: the current generated artifact still has the case mismatch.
+- E7 Source build.gradle.kts:46-48,132-138 and gradle.properties:2: this checkout depends on org.hl7.fhir:kindling:1.25.5-SNAPSHOT and runs org.hl7.fhir.tools.publisher.Publisher. Learned: the generator code for the complete base CapabilityStatement is outside this source checkout.
+- E8 Community search: quoted FHIR-12577 Zulip and Confluence searches found no later conflicting discussion or minutes. Learned: no discovered community evidence changes the Jira/source/build conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12577",
+    "url": "https://jira.hl7.org/browse/FHIR-12577",
+    "snapshot_path": "contexts/FHIR-12577/jira/FHIR-12577.md",
+    "ref": { "jira_key": "FHIR-12577" },
+    "summary": "Published/Persuasive FHIR-core issue asking that generated complete CapabilityStatement OperationDefinition references use the correct case for case-sensitive ids.",
+    "learned": "This establishes the final approved request and that the expected behavior is case-preserving generated references.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > resource ids",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/resource%20ids",
+    "ref": { "stream": "implementers", "topic": "resource ids" },
+    "summary": "The original reporter raised the resource id case-sensitivity concern and Grahame Grieve agreed it should be logged, leading to FHIR-12577.",
+    "learned": "The community thread confirms the Jira scope and provides no conflicting later instruction for this issue.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "2c62cd190b768ad0d0494a401c7d1da0c18c6543",
+    "ref": { "commit": "2c62cd190b768ad0d0494a401c7d1da0c18c6543" },
+    "summary": "Commit '#12577 - check URL references are correct' records SVN revision 11519 and broad reference cleanup while noting the check was turned off.",
+    "learned": "The historical application was tooling/validation-oriented and does not provide a current source hunk that fixes the generator mismatch.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/resource/operationdefinition-Resource-validate.xml:4,42; source/resource/list-Resource-operations.xml:9",
+    "ref": { "path": "source/resource/operationdefinition-Resource-validate.xml" },
+    "summary": "The current Resource validate operation source and operation list use Resource-validate casing.",
+    "learned": "The authoritative source input is not the lower-case value found in generated CapabilityStatement-base.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/structuredefinition/operationdefinition-StructureDefinition-snapshot.xml:4,36; source/structuredefinition/list-StructureDefinition-operations.xml:9",
+    "ref": { "path": "source/structuredefinition/operationdefinition-StructureDefinition-snapshot.xml" },
+    "summary": "The current StructureDefinition snapshot operation source and operation list use StructureDefinition-snapshot casing.",
+    "learned": "The specific operation family implicated by the issue remains mixed-case in source, so changing source to lower-case would be a broad canonical change rather than a generator fix.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/hl7.fhir.r6.core.tgz CapabilityStatement-base.json and OperationDefinition-StructureDefinition-snapshot.json",
+    "url": "https://build.fhir.org/hl7.fhir.r6.core.tgz",
+    "summary": "The current build package contains OperationDefinition-StructureDefinition-snapshot.json with mixed-case canonical URL while CapabilityStatement-base.json references the lower-case structuredefinition-snapshot URL.",
+    "learned": "The present generated build surface still has the case mismatch described by FHIR-12577.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "build.gradle.kts:46-48,132-138; gradle.properties:2",
+    "ref": { "path": "build.gradle.kts" },
+    "summary": "The spec build uses the external org.hl7.fhir:kindling dependency and invokes org.hl7.fhir.tools.publisher.Publisher.",
+    "learned": "The complete CapabilityStatement generator is not checked into this FHIR source checkout, so the safe fix belongs in the publisher dependency.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for later FHIR-12577 conflict",
+    "command": "bun run zulip:search fts '\"FHIR-12577\" OperationDefinition CapabilityStatement case' --limit 10; bun run confluence:search refs jira FHIR-12577; bun run confluence:search fts '\"FHIR-12577\" OperationDefinition CapabilityStatement case' --limit 10",
+    "query": "FHIR-12577 OperationDefinition CapabilityStatement case",
+    "result_count": 0,
+    "summary": "No directly relevant later Zulip or Confluence records contradicted the Jira request or current source/build finding.",
+    "learned": "No discovered community record changes the conclusion that this needs a publisher-side generator fix.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

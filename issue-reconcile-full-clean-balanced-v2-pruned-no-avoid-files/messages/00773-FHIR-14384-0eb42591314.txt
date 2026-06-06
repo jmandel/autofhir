@@ -1,0 +1,107 @@
+FHIR-14384: Fix VisionPrescription prism rename mapping
+
+Issue request:
+FHIR-14384 was a Published/Persuasive FHIR-core VisionPrescription change request asking to support two prisms by changing Prism to repeat, with prism.amount 1..1 decimal and prism.base 1..1 code constrained to up, down, in, or out.
+
+Initial application:
+The issue was initially applied in git commit 498018ea62207aa6271adc10e8c5ce9339ee5e54 ("Tracker #14384"), which changed the then-authoritative VisionPrescription spreadsheet from a single decimal prism and sibling base into a repeating prism backbone with mandatory amount and base children. Later commit 9c9403324df70351bf59981a05828a59d6b2b723 carried that model through the dispense-to-lensSpecification refactor. The current StructureDefinition source already preserves the requested cardinalities and child elements.
+
+Additional context:
+VisionPrescription is active in the current build through source/fhir.ini and source/hierarchy.xml. A later related no-change issue, FHIR-55283, considered whether VisionPrescription.lensSpecification.prism.base needed an escape value and decided it did not, so no base value set expansion is part of this reconciliation. Community searches found no relevant Zulip or Confluence evidence that changes the Jira/source conclusion. The remaining current-source inconsistency was in source/fhir.ini [r3-renames], where the old VisionPrescription.dispense.base element still pointed at nonexistent VisionPrescription.lensSpecification.base instead of the current VisionPrescription.lensSpecification.prism.base path.
+
+AutoFHIR reconciliation:
+This commit corrects the active R3 rename metadata in source/fhir.ini so the old base element maps to VisionPrescription.lensSpecification.prism.base, matching the source element introduced by the FHIR-14384 prism backbone change and preserved in the current StructureDefinition.
+
+Recommendation:
+Keep this commit as-is. The current VisionPrescription definition already allows multiple prism repetitions with mandatory amount and base children; the only needed source fix was the stale rename target corrected here.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14384
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-55283: later-change - Later no-change decision for VisionPrescription.lensSpecification.prism.base confirms that the required base binding should not be expanded as part of this reconciliation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14384: Published/Persuasive issue requesting repeat prism with required amount and base children. Learned: this is final WG intent for the seed issue.
+- E2 Git 498018ea: original "Tracker #14384" commit changed the VisionPrescription spreadsheet to prism 0..* with prism.amount and prism.base 1..1. Learned: the seed issue was applied historically to the then-authoritative source.
+- E3 Source source/visionprescription/structuredefinition-VisionPrescription.xml:476: current prism element is 0..*, amount is 1..1 decimal, and base is 1..1 code bound to VisionBase. Learned: current conformance source already carries the requested model.
+- E4 Source source/fhir.ini:2682: R3 rename metadata pointed VisionPrescription.dispense.base at nonexistent VisionPrescription.lensSpecification.base before this commit. Learned: a current build-scope metadata fix was still needed.
+- E5 Jira FHIR-55283: Resolved - No Change / Not Persuasive request to add an escape value to prism.base. Learned: later WG context supports leaving prism.base's required binding unchanged.
+- E6 Community search: Zulip searches for VisionPrescription prism and lensSpecification prism plus Confluence refs/FTS for FHIR-14384 and VisionPrescription prism found no relevant hits. Learned: no discovered community record changes the Jira/source conclusion.
+- E7 Verification command: git diff --check; rg for old and new VisionPrescription lensSpecification base targets. Learned: the edit has no whitespace errors, removes the nonexistent target, and points at an existing current element path.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14384",
+    "url": "https://jira.hl7.org/browse/FHIR-14384",
+    "snapshot_path": "contexts/FHIR-14384/jira/FHIR-14384.md",
+    "ref": { "jira_key": "FHIR-14384" },
+    "summary": "Published/Persuasive VisionPrescription issue requesting support for multiple prisms with prism 0..*, prism.amount 1..1 decimal, and prism.base 1..1 code.",
+    "learned": "This establishes the final requested conformance shape for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "498018ea62207aa6271adc10e8c5ce9339ee5e54",
+    "ref": { "commit": "498018ea62207aa6271adc10e8c5ce9339ee5e54" },
+    "summary": "Original 'Tracker #14384' commit modified source/visionprescription/visionprescription-spreadsheet.xml to introduce the repeating prism backbone with amount and base children.",
+    "learned": "The Jira request was historically applied to the then-authoritative VisionPrescription source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/visionprescription/structuredefinition-VisionPrescription.xml:476",
+    "ref": { "path": "source/visionprescription/structuredefinition-VisionPrescription.xml", "line": 476 },
+    "summary": "Current StructureDefinition has VisionPrescription.lensSpecification.prism 0..*, prism.amount 1..1 decimal, and prism.base 1..1 code bound to VisionBase.",
+    "learned": "The current conformance source preserves the requested multiple-prism model.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:2682",
+    "ref": { "path": "source/fhir.ini", "line": 2682 },
+    "summary": "The active [r3-renames] metadata mapped VisionPrescription.dispense.base to nonexistent VisionPrescription.lensSpecification.base before this commit.",
+    "learned": "The remaining current-source inconsistency was a stale rename target tied to the prism backbone change.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-55283",
+    "url": "https://jira.hl7.org/browse/FHIR-55283",
+    "ref": { "jira_key": "FHIR-55283" },
+    "summary": "Resolved - No Change / Not Persuasive request to add an escape value to VisionPrescription.lensSpecification.prism.base.",
+    "learned": "Later WG context confirms no change to the prism.base required binding is needed here.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-14384 and VisionPrescription prism",
+    "command": "bun run zulip:search fts 'VisionPrescription prism' --limit 10; bun run zulip:search fts 'lensSpecification prism' --limit 10; bun run confluence:search refs jira FHIR-14384; bun run confluence:search fts 'VisionPrescription prism' --limit 10",
+    "query": "FHIR-14384 VisionPrescription prism lensSpecification prism",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local validation of FHIR-14384 source edit",
+    "command": "git diff --check; rg -n 'VisionPrescription\\.lensSpecification\\.base' source/fhir.ini source/visionprescription; rg -n 'VisionPrescription\\.lensSpecification\\.prism\\.base' source/fhir.ini source/visionprescription/structuredefinition-VisionPrescription.xml",
+    "summary": "Whitespace check passed; the stale nonexistent target is absent; the new target matches the current StructureDefinition path.",
+    "learned": "The source edit is syntactically clean and points at an existing current element.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

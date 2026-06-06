@@ -1,0 +1,129 @@
+FHIR-21297: Audit vital signs effective timing restriction
+
+Issue request:
+FHIR-21297 was an Applied OO change request for R6, resolved Persuasive with Modification. It asked to profile Period out of the FHIR Blood Pressure Profile because blood pressure is captured at a single point in time, and the final resolution expanded the source change to remove effectivePeriod from the Vital Signs effective[x] choices because the LOINC codes used for all Vital Signs profiles are point-in-time concepts.
+
+Initial application:
+The issue was pre-applied in commit af25d09edb, which changed source/observation/structuredefinition-profile-vitalsigns.xml so Observation.effective[x] in the active Vital Signs Base profile has only the dateTime type and says vital signs are point-in-time measurements recorded using dateTime. Commit 59db19eb59 then removed the remaining effectivePeriod references from the generated profile-summary text. The current Blood Pressure profile derives from the Vital Signs Base profile, so the base-profile restriction profiles Period out of Blood Pressure as well.
+
+Additional context:
+Observation is an active current-build resource in source/fhir.ini. The linked OO Zulip discussion and OO minutes show the work group knowingly discussed applying the restriction at the Vital Signs Base profile, the point-in-time LOINC rationale, and concerns about average blood pressure or other calculated observations. Later related decisions, including FHIR-50075, FHIR-50194, and the FHIR-41426 source application, clarified that Observation.category = vital-signs does not by itself force all calculated or de-identified vital-sign-related observations into these point-in-time profiles. FHIR-50194 is already represented on the combined branch by a separate audit commit.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active source already implements the FHIR-21297 decision: Vital Signs Base constrains Observation.effective[x] to dateTime only, Blood Pressure derives from that base, the profile summary no longer mentions effectivePeriod, and the current narrative clarifies point-in-time scope for calculated vital-sign-related observations.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR-core source follow-up is needed for FHIR-21297 unless OO later reopens the broader policy and decides to allow non-point-in-time or calculated vital-sign-related observations to conform to the Vital Signs profiles.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-21297
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-50075: background - no-change request to define what a vital sign is after the FHIR-21297 discussion; it supports that category=vital-signs alone does not determine profile conformance.
+FHIR-50194: later-change - applied clarification for de-identified data and average blood pressure concerns; already represented on the combined branch by its own audit commit.
+FHIR-46061: background - de-identification concern cited in the same profile applicability discussion; resolved no-change rather than requiring FHIR-21297 reversal.
+FHIR-41426: later-change - broader vital signs applicability clarification that incorporated FHIR-50194 text and complements the point-in-time scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-21297: Applied/Persuasive with Modification issue asking to remove Period from Blood Pressure/Vital Signs effective[x] because vital sign LOINC codes are point-in-time values. Learned: this is the final WG decision to audit.
+- E2 Source source/fhir.ini:169-208: Observation is listed as an active resource. Learned: the Observation/Vital Signs profile sources are in current build scope.
+- E3 Source source/observation/structuredefinition-profile-vitalsigns.xml:160-170: Observation.effective[x] is 1..1 dateTime-only with point-in-time wording and no Period type. Learned: the substantive FHIR-21297 constraint is present in active source.
+- E4 Source source/observation/structuredefinition-profile-bp.xml:74-78: the Blood Pressure profile derives from http://hl7.org/fhir/StructureDefinition/vitalsigns. Learned: Blood Pressure inherits the Vital Signs Base effective[x] dateTime-only restriction.
+- E5 Git af25d09edb and 59db19eb59: prior commits removed Period from effective[x] choices and removed remaining profile-summary effectivePeriod references. Learned: the issue was already applied before this reconciliation.
+- E6 Zulip #Orders and Observation WG > Vital signs effective[x]: discussion covers the FHIR-21297 proposal, point-in-time LOINC rationale, average blood pressure concern, and conclusion that average BP codes would not be expected to apply to the point-in-time vital signs profiles. Learned: community discussion supports the current source and does not reveal a remaining source gap.
+- E7 Confluence 2025-03-07 OO - LAB page 325456599 and 2025-03-28 OO on FHIR page 324969566: minutes record FHIR-21297 discussion, applying the change at the base profile for consistency, and the later need to clarify category/profile scope. Learned: meeting evidence aligns with the source application and related clarification path.
+- E8 Source source/observation/observation-vitalsigns-profile-introduction.xml:13-18,73-75: current narrative states de-identified/device-not-associated data are not required to conform and that Vital Signs profiles apply only to point-in-time observations, with calculated observations requiring separate profiles/codes. Learned: later context resolves the average/de-identification concerns without changing FHIR-21297.
+- E9 Verification command: combined-branch checks found no source difference for the relevant Observation files after this worker base, confirmed effective[x] is dateTime-only on the combined branch, and found no stale effectivePeriod reference in structuredefinition-profile-vitalsigns.xml. Learned: the no-change decision matches the current publish target.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-21297",
+    "url": "https://jira.hl7.org/browse/FHIR-21297",
+    "snapshot_path": "contexts/FHIR-21297/jira/FHIR-21297.md",
+    "ref": { "jira_key": "FHIR-21297" },
+    "summary": "Applied/Persuasive with Modification OO issue requiring Period to be removed from Blood Pressure/Vital Signs effective[x] because the relevant LOINC codes are point-in-time values.",
+    "learned": "This establishes the final seed issue request and the source behavior to audit.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-208",
+    "ref": { "path": "source/fhir.ini", "start_line": 169, "end_line": 208 },
+    "summary": "The [resources] section includes observation=Observation.",
+    "learned": "Observation and its profile source files are active current-build inputs.",
+    "supports": ["build_scope", "source_check"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-vitalsigns.xml:160-170",
+    "ref": { "path": "source/observation/structuredefinition-profile-vitalsigns.xml", "start_line": 160, "end_line": 170 },
+    "summary": "Vital Signs Base constrains Observation.effective[x] to dateTime only and says vital signs are point-in-time measurements recorded using dateTime.",
+    "learned": "The substantive requested removal of Period is already present in active source.",
+    "supports": ["reconciliation", "no_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-bp.xml:74-78",
+    "ref": { "path": "source/observation/structuredefinition-profile-bp.xml", "start_line": 74, "end_line": 78 },
+    "summary": "The Blood Pressure profile derives from http://hl7.org/fhir/StructureDefinition/vitalsigns.",
+    "learned": "Blood Pressure inherits the dateTime-only effective[x] restriction from the Vital Signs Base profile.",
+    "supports": ["reconciliation", "no_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "af25d09edb; 59db19eb59",
+    "ref": { "commit": "af25d09edb68777328ee666e6913a672b59c0d16" },
+    "summary": "Commit af25d09edb removed Period from Vital Signs effective[x]; commit 59db19eb59 removed remaining effectivePeriod profile-summary references.",
+    "learned": "FHIR-21297 was already applied in source history before this audit.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#Orders and Observation WG > Vital signs effective[x]",
+    "url": "https://chat.fhir.org/#narrow/stream/Orders%20and%20Observation%20WG/topic/Vital%20signs%20effective%5Bx%5D",
+    "ref": { "stream": "Orders and Observation WG", "topic": "Vital signs effective[x]" },
+    "summary": "The March-April 2025 discussion covers the FHIR-21297 proposal, point-in-time LOINC rationale, and average blood pressure concern.",
+    "learned": "No discovered Zulip evidence contradicts the current source; the thread supports leaving average/calculated observations outside the point-in-time profile scope.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "2025-03-07 OO - LAB page 325456599; 2025-03-28 OO on FHIR page 324969566",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/325456599/2025-03-07+OO+-+LAB",
+    "ref": { "confluence_page_id": 325456599 },
+    "summary": "Minutes record FHIR-21297, the point-in-time LOINC rationale, applying the restriction at the base profile, and later scope/category clarification discussion.",
+    "learned": "Meeting evidence matches the Jira disposition and explains the related average blood pressure/profile applicability concerns.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "source",
+    "locator": "source/observation/observation-vitalsigns-profile-introduction.xml:13-18,73-75",
+    "ref": { "path": "source/observation/observation-vitalsigns-profile-introduction.xml", "start_line": 13, "end_line": 75 },
+    "summary": "The current vital signs introduction clarifies de-identified/device-not-associated exceptions and says Vital Signs profiles apply only to point-in-time observations while calculated observations need separate profiles/codes.",
+    "learned": "Later clarification resolves related concerns without requiring a FHIR-21297 source change.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Combined branch source verification",
+    "command": "git diff --name-status HEAD..robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/observation source/fhir.ini; git show robo-spec-combined-issue-reconcile-full-clean-balanced-v2:source/observation/structuredefinition-profile-vitalsigns.xml | grep -n -A12 -B2 'Observation.effective\\[x\\]'; rg -n 'effectiveDateTime` or `effectivePeriod|effectiveDateTime or effectivePeriod|effectivePeriod' source/observation/structuredefinition-profile-vitalsigns.xml",
+    "summary": "The combined branch has the same relevant Observation source, effective[x] is dateTime-only, and the Vital Signs profile source has no stale effectivePeriod reference.",
+    "learned": "The no-change audit matches the current publish target.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

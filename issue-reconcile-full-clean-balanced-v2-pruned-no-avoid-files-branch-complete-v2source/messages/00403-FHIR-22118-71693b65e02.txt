@@ -1,0 +1,113 @@
+FHIR-22118: Remove stale ImagingStudy identifier accession mapping
+
+Issue request:
+FHIR-22118 was Published/Persuasive with Modification for R5. It asked the Imaging Integration work group to undo the overbroad R4-era treatment of accession number as an ImagingStudy.identifier value, to store accession as an ImagingStudy.basedOn Reference.identifier with identifier.type ACSN, and to update the related mapping, example, narrative, and search-parameter text.
+
+Initial application:
+The Jira-tagged commit b650c1dd54d447dcbc8aa5fbbab7cacf81972898 applied the main FHIR-22118 changes before R5 by removing the ACSN identifier from the XR example, adding an ACSN Reference.identifier under ImagingStudy.basedOn, moving accession guidance into the notes, updating the based-on and identifier search parameter descriptions, and removing accession from the DICOM identifier mapping. Current source already retains those main changes, but the active StructureDefinition still had a RIM mapping for ImagingStudy.identifier that included an ACSN inbound relationship.
+
+Additional context:
+Later Applied issues briefly changed and then restored this policy. FHIR-48644 moved accession back to ImagingStudy.identifier in 2024, but FHIR-49675 superseded that direction in 2025 after the identifier-scope discussion and restored accession to ImagingStudy.basedOn; FHIR-56033 then removed a remaining accession reference from ImagingStudy.identifier comments in 2026. ImagingStudy is active in source/fhir.ini, so source/imagingstudy/structuredefinition-ImagingStudy.xml is build-scoped authoritative source.
+
+AutoFHIR reconciliation:
+This commit removes the obsolete ACSN portion of the RIM mapping for ImagingStudy.identifier, leaving it mapped to .id only. It leaves the current basedOn requirements, Accession Number implementation note, based-on search parameter, XR example, and DICOM basedOn mapping unchanged because those already express the final FHIR-22118/FHIR-49675/FHIR-56033 direction.
+
+Recommendation:
+Keep this commit as-is. It resolves the remaining build-scoped mapping contradiction without reopening the later work-group decision that accession number guidance belongs under ImagingStudy.basedOn rather than ImagingStudy.identifier.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22118
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-48644: later-change - temporarily moved accession number back to ImagingStudy.identifier, explaining why later source history briefly contradicted FHIR-22118.
+FHIR-49675: supersedes - restored accession number guidance to ImagingStudy.basedOn after the identifier-scope discussion and supersedes the FHIR-48644 direction.
+FHIR-56033: later-change - removed a remaining accession-number reference from ImagingStudy.identifier comments, reinforcing that identifier should not carry accession guidance.
+FHIR-46224: supporting-decision - added/link-completed Accession Number implementation-note references from ImagingStudy.basedOn while preserving the basedOn policy.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22118: Published/Persuasive with Modification; comments specify storing accession as ImagingStudy.basedOn Reference.identifier with ACSN and not in ImagingStudy.identifier. Learned: this is the seed work-group decision and establishes the target behavior.
+- E2 Confluence FHIR-22118 page 97481056: detailed resolution lists basedOn requirements, identifier text/search updates, DICOM mappings, implementation notes, and XR example changes. Learned: mapping, narrative, search, and example surfaces were in scope.
+- E3 Source source/fhir.ini:196; source/imagingstudy/structuredefinition-ImagingStudy.xml:156-185,383-415: ImagingStudy is active; identifier now maps to .id only, while basedOn carries accession requirements and DICOM accession mapping. Learned: the source change is build-scoped and removes the stale identifier/accession mapping.
+- E4 Git b650c1dd54d447dcbc8aa5fbbab7cacf81972898: original FHIR-22118 implementation changed the XR example, notes, search parameters, and StructureDefinition text. Learned: the main application existed, but the RIM identifier mapping was not fully reconciled.
+- E5 Jira/Git FHIR-48644, FHIR-49675, FHIR-56033 with commits 2efe254524d09de44e7d4bc341e1f2ef39384f86, 1386be9f5566386919dac7e280ff5f688085dcce, and c429239eac28753c38f5211945b94996e2c86b05: later decisions moved accession to identifier, then back to basedOn, then removed the identifier comment. Learned: current reconciliation must follow the later basedOn direction, not the temporary FHIR-48644 reversal.
+- E6 Community search command: Zulip searches for "FHIR-22118" and ImagingStudy accession/basedOn/identifier/ACSN found no relevant discussion; Confluence refs found the FHIR-22118 resolution page. Learned: no discovered community evidence conflicts with the Jira/Confluence/source conclusion.
+- E7 Verification command: xmllint, CRLF-aware git diff --check, and rg checks passed after the edit. Learned: the active XML remains well-formed, the diff has no whitespace errors, and remaining ACSN references are confined to basedOn/Accession Number guidance.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22118",
+    "url": "https://jira.hl7.org/browse/FHIR-22118",
+    "snapshot_path": "contexts/FHIR-22118/jira/FHIR-22118.md",
+    "ref": { "jira_key": "FHIR-22118" },
+    "summary": "Published/Persuasive with Modification ImagingStudy issue requiring accession number to be represented as an ImagingStudy.basedOn Reference.identifier with ACSN and not as ImagingStudy.identifier.",
+    "learned": "This establishes the final seed request and the core not-in-identifier rule.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-22118 page 97481056",
+    "url": "https://confluence.hl7.org/spaces/IMIN/pages/97481056/FHIR-22118",
+    "snapshot_path": "contexts/FHIR-22118/confluence/97481056.md",
+    "ref": { "confluence_page_id": 97481056, "jira_key": "FHIR-22118" },
+    "summary": "The linked resolution page details updates to basedOn, identifier, DICOM mappings, implementation notes, search parameters, and the XR example.",
+    "learned": "This confirms mapping and related source surfaces were part of the accepted change scope.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:196; source/imagingstudy/structuredefinition-ImagingStudy.xml:156-185,383-415",
+    "ref": { "path": "source/imagingstudy/structuredefinition-ImagingStudy.xml" },
+    "summary": "ImagingStudy is active; ImagingStudy.identifier now maps to .id only, while ImagingStudy.basedOn retains accession-number requirements and DICOM accession mapping.",
+    "learned": "The edit is in build-scoped authoritative source and removes the remaining identifier/accession contradiction.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "b650c1dd54d447dcbc8aa5fbbab7cacf81972898",
+    "ref": { "commit": "b650c1dd54d447dcbc8aa5fbbab7cacf81972898", "jira_key": "FHIR-22118" },
+    "summary": "The original Jira-tagged implementation changed ImagingStudy search parameters, notes, the XR example, and StructureDefinition text for accession handling.",
+    "learned": "The main FHIR-22118 application was present, but the RIM identifier mapping still needed reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-48644; FHIR-49675; FHIR-56033",
+    "url": "https://jira.hl7.org/browse/FHIR-49675",
+    "snapshot_path": "contexts/FHIR-22118/jira/FHIR-49675.md",
+    "ref": { "jira_keys": "FHIR-48644,FHIR-49675,FHIR-56033" },
+    "summary": "Later Applied issues temporarily moved accession to ImagingStudy.identifier, then restored it to ImagingStudy.basedOn, and finally removed a remaining identifier comment.",
+    "learned": "The correct current reconciliation is to keep accession guidance under basedOn and remove leftover identifier mapping text.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-22118 and ImagingStudy accession terms",
+    "command": "bun run zulip:search fts '\"FHIR-22118\"' --limit 10; bun run zulip:search fts 'ImagingStudy accession basedOn identifier ACSN' --limit 10; bun run confluence:search refs jira FHIR-22118 --limit 10; bun run confluence:search fts 'ImagingStudy accession basedOn identifier ACSN' --limit 10",
+    "query": "FHIR-22118 ImagingStudy accession basedOn identifier ACSN",
+    "result_count": 1,
+    "summary": "No relevant Zulip hits were found; Confluence refs returned the FHIR-22118 resolution page, while broader Confluence FTS returned only an unrelated OO minutes page about specimen accession identifiers.",
+    "learned": "No discovered community evidence conflicts with the Jira/Confluence/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "xmllint --noout source/imagingstudy/structuredefinition-ImagingStudy.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/imagingstudy/structuredefinition-ImagingStudy.xml; rg -n 'ACSN|Accession Number' source/imagingstudy/structuredefinition-ImagingStudy.xml",
+    "summary": "The StructureDefinition XML parsed, the diff had no whitespace errors, and remaining ACSN references are under basedOn/Accession Number guidance.",
+    "learned": "The source remains well-formed and the fix is limited to removing the stale identifier mapping.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

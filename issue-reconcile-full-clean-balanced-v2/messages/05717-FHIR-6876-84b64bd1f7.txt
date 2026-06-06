@@ -1,0 +1,120 @@
+FHIR-6876: Audit ReferralRequest status alignment
+
+Issue request:
+FHIR-6876 is a Published/Persuasive Patient Care ballot comment asking how ReferralRequest.status code active differed from accepted. The published resolution says the ReferralRequest status value set was aligned with the Request pattern through GF/FHIR-10293, leaving active and not accepted.
+
+Initial application:
+No source commit explicitly mentions FHIR-6876. The linked workflow application is represented by FHIR-10293/GF#10293 commits, especially f4d7536caa07670c028ba0bc114a334b142e7b9a, which changed ReferralRequest.status from the local referral-request-status value set to http://hl7.org/fhir/ValueSet/request-status and removed the local ReferralRequest status value-set worksheet. Earlier commit b40ce8e28558ce4b7a692f4fa9b0ea24b8bd5c38 had implemented FHIR-3827 by adding accepted, which the later FHIR-6876/FHIR-10293 workflow alignment superseded.
+
+Additional context:
+ReferralRequest is no longer an active current resource; source/fhir.ini lists ServiceRequest as active and records that ReferralRequest became ServiceRequest. Current ServiceRequest.status has a required binding to ValueSet/request-status, whose CodeSystem contains active but no accepted code. The Request pattern narrative explicitly separates requester-controlled request status from fulfillment states such as requested, accepted, and in-progress, which are tracked by Task or corresponding event resources. Searches of Zulip and Confluence for FHIR-6876/ReferralRequest accepted status found no conflicting community record.
+
+AutoFHIR reconciliation:
+No source change was made. The current build-scope source already preserves the requested outcome: accepted is not a ServiceRequest/Request status code, active remains the requester-controlled authorization state, and fulfillment acceptance is handled outside the request status value set.
+
+Recommendation:
+Keep this empty no-change audit commit as-is. Do not reintroduce accepted into Request.status or ServiceRequest.status unless a later work-group decision reverses the Request pattern separation between authorization status and fulfillment status.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6876
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-10293: same-change-family - the workflow standardization issue named by FHIR-6876's resolution and implemented by the relevant GF#10293 source commits.
+FHIR-3827: superseded-by - earlier Published issue added accepted to ReferralRequest.status, but the later FHIR-6876/FHIR-10293 workflow alignment removed that local status in favor of Request.status.
+FHIR-7723: duplicate - duplicate ballot comment with the same active-versus-accepted question, not decided separately.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6876: Published/Persuasive ballot comment asks how active differs from accepted and resolves to align ReferralRequest status with the Request pattern so only active remains, not accepted. Learned: this establishes the seed's final requested outcome.
+- E2 Jira FHIR-10293: Published/Persuasive Patient Care workflow standardization includes ReferralRequest and comments remove FHIR-6876 as a duplicate ballot comment under the workflow alignment. Learned: this is the linked application vehicle for the status alignment.
+- E3 Git f4d7536caa07670c028ba0bc114a334b142e7b9a: GF#10293 changed ReferralRequest.status to bind to ValueSet/request-status and removed the local referral-request-status worksheet. Learned: the requested source change was historically applied without a direct FHIR-6876 commit.
+- E4 Source source/fhir.ini:213 and source/fhir.ini:1480: ServiceRequest is active in [resources] and ReferralRequest is recorded as having become ServiceRequest. Learned: current reconciliation must check ServiceRequest/Request, not edit retired ReferralRequest source.
+- E5 Source source/servicerequest/structuredefinition-ServiceRequest.xml:264-286 and source/request/codesystem-request-status.xml:25-64: ServiceRequest.status requires ValueSet/request-status, whose CodeSystem includes active and omits accepted. Learned: current build-scope terminology matches the FHIR-6876 resolution.
+- E6 Source source/request/request-spreadsheet-notes.xml:41-60 and source/request/request-spreadsheet-introduction.xml:34-36: Request guidance says fulfillment statuses such as requested/accepted/in-progress are tracked with Task/Event, while Request.status reflects authorization/intention. Learned: current narrative explains the semantic difference that FHIR-6876 asked about.
+- E7 Command community search: `bun run zulip:search fts '"FHIR-6876" OR "ReferralRequest accepted" OR "ReferralRequest active"' --limit 10; bun run confluence:search refs jira FHIR-6876; bun run confluence:search fts '"FHIR-6876" OR "ReferralRequest accepted" OR "ReferralRequest active"' --limit 10` found no relevant hits. Learned: no discovered community record conflicts with the Jira/source conclusion.
+- E8 Verification command: `git grep -n -E '<code value="accepted"|code="accepted"|<status value="accepted"|accepted' -- source/servicerequest source/request` found accepted only in explanatory Request narrative, not as a status code. Learned: the current source does not accidentally retain accepted in the active status value set.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6876",
+    "url": "https://jira.hl7.org/browse/FHIR-6876",
+    "snapshot_path": "contexts/FHIR-6876/jira/FHIR-6876.md",
+    "ref": { "jira_key": "FHIR-6876" },
+    "summary": "Published/Persuasive ballot comment asks how ReferralRequest.status active differs from accepted and resolves to align with Request.status so active remains and accepted does not.",
+    "learned": "This establishes the final seed decision and the target current-source behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-10293",
+    "url": "https://jira.hl7.org/browse/FHIR-10293",
+    "snapshot_path": "contexts/FHIR-6876/jira/FHIR-10293.md",
+    "ref": { "jira_key": "FHIR-10293" },
+    "summary": "Published/Persuasive Patient Care workflow standardization issue includes ReferralRequest and records removal of FHIR-6876 as a duplicate ballot comment under that workflow alignment.",
+    "learned": "This explains why FHIR-6876 was applied through GF/FHIR-10293 rather than by a commit named FHIR-6876.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "f4d7536caa07670c028ba0bc114a334b142e7b9a",
+    "ref": { "commit": "f4d7536caa07670c028ba0bc114a334b142e7b9a" },
+    "summary": "GF#10293 ReferralRequest workflow alignment changed the status binding to ValueSet/request-status and removed the local referral-request-status worksheet.",
+    "learned": "The historical application removed the local status list that had contained the accepted workflow state.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:213 and source/fhir.ini:1480",
+    "ref": { "path": "source/fhir.ini", "lines": "213,1480" },
+    "summary": "The active resources list includes servicerequest=ServiceRequest and the deleted/renamed resource comments say ReferralRequest became ServiceRequest.",
+    "learned": "The current build-scope successor to check for this retired ReferralRequest issue is ServiceRequest.",
+    "supports": ["additional_context", "source_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:264-286; source/request/codesystem-request-status.xml:25-64",
+    "ref": { "path": "source/servicerequest/structuredefinition-ServiceRequest.xml", "lines": "264-286" },
+    "summary": "ServiceRequest.status requires ValueSet/request-status, and the RequestStatus code system includes active but no accepted code.",
+    "learned": "The active build-scope terminology already matches the FHIR-6876 resolution.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/request/request-spreadsheet-notes.xml:41-60; source/request/request-spreadsheet-introduction.xml:34-36",
+    "ref": { "path": "source/request/request-spreadsheet-notes.xml", "lines": "41-60" },
+    "summary": "Request narrative says fulfillment statuses such as requested, accepted, and in-progress are separated from Request.status and handled with Task/Event resources.",
+    "learned": "The current specification explains the semantic distinction between active authorization and accepted fulfillment.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-6876 and ReferralRequest accepted status",
+    "command": "bun run zulip:search fts '\"FHIR-6876\" OR \"ReferralRequest accepted\" OR \"ReferralRequest active\"' --limit 10; bun run confluence:search refs jira FHIR-6876; bun run confluence:search fts '\"FHIR-6876\" OR \"ReferralRequest accepted\" OR \"ReferralRequest active\"' --limit 10",
+    "query": "FHIR-6876 OR ReferralRequest accepted OR ReferralRequest active",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Current source grep for accepted in ServiceRequest and Request sources",
+    "command": "git grep -n -E '<code value=\"accepted\"|code=\"accepted\"|<status value=\"accepted\"|accepted' -- source/servicerequest source/request",
+    "summary": "The only accepted hits are explanatory Request narrative lines, not accepted as a status code in active ServiceRequest or RequestStatus terminology.",
+    "learned": "The current source does not retain the superseded accepted status code.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

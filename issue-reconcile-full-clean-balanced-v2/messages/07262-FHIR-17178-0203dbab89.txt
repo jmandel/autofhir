@@ -1,0 +1,118 @@
+FHIR-17178: Audit DocumentReference generate operation
+
+Issue request:
+FHIR-17178 was a Published/Persuasive FHIR-core DocumentReference change request. It objected that the old DocumentReference generate behavior was described as a GET named query using _query=generate even though generating a new resource can affect server state, and it requested a formal DocumentReference $generate OperationDefinition that only supports POST plus removal of the old _query narrative.
+
+Initial application:
+The issue appears to have been applied for R5. Commit 3c56ef94e5 commented the old DocumentReference "Generating a Document Reference" narrative as moved to a formal operation, and subsequent R5 source produced an OperationDefinition/DocumentReference-generate with kind=operation, affectsState=true, code=generate, resource=DocumentReference, and a POST example. The old GET _query=generate text remains only inside an XHTML comment in documentreference-notes.xml.
+
+Additional context:
+Later published issues FHIR-34043 and FHIR-39624 refined the same $generate OperationDefinition parameters; both already have reconciliation commits on the combined branch and current source reflects their fixes with persist:boolean and return:Bundle. The current R6 ballot intro and commit 3b38b80cf2 also record that DocumentReference.$generate has been moved out of the core specification/API surface toward the API incubator, and the current DocumentReference operations list no longer lists DocumentReference-generate.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. In the current core source, there is no active DocumentReference GET _query=generate guidance to remove, the historical R5 OperationDefinition satisfies the POST-only semantics through affectsState=true and the general operations rules, and re-adding DocumentReference-generate to the current DocumentReference operation list would conflict with the later explicit move out of core.
+
+Recommendation:
+Keep this audit as-is for FHIR-17178. If the R6 API-incubator move is revisited, handle that as a separate current-scope issue; do not use FHIR-17178 to restore the core operation list entry or to edit the commented historical narrative.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17178
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-34043: later-change - refined the same DocumentReference $generate input parameters and is already represented on the combined branch.
+FHIR-39624: later-change - refined the same DocumentReference $generate output parameter and is already represented on the combined branch.
+FHIR-22501: background - discussed on-demand DocumentReference status/use cases but resolved No Change outside this seed's source-edit scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17178: Published/Persuasive request to replace DocumentReference GET _query=generate with a formal POST-only $generate OperationDefinition. Learned: this establishes the seed's final WG intent.
+- E2 Source source/documentreference/operationdefinition-DocumentReference-generate.xml:69-75,77-98: current source has affectsState=true, code=generate, resource=DocumentReference, type-level operation, url input, persist:boolean, and return:Bundle. Learned: the formal operation reflects the seed plus later parameter fixes.
+- E3 Source source/documentreference/documentreference-notes.xml:52-90: old GET _query=generate narrative is enclosed in an XHTML comment labelled moved to a formal operation. Learned: there is no active built DocumentReference named-query guidance left to remove.
+- E4 Source source/operationdefinition/structuredefinition-OperationDefinition.xml:528-532 and source/operations.html:228-241: operations generally use POST and GET is required only when affectsState=false and parameters are primitive. Learned: affectsState=true is the source mechanism that prevents GET-only/read-style invocation for $generate.
+- E5 Git 3c56ef94e5: commented the old DocumentReference generate narrative as moved to a formal operation while applying FHIR-17178. Learned: initial application removed the active named-query text from the resource notes.
+- E6 Git 3b38b80cf2 and source/ballot-intro.html:99-105: later R6 source removed DocumentReference-generate from the DocumentReference operation list and says DocumentReference.$generate moved out of this specification. Learned: the current missing operation-list entry is intentional later context, not a FHIR-17178 defect to reverse.
+- E7 Jira/Zulip FHIR-34043 and FHIR-39624: later published discussions and commits adjusted persist:boolean and return:Bundle for the same operation; combined branch already contains Issue-Reconcile-Key commits for both. Learned: related refinements are already handled and should not be duplicated here.
+- E8 Confluence 2020-07-16 OO Main: DocumentReference block vote accepted FHIR-17178 8-0-5. Learned: meeting minutes corroborate the Jira vote and finality.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17178",
+    "url": "https://jira.hl7.org/browse/FHIR-17178",
+    "snapshot_path": "contexts/FHIR-17178/jira/FHIR-17178.md",
+    "ref": { "jira_key": "FHIR-17178" },
+    "summary": "Published/Persuasive request to replace DocumentReference GET _query=generate with a formal POST-only $generate OperationDefinition.",
+    "learned": "This establishes the seed's final WG intent and applied-for-version R5 scope.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/documentreference/operationdefinition-DocumentReference-generate.xml:69-98",
+    "ref": { "path": "source/documentreference/operationdefinition-DocumentReference-generate.xml", "start_line": 69, "end_line": 98 },
+    "summary": "The operation has affectsState=true, code=generate, resource=DocumentReference, a url input, persist:boolean, and return:Bundle.",
+    "learned": "The formal OperationDefinition carries the POST-affecting semantics required by FHIR-17178 and the later parameter corrections.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/documentreference/documentreference-notes.xml:52-90",
+    "ref": { "path": "source/documentreference/documentreference-notes.xml", "start_line": 52, "end_line": 90 },
+    "summary": "The old GET _query=generate text is enclosed in a comment labelled moved to a formal operation.",
+    "learned": "No active built DocumentReference narrative still recommends the old named-query invocation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/operationdefinition/structuredefinition-OperationDefinition.xml:528-532; source/operations.html:228-241",
+    "ref": { "paths": "source/operationdefinition/structuredefinition-OperationDefinition.xml; source/operations.html" },
+    "summary": "OperationDefinition.affectsState controls HTTP methods; operations generally use POST and GET is only required when affectsState=false and parameters are primitive.",
+    "learned": "Setting DocumentReference-generate affectsState=true is the source-level mechanism that makes the operation POST-only under the general operations rules.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "3c56ef94e5",
+    "ref": { "commit": "3c56ef94e5762b202503cc4224a9941ac9522dfe" },
+    "summary": "Commit 'Adding FHIR#20417, and FHIR#17178' commented out the old DocumentReference generate narrative as moved to a formal operation.",
+    "learned": "This is the explicit seed implementation history for removing active _query=generate prose.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "3b38b80cf2 and source/ballot-intro.html:99-105",
+    "ref": { "commit": "3b38b80cf23f9cbb306fab8fcedb293315478c32", "path": "source/ballot-intro.html" },
+    "summary": "A later R6 commit removed DocumentReference-generate from the core DocumentReference operations list and ballot-intro says DocumentReference.$generate moved out of this specification.",
+    "learned": "The current core operation-list omission is intentional later context, so this reconciliation should not re-add it for FHIR-17178.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Related issue idempotency and parameter checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-34043' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-39624' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n '<(affectsState|code|resource|system|type|instance|name|use|min|max|documentation|type) value=' source/documentreference/operationdefinition-DocumentReference-generate.xml",
+    "summary": "The combined branch already contains FHIR-34043 and FHIR-39624 audit commits, and current source includes their persist:boolean and return:Bundle fixes.",
+    "learned": "The related same-operation refinements should be cited as context, not republished from this seed.",
+    "supports": ["additional_context", "absence_of_duplicate"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "OO 2020-07-16 Main minutes page 86974287",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/86974287/2020-07-16+Main",
+    "snapshot_path": "contexts/FHIR-17178/confluence/86974287.md",
+    "ref": { "confluence_page_id": 86974287 },
+    "summary": "OO minutes record the DocumentReference block vote including FHIR-17178 as accepted 8-0-5.",
+    "learned": "The meeting record corroborates the Jira vote/finality for the seed issue.",
+    "supports": ["issue_request", "confidence"]
+  }
+]
+</evidence-manifest>

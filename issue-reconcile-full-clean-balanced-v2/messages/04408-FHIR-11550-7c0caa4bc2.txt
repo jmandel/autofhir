@@ -1,0 +1,98 @@
+FHIR-11550: Audit relatedAction anchor collapse
+
+Issue request:
+FHIR-11550 was a Published CDS change request resolved Persuasive with Modification. It asked to combine relatedAction.relationship and the optional relatedAction.anchor, including the parallel GuidanceResponse action surface, so implementers could say before-start, before, before-end, concurrent-with-start, concurrent, concurrent-with-end, after-start, after, and after-end directly in the relationship code.
+
+Initial application:
+The issue was applied by SVN #10082, imported as git commit 6035db0d17e6050e99907530dc154276673675f6, which removed ActionRelationshipAnchor/action-relationship-anchor and the relatedAction.anchor element from the PlanDefinition and GuidanceResponse spreadsheets while expanding ActionRelationshipType to the nine combined codes requested by the resolution. GuidanceResponse action content was then removed by FHIR-12301 in SVN #10096, so there is no current GuidanceResponse relatedAction anchor surface to reconcile.
+
+Additional context:
+source/fhir.ini keeps PlanDefinition, GuidanceResponse, and RequestOrchestration in the current build. Current PlanDefinition.action.relatedAction.relationship uses the combined ActionRelationshipType codes, the action-relationship-type CodeSystem contains those codes, and no build-scope source retains relatedAction.anchor, relationshipAnchor, or ActionRelationshipAnchor. Later Published issue FHIR-26696 clarified the same timing code family by adding hierarchy, v3 concept maps, and optional endRelationship elements to PlanDefinition and RequestOrchestration; that later change refines start/end timing semantics without reversing the FHIR-11550 collapse.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The authoritative current sources already express the combined relationship codes and omit the old anchor element; adding extra prose or reworking the later FHIR-26696 endRelationship model would not be a needed FHIR-11550 correction.
+
+Recommendation:
+Keep this no-change audit commit as-is. Future work on the timing relationship model should be evaluated under later issues such as FHIR-26696 rather than reopening the already-applied FHIR-11550 anchor collapse.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11550
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12301: later-change - removed the GuidanceResponse action elements one day after the FHIR-11550 SVN application, eliminating the GuidanceResponse relatedAction anchor surface from the current resource.
+FHIR-26696: later-change - clarified the same ActionRelationshipType code family by adding hierarchy, concept maps, and optional endRelationship elements while preserving the combined codes.
+FHIR-24619: later-change - renamed RequestGroup to RequestOrchestration, which is why the current action orchestration surface checked alongside PlanDefinition is RequestOrchestration.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11550: Published/Persuasive with Modification, vote 6-0-0, requested collapsing relatedAction.relationship plus optional anchor into nine combined timing relationship codes. Learned: this establishes the final requested change and code set.
+- E2 Git 6035db0d17e6050e99907530dc154276673675f6: SVN #10082 removed ActionRelationshipAnchor/action-relationship-anchor and relatedAction.anchor from PlanDefinition and GuidanceResponse spreadsheets and expanded relationship short names to the combined codes. Learned: the issue was directly applied in source history.
+- E3 Source source/plandefinition/structuredefinition-PlanDefinition.xml:1789 and source/plandefinition/codesystem-action-relationship-type.xml:44: current PlanDefinition relationship binds to ActionRelationshipType and the CodeSystem hierarchically contains before, before-start, before-end, concurrent, concurrent-with-start, concurrent-with-end, after, after-start, and after-end. Learned: the current build-scope PlanDefinition source already contains the collapsed code surface.
+- E4 Source source/guidanceresponse/structuredefinition-GuidanceResponse.xml:318 and source/requestorchestration/structuredefinition-RequestOrchestration.xml:815: current GuidanceResponse exposes outputParameters/result rather than action.relatedAction, while RequestOrchestration carries the combined relationship and optional endRelationship elements. Learned: the GuidanceResponse portion is no longer an in-build relatedAction location, and the current action orchestration resource is consistent.
+- E5 Jira FHIR-26696 and Confluence page 80119803: later Published work identified lack of clarity in action relationship codes, then added hierarchy/endRelationship/concept maps. Learned: later WG context refined but did not supersede the FHIR-11550 collapse.
+- E6 Command current-source/community search: rg found no relatedAction.anchor, relationshipAnchor, action-relationship-anchor, or ActionRelationshipAnchor in source; Zulip/Confluence searches found no conflicting FHIR-11550 discussion beyond the committers bot notification for SVN #10082. Learned: no stale source or community evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11550",
+    "url": "https://jira.hl7.org/browse/FHIR-11550",
+    "snapshot_path": "contexts/FHIR-11550/jira/FHIR-11550.md",
+    "ref": { "jira_key": "FHIR-11550" },
+    "summary": "Published/Persuasive with Modification CDS change request to collapse relatedAction.relationship plus optional anchor into nine combined timing relationship codes.",
+    "learned": "This establishes the final WG-approved target for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "6035db0d17e6050e99907530dc154276673675f6",
+    "ref": { "commit": "6035db0d17e6050e99907530dc154276673675f6" },
+    "summary": "SVN #10082 removed ActionRelationshipAnchor/action-relationship-anchor and relatedAction.anchor from PlanDefinition and GuidanceResponse spreadsheets and expanded relationship codes.",
+    "learned": "The historical source application matches FHIR-11550 directly.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/plandefinition/structuredefinition-PlanDefinition.xml:1789; source/plandefinition/codesystem-action-relationship-type.xml:44",
+    "summary": "Current PlanDefinition relatedAction.relationship binds to ActionRelationshipType, and the CodeSystem contains the combined before/concurrent/after timing codes with start/end variants.",
+    "learned": "The current PlanDefinition build-scope source already satisfies the requested collapse.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/guidanceresponse/structuredefinition-GuidanceResponse.xml:318; source/requestorchestration/structuredefinition-RequestOrchestration.xml:815",
+    "summary": "GuidanceResponse no longer has action.relatedAction elements, while RequestOrchestration carries the same combined relationship code binding and optional endRelationship.",
+    "learned": "There is no current GuidanceResponse anchor element to fix, and the successor action orchestration surface remains consistent.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-26696",
+    "url": "https://jira.hl7.org/browse/FHIR-26696",
+    "snapshot_path": "contexts/FHIR-26696/jira/FHIR-26696.md",
+    "ref": { "jira_key": "FHIR-26696" },
+    "summary": "Published/Persuasive with Modification issue later added hierarchy, optional endRelationship, and concept maps for ActionRelationshipType.",
+    "learned": "Later WG decisions refine the same code family without reintroducing the old anchor element.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current source plus Zulip/Confluence search for FHIR-11550 anchor terms",
+    "command": "rg -n 'relatedAction\\.anchor|relationshipAnchor|action-relationship-anchor|ActionRelationshipAnchor' source source/fhir.ini; bun run zulip:search fts '\"FHIR-11550\" relatedAction anchor PlanDefinition' --limit 10; bun run confluence:search refs jira FHIR-11550; bun run confluence:search fts '\"FHIR-11550\" relatedAction anchor PlanDefinition' --limit 10",
+    "query": "FHIR-11550 relatedAction anchor PlanDefinition relationshipAnchor action-relationship-anchor ActionRelationshipAnchor",
+    "result_count": 0,
+    "summary": "No stale anchor source and no conflicting FHIR-11550 community minutes/discussion were found; a broader Zulip term search only found the committers bot notification for SVN #10082.",
+    "learned": "No discovered source or community evidence changes the no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,84 @@
+FHIR-17776: Audit batch entry failure wording
+
+Issue request:
+FHIR-17776 was a Published/Persuasive STU3 FHIR-I change request for the RESTful API Batch Processing Rules. It objected that the text said a non-200 response meant the batch itself failed and none of the operations succeeded, and the accepted resolution was to state that a response code on an entry indicates whether processing that entry's request failed.
+
+Initial application:
+The Jira comment records GH#c78b3c2ffa. Commit c78b3c2ffa8f233d54df948e98c11dcebb0d5f3d updated source/http.html by replacing the whole-batch-failed sentence with per-entry wording: a response code on an entry other than 2xx indicates that processing the request in the entry failed.
+
+Additional context:
+source/http.html is the active RESTful API page in the current build via source/hierarchy.xml. The current Batch Processing Rules still say the overall batch HTTP response is 200 OK when the batch was processed correctly, regardless of individual entry outcomes, and direct readers to the returned Bundle entry status for interaction-specific results. Later source history only normalized HTTP status-code markup/terminology and changed "operations" to "interactions"; it did not restore the erroneous whole-batch failure rule. The current 2xx wording is also consistent with nearby RESTful API success codes such as 201 Created, 202 Accepted, and 204 No Content.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active source already conveys the accepted FHIR-17776 rule, and changing the sentence to the literal Jira-resolution phrase "other than 200" would incorrectly classify valid non-200 2xx entry statuses as failures.
+
+Recommendation:
+Keep this audit commit as-is. No further core source work is needed for FHIR-17776 unless the work group later wants to reopen the separate policy question of exactly which entry status classes count as successful.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17776
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-40957: later-change - Later terminology cleanup changed "operations" to "interactions" in the same sentence without altering the FHIR-17776 batch failure rule.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17776: Published/Persuasive issue asked to replace the misleading whole-batch failure statement with per-entry failure wording. Learned: the final WG intent was to make failed batch entries independent from the overall batch processing result.
+- E2 Source source/hierarchy.xml:155 and source/http.html:1781-1783: the active RESTful API page says the batch response is 200 OK when the batch was processed correctly and a non-2xx entry status means that entry failed. Learned: the current build source already has the required semantic correction.
+- E3 Git c78b3c2ffa8f233d54df948e98c11dcebb0d5f3d: applied GF#17776 to source/http.html and replaced the old whole-batch failure text with per-entry non-2xx failure text. Learned: the Jira-tagged implementation is present in history and matches the current rule.
+- E4 Source source/http.html:752-753, source/http.html:1065-1068, and source/http.html:1952-1964: RESTful API rules allow successful entry outcomes such as 201 Created, 202 Accepted, and 204 No Content, and batch/transaction responses carry each entry's HTTP status code. Learned: retaining 2xx rather than literal 200 avoids introducing a new semantic error.
+- E5 Command community search: Zulip and Confluence searches for FHIR-17776 plus batch/response-code terms found no directly relevant or conflicting records. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17776",
+    "url": "https://jira.hl7.org/browse/FHIR-17776",
+    "snapshot_path": "contexts/FHIR-17776/jira/FHIR-17776.md",
+    "ref": { "jira_key": "FHIR-17776" },
+    "summary": "Published/Persuasive issue asking to correct Batch Processing Rules so a failed entry does not imply the entire batch failed.",
+    "learned": "The final WG intent was to describe per-entry failure status for batch entries while preserving independent batch processing.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/hierarchy.xml:155; source/http.html:1781-1783",
+    "summary": "The active RESTful API page currently says the overall batch HTTP response is 200 OK when the batch is processed correctly and a non-2xx entry status means that entry failed.",
+    "learned": "The current build source already includes the semantic correction requested by FHIR-17776.",
+    "supports": ["current_source", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "c78b3c2ffa8f233d54df948e98c11dcebb0d5f3d",
+    "ref": { "commit": "c78b3c2ffa8f233d54df948e98c11dcebb0d5f3d" },
+    "summary": "Commit GF#17776 replaced the old whole-batch failure sentence in source/http.html with per-entry non-2xx failure wording.",
+    "learned": "The issue was applied directly to the source, and the implementation intentionally used the 2xx success family.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/http.html:752-753; source/http.html:1065-1068; source/http.html:1952-1964",
+    "summary": "Nearby RESTful API rules allow successful outcomes including 201 Created, 202 Accepted, and 204 No Content, and response Bundles carry each entry's HTTP status code.",
+    "learned": "The current non-2xx failure threshold is consistent with valid entry-level success responses and should not be narrowed to literal 200.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-17776 batch response-code evidence",
+    "command": "bun run zulip:search fts '\"FHIR-17776\" \"batch\" \"response code\"' --limit 10; bun run zulip:search fts '\"Batch Processing Rules\" \"response code\"' --limit 10; bun run confluence:search refs jira FHIR-17776; bun run confluence:search fts '\"FHIR-17776\" \"Batch Processing Rules\"' --limit 10",
+    "query": "FHIR-17776 batch response code; Batch Processing Rules response code",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

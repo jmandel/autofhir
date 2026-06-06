@@ -1,0 +1,106 @@
+FHIR-23029: Audit CareTeam encounter removal
+
+Issue request:
+FHIR-23029 was Published/Persuasive with Modification for R5. It originally asked to relax CareTeam.encounter from 0..1 to 0..*, but the PA/PC joint-session resolution instead voted to remove CareTeam.encounter and the EpisodeOfCare standard extension from CareTeam.
+
+Initial application:
+The issue was applied by git commit 4832b70ae3ebeefb51ab800a1200207eabd0313a, which removed the encounter reference from the CareTeam example and disabled the CareTeam.encounter element in the then-authoritative CareTeam spreadsheet. Current source has since been refactored to StructureDefinition XML; source/careteam/structuredefinition-CareTeam.xml no longer defines CareTeam.encounter or CareTeam.context, and source/fhir.ini records the R4/R5 map note that CareTeam.encounter was removed to avoid circular references since Encounter references CareTeam.
+
+Additional context:
+FHIR-23843 is the PA-side companion issue and added Encounter.careTeam 0..* Reference(CareTeam); current source/encounter/structuredefinition-Encounter.xml contains that element, and source/careteam/careteam-introduction.xml explains that CareTeam can be referenced by EpisodeOfCare, Encounter, or CarePlan. FHIR-32767 later added the Encounter careteam search parameter and is already represented on the combined branch by a separate source-fix commit. CareTeam and Encounter are active resources in source/fhir.ini. Exact Zulip issue-key searches found no directly relevant discussion, while Confluence references for FHIR-23843 confirm the PA follow-up to the PC removal.
+
+AutoFHIR reconciliation:
+This empty audit commit intentionally makes no source change. The current build-scope core source already implements the final modified resolution: CareTeam no longer points to Encounter, the CareTeam example has no encounter, the workflow EpisodeOfCare extension is not used by CareTeam in core or allowed on CareTeam in the Extension Pack definition, and the inverse Encounter.careTeam relationship exists.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce CareTeam.encounter or add redundant CareTeam prose; the current model represents the approved direction by letting Encounter, EpisodeOfCare, and CarePlan reference CareTeam.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-23029
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-23843: same-change-family - companion PA issue that added Encounter.careTeam after the PC decision to remove the reverse CareTeam.encounter link.
+FHIR-32767: later-change - added the Encounter careteam search parameter for the FHIR-23843 element and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-23029: Published/Persuasive with Modification issue requested broader CareTeam encounter support but resolved to remove CareTeam.encounter and the EpisodeOfCare extension from CareTeam. Learned: this establishes the final PC/PA intent for the seed.
+- E2 Git 4832b70ae3ebeefb51ab800a1200207eabd0313a: GF#23029 removed the encounter reference from the CareTeam example and disabled CareTeam.encounter in the CareTeam spreadsheet. Learned: the seed was historically applied before the source refactor.
+- E3 Source source/fhir.ini:170-191 and source/fhir.ini:1608: CareTeam and Encounter are active resources and the R4/R5 map says CareTeam.encounter was removed because Encounter references CareTeam. Learned: the removal is in current build scope and preserved as version-map guidance.
+- E4 Source source/careteam/structuredefinition-CareTeam.xml:102-464 and source/careteam/careteam-example.xml:30-36: the current CareTeam differential and example have no CareTeam.encounter or CareTeam.context element. Learned: the reverse link is absent from the authoritative CareTeam source.
+- E5 Source source/encounter/structuredefinition-Encounter.xml:472-480 and source/careteam/careteam-introduction.xml:27: Encounter.careTeam is 0..* Reference(CareTeam), and CareTeam narrative says it can be referenced by Encounter, EpisodeOfCare, or CarePlan. Learned: the current model uses references to CareTeam rather than CareTeam.encounter.
+- E6 Extension Pack /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-workflow-episodeOfCare.xml:261-303 plus targeted rg verification. Learned: the EpisodeOfCare workflow extension exists externally but does not list CareTeam as an allowed context, so the seed's extension-removal portion is not a missing core edit.
+- E7 Community search: quoted Zulip searches for FHIR-23029 and FHIR-23843 found no direct hits; Confluence refs for FHIR-23843 found PA/LHS minutes documenting the companion Encounter-side follow-up. Learned: no community evidence conflicts with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-23029",
+    "url": "https://jira.hl7.org/browse/FHIR-23029",
+    "snapshot_path": "contexts/FHIR-23029/jira/FHIR-23029.md",
+    "ref": { "jira_key": "FHIR-23029" },
+    "summary": "Published/Persuasive with Modification issue originally asked for CareTeam.encounter 0..* but resolved to remove CareTeam.encounter and the EpisodeOfCare extension from CareTeam.",
+    "learned": "The final approved intent is removal of the reverse CareTeam relationship, not changing it to 0..*.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "4832b70ae3ebeefb51ab800a1200207eabd0313a",
+    "ref": { "commit": "4832b70ae3ebeefb51ab800a1200207eabd0313a" },
+    "summary": "GF#23029 removed the CareTeam example encounter reference and disabled the CareTeam.encounter spreadsheet row.",
+    "learned": "The seed was applied in historical source before the current StructureDefinition source layout.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-191; source/fhir.ini:1608",
+    "ref": { "path": "source/fhir.ini", "line": 1608 },
+    "summary": "CareTeam and Encounter are active resources; the version map records CareTeam.encounter as removed because Encounter references CareTeam.",
+    "learned": "The removal remains part of current build-scope source and migration guidance.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/careteam/structuredefinition-CareTeam.xml:102-464; source/careteam/careteam-example.xml:30-36",
+    "ref": { "path": "source/careteam/structuredefinition-CareTeam.xml", "line": 102 },
+    "summary": "The current CareTeam differential and example contain subject and period but no encounter/context element or workflow EpisodeOfCare extension use.",
+    "learned": "The authoritative CareTeam source no longer exposes the relationship the seed asked to change.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/encounter/structuredefinition-Encounter.xml:472-480; source/careteam/careteam-introduction.xml:27",
+    "ref": { "path": "source/encounter/structuredefinition-Encounter.xml", "line": 472 },
+    "summary": "Encounter.careTeam is 0..* Reference(CareTeam), and CareTeam narrative says Encounter, EpisodeOfCare, or CarePlan can reference CareTeam.",
+    "learned": "The approved direction is represented by inbound references to CareTeam rather than CareTeam.encounter.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-workflow-episodeOfCare.xml:261-303",
+    "ref": { "path": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-workflow-episodeOfCare.xml", "line": 261 },
+    "summary": "The Extension Pack workflow-episodeOfCare definition exists but targeted search found no CareTeam context.",
+    "learned": "The seed's EpisodeOfCare-extension removal is already reflected outside core and does not require a core edit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-23029/FHIR-23843 and CareTeam encounter terms",
+    "command": "bun run zulip:search fts '\"FHIR-23029\" CareTeam encounter EpisodeOfCare' --limit 10; bun run zulip:search fts '\"FHIR-23843\" Encounter CareTeam' --limit 10; bun run confluence:search refs jira FHIR-23843",
+    "query": "FHIR-23029 FHIR-23843 CareTeam Encounter EpisodeOfCare",
+    "summary": "Exact Zulip issue-key searches found no direct hits; Confluence refs found PA/LHS minutes for the companion Encounter-side follow-up.",
+    "learned": "No discovered community record conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

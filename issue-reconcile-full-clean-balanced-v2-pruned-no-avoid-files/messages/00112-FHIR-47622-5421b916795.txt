@@ -1,0 +1,104 @@
+FHIR-47622: Complete Medication serial-number mapping
+
+Issue request:
+FHIR-47622 was Applied/Persuasive for R6. It asked for a dedicated Medication serial-number location because Medication.identifier was ambiguous between medication-kind identifiers and physical-instance identifiers. The resolution renamed Medication.batch to Medication.instance, added Medication.instance.identifier 0..* Identifier for the physical instance, added a serial-number example, and required existing examples not to carry serial numbers in Medication.identifier.
+
+Initial application:
+The issue was initially applied through HL7/fhir PR 3896. Local Jira-tagged commits afb9b405cb, 35383bc5c4, 958e04e179, and 01530390fc renamed the core BackboneElement, added Medication.instance.identifier, updated many Medication examples, and fixed the new element path typo. Those commits left the main Medication definition mostly correct but missed some parallel search-parameter and contained-example surfaces.
+
+Additional context:
+source/fhir.ini actively lists Medication as a current resource, so source/medication/structuredefinition-Medication.xml and source/medication/bundle-Medication-search-params.xml are build inputs. The remaining Medication.batch entries in fhir.ini are old-to-new migration aliases, not current element definitions. No FHIR-47622-specific Zulip or Confluence decision evidence was found; older Zulip hits about Medication instance identifiers were background and did not alter the Jira resolution.
+
+AutoFHIR reconciliation:
+This commit removes the stale Medication.identifier comment that still directed serial numbers to the general medication identifier; retargets the Medication serial-number search parameter to Medication.instance.identifier; fixes the Medication lot-number search-parameter path extension to Medication.instance.lotNumber; and updates contained Medication examples in MedicationRequest, MedicationDispense, MedicationAdministration, and MedicationStatement from the removed batch element to instance.
+
+Recommendation:
+Keep this source-changing commit as the reconciliation for FHIR-47622. It completes the applied Jira resolution in active source while leaving the intentional fhir.ini compatibility aliases alone.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-47622
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-47622: Applied/Persuasive R6 change request to rename Medication.batch to instance, add instance.identifier for serial numbers, and avoid serial numbers in Medication.identifier examples. Learned: this establishes final WG intent and the required source behavior.
+- E2 Source source/medication/structuredefinition-Medication.xml:103 and :417-420: Medication.identifier now points physical-instance identifiers to Medication.instance.identifier, which is defined as the serial-number-capable Identifier element. Learned: the core build input now preserves the business-vs-instance distinction requested by Jira.
+- E3 Source source/medication/bundle-Medication-search-params.xml:127 and :182-188: lot-number uses Medication.instance.lotNumber and serial-number uses Medication.instance.identifier. Learned: search parameters no longer expose the stale batch path or old Medication.identifier serial-number behavior.
+- E4 Source contained Medication examples in MedicationRequest, MedicationDispense, MedicationAdministration, and MedicationStatement: old <batch> elements were renamed to <instance>. Learned: active examples that embed Medication now conform to the current Medication structure.
+- E5 Git afb9b405cb/35383bc5c4/958e04e179/01530390fc: prior FHIR-47622 commits applied most of PR 3896 but left these parallel surfaces stale. Learned: this reconciliation is a targeted completion of the original application, not a new policy decision.
+- E6 Verification commands: XML parse, CRLF-aware git diff --check, and source searches for stale Medication.batch and serial-number references succeeded, with only fhir.ini compatibility aliases remaining. Learned: the edited XML is well formed and the intended source surfaces are aligned.
+- E7 Community search: confluence refs jira FHIR-47622 found no references; Zulip exact key search was not usable because the hyphenated key is parsed by FTS, and broader Medication serial-number searches found only older background discussions. Learned: no discovered community record conflicts with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-47622",
+    "url": "https://jira.hl7.org/browse/FHIR-47622",
+    "snapshot_path": "contexts/FHIR-47622/jira/FHIR-47622.md",
+    "ref": { "jira_key": "FHIR-47622" },
+    "summary": "Applied/Persuasive R6 issue requiring Medication.batch to become Medication.instance, adding Medication.instance.identifier for physical-instance identifiers such as serial numbers, and avoiding serial numbers in Medication.identifier examples.",
+    "learned": "This is final WG intent and establishes the target structure for the current source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/medication/structuredefinition-Medication.xml:103,417-420",
+    "ref": { "path": "source/medication/structuredefinition-Medication.xml", "lines": "103,417-420" },
+    "summary": "Medication.identifier now refers physical-instance identifiers to Medication.instance.identifier, and Medication.instance.identifier is defined as the serial-number-capable Identifier element.",
+    "learned": "The core Medication definition now preserves the distinction requested by FHIR-47622.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medication/bundle-Medication-search-params.xml:127,182-188",
+    "ref": { "path": "source/medication/bundle-Medication-search-params.xml", "lines": "127,182-188" },
+    "summary": "Medication-lot-number references Medication.instance.lotNumber and Medication-serial-number references Medication.instance.identifier.",
+    "learned": "The active search-parameter source no longer points serial-number searches at the old general Medication.identifier element.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "MedicationRequest/Dispense/Administration/Statement contained Medication examples",
+    "ref": { "paths": "source/medicationrequest/medicationrequest0316.xml; source/medicationrequest/medicationrequest0321.xml; source/medicationrequest/medicationrequest0323.xml; source/medicationdispense/medicationdispense0302.xml; source/medicationadministration/medicationadministration0305.xml; source/medicationadministration/medicationadministration0309.xml; source/medicationstatement/medicationstatementexample1.xml; source/medicationstatement/medicationstatementexample2.xml" },
+    "summary": "Contained Medication examples now use instance instead of the removed batch element.",
+    "learned": "Parallel active examples are consistent with the renamed Medication BackboneElement.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "afb9b405cb, 35383bc5c4, 958e04e179, 01530390fc",
+    "ref": { "commits": "afb9b405cb 35383bc5c4 958e04e179 01530390fc" },
+    "summary": "Prior FHIR-47622 commits applied PR 3896 by renaming the element, updating many Medication examples, and fixing the new identifier path typo.",
+    "learned": "The current reconciliation only completes missed source surfaces from the original application.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Validation and stale-reference searches",
+    "command": "xmllint --noout changed XML files; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg 'Medication.batch|<batch>|</batch>|serial number could be included' source",
+    "summary": "Edited XML parsed and whitespace checks passed; stale batch and serial-number references were removed from active source, with only fhir.ini compatibility aliases remaining.",
+    "learned": "The source fix is syntactically safe and targeted to the intended current-build surfaces.",
+    "supports": ["confidence", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-47622 and Medication serial-number terms",
+    "command": "bun run confluence:search refs jira FHIR-47622 --limit 10; bun run zulip:search fts 'Medication serial number instance identifier' --limit 10",
+    "query": "FHIR-47622; Medication serial number instance identifier",
+    "summary": "No Confluence references to FHIR-47622 were found, and broader Zulip hits were older background discussions rather than conflicting final decisions.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

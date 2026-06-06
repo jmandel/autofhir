@@ -1,0 +1,96 @@
+FHIR-8066: Audit Medication container binding history
+
+Issue request:
+FHIR-8066 is a Published/Persuasive Pharmacy correction from the DSTU1 May 2015 ballot. It reported that Medication.package.container linked to route-of-administration value set contents and asked to fix the binding to package-form contents, specifically SNOMED CT concepts is-a 408102007.
+
+Initial application:
+The historical application was commit 534313123abc479f1c95a22956d9992582f9743c, which included FHIR-8066 and changed source/medication/valueset-medication-package-form-codes.xml from SNOMED CT 284009009, route-of-administration value, to 408102007. No existing combined-branch commit was found for Issue-Reconcile-Key: FHIR-8066 before this audit.
+
+Additional context:
+The active current build lists Medication in source/fhir.ini, and the current Medication StructureDefinition no longer has Medication.package.container; current package quantity information is represented by Medication.packageSize and its child elements. FHIR-12347 later changed the then-existing container binding from the SNOMED value set to a local EDQM-derived code list in 2017, and GF #13879 removed Medication.package.container later in 2017. The remaining valueset-medication-package-form-codes.xml contains the 408102007 compose from the FHIR-8066-era fix, but current Medication source no longer references the obsolete element or binding.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current implementers cannot be misled by the obsolete DSTU1 element because it is absent from the current Medication resource, and the historical route-code error was already corrected in source history before later Medication model refactoring removed the element.
+
+Recommendation:
+Keep this no-change audit commit. Do not edit the current Medication resource for FHIR-8066; any future cleanup of the unreferenced historical value set or binding registry should be handled as a separate terminology/build-scope cleanup, not as this DSTU1 package.container correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8066
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7266: same-change-family - reported the same Medication.package.container route-code/package-code problem and was included in the same 2015 application commit.
+FHIR-12347: later-change - changed the then-current container binding away from the SNOMED value set to an EDQM-derived local list before Medication.package.container was later removed.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8066: Published/Persuasive Pharmacy issue requiring Medication.package.container to use package-form contents instead of route-of-administration contents. Learned: this establishes the final DSTU1 correction request.
+- E2 Source source/fhir.ini:200-204 and source/medication/structuredefinition-Medication.xml:228-263: Medication is active and current package information is represented by Medication.packageSize, not Medication.package.container. Learned: the obsolete element targeted by FHIR-8066 is not in the current Medication resource.
+- E3 Git 534313123abc479f1c95a22956d9992582f9743c: changed source/medication/valueset-medication-package-form-codes.xml from SNOMED CT 284009009 to 408102007 and listed 8066 in the commit subject. Learned: the historical route-code error was applied in source.
+- E4 Git 491a59353e4244177fb0b6cd8a2de31e46f7f448 and 2559032b9b1cd17a3f528abbe59749fff309ed69: FHIR-12347 moved the then-current container binding to a local EDQM-derived list, and GF #13879 later removed Medication.package.container. Learned: later decisions/refactors superseded the original binding surface.
+- E5 Command current source search: git grep/rg found no current Medication.package.container or MedicationContainer reference under source/medication, with only the unreferenced historical value set and bindings.ini entry remaining elsewhere. Learned: no authoritative current Medication source hunk needs correction for FHIR-8066.
+- E6 Command community search: Zulip and Confluence searches for FHIR-8066 and Medication.package.container found no directly relevant hits. Learned: no discovered community record conflicts with the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8066",
+    "url": "https://jira.hl7.org/browse/FHIR-8066",
+    "snapshot_path": "contexts/FHIR-8066/jira/FHIR-8066.md",
+    "ref": { "jira_key": "FHIR-8066" },
+    "summary": "Published/Persuasive Pharmacy issue requiring Medication.package.container to use package-form contents instead of route-of-administration contents.",
+    "learned": "This establishes the final DSTU1 correction request and the target SNOMED CT 408102007 package-form compose.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:200-204; source/medication/structuredefinition-Medication.xml:228-263",
+    "summary": "Medication is active, and current package information is represented by Medication.packageSize and its child elements rather than Medication.package.container.",
+    "learned": "The obsolete element targeted by FHIR-8066 is not in the current Medication resource, so there is no current binding to correct.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "534313123abc479f1c95a22956d9992582f9743c",
+    "ref": { "commit": "534313123abc479f1c95a22956d9992582f9743c" },
+    "summary": "The historical application commit lists 8066 and changes valueset-medication-package-form-codes.xml from SNOMED CT 284009009 to 408102007.",
+    "learned": "FHIR-8066's route-code error was applied in source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "491a59353e4244177fb0b6cd8a2de31e46f7f448; 2559032b9b1cd17a3f528abbe59749fff309ed69",
+    "ref": { "later_binding_commit": "491a59353e4244177fb0b6cd8a2de31e46f7f448", "removal_commit": "2559032b9b1cd17a3f528abbe59749fff309ed69" },
+    "summary": "FHIR-12347 moved the then-current Medication.package.container binding to a local EDQM-derived list, and GF #13879 later removed Medication.package.container.",
+    "learned": "Later source history superseded the original binding surface and explains why no current Medication edit is needed.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current Medication source grep",
+    "command": "rg -n 'package\\.container|MedicationContainer|medication-package-form' source/medication; git grep -n 'MedicationContainer\\|medication-package-form\\|Medication.package.container\\|408102007' -- source",
+    "summary": "No current source/medication reference to Medication.package.container or MedicationContainer was found; only source/bindings.ini and the historical valueset file remain elsewhere.",
+    "learned": "There is no authoritative current Medication source hunk that needs correction for FHIR-8066.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-8066 and Medication.package.container",
+    "command": "bun run zulip:search fts '\"FHIR-8066\" \"Medication.package.container\" \"medication package container\"' --limit 10; bun run confluence:search refs jira FHIR-8066; bun run confluence:search fts '\"Medication.package.container\" \"FHIR-8066\"' --limit 10",
+    "query": "FHIR-8066 Medication.package.container medication package container",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

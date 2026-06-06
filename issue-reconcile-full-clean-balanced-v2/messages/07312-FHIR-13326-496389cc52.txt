@@ -1,0 +1,108 @@
+FHIR-13326: Clarify validate-code system inference
+
+Issue request:
+FHIR-13326 was a Published/Persuasive STU3 FHIR-core Vocabulary change request for ValueSet $validate-code. It reported that the code input parameter incorrectly said a system must be provided whenever code is provided, even though a client can validate a code-only value by supplying the value set context. The final resolution agreed and said a terminology server should return an error if the context is insufficient to unambiguously specify the concept.
+
+Initial application:
+The Jira comment records svn revision 12752. In the git-svn history, commit 5f4ae7c55f921bd724a82c59f79ee263e4b8445e changed the old ValueSet spreadsheet documentation from "If a code is provided, a system must be provided" to allow "a system or a context" and to require the server to ensure the system-less code is unambiguous. Later source refactoring preserved that wording in source/valueset/operationdefinition-ValueSet-validate-code.xml.
+
+Additional context:
+ValueSet is an active current-build resource in source/fhir.ini, and source/valueset/list-ValueSet-operations.xml references OperationDefinition/ValueSet-validate-code, so the edited OperationDefinition is authoritative current source. Later Applied issue FHIR-41431, already audited on the combined branch, added inferSystem to the same ValueSet $validate-code operation and changed the operation description to say that when code is provided either system or inferSystem SHOULD be provided. The latest combined source still had the older code-parameter sentence listing only system or context, which left the exact FHIR-13326 documentation location inconsistent with the later approved inferSystem path.
+
+AutoFHIR reconciliation:
+This commit updates only the ValueSet $validate-code code input documentation. The new sentence preserves FHIR-13326's system-less context allowance and ambiguity guard, while also recognizing that the server may infer the system from the value set context, including the context parameter or inferSystem=true.
+
+Recommendation:
+Keep this source fix as-is. It is a narrow correction to the build-scoped ValueSet operation definition; broader questions about inferSystem ambiguity or CQL string value-set membership should remain with later dedicated issues rather than this STU3 documentation correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13326
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-41431: later-change - added inferSystem to the same ValueSet $validate-code operation and created the later context that made the old code-parameter sentence incomplete.
+FHIR-13946: same-change-family - corrected adjacent ValueSet $validate-code parameter-name wording and is already represented on the combined branch.
+FHIR-14355: same-change-family - later corrected the same operation-description selector names to context/valueSet and is already represented on the combined branch.
+FHIR-53532: background - later Triaged CQL issue from an inferSystem discussion concerns value-set membership semantics outside this FHIR-core seed decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13326: Published/Persuasive issue requiring the ValueSet $validate-code code parameter not to require system when context can identify an unambiguous concept. Learned: this establishes the approved system-less validation rule and ambiguity-error expectation.
+- E2 Git 5f4ae7c55f921bd724a82c59f79ee263e4b8445e: svn revision 12752 changed the old ValueSet spreadsheet code parameter from "system must be provided" to "system or context" with an ambiguity guard. Learned: the issue was historically applied at the exact documentation location.
+- E3 Source source/fhir.ini:169-227,632-640 and source/valueset/list-ValueSet-operations.xml:1-16: ValueSet is active, assigned to vocab, and its operations list references OperationDefinition/ValueSet-validate-code. Learned: source/valueset/operationdefinition-ValueSet-validate-code.xml is in current build scope.
+- E4 Source source/valueset/operationdefinition-ValueSet-validate-code.xml:60,108,200-205: current operation description and inferSystem parameter support system inference, and this commit updates the code parameter documentation to align with them. Learned: the changed line fixes a real current-source inconsistency rather than optional editorial polish.
+- E5 Jira FHIR-41431 and git b164dc66088d2bd560695ca63742ba8400ed99d5: Applied/Persuasive with Modification issue added inferSystem and the operation-description sentence recommending system or inferSystem when code is supplied. Learned: later final WG intent requires the FHIR-13326 code-parameter wording to include the inferSystem route.
+- E6 Zulip #terminology / Required $validate-code parameters and #terminology / ValueSet $validate-code with inferSystem: later implementer discussions confirm that system-less code validation depends on inferring an unambiguous system and that duplicate code strings across systems are errors. Learned: community discussion supports retaining the ambiguity guard while acknowledging inferSystem.
+- E7 Verification commands: XML parsing, targeted rg, and CRLF-aware git diff --check succeeded for source/valueset/operationdefinition-ValueSet-validate-code.xml. Learned: the edited OperationDefinition remains well-formed and the exact stale sentence was replaced.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13326",
+    "url": "https://jira.hl7.org/browse/FHIR-13326",
+    "snapshot_path": "contexts/FHIR-13326/jira/FHIR-13326.md",
+    "ref": { "jira_key": "FHIR-13326" },
+    "summary": "Published/Persuasive ValueSet $validate-code issue saying the code input parameter should not require system when context can identify an unambiguous concept.",
+    "learned": "This establishes the approved system-less validation rule and the expectation that ambiguity is an error.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "5f4ae7c55f921bd724a82c59f79ee263e4b8445e",
+    "ref": { "commit": "5f4ae7c55f921bd724a82c59f79ee263e4b8445e" },
+    "summary": "The git-svn commit for svn revision 12752 changed the old ValueSet spreadsheet code-parameter documentation from requiring system to allowing system or context with an ambiguity guard.",
+    "learned": "FHIR-13326 was historically applied at the exact documentation location being reconciled.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-227,632-640; source/valueset/list-ValueSet-operations.xml:1-16",
+    "ref": { "paths": "source/fhir.ini; source/valueset/list-ValueSet-operations.xml" },
+    "summary": "ValueSet is an active resource assigned to vocab, and the ValueSet operations list references OperationDefinition/ValueSet-validate-code.",
+    "learned": "The edited OperationDefinition is current build-scoped source.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/valueset/operationdefinition-ValueSet-validate-code.xml:60,108,200-205",
+    "ref": { "path": "source/valueset/operationdefinition-ValueSet-validate-code.xml", "lines": "60,108,200-205" },
+    "summary": "The operation description and inferSystem parameter support system inference, and this commit updates the code input documentation to match.",
+    "learned": "The hunk removes a current inconsistency at the FHIR-13326 documentation location while preserving the ambiguity guard.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-41431 and b164dc66088d2bd560695ca63742ba8400ed99d5",
+    "url": "https://jira.hl7.org/browse/FHIR-41431",
+    "ref": { "jira_key": "FHIR-41431", "commit": "b164dc66088d2bd560695ca63742ba8400ed99d5" },
+    "summary": "Applied/Persuasive with Modification issue added inferSystem to ValueSet $validate-code and description text saying system or inferSystem SHOULD be provided when code is used.",
+    "learned": "Later final WG intent makes the older system-or-context code-parameter sentence incomplete by itself.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#terminology > Required $validate-code parameters; #terminology > ValueSet $validate-code with inferSystem",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/%E2%9C%94%20Required%20%24validate-code%20parameters",
+    "summary": "Later terminology discussions describe context/inferSystem use for code-typed values and confirm that an inferred system must not be ambiguous.",
+    "learned": "Community evidence supports retaining the ambiguity guard while acknowledging inferSystem as a valid inference route.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "OperationDefinition XML and whitespace validation",
+    "command": "python3 - <<'PY' ... ET.parse('source/valueset/operationdefinition-ValueSet-validate-code.xml') ... PY; rg -n 'code is to be validated|inferSystem|system or a context must be provided' source/valueset/operationdefinition-ValueSet-validate-code.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/valueset/operationdefinition-ValueSet-validate-code.xml",
+    "summary": "The edited XML parsed successfully, targeted grep showed the new sentence and inferSystem parameter, and diff --check reported no whitespace errors.",
+    "learned": "The source edit is structurally valid and removed the stale exact phrase from the build-scoped OperationDefinition.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

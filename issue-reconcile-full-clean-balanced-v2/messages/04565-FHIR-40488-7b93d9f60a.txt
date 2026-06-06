@@ -1,0 +1,103 @@
+FHIR-40488: Rename remaining Device example version
+
+Issue request:
+FHIR-40488 is an Applied/Persuasive R6 Orders & Observations change request asking to rename the device-version backbone from Device.version and the pre-canonical DeviceDefinition.version to deviceVersion. The stated reason was to leave DeviceDefinition.version available for the CanonicalResource business-version pattern while keeping Device consistent.
+
+Initial application:
+Git commit d0ee6976b376257bf44fc840b43b79b6f1c9487d applied FHIR-40488 to the main Device and DeviceDefinition StructureDefinitions, their search-parameter bundles, and many Device examples. Current source now defines Device.deviceVersion and DeviceDefinition.deviceVersion, and DeviceDefinition.version is the later CanonicalResource business version rather than the old device-version backbone. One active Device example, source/device/device-example-bpmonitor.xml, still used the old Device.version element.
+
+Additional context:
+Device and DeviceDefinition are active build resources in source/fhir.ini, and source/device/list-Device-examples.xml includes device-example-bpmonitor, so this example feeds the current Device example set. FHIR-42900 and the #devices Zulip thread explain the broader DeviceDefinition canonical-resource work; that context confirms DeviceDefinition.version should not be renamed now because it is the canonical business version. A stale Device.version example also exists under source/genomicstudy, but GenomicStudy is not active in source/fhir.ini, so that out-of-build file was not changed for this current-spec reconciliation.
+
+AutoFHIR reconciliation:
+Renamed the active bpmonitor Device example wrapper from <version> to <deviceVersion>, preserving the existing type and value children. No DeviceDefinition source change was needed because the current DeviceDefinition source already has both canonical version and deviceVersion in their distinct roles.
+
+Recommendation:
+Keep this source fix. If GenomicStudy is reactivated in a future build, separately review its examples for the same Device.deviceVersion migration rather than treating that disabled directory as part of this R6 Device/DeviceDefinition reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-40488
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-42900: background - broader DeviceDefinition CanonicalResource work explains why DeviceDefinition.version remains in current source as the canonical business version, not the old device-version backbone.
+FHIR-39389: background - broader definitional resource modeling issue mentioned alongside FHIR-42900; not needed to decide this specific rename.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-40488: Applied/Persuasive R6 issue requests Device.version and the old DeviceDefinition.version be renamed to deviceVersion. Learned: this establishes the final rename target for Device and DeviceDefinition.
+- E2 Source source/fhir.ini:1130,1133 and source/device/list-Device-examples.xml:283-294: Device and DeviceDefinition are active resources and device-example-bpmonitor is listed in the active Device examples list. Learned: the edited example is in current build scope.
+- E3 Source source/device/structuredefinition-Device.xml:881-885 and source/devicedefinition/structuredefinition-DeviceDefinition.xml:138-157,1103-1107: Device.deviceVersion and DeviceDefinition.deviceVersion are present, while DeviceDefinition.version is canonical-resource business version metadata. Learned: the core definitions are already correctly separated.
+- E4 Git d0ee6976b376257bf44fc840b43b79b6f1c9487d: FHIR-40488 initial application renamed the main structures, search parameters, and many examples. Learned: the prior application was real but missed at least one active Device example.
+- E5 Source source/device/device-example-bpmonitor.xml:26: the active example still used <version> before this commit. Learned: this was a semantic/schema-stale source location requiring a fix.
+- E6 Zulip #devices > DeviceDefinition as canonical: later discussion says FHIR-40488 made the element deviceVersion while FHIR-42900/39389 canonical work remained separate. Learned: no later community context reverses the deviceVersion rename, and the canonical-resource issue should not be folded into this commit.
+- E7 Verification command/query: rg --multiline '<Device\s[\s\S]*?<version>|<element id="Device\.version"|<path value="Device\.version"' source/device --glob '*.xml' found no matches after the fix, and XML parsing succeeded. Learned: active Device source no longer has the stale Device.version XML element pattern.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-40488",
+    "url": "https://jira.hl7.org/browse/FHIR-40488",
+    "snapshot_path": "contexts/FHIR-40488/jira/FHIR-40488.md",
+    "ref": { "jira_key": "FHIR-40488" },
+    "summary": "Applied/Persuasive R6 issue requests renaming Device.version and the old DeviceDefinition.version to deviceVersion.",
+    "learned": "This establishes the final rename target and explains why DeviceDefinition.version is reserved for canonical-resource business version metadata.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1130,1133; source/device/list-Device-examples.xml:283-294",
+    "summary": "Device and DeviceDefinition are active resources, and device-example-bpmonitor is listed as a Device example.",
+    "learned": "The edited bpmonitor example is in current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:881-885; source/devicedefinition/structuredefinition-DeviceDefinition.xml:138-157,1103-1107",
+    "summary": "Current definitions contain Device.deviceVersion and DeviceDefinition.deviceVersion, with DeviceDefinition.version used as canonical-resource business version metadata.",
+    "learned": "The main definitions already reflect the intended post-FHIR-40488 separation, so only stale examples needed checking.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "d0ee6976b376257bf44fc840b43b79b6f1c9487d",
+    "ref": { "commit": "d0ee6976b376257bf44fc840b43b79b6f1c9487d" },
+    "summary": "Commit FHIR-40488 renamed the main Device and DeviceDefinition sources, search parameters, and many examples.",
+    "learned": "The issue was partially applied before this reconciliation, but source/device/device-example-bpmonitor.xml was missed.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/device/device-example-bpmonitor.xml:26",
+    "summary": "The active bpmonitor Device example used the stale <version> wrapper before this commit.",
+    "learned": "Renaming that wrapper to <deviceVersion> is necessary for the current example to match Device.deviceVersion.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#devices > DeviceDefinition as canonical",
+    "url": "https://chat.fhir.org/#narrow/stream/devices/topic/DeviceDefinition%20as%20canonical",
+    "ref": { "stream": "devices", "topic": "DeviceDefinition as canonical" },
+    "summary": "A later canonical-resource discussion says FHIR-40488 made the element deviceVersion while FHIR-42900/39389 tracked broader canonical work.",
+    "learned": "No later community context reverses the deviceVersion rename or makes the broader canonical-resource work part of this commit.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Active Device stale-version search and XML parse",
+    "command": "rg -n --multiline '<Device\\s[\\s\\S]*?<version>|<element id=\"Device\\.version\"|<path value=\"Device\\.version\"' source/device --glob '*.xml'; python3 - <<'PY' ... ET.parse('source/device/device-example-bpmonitor.xml') ... PY",
+    "summary": "The active Device source search found no stale Device.version XML pattern after the fix, and the edited XML parsed successfully.",
+    "learned": "The active Device example set now aligns with Device.deviceVersion without XML syntax regressions.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

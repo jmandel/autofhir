@@ -1,0 +1,110 @@
+FHIR-27157: Audit Location near unit clarification
+
+Issue request:
+FHIR-27157 was a Published/Persuasive with Modification PA change request, applied for R5, asking the Location near search parameter to clarify which unit strings clients and servers should use for distance, especially miles. The controlling resolution says the units should be UCUM distance units, that bare "mi" is insufficient for miles and [mi_us] is the relevant mile code, and that a server supporting near may fail invalid units with an OperationOutcome and HTTP 400 while a server not supporting near may report the parameter as unused and ignore it.
+
+Initial application:
+The issue was applied before this reconciliation in source/location/bundle-Location-search-params.xml by FHIR-27157 commits 650dd988a28c506e7f39c5086c08623f8ebfb48c, ed8eec973ee8f2eb851f30831cce8c3c66adf0d5, and d0999a3fb40cd5581118ba30af17f181f2d8ee41. Those commits added the required km support, changed the requested miles text from both mi and [mi_us] to [mi_us] only, and added invalid-unit handling. A tightly related FHIR-33976 commit, ecb4dd444f3c065bac2460eb9df26b4f66b2af4a, later corrected the transient 403 wording to 400, changed RFC conformance wording to MIGHT, and added the algorithm caveat; fede0a93513316ea3626657108ef57a9e8f1c63a later preserved the same semantics while normalizing SearchParameter source formatting.
+
+Additional context:
+Location is an active resource in source/fhir.ini, so source/location/bundle-Location-search-params.xml is in the current build scope for the Location near SearchParameter. PA Confluence minutes record the January 2022 vote for the FHIR-27157 disposition, the April 2022 agreement that the 403 wording was wrong and would be resolved, and the April 2022 refinement that coordinated this text with FHIR-33976. Zulip discussion shows the original implementer ambiguity around km, mi, and [mi_us], and a later implementer confirmation that the build text answered the question. FHIR-33976 is already represented on the combined branch by commit 3bba9f9bcd64aaa938e6d92cd21582eab7b7a30f, so this commit does not duplicate that related issue.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active Location-near SearchParameter description already says servers supporting near SHALL support 'km' for kilometers and SHOULD support '[mi_us]' for miles, leaves other unit support optional, defaults omitted units to kms, and uses HTTP 400 BadRequest handling for unrecognized units when near is supported. That matches the final Jira, PA minutes, and related FHIR-33976 refinement without retaining the ambiguous bare mi code or the mistaken 403 status.
+
+Recommendation:
+Keep this no-change audit commit as-is. No follow-up core source work is needed for FHIR-27157; if PA wants to strengthen or otherwise revise the current permissive invalid-unit handling, that should be a new tracker rather than a reconciliation edit to this applied issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27157
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-33976: same-change-family - its Location near sorting/algorithm clarification explicitly refined the same SearchParameter text after FHIR-27157 and already has Issue-Reconcile-Key FHIR-33976 on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27157: Published/Persuasive with Modification, applied for R5, required UCUM distance units, [mi_us] instead of ambiguous mi for miles, and later 400/OperationOutcome handling for invalid units. Learned: this establishes the target behavior for reconciliation.
+- E2 Source source/location/bundle-Location-search-params.xml:179-187: current Location-near SearchParameter description requires km, recommends [mi_us], omits bare mi, defaults omitted units to kms, and describes HTTP 400 handling for unrecognized units. Learned: the active source already matches the final issue request.
+- E3 Source source/fhir.ini:170-200 and source/fhir.ini:1178: Location is an active resource with an active abbreviation entry. Learned: the inspected Location SearchParameter source is in current build scope.
+- E4 Git 650dd988a, ed8eec973, d0999a3fb, ecb4dd444, fede0a935: FHIR-27157 added the unit clarification, FHIR-33976 corrected 403 to 400 and added the algorithm note, and a later formatting commit preserved the same wording. Learned: source history explains why the current text differs from the initial proposed wording while satisfying the final decision.
+- E5 Confluence PA minutes pages 81029757, 94654321, and 94658835: PA voted for the FHIR-27157 disposition, then confirmed the 403 concern and coordinated the wording with FHIR-33976. Learned: meeting evidence supports the current 400 and [mi_us]-only result.
+- E6 Zulip implementers threads "Near location units" and "Valid units within Location 'near' search parameter?": implementers raised the km/mi/[mi_us] ambiguity that created FHIR-27157 and later pointed back to the build text as the answer. Learned: community evidence aligns with the Jira/source conclusion and reveals no conflicting interpretation.
+- E7 Verification command/query: combined-branch grep found no existing Issue-Reconcile-Key: FHIR-27157; Jira SQL for Location near unit miles returned only FHIR-27157; source rg confirmed [mi_us] and 400 BadRequest with no bare-mi requirement or 403. Learned: this audit is not a duplicate and no source hunk is required.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27157",
+    "url": "https://jira.hl7.org/browse/FHIR-27157",
+    "snapshot_path": "contexts/FHIR-27157/jira/FHIR-27157.md",
+    "ref": { "jira_key": "FHIR-27157" },
+    "summary": "Published/Persuasive with Modification PA issue requiring Location near search distance units to use UCUM, with [mi_us] for miles and invalid-unit handling clarified.",
+    "learned": "This is the final work-group decision and establishes the expected current Location-near unit behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/location/bundle-Location-search-params.xml:179-187",
+    "ref": { "path": "source/location/bundle-Location-search-params.xml", "line": 187 },
+    "summary": "The current Location-near SearchParameter description requires km, recommends [mi_us], defaults omitted units to kms, and uses HTTP 400 BadRequest handling for unrecognized units.",
+    "learned": "The source already implements the unit and error-handling clarification without retaining ambiguous bare mi support.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-200; source/fhir.ini:1178",
+    "ref": { "path": "source/fhir.ini", "line": 200 },
+    "summary": "The [resources] section includes location=Location and the active abbreviation table includes Location=loc.",
+    "learned": "Location source files are in current build scope, so the inspected SearchParameter is authoritative for this reconciliation.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "650dd988a28c506e7f39c5086c08623f8ebfb48c; ed8eec973ee8f2eb851f30831cce8c3c66adf0d5; d0999a3fb40cd5581118ba30af17f181f2d8ee41; ecb4dd444f3c065bac2460eb9df26b4f66b2af4a; fede0a93513316ea3626657108ef57a9e8f1c63a",
+    "ref": { "commit": "650dd988a28c506e7f39c5086c08623f8ebfb48c" },
+    "summary": "FHIR-27157 commits added the Location-near unit clarification; later FHIR-33976 and formatting commits corrected 403 to 400, added algorithm context, and preserved the current wording.",
+    "learned": "The current text is the result of applying FHIR-27157 plus a tightly related later refinement, not an unapplied or stale source state.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "PA minutes pages 81029757, 94654321, and 94658835",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/81029757/2022+Jan+WGM+-+Patient+Administration",
+    "snapshot_path": "contexts/FHIR-27157/confluence/81029757.md",
+    "ref": { "confluence_page_id": 81029757 },
+    "summary": "PA minutes record the FHIR-27157 vote, the later agreement that 403 was wrong, and the refinement that coordinated the Location-near wording with FHIR-33976.",
+    "learned": "Meeting evidence supports the current [mi_us]-only and HTTP 400 wording.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "implementers > Near location units; implementers > Valid units within Location 'near' search parameter?",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Near%20location%20units",
+    "snapshot_path": "contexts/FHIR-27157/zulip/implementers--Near-location-units.md",
+    "ref": { "stream": "implementers", "topic": "Near location units" },
+    "summary": "Implementers discussed km, mi, and [mi_us] ambiguity when FHIR-27157 was opened, and later referred back to build.fhir.org text as the clarification.",
+    "learned": "Community discussion confirms the original ambiguity and reveals no conflict with the current source.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Idempotency, Jira neighborhood, community, and source verification queries",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-27157' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run jira:search sql \"... MATCH 'Location near unit miles km mi_us' ...\"; rg -n \"[mi_us]|400 BadRequest|403 BadRequest\" source/location/bundle-Location-search-params.xml",
+    "query": "Location near unit miles km mi_us; FHIR-27157",
+    "result_count": 1,
+    "summary": "No prior FHIR-27157 reconcile commit exists; the focused Jira query returned FHIR-27157 as the unit issue; source search found [mi_us] and 400 BadRequest with no source requirement for bare mi or 403.",
+    "learned": "The audit commit is unique and the current source needs no corrective hunk.",
+    "supports": ["absence_of_conflict", "confidence", "reconciliation"]
+  }
+]
+</evidence-manifest>

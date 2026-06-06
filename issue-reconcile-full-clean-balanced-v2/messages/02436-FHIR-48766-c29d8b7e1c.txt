@@ -1,0 +1,115 @@
+FHIR-48766: Audit vital-sign LOINC in filters
+
+Issue request:
+FHIR-48766 is an Applied/Persuasive FHIR-core Observation issue asking for the Observation Vital Signs profile value set definitions bound through Observation.code to use the LOINC `in` filter where appropriate, avoiding repeated compose.include blocks that only differed by one LOINC filter value now that tx.fhir.org supports `in` for LOINC.
+
+Initial application:
+The issue was pre-applied in git commit f628a0a04e and merged by HL7/fhir pull request #3210 as merge commit 53031256e3. That source change collapsed repeated include blocks in nine Observation vital-sign value set XML files into one include with a comma-separated LOINC `in` filter. Later commits touching the same files changed metadata/status, not this filter semantics.
+
+Additional context:
+The affected files are in the active Observation resource area: source/fhir.ini includes observation=Observation, source/observation/list-Observation-packs.xml references ImplementationGuide/Observation-vitalsigns, and that IG references the vital-signs profile family. Observation.code in StructureDefinition/vitalsigns binds to ValueSet/observation-vitalsign-measurement, whose compose includes the component vital-sign value sets. OO minutes on 2024-11-26 record support for the LOINC `in` simplification while noting an IG Publisher display-text limitation; the Jira later records the Applied vote. No Zulip or related-Jira search found a later decision requiring a source reversal.
+
+AutoFHIR reconciliation:
+No source change was made. Current source already contains exactly one LOINC `in` filter in each of the nine value sets changed by f628a0a04e: bodyheight, bodytemp, bodyweight, diastolicbp, headcircum, heartrate, oxygensat, resprate, and systolicbp. Each `in` filter has the expected comma-separated LOINC LP values and the XML parses successfully.
+
+Recommendation:
+Keep this audit commit as-is. If the Publisher still omits display text for comma-separated LOINC `in` values, handle that as publisher/tooling follow-up rather than reverting these core value set definitions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-48766
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-46418: background - created the R6 Observation Vital Signs profile/value-set family that FHIR-48766 simplified.
+FHIR-50016: later-change - later updated Observation vital-sign value set metadata/status without changing the LOINC `in` filter semantics.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-48766: Applied/Persuasive, vote 7-0-1, requested LOINC `in` filters for Observation Vital Signs code value sets; Jira comment points to f628a0a04e. Learned: final WG intent and the historical implementation target.
+- E2 Git f628a0a04e / 53031256e3: implementation commit and PR merge changed nine vital-sign value sets from repeated includes to LOINC `in` filters. Learned: the requested source application already happened.
+- E3 Source source/fhir.ini:209 plus source/observation/list-Observation-packs.xml:9 and implementationguide-Observation-vitalsigns.xml:25-83. Learned: Observation and the vital-signs package are active build inputs.
+- E4 Source structuredefinition-profile-vitalsigns.xml:133-148 and valueset-observation-vitalsign-measurement.xml:24-55. Learned: Observation.code binds to the aggregate Vital Signs value set, which includes the specific vital-sign value sets.
+- E5 Source source/observation/valueset-observation-vitalsign-*.xml:29-30. Learned: all nine relevant files currently use one comma-separated LOINC `in` filter.
+- E6 Confluence OO 2024-11-26 minutes page 288396503 and 2025-01 WGM page 307302399. Learned: OO discussed the `in` simplification, recorded the tooling display limitation, and then moved the issue through block-vote/application.
+- E7 Command/community search: Zulip literal FHIR-48766 and LOINC-in searches found no directly relevant contrary discussion; Confluence refs found only the two OO minutes pages; related Jira link search found no direct linked reversals. Learned: no discovered later community/Jira evidence changes the source conclusion.
+- E8 Verification command: Python XML parse and filter scan over the nine value sets found exactly one comma-separated `in` filter per file. Learned: current source satisfies the requested shape.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-48766",
+    "url": "https://jira.hl7.org/browse/FHIR-48766",
+    "snapshot_path": "contexts/FHIR-48766/jira/FHIR-48766.md",
+    "ref": { "jira_key": "FHIR-48766" },
+    "summary": "Applied/Persuasive issue requesting Observation Vital Signs code value set definitions use LOINC `in` filters where appropriate.",
+    "learned": "This establishes final OO work-group intent and identifies f628a0a04e as the initial application commit.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "f628a0a04e and merge 53031256e3",
+    "ref": { "commit": "f628a0a04e4d90b856905ca093b49f6d89b8d5a2", "merge_commit": "53031256e3" },
+    "summary": "The implementation commit and PR merge changed nine Observation vital-sign value set XML files to use LOINC `in` filters.",
+    "learned": "The requested source change was already applied to the current source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:209; source/observation/list-Observation-packs.xml:9; source/observation/implementationguide-Observation-vitalsigns.xml:25-83",
+    "summary": "Observation is an active resource and the Observation vital-signs implementation guide is listed as an Observation package with core usage.",
+    "learned": "The checked vital-sign profile/value-set sources are in current FHIR build scope.",
+    "supports": ["additional_context", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-vitalsigns.xml:133-148; source/observation/valueset-observation-vitalsign-measurement.xml:24-55",
+    "summary": "Observation.code binds to the Vital Signs measurement value set, which composes the specific vital-sign value sets.",
+    "learned": "These value sets are the definitions relevant to the Jira's code-element binding request.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/observation/valueset-observation-vitalsign-{bodyheight,bodytemp,bodyweight,diastolicbp,headcircum,heartrate,oxygensat,resprate,systolicbp}.xml:29-30",
+    "summary": "Each of the nine relevant value sets currently has one LOINC filter with op=`in` and comma-separated LP values.",
+    "learned": "The current source already expresses the requested LOINC `in` filters.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "OO minutes pages 288396503 and 307302399",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/288396503/2024-11-26+OO+on+FHIR",
+    "ref": { "confluence_page_id": 288396503 },
+    "summary": "OO minutes record that tx.fhir.org supports LOINC `in`, that `in` simplifies the vital-sign value sets, and that the Publisher display-text limitation was a tooling follow-up.",
+    "learned": "The community evidence supports keeping the source `in` filters and treating display rendering as tooling, not a source reversal.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip, Confluence, and Jira related searches for FHIR-48766 and LOINC in filters",
+    "command": "bun run zulip:search fts 'LOINC filter vital signs' --limit 10; bun run zulip:search sql \"... content LIKE '%FHIR-48766%' ...\"; bun run confluence:search refs jira FHIR-48766 --json; bun run jira:search sql \"... links to FHIR-48766 ...\"",
+    "query": "FHIR-48766; LOINC filter vital signs; direct Jira links to FHIR-48766",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip hit or linked Jira reversal was found; Confluence references were the two OO minutes pages already considered.",
+    "learned": "No discovered later evidence changes the no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Python XML parse/filter scan for nine Observation vital-sign value sets",
+    "command": "python3 - \"${files[@]}\" <<'PY' ... parse XML and require exactly one comma-separated op=in filter per file ... PY",
+    "summary": "The scan reported exactly one comma-separated LOINC `in` filter in each of the nine affected value sets.",
+    "learned": "The current source has the requested structure and is XML-parseable.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

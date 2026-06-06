@@ -1,0 +1,109 @@
+FHIR-37549: Restore DocumentReference event XDS reference mapping
+
+Issue request:
+FHIR-37549 was Published/Not Persuasive with Modification for R5 DocumentReference. The issue noted that Composition had an event backbone with no corresponding DocumentReference mapping and asked for support for XDS DocumentEntry.referenceIdList; the OO resolution clarified that DocumentReference.event already existed as a CodeableReference and should be mapped to referenceIdList.
+
+Initial application:
+The Jira comment points to commit a31aac85a1e6913e8593606957711b98db1c7ec3, which added DocumentEntry.referenceIdList to the XDS mapping for DocumentReference.event in the active DocumentReference StructureDefinition. A later 2024 DocumentReference mapping update, d63adb6a17972d47bde74e7377febe531b104a9a, moved referenceIdList onto the new DocumentReference.related element while leaving DocumentReference.event mapped only to eventCodeList.
+
+Additional context:
+DocumentReference is in current build scope through source/fhir.ini, and its active StructureDefinition still has DocumentReference.event as a CodeableReference mapped to Composition.event.detail. FHIR-43408 and its 2024 OO minutes later reviewed the broader XDS mapping and continued to list event as mapping to DocumentEntry.referenceIdList, while also discussing a separate related/referenceIdList catch-all. FHIR-53824/FHIR-53550 later refined DocumentReference.related into a coded backbone for non-lifecycle associations not already represented elsewhere; that does not reverse the FHIR-37549 event mapping.
+
+AutoFHIR reconciliation:
+This commit restores DocumentEntry.referenceIdList to the XDS mapping value for DocumentReference.event, preserving the existing eventCodeList mapping and leaving the separate DocumentReference.related referenceIdList mapping in place for other related-resource use cases.
+
+Recommendation:
+Keep this source fix. It is a narrow build-scope correction that restores the Published FHIR-37549 decision without changing the later related backbone design; any broader review of the full DocumentReference/XDS mapping table should remain tied to the already represented FHIR-43408 work.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37549
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-43408: later-change - Applied R6 issue and OO minutes re-reviewed DocumentReference/XDS mappings and still listed event as mapping to DocumentEntry.referenceIdList while discussing related as a separate catch-all.
+FHIR-53824: later-change - Applied R6 issue clarified DocumentReference.related as a coded backbone for non-lifecycle associations not represented elsewhere; it supports keeping related separate rather than removing the event mapping.
+FHIR-53550: background - Applied issue fulfilled by FHIR-53824 and confirms the related backbone design is a separate concern from event-specific mapping.
+FHIR-5647: supporting-decision - Earlier Published issue introduced DocumentReference support for XDS referenceIdList as related identifiers/resources.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37549: Published/Not Persuasive with Modification, vote 3-0-1, says DocumentReference.event already exists and should map to XDS DocumentEntry.referenceIdList. Learned: this establishes the seed's final source requirement.
+- E2 Confluence 2022-06-14 OO FHIR minutes page 131042565: records FHIR-37549 as not persuasive with modification, Event already there, and mapping to be updated. Learned: meeting evidence matches the Jira resolution.
+- E3 Source source/fhir.ini:189,1138 and source/documentreference/structuredefinition-DocumentReference.xml:514-545: DocumentReference is active build-scope source and event is the authoritative CodeableReference element whose XDS mapping was corrected. Learned: the edit affects current built specification behavior.
+- E4 Git a31aac85a1e6913e8593606957711b98db1c7ec3 and d63adb6a17972d47bde74e7377febe531b104a9a: the Jira-linked commit added referenceIdList to event, and the later 2024 mapping update moved referenceIdList to related while leaving event without it. Learned: current source had regressed from the seed's applied mapping.
+- E5 Jira FHIR-43408 and Confluence 2024-04-30 OO minutes page 239208260: later R6 XDS mapping review listed event mapping to DocumentEntry.referenceIdList and separately questioned related as another referenceIdList target. Learned: later mapping context does not supersede the seed's event mapping.
+- E6 Jira FHIR-53824/FHIR-53550 and current source notes: related is now a coded backbone for non-lifecycle associations not represented by specific elements. Learned: keeping referenceIdList on related and restoring it on event are compatible.
+- E7 Verification command: XML parsing and CRLF-aware git diff --check succeeded for source/documentreference/structuredefinition-DocumentReference.xml. Learned: the one-line source correction is syntactically safe.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37549",
+    "url": "https://jira.hl7.org/browse/FHIR-37549",
+    "snapshot_path": "contexts/FHIR-37549/jira/FHIR-37549.md",
+    "ref": { "jira_key": "FHIR-37549" },
+    "summary": "Published/Not Persuasive with Modification issue saying DocumentReference.event already exists and should be mapped to XDS DocumentEntry.referenceIdList.",
+    "learned": "This is the final OO work-group requirement for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "2022-06-14 OO FHIR minutes page 131042565",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/131042565/2022-06-14+FHIR",
+    "ref": { "confluence_page_id": 131042565 },
+    "summary": "Minutes record FHIR-37549 as not persuasive with modification, noting Event already there and mapping will be updated.",
+    "learned": "Meeting evidence confirms the Jira disposition and scope.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:189,1138; source/documentreference/structuredefinition-DocumentReference.xml:514-545",
+    "summary": "DocumentReference is an active resource, and DocumentReference.event is the active CodeableReference element now mapped to DocumentEntry.eventCodeList and DocumentEntry.referenceIdList.",
+    "learned": "The edited StructureDefinition is current build-scope source and implements the seed mapping.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "a31aac85a1e6913e8593606957711b98db1c7ec3; d63adb6a17972d47bde74e7377febe531b104a9a",
+    "ref": { "commits": "a31aac85a1e6913e8593606957711b98db1c7ec3,d63adb6a17972d47bde74e7377febe531b104a9a" },
+    "summary": "The Jira-linked 2022 commit added referenceIdList to the event mapping; a 2024 mapping update moved referenceIdList onto related and left event mapped only to eventCodeList.",
+    "learned": "The current source had lost the seed-applied event mapping and needed a narrow restoration.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-43408 and 2024-04-30 OO minutes",
+    "url": "https://jira.hl7.org/browse/FHIR-43408",
+    "ref": { "jira_key": "FHIR-43408", "confluence_page_id": 239208260 },
+    "summary": "The later R6 XDS mapping review listed DocumentReference.event as mapping to DocumentEntry.referenceIdList and separately discussed related as another referenceIdList target.",
+    "learned": "Later mapping review supports restoring, not removing, the event referenceIdList mapping.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-53824 and FHIR-53550",
+    "url": "https://jira.hl7.org/browse/FHIR-53824",
+    "ref": { "jira_key": "FHIR-53824" },
+    "summary": "Later Applied issues refined DocumentReference.related into a coded backbone for non-lifecycle associations not already represented by specific elements.",
+    "learned": "The related backbone remains compatible with an event-specific XDS referenceIdList mapping.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace verification",
+    "command": "python3 -c XML parse via xml.etree.ElementTree; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The edited StructureDefinition parsed as XML and the CRLF-aware whitespace check reported no problems.",
+    "learned": "The source correction is syntactically safe for the touched file.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

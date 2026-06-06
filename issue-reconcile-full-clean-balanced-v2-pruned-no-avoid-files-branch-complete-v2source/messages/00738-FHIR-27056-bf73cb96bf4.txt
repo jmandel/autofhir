@@ -1,0 +1,107 @@
+FHIR-27056: State missing authoritative means false
+
+Issue request:
+FHIR-27056 was Published/Persuasive for R5 and asked to add NamingSystem.uniqueId.authoritative as a 0..1 boolean, with missing values defaulting to false, plus a constraint allowing only one authoritative identifier for each type/period combination.
+
+Initial application:
+Git commit 25159ea161 added NamingSystem.uniqueId.authoritative and nsd-3 as part of the Vocab R5 NamingSystem changes, but the authoritative element did not carry the requested missing-value semantics. Later cleanup moved nsd-3 to the resource-level constraints and FHIR-43169 corrected the FHIRPath boolean comparison from string 'true' to boolean true.
+
+Additional context:
+source/fhir.ini actively includes NamingSystem, so source/namingsystem/structuredefinition-NamingSystem.xml is in the current core build. FHIR-40608 remains Triaged and unresolved for the separate question of whether nsd-3 should detect overlapping periods, so this reconciliation does not preempt that pending work-group decision.
+
+AutoFHIR reconciliation:
+Added meaningWhenMissing to NamingSystem.uniqueId.authoritative so the source now states that an omitted value means the identifier is not authoritative, matching the FHIR-27056 default-false requirement without changing the unresolved nsd-3 overlap behavior.
+
+Recommendation:
+Keep this commit. Handle any future rewrite of the nsd-3 FHIRPath expression under FHIR-40608 after the work group adopts a proposed resolution and test suite.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27056
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-43169: later-change - corrected the nsd-3 expression to compare authoritative with boolean true, preserving the FHIR-27056 constraint intent.
+FHIR-40608: background - unresolved tracker for strengthening nsd-3 to detect overlapping periods, intentionally not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27056: Published/Persuasive request to add NamingSystem.uniqueId.authoritative as 0..1 boolean with default false and nsd-3. Learned: this establishes the required current-source semantics.
+- E2 Source source/fhir.ini:233: active namingsystem=NamingSystem entry. Learned: the edited NamingSystem StructureDefinition is in current core build scope.
+- E3 Source source/namingsystem/structuredefinition-NamingSystem.xml:751: authoritative element exists with boolean type and now has meaningWhenMissing at line 760. Learned: the missing default-false semantics are now represented in authoritative source.
+- E4 Git 25159ea161: Vocab R5 NamingSystem commit added authoritative and nsd-3 for FHIR-27056. Learned: the issue was initially applied but incompletely for the missing-value rule.
+- E5 Jira/Git FHIR-43169 and f632e29a: Applied correction replaced 'true' with true in nsd-3. Learned: current source already includes that later final correction.
+- E6 Jira/Zulip FHIR-40608 and #fhirpath Invariant NSD-3 tracker follow-up: unresolved overlap discussion remains open. Learned: overlap-expression changes need a separate final decision.
+- E7 Verification command: xmllint --noout source/namingsystem/structuredefinition-NamingSystem.xml; git diff --check. Learned: the XML is well formed and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27056",
+    "url": "https://jira.hl7.org/browse/FHIR-27056",
+    "snapshot_path": "contexts/FHIR-27056/jira/FHIR-27056.md",
+    "ref": { "jira_key": "FHIR-27056" },
+    "summary": "Published/Persuasive request to add NamingSystem.uniqueId.authoritative as a 0..1 boolean with missing values defaulting to false and an nsd-3 uniqueness constraint.",
+    "learned": "This is the final issue request and establishes the omitted missing-value semantics that needed reconciliation.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:233",
+    "summary": "The active resources list contains namingsystem=NamingSystem.",
+    "learned": "NamingSystem source files are in current FHIR core build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/namingsystem/structuredefinition-NamingSystem.xml:751-760",
+    "summary": "NamingSystem.uniqueId.authoritative is a boolean element and now states that missing means not authoritative.",
+    "learned": "The authoritative StructureDefinition now carries the FHIR-27056 default-false semantics.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "25159ea161eaed360cf05d040c52d38e80cdcbac",
+    "ref": { "commit": "25159ea161eaed360cf05d040c52d38e80cdcbac" },
+    "summary": "The Vocab R5 NamingSystem commit added authoritative and nsd-3 while mentioning FHIR-27056.",
+    "learned": "The original application added the element and constraint but did not encode the missing-value rule.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-43169",
+    "url": "https://jira.hl7.org/browse/FHIR-43169",
+    "snapshot_path": "contexts/FHIR-27056/jira/FHIR-43169.md",
+    "ref": { "jira_key": "FHIR-43169", "commit": "f632e29a2a3e2729b3fa4c496d4bc673e0ff31d8" },
+    "summary": "Applied/Persuasive correction to replace string 'true' with boolean true in nsd-3.",
+    "learned": "Current source already includes the later boolean-comparison correction and this reconciliation should not reintroduce the old expression.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-40608",
+    "url": "https://jira.hl7.org/browse/FHIR-40608",
+    "snapshot_path": "contexts/FHIR-27056/jira/FHIR-40608.md",
+    "ref": { "jira_key": "FHIR-40608" },
+    "summary": "Triaged unresolved tracker says nsd-3 does not detect overlapping periods and points to a FHIRPath follow-up thread.",
+    "learned": "The overlap-expression question is known but not final, so it is intentionally left for separate work-group resolution.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local XML and whitespace validation",
+    "command": "xmllint --noout source/namingsystem/structuredefinition-NamingSystem.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The edited XML parsed successfully and the diff had no whitespace errors.",
+    "learned": "The source edit is syntactically safe for commit.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

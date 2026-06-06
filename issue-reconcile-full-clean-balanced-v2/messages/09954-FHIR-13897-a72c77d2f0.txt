@@ -1,0 +1,108 @@
+FHIR-13897: Audit bodyweight category slicing
+
+Issue request:
+FHIR-13897 was a Published/Persuasive STU3 OO change request for the Body Weight profile. It noted that bodyweight required the vital-signs Observation.category by invariant rather than by fixed values and asked for the easier fixed-value representation. The accepted resolution said a simple fixed value or pattern would not allow alternative codings without slicing, that the invariant was equivalent to slicing, and that the R4 update should use slicing with a fixed-value discriminator.
+
+Initial application:
+No source commit explicitly mentioning FHIR-13897 was found in the current repository history. The current source no longer has the old bodyweight-specific category invariant: bodyweight derives from the active Vital Signs Base Profile, and that base profile carries an open Observation.category slice for the vital-signs category. Historical source checks show the R4B-era vital-signs source introduced the shared category slice inherited by bodyweight, with later R6 vital-signs rework preserving the inherited category-slice approach.
+
+Additional context:
+The current bodyweight profile is in build scope through the active Observation resource and the Observation Vital Signs implementation guide. Later vital-signs work, especially FHIR-46418 and FHIR-50705, reworked how specific vital-sign LOINC semantics are represented and moved those semantics back to Observation.code, but the base vital-signs category slice remains. Current bodyweight also has a vsp-4 invariant, but that later invariant is for value-or-dataAbsentReason behavior from FHIR-36401, not the old category invariant described by FHIR-13897.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source satisfies the FHIR-13897 decision by using inherited open slicing on Observation.category with a vital-signs pattern slice rather than a bodyweight-local invariant or a closed fixed coding that would forbid alternate codings.
+
+Recommendation:
+Keep this audit commit as-is. Do not duplicate the inherited vital-signs category constraint in the bodyweight differential; doing so would add redundant maintenance surface without changing implementer semantics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13897
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-46418: later-change - Reworked the Observation Vital Signs profiles in R6 and confirms the current vital-signs profile organization that bodyweight inherits from.
+FHIR-50705: later-change - Later Applied issue that restored specific vital-sign measurement codes to Observation.code, avoiding confusion with the temporary R6 category-based rework.
+FHIR-36401: background - Explains the current bodyweight vsp-4 invariant, which is unrelated to the old category invariant in FHIR-13897.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13897: Published/Persuasive STU3 issue requesting replacement of a bodyweight category invariant with fixed values, with resolution preferring slicing to avoid excluding alternate codings. Learned: final WG intent was not a closed bodyweight-local fixed coding but a slicing-based category constraint.
+- E2 Source source/observation/structuredefinition-profile-bodyweight.xml:77: bodyweight has baseDefinition http://hl7.org/fhir/StructureDefinition/vitalsigns. Learned: bodyweight inherits the vital-signs base constraints instead of restating category locally.
+- E3 Source source/observation/structuredefinition-profile-vitalsigns.xml:107-130: the base profile slices Observation.category with open rules and a VSCat pattern for http://terminology.hl7.org/CodeSystem/observation-category#vital-signs. Learned: the current authoritative category rule is slicing/pattern-based and permits additional codings.
+- E4 Source source/fhir.ini:208 and source/observation/implementationguide-Observation-vitalsigns.xml:65: Observation is an active resource and the vital-signs IG references StructureDefinition/bodyweight. Learned: these profile sources feed the current build scope.
+- E5 Git c69d71aa213de86d55e0261339c15e4bacd509e6 and 71babbf5ac7b63bce2d61d23ecf4f9d8c1bae164: source history shows the shared vital-signs category slice inherited by bodyweight, while no commit explicitly mentions FHIR-13897. Learned: current correctness comes from later profile organization rather than an issue-keyed seed commit.
+- E6 Community search: Zulip and Confluence searches for FHIR-13897/bodyweight/category/fixed/invariant found only the tracker bot announcement and no relevant WG minutes or conflicting discussion. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E7 Jira FHIR-46418, FHIR-50705, and FHIR-36401: later Applied vital-signs issues explain the current R6 source shape and the unrelated current vsp-4 invariant. Learned: later decisions do not reverse the FHIR-13897 category-slicing requirement.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13897",
+    "url": "https://jira.hl7.org/browse/FHIR-13897",
+    "snapshot_path": "contexts/FHIR-13897/jira/FHIR-13897.md",
+    "ref": { "jira_key": "FHIR-13897" },
+    "summary": "Published/Persuasive STU3 issue asking to replace the bodyweight vital-signs category invariant with fixed values, with resolution saying slicing is needed so alternate codings remain possible.",
+    "learned": "The final decision is satisfied by a slicing-based category constraint rather than a closed bodyweight-local fixed coding.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-bodyweight.xml:77",
+    "ref": { "path": "source/observation/structuredefinition-profile-bodyweight.xml", "line": 77 },
+    "summary": "The bodyweight StructureDefinition derives from http://hl7.org/fhir/StructureDefinition/vitalsigns.",
+    "learned": "Bodyweight inherits vital-signs base constraints instead of needing a duplicate local category invariant.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-vitalsigns.xml:107-130",
+    "ref": { "path": "source/observation/structuredefinition-profile-vitalsigns.xml", "start_line": 107, "end_line": 130 },
+    "summary": "The vital-signs base profile slices Observation.category with open rules and a VSCat pattern for observation-category#vital-signs.",
+    "learned": "The current category constraint uses slicing/pattern semantics and allows additional codings, matching the Jira resolution rationale.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:208; source/observation/implementationguide-Observation-vitalsigns.xml:65",
+    "ref": { "resource_config": "source/fhir.ini:208", "ig_reference": "source/observation/implementationguide-Observation-vitalsigns.xml:65" },
+    "summary": "Observation is active in fhir.ini and the vital-signs implementation guide references StructureDefinition/bodyweight.",
+    "learned": "The inspected profile sources are in current build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "c69d71aa213de86d55e0261339c15e4bacd509e6; 71babbf5ac7b63bce2d61d23ecf4f9d8c1bae164",
+    "ref": { "commits": "c69d71aa213de86d55e0261339c15e4bacd509e6,71babbf5ac7b63bce2d61d23ecf4f9d8c1bae164" },
+    "summary": "History shows the shared vital-signs category slice inherited by bodyweight, while grep/log found no commit explicitly mentioning FHIR-13897.",
+    "learned": "The issue is represented in the current profile structure even without an explicit issue-keyed source commit.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-13897 and bodyweight category fixed invariant",
+    "command": "bun run zulip:search fts 'bodyweight category fixed invariant' --limit 10; bun run zulip:search fts 'StructureDefinition bodyweight invariant' --limit 10; bun run confluence:search refs jira FHIR-13897; bun run confluence:search fts 'bodyweight category fixed invariant' --limit 10",
+    "query": "FHIR-13897 bodyweight category fixed invariant",
+    "summary": "Searches found only the Zulip tracker bot announcement and no directly relevant Confluence reference or conflicting community discussion.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-46418; FHIR-50705; FHIR-36401",
+    "url": "https://jira.hl7.org/browse/FHIR-46418",
+    "ref": { "jira_keys": "FHIR-46418,FHIR-50705,FHIR-36401" },
+    "summary": "Later Applied vital-signs issues explain the R6 profile rework, the return of specific measurement semantics to Observation.code, and the unrelated current value/dataAbsentReason invariant.",
+    "learned": "Later decisions affect surrounding vital-signs structure but do not require any additional source change for FHIR-13897.",
+    "supports": ["additional_context", "recommendation"]
+  }
+]
+</evidence-manifest>

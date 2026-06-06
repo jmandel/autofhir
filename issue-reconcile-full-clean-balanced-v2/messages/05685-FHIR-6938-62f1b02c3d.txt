@@ -1,0 +1,131 @@
+FHIR-6938: Audit Appointment planned encounter support
+
+Issue request:
+FHIR-6938 was Published/Persuasive with Modification for DSTU1. It asked how to communicate planned encounters that were not yet scheduled when Appointment required start/end date-times, and the final resolution said to use Appointment's new proposed status from tracker 5713, make start/end optional for proposed or cancelled appointments, add minutesDuration, and use comments/notes for scheduling guidance.
+
+Initial application:
+Historical commit 44a2cf49ea applied the Appointment/AppointmentResponse reconciliation for trackers including 6938 and 5713 by adding proposed status support, changing Appointment.start and Appointment.end to 0..1, adding minutesDuration, and expanding notes/usage guidance. Commit 8db2dceb19 then specifically referenced tracker 6938 and corrected app-3 so proposed and cancelled appointments can be missing start/end dates.
+
+Additional context:
+FHIR-5713 is the supporting proposed-status decision named in the FHIR-6938 resolution. FHIR-5702, the related proposed-Encounter discussion, was closed no-change, which supports not adding a proposed Encounter status for this issue. FHIR-18824 later added waitlist as another Appointment status that may omit start/end; that later broadening explains why current app-3 includes waitlist in addition to the proposed/cancelled rule from FHIR-6938.
+
+AutoFHIR reconciliation:
+No source change was made. Current build-scope Appointment source already has proposed status, start/end cardinality 0..1, app-3 requiring start/end except for proposed/cancelled/waitlist statuses, minutesDuration, requestedPeriod guidance, and Appointment.note guidance for planned appointments whose start/end are not set. Encounter is active source but does not need a proposed status change under the final FHIR-6938/FHIR-5702/FHIR-5713 decision trail.
+
+Recommendation:
+Keep this no-change audit commit. The current specification conveys the intended way to represent unscheduled planned encounters through Appointment rather than Encounter, and further appointment waitlist or encounter-request modeling questions should stay with later dedicated trackers.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6938
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-5713: supporting-decision - provided the proposed Appointment status and optional start/end invariant support that FHIR-6938's resolution explicitly relied on.
+FHIR-5702: background - proposed Encounter status was discussed separately and later closed no-change, supporting the absence of a current Encounter source edit.
+FHIR-18824: later-change - later added waitlist as another status allowed to omit start/end, explaining the current app-3 wording beyond FHIR-6938's original proposed/cancelled language.
+FHIR-6166: background - appeared in the same historical Appointment/AppointmentResponse reconciliation commit but concerns participant/response guidance rather than the planned-encounter behavior audited here.
+FHIR-7669: background - appeared in the same historical reconciliation commit but was not needed to decide the planned Appointment/Encounter referencing issue.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6938: Published/Persuasive with Modification issue requested support for planned encounters not yet scheduled and resolved to proposed Appointment, optional start/end, minutesDuration, and comments/notes guidance. Learned: this establishes the seed issue's target behavior.
+- E2 Jira FHIR-5713: Published/Persuasive issue added Appointment.status=proposed and optional start/end invariants. Learned: FHIR-6938's resolution depends on this supporting final decision.
+- E3 Source source/fhir.ini:190,230: Encounter and Appointment are active current-build resources. Learned: Appointment/Encounter source checks are in build scope.
+- E4 Source source/appointment/structuredefinition-Appointment.xml:103-113,184-196,601-699,785-789: current Appointment has proposed status, paired optional start/end with app-3, minutesDuration, requestedPeriod guidance, and note guidance for planned appointments without start/end. Learned: the requested behavior is present in authoritative source.
+- E5 Source source/appointment/codesystem-appointmentstatus.xml:51-53 and source/appointment/appointment-example-request.xml:12,45-56: proposed is defined as allowing unset start/end, and the request example uses proposed with minutesDuration, requestedPeriod, and note. Learned: terminology and examples reinforce the same intended representation.
+- E6 Git 44a2cf49ea and 8db2dceb19: tracker commits applied the Appointment reconciliation and explicitly corrected tracker 6938's proposed/cancelled invariant behavior. Learned: the issue was historically applied and survives current source refactors.
+- E7 Jira/Git FHIR-18824 and 7d032cc07c: later Published waitlist issue and reconciliation commit align app-3 text with the current waitlist-inclusive expression. Learned: current waitlist wording is an intentional later change, not a FHIR-6938 defect.
+- E8 Community search: quoted Zulip and Confluence searches for FHIR-6938/FHIR-5713 plus Appointment proposed terms found no directly relevant or conflicting records. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+- E9 Verification command/query: rg checks confirmed active resources and current Appointment source lines for proposed/app-3/start/end/minutesDuration/note; XML parsing of relevant Appointment source succeeded. Learned: the no-change decision is based on current build-scope source that is syntactically valid.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6938",
+    "url": "https://jira.hl7.org/browse/FHIR-6938",
+    "snapshot_path": "contexts/FHIR-6938/jira/FHIR-6938.md",
+    "ref": { "jira_key": "FHIR-6938" },
+    "summary": "Published/Persuasive with Modification issue asked how to communicate planned encounters when Appointment required start/end and resolved to proposed Appointment, optional start/end, minutesDuration, and comments/notes guidance.",
+    "learned": "This establishes the seed issue's final target behavior for current source review.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-5713",
+    "url": "https://jira.hl7.org/browse/FHIR-5713",
+    "snapshot_path": "contexts/FHIR-5713/jira/FHIR-5713.md",
+    "ref": { "jira_key": "FHIR-5713" },
+    "summary": "Published/Persuasive supporting issue added Appointment.status=proposed, usage notes, and invariants for optional start/end date-times.",
+    "learned": "FHIR-6938 explicitly relies on this final decision for planned unscheduled appointments.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:190,230",
+    "summary": "The active resource list includes encounter=Encounter and appointment=Appointment.",
+    "learned": "The relevant Appointment and Encounter source areas are in current build scope.",
+    "supports": ["source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/appointment/structuredefinition-Appointment.xml:103-113,184-196,601-699,785-789",
+    "summary": "Current Appointment source includes proposed status, paired optional start/end with app-3, minutesDuration, requestedPeriod guidance, and note guidance for planned appointments without start/end.",
+    "learned": "The authoritative source already conveys the FHIR-6938 resolution.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/appointment/codesystem-appointmentstatus.xml:51-53; source/appointment/appointment-example-request.xml:12,45-56",
+    "summary": "The proposed code definition allows unset start/end, and the request example uses proposed with minutesDuration, requestedPeriod, and note.",
+    "learned": "Terminology and example source support the same planned-appointment representation.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "44a2cf49ea; 8db2dceb19",
+    "ref": { "commits": "44a2cf49ea,8db2dceb19" },
+    "summary": "Historical tracker commits applied Appointment proposed/start-end/minutesDuration/note support and explicitly corrected the FHIR-6938 invariant behavior.",
+    "learned": "The seed issue was applied historically and remains reflected in current source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-18824 and commit 7d032cc07c",
+    "url": "https://jira.hl7.org/browse/FHIR-18824",
+    "snapshot_path": "contexts/FHIR-18824/jira/FHIR-18824.md",
+    "ref": { "jira_key": "FHIR-18824", "commit": "7d032cc07c" },
+    "summary": "Later Published waitlist issue added waitlist as another Appointment status allowed to omit start/end and a later reconciliation aligned app-3 text.",
+    "learned": "The current waitlist-inclusive app-3 wording is intentional later context, not a defect in applying FHIR-6938.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-6938/FHIR-5713 Appointment proposed context",
+    "command": "bun run zulip:search fts '\"FHIR-6938\" Appointment proposed minutesDuration' --limit 10; bun run zulip:search fts '\"FHIR-5713\" Appointment proposed' --limit 10; bun run confluence:search refs jira FHIR-6938; bun run confluence:search refs jira FHIR-5713; bun run confluence:search fts '\"FHIR-6938\" Appointment Encounter' --limit 10; bun run confluence:search fts '\"FHIR-5713\" Appointment proposed' --limit 10",
+    "query": "FHIR-6938 Appointment proposed minutesDuration; FHIR-5713 Appointment proposed",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence records were found for these issue keys and Appointment proposed terms.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Current source verification commands",
+    "command": "rg -n 'appointment=Appointment|encounter=Encounter' source/fhir.ini; rg -n 'Only proposed, cancelled or waitlisted|status in \\(' source/appointment/structuredefinition-Appointment.xml; rg -n '<code value=\"proposed\"|start/end time might not be set' source/appointment/codesystem-appointmentstatus.xml; xmllint --noout source/appointment/structuredefinition-Appointment.xml source/appointment/codesystem-appointmentstatus.xml",
+    "summary": "Current build-scope source contains the expected Appointment lines and the relevant XML parses successfully.",
+    "learned": "The no-change decision was verified against current authoritative source.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

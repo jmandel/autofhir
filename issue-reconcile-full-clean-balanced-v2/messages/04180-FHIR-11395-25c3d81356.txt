@@ -1,0 +1,97 @@
+FHIR-11395: Audit EOB missing-teeth removal
+
+Issue request:
+FHIR-11395 is a Published/Persuasive with Modification FM issue from the DSTU2 ballot asking whether ExplanationOfBenefit MissingTeeth should instead be represented as an Observation placed in the proposed information/clinical area. The accepted resolution was that missing teeth can be represented in Claim.information and that the missing-teeth elements should be removed.
+
+Initial application:
+The historical application appears in commit aaa1e5693e365bca976f7aa2115c85a0f2293a38, which handled Tracker #7901, #11373, #11395, and #12356 together. For ExplanationOfBenefit it disabled the old ExplanationOfBenefit.missingTeeth, .tooth, .reason, and .extractionDate rows and added ExplanationOfBenefit.information.reason using the MissingReason binding; later resource refactoring renamed information to supportingInfo.
+
+Additional context:
+The same application batch included the parallel Claim missing-teeth issues FHIR-7901 and FHIR-11373, and FHIR-12356 supplied the supporting information payload/reason pattern for Claim and ExplanationOfBenefit. FHIR-12356 is already represented on the combined branch. Current active source still has a stale QUICK Claim-only MissingTeeth model surface, but no ExplanationOfBenefit MissingTeeth surface was found; the Claim cleanup belongs with the parallel Claim issues rather than this EOB seed.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active ExplanationOfBenefit resource is in the current build, exposes supportingInfo.value[x] and supportingInfo.reason for additional supporting information and missing-tooth rationale, and no longer defines ExplanationOfBenefit.missingTeeth or related child elements in the EOB source or QUICK model content.
+
+Recommendation:
+Keep this audit commit as-is for FHIR-11395. If maintainers want to remove the stale QUICK Claim.missingTeeth metadata, reconcile FHIR-7901 and/or FHIR-11373 separately so the Claim-specific source change has the correct issue key and audit trail.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11395
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7901: same-change-family - older Claim issue with the same accepted rationale to remove Claim.missingTeeth because missing teeth can be represented in Claim.information.
+FHIR-11373: same-change-family - parallel DSTU2 Claim issue asking whether MissingTeeth should be represented as Observation/information.
+FHIR-12356: supporting-decision - same application batch added the information.value[x] Attachment/Reference support and information.reason pattern for Claim and EOB; it is already reconciled on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11395: Published/Persuasive with Modification issue asking to replace/remove EOB MissingTeeth, with resolution that missing teeth can be represented in Claim.information and missing-teeth elements should be removed. Learned: this is final FM work-group intent for the seed.
+- E2 Git aaa1e5693e365bca976f7aa2115c85a0f2293a38: Tracker #7901/#11373/#11395/#12356 application disabled EOB missingTeeth spreadsheet rows and added EOB information.reason with MissingReason. Learned: the seed was historically applied through the information/supportingInfo pattern.
+- E3 Source source/fhir.ini:244 and source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:993-1024: ExplanationOfBenefit is active and currently exposes supportingInfo.value[x] and supportingInfo.reason bound to missing-tooth reason codes. Learned: the current EOB source has the replacement representation in build scope.
+- E4 Verification query: rg found no ExplanationOfBenefit.missingTeeth or QUICK.ExplanationOfBenefit.MissingTeeth references in source/explanationofbenefit or the QUICK model content. Learned: no active EOB missing-teeth element remains to remove.
+- E5 Jira/branch context: snapshots/searches for FHIR-7901, FHIR-11373, and FHIR-12356 showed the related Claim/supportingInfo decisions; the combined branch already has Issue-Reconcile-Key FHIR-12356. Learned: related context supports no EOB source change and avoids duplicating an already reconciled issue.
+- E6 Community search: quoted Zulip and Confluence searches for FHIR-11395, MissingTeeth, missing teeth, Claim, EOB, and ExplanationOfBenefit found no relevant discussion or minutes. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11395",
+    "url": "https://jira.hl7.org/browse/FHIR-11395",
+    "snapshot_path": "contexts/FHIR-11395/jira/FHIR-11395.md",
+    "ref": { "jira_key": "FHIR-11395" },
+    "summary": "Published/Persuasive with Modification FM issue asking whether EOB MissingTeeth should instead be represented through information/Observation, with resolution to remove missing-teeth elements because missing teeth can be represented in Claim.information.",
+    "learned": "This establishes the final seed decision and the target current-source behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "aaa1e5693e365bca976f7aa2115c85a0f2293a38",
+    "ref": { "commit": "aaa1e5693e365bca976f7aa2115c85a0f2293a38" },
+    "summary": "Historical Tracker #7901/#11373/#11395/#12356 commit disabled the EOB missingTeeth rows and added ExplanationOfBenefit.information.reason with MissingReason.",
+    "learned": "The issue was applied historically by removing the explicit EOB backbone and moving the representation into the information pattern.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:244; source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:993-1024",
+    "summary": "ExplanationOfBenefit is an active resource and the current StructureDefinition contains supportingInfo.value[x] plus supportingInfo.reason bound to missing-tooth reason codes.",
+    "learned": "The current build-scope EOB source has the intended replacement representation.",
+    "supports": ["source_check", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "EOB missingTeeth absence check",
+    "command": "rg for ExplanationOfBenefit.supportingInfo.value/reason, then fail if ExplanationOfBenefit.missingTeeth or QUICK.ExplanationOfBenefit.MissingTeeth appears in source/explanationofbenefit or source/library/library-quick-model-definition-content.xml",
+    "summary": "The command found the supportingInfo replacement elements and no EOB missingTeeth references.",
+    "learned": "There is no remaining active EOB missing-teeth source location to edit.",
+    "supports": ["verification", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Related Jira and branch checks for FHIR-7901, FHIR-11373, and FHIR-12356",
+    "command": "bun run jira:search snapshot FHIR-7901; bun run jira:search snapshot FHIR-11373; bun run jira:search snapshot FHIR-12356; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-12356' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "The related Claim/supportingInfo issues are the same historical application family, and FHIR-12356 already has a reconciliation commit on the combined branch.",
+    "learned": "These issues are useful context, but this seed should not duplicate the supportingInfo audit or make a Claim-specific change under the EOB issue key.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-11395 and missing-teeth terms",
+    "command": "bun run zulip:search fts '\"FHIR-11395\" MissingTeeth ExplanationOfBenefit' --limit 10; bun run zulip:search fts 'MissingTeeth Claim ExplanationOfBenefit' --limit 10; bun run zulip:search fts '\"missing teeth\" Claim EOB' --limit 10; bun run confluence:search refs jira FHIR-11395; bun run confluence:search fts '\"FHIR-11395\" MissingTeeth ExplanationOfBenefit' --limit 10",
+    "query": "FHIR-11395 MissingTeeth missing teeth Claim EOB ExplanationOfBenefit",
+    "result_count": 0,
+    "summary": "No relevant Zulip or Confluence discussion/minutes were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

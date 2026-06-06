@@ -1,0 +1,96 @@
+FHIR-40491: Fix Transport not-done status definition
+
+Issue request:
+FHIR-40491 was Applied/Persuasive for FHIR-core Transport. It asked that Transport not bridge the Request and Event workflow patterns and resolved to adjust Transport.status to the event-oriented codes preparation | in-progress | not-done | suspended | stopped | on-hold | completed | entered-in-error | unknown.
+
+Initial application:
+The issue was applied through HL7/fhir#3268. Commit c15815354 changed the Transport status CodeSystem to the requested code list, and commit b2f79751 added entered-in-error and updated Transport.status.short, but c15815354 left the new not-done code with the completed definition.
+
+Additional context:
+source/fhir.ini actively includes transport as an OO resource, so source/transport/codesystem-transport-status.xml feeds the current build. Related FHIR-39512 had already removed Transport.intent, Transport.priority, and request mappings so Transport is treated as an Event resource; FHIR-40491 is the follow-on status terminology cleanup. OO minutes on 2024-11-19 record the vote and comparison to Event.status. No Zulip discussion found by key/status search changed that conclusion.
+
+AutoFHIR reconciliation:
+This commit keeps the applied status code list intact and fixes only the contradictory not-done definition, replacing the copy/paste completed wording with event-oriented wording for a transport event that ended before the main transport activity began.
+
+Recommendation:
+Keep this source fix. It is a narrow correction to the authoritative Transport status CodeSystem and avoids broad narrative changes that are either covered by other Transport workflow issues or need separate work-group review.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-40491
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-39512: same-change-family - established Transport as an Event resource by removing Transport.intent, Transport.priority, and request mappings before FHIR-40491 aligned status codes.
+FHIR-36248: background - earlier Published Transport boundary text explains ServiceRequest/Task relationships and is not changed by this status-definition fix.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-40491: Applied/Persuasive, OO, applied for R6, resolved to adjust Transport.status to the listed event-oriented codes. Learned: this is the final issue request and target status-code set.
+- E2 Source source/fhir.ini:637 and source/transport/codesystem-transport-status.xml:54: transport is an active OO resource and not-done is in the authoritative Transport status CodeSystem. Learned: the edited file is in current build scope.
+- E3 Source source/transport/structuredefinition-Transport.xml:194 and source/transport/codesystem-transport-status.xml:54-56: Transport.status uses the requested code list and required transport-status ValueSet, but not-done had a contradictory completed definition before this fix. Learned: the code-list application was present but semantically defective in one concept definition.
+- E4 Git c15815354 and b2f79751: FHIR-40491 implementation changed the status CodeSystem and StructureDefinition short text, while leaving not-done defined as completed. Learned: the remaining defect came from the initial application path.
+- E5 Confluence 288395568: 2024-11-19 OO on FHIR minutes record FHIR-40491 discussion, vote, current Transport.status, and Event pattern status comparison. Learned: the WG decision supports event-oriented status semantics.
+- E6 Command community/source searches: quoted Jira search found only FHIR-40491 for this status/key query, Zulip search for the key/status terms found no results, and XML/whitespace checks passed. Learned: no conflicting community evidence was found and the edited XML remains well-formed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-40491",
+    "url": "https://jira.hl7.org/browse/FHIR-40491",
+    "snapshot_path": "contexts/FHIR-40491/jira/FHIR-40491.md",
+    "ref": { "jira_key": "FHIR-40491" },
+    "summary": "Applied/Persuasive Transport issue resolving to adjust Transport.status to preparation, in-progress, not-done, suspended, stopped, on-hold, completed, entered-in-error, and unknown.",
+    "learned": "This establishes the final WG request and the target event-oriented status code set.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:637; source/transport/codesystem-transport-status.xml:54",
+    "summary": "transport is an active OO resource and the Transport status CodeSystem contains the not-done concept.",
+    "learned": "The edited CodeSystem is authoritative current-build source for Transport.status.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/transport/structuredefinition-Transport.xml:194; source/transport/codesystem-transport-status.xml:54-56",
+    "summary": "Transport.status uses the requested code list and required transport-status ValueSet, while the not-done concept previously said Transport had been completed.",
+    "learned": "The code-list change was applied but one concept definition contradicted event semantics and needed correction.",
+    "supports": ["initial_application", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "c15815354fe243c45e239c355cbf41b8a5ba9153; b2f79751ae37cc361c7cbcb9d0ce03a8d35f8d2d",
+    "ref": { "commit": "c15815354fe243c45e239c355cbf41b8a5ba9153" },
+    "summary": "FHIR-40491 implementation commits changed the status CodeSystem and StructureDefinition short text but left not-done defined as completed.",
+    "learned": "The remaining defect was introduced during the Jira-tagged application rather than by a later reversal.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "OO on FHIR minutes 2024-11-19 page 288395568",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/288395568/2024-11-19+OO+on+FHIR",
+    "ref": { "confluence_page_id": 288395568 },
+    "summary": "Minutes record FHIR-40491, current Transport.status, Event pattern status comparison, and the Persuasive vote.",
+    "learned": "The WG decision supports treating Transport.status as event-oriented terminology.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community/source verification for FHIR-40491 Transport status",
+    "command": "bun run jira:search fts '\"FHIR-40491\" Transport status \"not-done\" stopped \"on-hold\" event request' --limit 10; bun run zulip:search fts '\"FHIR-40491\" Transport status request event Task \"not-done\"' --limit 10; python3 XML parse; git diff --check",
+    "query": "FHIR-40491 Transport status not-done stopped on-hold event request",
+    "result_count": 1,
+    "summary": "The quoted Jira search found only FHIR-40491, the Zulip search found no results, and XML/whitespace validation passed.",
+    "learned": "No conflicting community evidence was found and the source edit is structurally valid.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

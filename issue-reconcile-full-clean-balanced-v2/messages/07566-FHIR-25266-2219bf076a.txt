@@ -1,0 +1,96 @@
+FHIR-25266: Align StructureMap identifier syntax
+
+Issue request:
+FHIR-25266 was Published/Persuasive with Modification for R5. It reported that the FHIR Mapping Language allowed escaped/delimited identifiers even though StructureMap group, rule, and variable-name fields used the id datatype; the approved resolution kept id rules for those map-defined names, excluded target.context because logical model contexts can be URIs, and required the general syntax section to distinguish what can and cannot be delimited.
+
+Initial application:
+The Jira-tagged commit 9799fa13cb changed StructureMap.group.rule.target.context from id to string, added the general syntax text prohibiting backticks around map-defined id values, and updated the then-current grammar to use id-like tokens for several names. The current StructureMap source still has the intended id/string split, but a later grammar rewrite (db673c36e8) reintroduced drift by omitting delimited identifiers from rule-path components while allowing delimited identifiers for as-variables and group invocations.
+
+Additional context:
+FHIR-23033 is a resolved-no-change predecessor that explicitly points to the FHIR-25266 resolution, and FHIR-25286 separately removed double quotes as an allowed delimiter in favor of backticks. The Mapping Language page is in the current build hierarchy, StructureMap is an active resource in fhir.ini, and publish.ini includes both mapping-language.html and mapping.g4, so the corrected prose and grammar are current build inputs rather than stale generated output.
+
+AutoFHIR reconciliation:
+This commit clarifies the general syntax prose so source/target data model path elements may be backtick-delimited, target.context may still be a logical-model URI, and map-defined group, rule, and variable names remain governed by id rules. It also updates images/mapping.g4 so qualified rule-path components can use DELIMITEDIDENTIFIER, while as-variables and group invocations use ID instead of the broader identifier rule.
+
+Recommendation:
+Keep this commit as-is. It completes the published FHIR-25266 intent without changing the StructureMap element model; future changes to rule-name quoting or broader FML grammar behavior should be handled as separate mapping-language decisions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25266
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-23033: supporting-decision - Earlier StructureMap escaped-identifier request was Resolved - No Change by pointing to the FHIR-25266 resolution.
+FHIR-25286: same-change-family - Published syntax cleanup removed double quotes as delimited identifiers and confirms backticks are the delimiter family at issue here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25266: Published/Persuasive with Modification issue requiring id rules for map-defined names, target.context exclusion, and clearer syntax text. Learned: this establishes the authoritative reconciliation target.
+- E2 Source source/structuremap/structuredefinition-StructureMap.xml:720-728 and 878-910: source.context, target.variable, and related variable fields remain id while target.context is string. Learned: the abstract StructureMap model already carries the intended id/string split.
+- E3 Source source/mapping-language.html:105-113 and images/mapping.g4:154-223: this commit aligns syntax prose and formal grammar so delimited identifiers apply to data model path parts, not map-defined variable/group names. Learned: the remaining current-spec gap is closed in active source.
+- E4 Git 9799fa13cb and db673c36e8: the Jira-tagged application made the R5 changes, while the later grammar rewrite changed the same grammar area and caused the current inconsistency. Learned: this is a follow-up reconciliation of a prior application rather than a new policy.
+- E5 Community Zulip #mapping-framework > General Syntax Notes and Confluence FHIR-I Minutes 2019-12-16 page 66937353: discussion and minutes record the concern, vote, target.context URI exception, and delimiter distinction. Learned: community evidence supports the Jira resolution and this narrow fix.
+- E6 Verification command/query: git diff --check with CRLF-aware whitespace, ./gradlew test --quiet, active fhir.ini/hierarchy/publish.ini checks, and duplicate combined-branch grep. Learned: the edited files are in build scope, checks completed successfully, and no existing FHIR-25266 combined-branch commit was present.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25266",
+    "url": "https://jira.hl7.org/browse/FHIR-25266",
+    "snapshot_path": "contexts/FHIR-25266/jira/FHIR-25266.md",
+    "ref": { "jira_key": "FHIR-25266" },
+    "summary": "Published/Persuasive with Modification issue about escaped StructureMap identifiers conflicting with id-typed group, rule, and variable fields.",
+    "learned": "The final decision keeps id rules for map-defined names, excludes target.context because logical model contexts can be URIs, and requires clearer syntax guidance.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/structuremap/structuredefinition-StructureMap.xml:720-728,878-910",
+    "ref": { "file": "source/structuremap/structuredefinition-StructureMap.xml", "lines": "720-728,878-910" },
+    "summary": "StructureMap source keeps source.context and variable-name fields as id while target.context is string.",
+    "learned": "The resource definition already reflects the approved target.context exception and id constraints for map-defined names.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/mapping-language.html:105-113; images/mapping.g4:154-223",
+    "ref": { "file": "images/mapping.g4", "lines": "154-223" },
+    "summary": "The active Mapping Language prose and grammar now distinguish delimited data model path parts from id-constrained map-defined names.",
+    "learned": "The current source now closes the remaining prose/grammar mismatch without changing unrelated StructureMap fields.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "9799fa13cb; db673c36e8",
+    "ref": { "commit": "9799fa13cb5f8bdf46f611954cedf432a2003df0" },
+    "summary": "9799fa13cb applied FHIR-25266 to StructureMap, syntax prose, and grammar; db673c36e8 later rewrote mapping.g4 in the same grammar area.",
+    "learned": "The remaining inconsistency is a drift introduced after the original Jira-tagged application.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20191216 page 66937353",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/66937353/FHIR+Infrastructure+Minutes+CC+20191216",
+    "ref": { "confluence_page_id": 66937353 },
+    "summary": "FHIR-I minutes record the 10-0-0 motion to impose id rules, exclude target.context for URI logical models, and distinguish what can be delimited.",
+    "learned": "The work-group vote corroborates the Jira resolution used for this source fix.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Validation and build-scope checks",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; ./gradlew test --quiet; rg/view checks of source/fhir.ini, source/hierarchy.xml, and publish.ini; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-25266' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "Whitespace and Gradle test checks completed successfully, build-scope references were confirmed, and no existing combined-branch FHIR-25266 commit was found.",
+    "learned": "The change is clean, in current build scope, and safe to publish as the seed issue's single reconciliation commit.",
+    "supports": ["confidence", "source_change_scope"]
+  }
+]
+</evidence-manifest>

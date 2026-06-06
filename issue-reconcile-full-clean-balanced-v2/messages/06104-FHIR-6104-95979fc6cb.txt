@@ -1,0 +1,84 @@
+FHIR-6104: Audit CodeSystem casing tooling
+
+Issue request:
+FHIR-6104 is a Published vocab change request resolved Persuasive with Modification. It asked tooling to enforce consistent capitalization for FHIR-defined code systems; the approved rule was lowercase codes with dashes as separators and title-case display names, with exceptions allowed when confirmed with Vocab or MnM.
+
+Initial application:
+The issue was applied in the legacy in-repo publisher tooling by git commit 430e840f067da7df7b7634ee9710d1c275f529ff, corresponding to SVN revision 5847 mentioned in Jira. That commit added ValueSetValidator checks for title-case displays and lowercase-dash codes for non-known/non-external code systems, while also touching source terminology content.
+
+Additional context:
+The current FHIR source no longer carries the legacy tools/java publisher code. Commit 9f549566d1346cad7db6d2afca6080d7cebdfbbe moved the publisher implementation to the external org.hl7.fhir:kindling dependency, and the active build.gradle.kts now runs org.hl7.fhir.tools.publisher.Publisher from Kindling. Current checked-in build inputs still show this rule being enforced: suppressed-messages.txt contains the exact current warnings "Display Names must be TitleCase" and "Defined codes must be lowercase-dash" for the active W3C Provenance CodeSystem, which source/fhir.ini includes in the build. The underlying CodeSystem intentionally uses W3C PROV code/display forms, making it an approved exception rather than a missing normalization.
+
+AutoFHIR reconciliation:
+No source change was made. The historical application exists, the current build tooling continues to surface the casing checks, and the only current discovered exception is explicitly suppressed as an intentional external vocabulary form.
+
+Recommendation:
+Keep this audit commit as-is. If future work changes the enforcement algorithm itself, make that change in the Kindling publisher/tooling repository rather than in core spec source; core source changes should only be needed for specific unsuppressed terminology content violations.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6104
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6104: Published/Persuasive with Modification; resolution sets lowercase-dash codes and title-case display names with Vocab/MnM-approved exceptions. Learned: establishes the final requested rule and its exception policy.
+- E2 Git 430e840f067d: legacy publisher commit "#6104 - code definition improvements" added ValueSetValidator title-case and lowercase-dash checks. Learned: confirms initial source/tooling application tied to Jira's SVN revision comment.
+- E3 Source build.gradle.kts:41-50 and gradle.properties:2: current build depends on org.hl7.fhir:kindling 1.25.5-SNAPSHOT and runs org.hl7.fhir.tools.publisher.Publisher. Learned: the enforceable publisher logic now lives in the Kindling tooling dependency rather than editable core source.
+- E4 Source suppressed-messages.txt:40-41, source/fhir.ini:1266, and source/provenance/codesystem-w3c-provenance-activity-type.xml:37-38: current build suppresses exact TitleCase/lowercase-dash warnings for an active W3C Provenance CodeSystem whose code/display values intentionally use W3C forms. Learned: current tooling still emits the rule and the discovered exception is documented.
+- E5 Community search: Zulip and Confluence searches for FHIR-6104 and casing terms found no relevant discussions or conflicting decisions. Learned: no discovered community evidence changes the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6104",
+    "url": "https://jira.hl7.org/browse/FHIR-6104",
+    "snapshot_path": "contexts/FHIR-6104/jira/FHIR-6104.md",
+    "ref": { "jira_key": "FHIR-6104" },
+    "summary": "Published/Persuasive with Modification issue requiring tooling to enforce lowercase-dash FHIR-defined codes and title-case display names, with Vocab/MnM-approved exceptions.",
+    "learned": "This is the final work-group decision and defines the target rule plus exception policy.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "430e840f067da7df7b7634ee9710d1c275f529ff",
+    "ref": { "commit": "430e840f067da7df7b7634ee9710d1c275f529ff" },
+    "summary": "Legacy commit '#6104 - code definition improvements' added ValueSetValidator checks for Display Names must be TitleCase and defined codes must be lowercase-dash.",
+    "learned": "The Jira-requested tooling behavior was applied in the then-current in-repo publisher tooling.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "build.gradle.kts:41-50; gradle.properties:2; git 9f549566d1346cad7db6d2afca6080d7cebdfbbe",
+    "ref": { "commit": "9f549566d1346cad7db6d2afca6080d7cebdfbbe" },
+    "summary": "Current core build uses org.hl7.fhir:kindling 1.25.5-SNAPSHOT and runs org.hl7.fhir.tools.publisher.Publisher from that dependency after tools/java was removed.",
+    "learned": "Publisher/tooling implementation edits are now outside the core source checkout, so no core source hunk is needed for the already-applied rule.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "suppressed-messages.txt:40-41; source/fhir.ini:1266; source/provenance/codesystem-w3c-provenance-activity-type.xml:37-38",
+    "summary": "The current build suppresses exact TitleCase and lowercase-dash CodeSystem warnings for the active W3C Provenance CodeSystem, whose code/display values intentionally follow W3C PROV forms.",
+    "learned": "The current tooling still emits the requested casing checks, and the visible exception is explicitly documented rather than an unhandled violation.",
+    "supports": ["additional_context", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence searches for FHIR-6104 and CodeSystem casing terms",
+    "command": "cd /home/jmandel/work/fhir-community-search && bun run zulip:search fts '\"FHIR-6104\"' --limit 10; bun run zulip:search fts '\"lowercase\" \"dash\" \"TitleCase\" \"CodeSystem\"' --limit 10; bun run confluence:search refs jira FHIR-6104; bun run confluence:search fts '\"title case\" \"display\" \"code system\"' --limit 10",
+    "query": "FHIR-6104 lowercase dash TitleCase CodeSystem title case display code system",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits, references, or conflicting decisions were found.",
+    "learned": "No discovered community record changes the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

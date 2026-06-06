@@ -1,0 +1,130 @@
+FHIR-48895: Align DeviceAlert component definition
+
+Issue request:
+FHIR-48895 was an Applied/Persuasive Devices change request for R6 asking DeviceAlert to support compound metrics by identifying which Observation component caused an alert, originally also suggesting a corresponding Device-alertDetection component.
+
+Initial application:
+The issue was applied by PR #3533, merged as d12386c96669661f8c6a55672865ac7522f2279e, with implementation commit 4f7d26af1e36cfaccd8f4834948f3475e9bc8eeb. That implementation reorganized DeviceAlert.derivedFrom into a BackboneElement, renamed the original reference to derivedFrom.observation, added derivedFrom.component as Coding 0..1, and updated the derived-from search parameter to target DeviceAlert.derivedFrom.observation. Later commits for FHIR-51472 and FHIR-53371 touched the same element for markdown and conformance-language cleanup but did not change the 0..1 cardinality.
+
+Additional context:
+Jira comments and Devices WG minutes show the final approach moved away from ignorable extensions/targetElement/targetPath toward a DeviceAlert backbone element, and a later Jira comment records that Device-alertDetection did not need a component because it refers to the generated alert code, not the triggering condition. source/fhir.ini lists DeviceAlert as an active current-build resource, while the device-alertDetection definition is maintained in the FHIR Extension Pack and remains outside this core source edit. The current DeviceAlert source already carried the intended component element, but its definition still said repetitions of that 0..1 element could indicate additional components.
+
+AutoFHIR reconciliation:
+This commit removes the impossible repetition guidance from DeviceAlert.derivedFrom.component and fixes the matching grammar, preserving the 0..1 Coding model approved and applied for FHIR-48895. It also aligns the checked-in DeviceAlert SVG title text with the authoritative StructureDefinition so the visible diagram does not continue to advertise repetitions for a non-repeating element.
+
+Recommendation:
+Keep this commit as-is. No core DeviceMetric or Extension Pack source change is indicated for FHIR-48895 unless the Devices WG later decides that alertDetection should describe triggering submetrics rather than the generated alert code.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-48895
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-43708: supporting-decision - established the device-alertDetection extension family; FHIR-48895 later concluded this extension did not need the component change.
+FHIR-51472: later-change - corrected markdown in DeviceAlert.derivedFrom.component short text without changing the 0..1 component model.
+FHIR-53371: later-change - edited DeviceAlert conformance language in the same definition but left the repetition/cardinality contradiction in place.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-48895: Applied/Persuasive, vote 12-0-1, requested compound-metric alert support and records the later no-change conclusion for Device-alertDetection. Learned: final WG intent is to add component support to DeviceAlert but not to the alertDetection extension.
+- E2 Source source/fhir.ini:307 and source/fhir.ini:1047: DeviceAlert is an active resource with normative status metadata in the current build configuration. Learned: source/devicealert changes are in current FHIR build scope.
+- E3 Source source/devicealert/structuredefinition-DeviceAlert.xml:511: DeviceAlert.derivedFrom.component is Coding 0..1 and now omits the contradictory repetition guidance. Learned: the authoritative definition now matches the approved cardinality.
+- E4 Source source/devicealert/bundle-DeviceAlert-search-params.xml:383: the derived-from search parameter points to DeviceAlert.derivedFrom.observation after the original application. Learned: the derivedFrom backbone refactor was already wired into parallel conformance source.
+- E5 Source /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-device-alertDetection.json:20: the alertDetection extension lives in the Extension Pack and describes alert code/priority/activation state, with no component slice. Learned: the current no-core-change conclusion for alertDetection matches the Jira application note.
+- E6 Git d12386c96669661f8c6a55672865ac7522f2279e / 4f7d26af1e36cfaccd8f4834948f3475e9bc8eeb: PR #3533 added DeviceAlert.derivedFrom.component and changed derived-from search parameter paths. Learned: the original source application exists but left the stale repetition sentence.
+- E7 Confluence HCD 2025-06-30 and 2025-07-07 Devices calls: minutes approved the solution and then directed adding a derivedFrom backbone element to DeviceAlert. Learned: community/WG records support the backbone implementation rather than an extension-only solution.
+- E8 Command Zulip/Confluence searches for FHIR-48895 and DeviceAlert component terms: no relevant Zulip conflict was found; Confluence refs confirm application was reviewed on 2025-07-10 with no comments. Learned: no discovered community evidence changes the source/Jira conclusion.
+- E9 Verification command: git diff --check plus XML parsing of structuredefinition-DeviceAlert.xml and devicealert.svg passed. Learned: the edited source remains well-formed and free of whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-48895",
+    "url": "https://jira.hl7.org/browse/FHIR-48895",
+    "snapshot_path": "contexts/FHIR-48895/jira/FHIR-48895.md",
+    "ref": { "jira_key": "FHIR-48895" },
+    "summary": "Applied/Persuasive Devices issue asking DeviceAlert to identify the component of a compound metric that caused an alert, with later comments refining the solution to a derivedFrom backbone and no alertDetection update.",
+    "learned": "This establishes final WG intent for a DeviceAlert component element while ruling out a required core DeviceMetric alertDetection change for this issue.",
+    "supports": ["issue_request", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:307 and source/fhir.ini:1047",
+    "ref": { "path": "source/fhir.ini", "lines": "307,1047" },
+    "summary": "DeviceAlert is listed as an active resource and has current build metadata.",
+    "learned": "DeviceAlert source files are in current FHIR build scope for this reconciliation.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/devicealert/structuredefinition-DeviceAlert.xml:511",
+    "ref": { "path": "source/devicealert/structuredefinition-DeviceAlert.xml", "line": 511 },
+    "summary": "DeviceAlert.derivedFrom.component is a Coding element with min 0 and max 1; this commit removes definition text that claimed repetitions were meaningful.",
+    "learned": "The authoritative source now consistently represents the approved 0..1 component model.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/devicealert/bundle-DeviceAlert-search-params.xml:383",
+    "ref": { "path": "source/devicealert/bundle-DeviceAlert-search-params.xml", "line": 383 },
+    "summary": "The DeviceAlert-derivedFrom search parameter path and expression point to DeviceAlert.derivedFrom.observation.",
+    "learned": "The original derivedFrom backbone application is already reflected in parallel conformance source.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-device-alertDetection.json:20",
+    "ref": { "path": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-device-alertDetection.json", "line": 20 },
+    "summary": "The device-alertDetection extension is maintained in the FHIR Extension Pack and describes alert code, priority, effective time, and activationState without a component slice.",
+    "learned": "This matches the Jira application comment that alertDetection refers to the generated alert code rather than the triggering condition.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "d12386c96669661f8c6a55672865ac7522f2279e and 4f7d26af1e36cfaccd8f4834948f3475e9bc8eeb",
+    "ref": { "commit": "d12386c96669661f8c6a55672865ac7522f2279e" },
+    "summary": "PR #3533 applied FHIR-48895 by adding DeviceAlert.derivedFrom.component and updating the derived-from search parameter.",
+    "learned": "The issue was substantially applied before reconciliation, but the applied definition still contained impossible repetition guidance.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "HCD 2025-06-30 DEV Additional/Monday Call and 2025-07-07 Devices WG Additional Call",
+    "url": "https://confluence.hl7.org/spaces/HCD/pages/358259271/2025-07-07+Devices+WG+Additional+Call+Agenda+and+Minutes",
+    "snapshot_path": "contexts/FHIR-48895/confluence/358259271.md",
+    "ref": { "confluence_page_id": 358259271 },
+    "summary": "Devices minutes record approval of the component solution and subsequent instruction to add a derivedFrom backbone element to DeviceAlert.",
+    "learned": "WG meeting evidence supports the current backbone/cardinality direction and not a repeating component element.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community search for FHIR-48895 and DeviceAlert component terms",
+    "command": "bun run zulip:search fts '\"FHIR-48895\" DeviceAlert' --limit 10; bun run zulip:search fts 'DeviceAlert compound metrics component' --limit 10; bun run confluence:search refs jira FHIR-48895",
+    "query": "FHIR-48895 DeviceAlert compound metrics component",
+    "result_count": 0,
+    "summary": "No relevant Zulip hits were found; Confluence refs confirm the application was reviewed on 2025-07-10 with no comments.",
+    "learned": "No discovered community evidence conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Local validation of FHIR-48895 source edit",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/devicealert/structuredefinition-DeviceAlert.xml source/devicealert/devicealert.svg; python3 XML parse of both edited files",
+    "summary": "Whitespace check and XML parsing passed for both edited files.",
+    "learned": "The reconciliation edit is syntactically safe for the changed XML/SVG sources.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

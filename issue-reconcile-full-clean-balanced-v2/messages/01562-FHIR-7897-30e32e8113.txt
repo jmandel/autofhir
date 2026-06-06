@@ -1,0 +1,107 @@
+FHIR-7897: Audit Immunization patient search parameter
+
+Issue request:
+FHIR-7897 was a Published PHER change request, resolved Not Persuasive with Modification, asking whether Immunization should be searchable by subject and whether the same question applied to AllergyIntolerance. The decisive Jira comment and resolution accepted the FHIR group pattern: remove the subject search parameter where a resource has a patient element; resources with a patient element should have a patient search parameter, while resources with a broader subject that could be a patient may have both subject and patient search parameters.
+
+Initial application:
+The historical source application is explicit: git commit b4d544060a included "#7897 remove subject search param" and removed the subject row from source/immunization/immunization-spreadsheet.xml while leaving the patient search row against Immunization.patient. Later source refactoring moved search parameter definitions from spreadsheets into bundle-*-search-params.xml files without reintroducing the Immunization subject parameter.
+
+Additional context:
+FHIR-3705 had already renamed Immunization.subject to Immunization.patient under the same patient-vs-subject naming rule, which explains why Immunization should expose patient rather than subject. source/fhir.ini actively includes both allergyintolerance and immunization resources, so their current bundle search parameter files are in build scope. The current AllergyIntolerance and Immunization search parameter bundles each define a patient search parameter against the .patient element, and neither resource folder contains a subject search parameter. Zulip and Confluence searches for FHIR-7897 and for Immunization.subject/Immunization.patient found no contrary community guidance.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current active source already matches the FHIR-7897 decision: Immunization is searchable by patient, not subject, and AllergyIntolerance follows the same patient-only pattern.
+
+Recommendation:
+Keep this no-change audit commit as-is. No follow-up source work is recommended for FHIR-7897 unless a future work group decision changes the patient-vs-subject search parameter policy.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7897
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-3705: supporting-decision - renamed Immunization.subject to Immunization.patient and supplies the element-level rationale for the patient-only search parameter.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7897: Published/Not Persuasive with Modification PHER issue accepted the FHIR group recommendation to remove subject search parameters where patient parameters are defined. Learned: this establishes the target patient-only search parameter behavior for Immunization and analogous patient-only resources.
+- E2 Git b4d544060a: commit message includes "#7897 remove subject search param" and the patch removes the Immunization subject search row while retaining patient. Learned: the seed was explicitly applied in historical source.
+- E3 Source source/fhir.ini:176,197: allergyintolerance and immunization are active resources. Learned: the current search parameter bundles for these resources are in build scope.
+- E4 Source source/immunization/bundle-Immunization-search-params.xml:122-133 and source/allergyintolerance/bundle-AllergyIntolerance-search-params.xml:195-206: both resources define patient search parameters using .patient expressions. Learned: current source contains the intended patient search parameters.
+- E5 Verification rg: no subject search parameter was found under source/immunization or source/allergyintolerance. Learned: current source does not retain the stale subject search parameter that FHIR-7897 asked to remove.
+- E6 Jira FHIR-3705: Published/Persuasive issue renamed Immunization.subject to Immunization.patient because Immunization only allows Patient as the subject. Learned: this supports interpreting FHIR-7897 through the patient-vs-subject naming rule.
+- E7 Community search: Zulip and Confluence searches for FHIR-7897 plus Immunization/subject/patient/AllergyIntolerance terms and for Immunization.subject/Immunization.patient found no relevant contrary records. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7897",
+    "url": "https://jira.hl7.org/browse/FHIR-7897",
+    "snapshot_path": "contexts/FHIR-7897/jira/FHIR-7897.md",
+    "ref": { "jira_key": "FHIR-7897" },
+    "summary": "Published/Not Persuasive with Modification PHER issue asking whether Immunization, and possibly AllergyIntolerance, should be searchable by subject.",
+    "learned": "The accepted recommendation was to remove subject search parameters where a patient search parameter is defined and reserve subject for broader subject elements.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "b4d544060a",
+    "ref": { "commit": "b4d544060ae9468bc9fe06353a0af056866f9d28" },
+    "summary": "Commit #7867/#7887/#7897 removed the Immunization subject search row from source/immunization/immunization-spreadsheet.xml while retaining the patient row.",
+    "learned": "FHIR-7897 was explicitly applied in historical source before later search-parameter source refactoring.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:176,197",
+    "ref": { "path": "source/fhir.ini", "lines": "176,197" },
+    "summary": "The active resources list includes allergyintolerance=AllergyIntolerance and immunization=Immunization.",
+    "learned": "The current source files for these resources are in the active core build scope.",
+    "supports": ["additional_context", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/immunization/bundle-Immunization-search-params.xml:122-133; source/allergyintolerance/bundle-AllergyIntolerance-search-params.xml:195-206",
+    "ref": { "paths": "source/immunization/bundle-Immunization-search-params.xml; source/allergyintolerance/bundle-AllergyIntolerance-search-params.xml" },
+    "summary": "Immunization-patient and AllergyIntolerance-patient are defined with code patient and expressions Immunization.patient and AllergyIntolerance.patient.",
+    "learned": "Current active source carries the intended patient search parameters for both resources.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current subject search parameter check",
+    "command": "rg -n 'code value=\"subject\"|SearchParameter/.*-subject|<id value=\".*-subject\"' source/immunization source/allergyintolerance",
+    "result_count": 0,
+    "summary": "No subject search parameter is present under source/immunization or source/allergyintolerance.",
+    "learned": "The stale subject parameter targeted by FHIR-7897 is absent from current source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-3705",
+    "url": "https://jira.hl7.org/browse/FHIR-3705",
+    "ref": { "jira_key": "FHIR-3705" },
+    "summary": "Published/Persuasive issue renamed Immunization.subject to Immunization.patient because Immunization only allows Patient as the subject.",
+    "learned": "The element-level decision supports the patient-only interpretation used for FHIR-7897.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence searches for FHIR-7897 and Immunization subject/patient terms",
+    "command": "bun run zulip:search fts '\"FHIR-7897\" Immunization subject patient AllergyIntolerance' --limit 10; bun run confluence:search refs jira FHIR-7897; bun run confluence:search fts '\"FHIR-7897\" Immunization subject patient AllergyIntolerance' --limit 10; bun run zulip:search fts '\"Immunization.subject\" \"Immunization.patient\"' --limit 10; bun run confluence:search fts '\"Immunization.subject\" \"Immunization.patient\"' --limit 10",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting community records were found.",
+    "learned": "No discovered community evidence changes the Jira, git, and source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

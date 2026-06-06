@@ -1,0 +1,107 @@
+FHIR-26906: Correct Location form search code
+
+Issue request:
+FHIR-26906 was Applied with a Persuasive with Modification resolution for the PA Location resource. The issue asked how to support finding/counting beds at a location; the final resolution said Location.form identifies a bed and that new search parameters would be added for both Location.form and Location.mode, while not attempting to represent available beds.
+
+Initial application:
+Commit 3bcf58592991dce0f3e27051f0c3009890f3bacc added Location-form and Location-mode SearchParameter entries to source/location/bundle-Location-search-params.xml. That implementation correctly added the Location.form entry, URL, path, description, token type, and expression, but copied the search code from Location.characteristic, leaving the new Location.form SearchParameter published under code "characteristic" instead of "form". Later history only changed standards-status values and did not repair the code.
+
+Additional context:
+source/fhir.ini actively includes location=Location, so source/location/bundle-Location-search-params.xml is in the current build scope for the Location resource. Location.mode already has code "mode", and the neighboring Location.characteristic SearchParameter remains code "characteristic". PA Confluence minutes for 2023-04-05 reference FHIR-26906 and defer the formal vote details to the ticket, matching the Jira snapshot. Searches found no Zulip discussion or later Applied/Published Jira decision that changes the requested Location.form/Location.mode search-parameter behavior. FHIR-55300 is a later Resolved - change required value-set migration issue for Location and does not decide the Location.form search parameter code.
+
+AutoFHIR reconciliation:
+Corrected the Location.form SearchParameter code from "characteristic" to "form" in source/location/bundle-Location-search-params.xml. No other Location search parameters or element definitions were changed.
+
+Recommendation:
+Keep this source fix. It completes the applied FHIR-26906 search-parameter work by making the discoverable search code match the Location.form path, id, URL, expression, and Jira resolution. FHIR-55300 should be handled separately if the run scope later includes Resolved - change required value-set migration work.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26906
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-55300: background - later Resolved - change required Location value-set migration issue; it concerns Location value sets and THO movement, not the Location.form search parameter code corrected here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26906: Applied/Persuasive with Modification Location issue resolving to add Location.form and Location.mode search parameters. Learned: final PA intent requires a distinct Location.form search parameter.
+- E2 Source source/fhir.ini:170-200 and source/location/structuredefinition-Location.xml:250-358: Location is an active resource, and Location.mode/Location.form are active elements. Learned: the edited Location search-parameter bundle is current build-scope source for active elements.
+- E3 Source source/location/bundle-Location-search-params.xml:428-480: neighboring Location.characteristic, Location.form, and Location.mode SearchParameters. Learned: Location.form needed code "form" while characteristic and mode retain their own codes.
+- E4 Git 3bcf58592991dce0f3e27051f0c3009890f3bacc: original FHIR-26906 implementation added Location-form and Location-mode but used code "characteristic" for Location-form. Learned: the current defect is an application typo from the Jira-tagged implementation commit.
+- E5 Confluence PA minutes page 161062708 and community searches: minutes reference FHIR-26906 vote info in the ticket; Zulip searches for FHIR-26906 and Location beds/form/mode found no relevant hits. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E6 Jira search for Location.form/Location.mode/SearchParameter and FHIR-55300 snapshot: only FHIR-26906 was an Applied hit for the search-parameter request; FHIR-55300 is a later Resolved - change required value-set issue. Learned: no tightly related applied/published issue needs a duplicate or opportunistic source commit.
+- E7 Verification command/query: git diff --check and targeted XML/source checks after the edit. Learned: the source edit is limited to changing Location-form code to form without whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26906",
+    "url": "https://jira.hl7.org/browse/FHIR-26906",
+    "snapshot_path": "contexts/FHIR-26906/jira/FHIR-26906.md",
+    "ref": { "jira_key": "FHIR-26906" },
+    "summary": "Applied/Persuasive with Modification Location issue resolving to add search parameters for Location.form and Location.mode to support bed discovery/counting use cases.",
+    "learned": "This establishes the final PA decision that Location.form must be searchable as its own search parameter.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-200; source/location/structuredefinition-Location.xml:250-358",
+    "ref": { "paths": "source/fhir.ini; source/location/structuredefinition-Location.xml" },
+    "summary": "The build configuration includes location=Location, and the StructureDefinition contains active Location.mode and Location.form elements.",
+    "learned": "The Location search-parameter bundle is current build-scope source for the active Location elements affected by this issue.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/location/bundle-Location-search-params.xml:428-480",
+    "ref": { "path": "source/location/bundle-Location-search-params.xml" },
+    "summary": "The active Location search-parameter bundle has neighboring entries for Location.characteristic, Location.form, and Location.mode.",
+    "learned": "Location.form needed code form while characteristic and mode retained their existing codes.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "3bcf58592991dce0f3e27051f0c3009890f3bacc",
+    "ref": { "commit": "3bcf58592991dce0f3e27051f0c3009890f3bacc" },
+    "summary": "The original FHIR-26906 implementation commit added Location-form and Location-mode SearchParameter entries but gave Location-form code characteristic.",
+    "learned": "The remaining defect is a narrow application typo from the Jira-tagged implementation commit.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Confluence/Zulip search for FHIR-26906 and Location bed search terms",
+    "command": "bun run confluence:search refs jira FHIR-26906; bun run confluence:search snapshot 161062708; bun run zulip:search fts '\"FHIR-26906\"' --limit 10; bun run zulip:search fts 'Location beds form mode' --limit 10",
+    "query": "FHIR-26906; Location beds form mode",
+    "result_count": 1,
+    "summary": "PA minutes referenced FHIR-26906 and deferred vote details to the ticket; Zulip searches found no relevant hits.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-55300",
+    "url": "https://jira.hl7.org/browse/FHIR-55300",
+    "ref": { "jira_key": "FHIR-55300" },
+    "summary": "Later Resolved - change required PA issue about possible THO migration or renaming of Location value sets.",
+    "learned": "It is outside the default Applied/Published source-edit scope and does not alter the Location.form search parameter code decision.",
+    "supports": ["additional_context", "related_not_decided"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted source verification",
+    "command": "git diff --check; sed -n '428,481p' source/location/bundle-Location-search-params.xml; rg -n '<id value=\"location-(characteristic|form|mode)\"|<code value=\"(characteristic|form|mode)\"|<expression value=\"Location\\.(characteristic|form|mode)\"' source/location/bundle-Location-search-params.xml",
+    "summary": "The final diff only changes Location-form code from characteristic to form, with no whitespace errors.",
+    "learned": "The reconciliation is limited and syntactically safe for the edited source file.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

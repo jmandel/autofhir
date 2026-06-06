@@ -1,0 +1,124 @@
+FHIR-14452: Audit ImagingStudy workflow reconciliation
+
+Issue request:
+FHIR-14452 was a Published/Persuasive with Modification STU3 ImagingStudy workflow-report issue. It asked the Imaging Integration work group to make ImagingStudy align cleanly with Event workflow expectations by adding selected basedOn targets, moving Study UID/accession semantics into identifier/basedOn, adding location and note, adjusting procedure/reason/performer mappings, adding DICOM mappings/search updates, and explicitly suppressing or deferring remaining workflow warnings.
+
+Initial application:
+The 2018 application commit 7b2b64512052c9a800a59b0ac3cd2cd013659b1b explicitly lists GF#14452 and updated the then-authoritative ImagingStudy spreadsheet source. It added Appointment, AppointmentResponse, and Task to basedOn, introduced location and note, changed sopClass from oid to Coding, added performer/function/actor structure and reason split work alongside GF#15125, and adjusted DICOM/search surfaces. Later same-family commits and audits account for warning suppressions and UID modeling follow-up.
+
+Additional context:
+Current ImagingStudy is active in source/fhir.ini and is no longer maintained from the old spreadsheet. The current StructureDefinition and mapping exception files preserve the active workflow semantics after later decisions: basedOn now targets CarePlan, ServiceRequest, Appointment, and Task after FHIR-49681 removed AppointmentResponse; procedureCode/procedureReference and reasonCode/reasonReference are represented through current procedure and CodeableReference reason compatibility mappings; location, note, Event.status, Event.performer, Event.performer.function, Event.performer.actor, Event.reason, and Event.basedOn are present or explicitly mapped; Event.statusReason is explicitly marked not relevant. FHIR-19456, already represented on the combined branch, reversed the temporary series/instance Identifier model back to uid. FHIR-39614 later changed sopClass back from Coding to oid because DICOM did not supply a usable CodeSystem/ValueSet. The remaining AppointmentResponse mention found in source/imagingstudy/imagingstudy.svg is a generated-looking diagram artifact and is not the authoritative source for the current target profiles.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. Re-applying the original STU3 wording literally would incorrectly undo later applied work-group decisions, while the current build-scoped ImagingStudy source and mapping exceptions already express the reconciled workflow state.
+
+Recommendation:
+Keep this no-change audit. Do not re-add AppointmentResponse or change sopClass back to Coding for FHIR-14452; those points were superseded by later applied issues. If maintainers decide the checked-in SVG diagram must match current generated output, handle that as a separate diagram-generation cleanup rather than as a FHIR-14452 source correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14452
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-10350: background - earlier Published request for standard Event elements on ImagingStudy, resolved as addressed by FHIR-15125 and FHIR-14452.
+FHIR-15123: supporting-decision - related DICOM UID constraint issue was Resolved - No Change and explains why core did not add the deferred DICOM UID constraints from the FHIR-14452 notes.
+FHIR-15125: same-change-family - later Published ImagingStudy workflow issue covered reason/status/performer cleanup and is already represented on the combined branch.
+FHIR-17378: same-change-family - later Published issue accepted several workflow warning suppressions from the same report family and is already represented on the combined branch.
+FHIR-19456: later-change - Published issue reverted the series and instance identifier elements back to uid and is already represented on the combined branch.
+FHIR-39614: later-change - Applied issue changed ImagingStudy.series.instance.sopClass from Coding back to oid after the DICOM terminology binding proved unusable.
+FHIR-49681: later-change - Applied issue removed AppointmentResponse from ImagingStudy.basedOn and ImagingSelection.basedOn because it is not an appropriate order/plan target.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14452: Published/Persuasive with Modification issue requesting ImagingStudy workflow-report cleanup. Learned: this establishes the historical seed request and its broad set of approved STU3 changes.
+- E2 Git 7b2b64512052c9a800a59b0ac3cd2cd013659b1b: original application commit lists GF#14452 and changed the old ImagingStudy spreadsheet source. Learned: FHIR-14452 was applied historically, so reconciliation must compare current source after later model changes rather than first-implement the 2018 text.
+- E3 Source source/fhir.ini:196,1820-1825 and source/imagingstudy/structuredefinition-ImagingStudy.xml:383-431,468-554,859-943,1006-1016: ImagingStudy is active; current basedOn, procedure, location, reason, note, performer, and sopClass definitions reflect later representation choices. Learned: the active authoritative source carries the workflow cleanup semantics that remain current.
+- E4 Source source/imagingstudy/imagingstudy-event-mapping-exceptions.xml:11-23,39-52,86-138: current mapping exceptions document basedOn divergence, status differences, occurrence, performer, reason, note, and statusReason handling. Learned: the current workflow report is intentionally reconciled through build-scoped mapping exceptions.
+- E5 Jira/Git FHIR-49681 and 011fb9ff4575f4c2d44fe8cc90f4ee9ac80fc78b; FHIR-39614 and 1fd8198d6a8e698149c006d62b160256eeaf8dcf: later applied decisions removed AppointmentResponse from basedOn and changed sopClass from Coding to oid. Learned: the two apparent deviations from FHIR-14452 are correct later changes, not regressions.
+- E6 Git e5f9c54b4dc91b55cf6d36b99ebed6b1348f2cea, 05b9d5fb5c3f625450d3cd14fef7ac364b9f5ecd, and 8ba8ac5ff49bd6c541754e512f9cde7e382ade18: existing combined-branch audit commits cover FHIR-19456, FHIR-15125, and FHIR-17378. Learned: related same-family and superseding decisions are already represented and should not be duplicated in this seed commit.
+- E7 Community searches for FHIR-14452 plus ImagingStudy workflow terms found no direct Zulip or Confluence discussion; a 2023 Zulip sopClass Coding thread showed implementer ambiguity later resolved by FHIR-39614. Learned: no discovered community evidence contradicts the Jira/source/git conclusion.
+- E8 Verification command: idempotency, git status, diff check, and source greps confirmed no existing seed audit, no source diff, active current basedOn targets without AppointmentResponse, sopClass oid, and current Event mapping exceptions. Learned: a clean empty audit commit is the appropriate reconciliation result.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14452",
+    "url": "https://jira.hl7.org/browse/FHIR-14452",
+    "snapshot_path": "contexts/FHIR-14452/jira/FHIR-14452.md",
+    "ref": { "jira_key": "FHIR-14452" },
+    "summary": "Published/Persuasive with Modification STU3 ImagingStudy workflow-report issue requesting broad Event workflow cleanup.",
+    "learned": "This is the seed work-group decision and establishes the original cleanup scope.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "7b2b64512052c9a800a59b0ac3cd2cd013659b1b",
+    "ref": { "commit": "7b2b64512052c9a800a59b0ac3cd2cd013659b1b" },
+    "summary": "Original application commit lists GF#14452 and updated the old ImagingStudy spreadsheet source with workflow cleanup changes.",
+    "learned": "The issue was historically applied, so current reconciliation must account for later source refactors and decisions.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:196,1820-1825; source/imagingstudy/structuredefinition-ImagingStudy.xml:383-431,468-554,859-943,1006-1016",
+    "ref": { "path": "source/imagingstudy/structuredefinition-ImagingStudy.xml", "lines": "383-431,468-554,859-943,1006-1016" },
+    "summary": "ImagingStudy is active; current basedOn, procedure, location, reason, note, performer, and sopClass definitions reflect the post-R5/R6 model.",
+    "learned": "The active authoritative source already carries the workflow semantics that remain current after later changes.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/imagingstudy/imagingstudy-event-mapping-exceptions.xml:11-23,39-52,86-138",
+    "ref": { "path": "source/imagingstudy/imagingstudy-event-mapping-exceptions.xml", "lines": "11-23,39-52,86-138" },
+    "summary": "Current Event mapping exceptions document ImagingStudy basedOn, status, occurrence, performer, reason, note, and statusReason divergences.",
+    "learned": "The current workflow report is intentionally reconciled through build-scoped mapping exceptions rather than missing source edits.",
+    "supports": ["additional_context", "reconciliation", "no_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-49681 and FHIR-39614",
+    "url": "https://jira.hl7.org/browse/FHIR-49681",
+    "snapshot_path": "contexts/FHIR-14452/jira/FHIR-49681.md",
+    "ref": { "jira_keys": "FHIR-49681,FHIR-39614", "commits": "011fb9ff4575f4c2d44fe8cc90f4ee9ac80fc78b,1fd8198d6a8e698149c006d62b160256eeaf8dcf" },
+    "summary": "Later applied issues removed AppointmentResponse from ImagingStudy.basedOn and changed ImagingStudy.series.instance.sopClass from Coding back to oid.",
+    "learned": "The apparent current differences from the 2018 resolution are later approved changes, not incomplete application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "Existing related audit commits on combined branch",
+    "ref": { "fhir_19456": "e5f9c54b4dc91b55cf6d36b99ebed6b1348f2cea", "fhir_15125": "05b9d5fb5c3f625450d3cd14fef7ac364b9f5ecd", "fhir_17378": "8ba8ac5ff49bd6c541754e512f9cde7e382ade18" },
+    "summary": "Combined branch already contains no-change audits for related UID reversion, workflow alignment part 2, and workflow suppressions.",
+    "learned": "Those related issues should be cited as context but not duplicated by this seed commit.",
+    "supports": ["additional_context", "idempotency"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-14452 and ImagingStudy workflow terms",
+    "command": "bun run zulip:search fts '\"FHIR-14452\" ImagingStudy workflow' --limit 10; bun run confluence:search refs jira FHIR-14452; bun run confluence:search fts '\"FHIR-14452\" \"ImagingStudy\" workflow' --limit 10; bun run zulip:search snapshot implementers 'How to render a sopClass Coding for an ImagingStudy instance'",
+    "query": "FHIR-14452 ImagingStudy workflow; ImagingStudy sopClass Coding",
+    "result_count": 1,
+    "summary": "No direct FHIR-14452 community discussion was found; the sopClass Coding Zulip thread showed implementer ambiguity later addressed by FHIR-39614.",
+    "learned": "No discovered community evidence changes the source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Pre-commit idempotency and source checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-14452' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git status --short; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg -n '<targetProfile value=\"http://hl7.org/fhir/StructureDefinition/(CarePlan|ServiceRequest|Appointment|AppointmentResponse|Task)\"|<element id=\"ImagingStudy.series.instance.sopClass\"|<code value=\"oid\"|<divergentElement patternPath=\"Event.basedOn\"|<unmappedElement patternPath=\"Event.statusReason\"' source/imagingstudy/structuredefinition-ImagingStudy.xml source/imagingstudy/imagingstudy-event-mapping-exceptions.xml",
+    "summary": "No existing FHIR-14452 audit was present; worktree and diff check were clean; current source has active basedOn targets without AppointmentResponse, sopClass oid, and Event mapping exceptions.",
+    "learned": "The repository state supports an empty no-change audit commit.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

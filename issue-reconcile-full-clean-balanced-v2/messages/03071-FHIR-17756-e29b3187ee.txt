@@ -1,0 +1,109 @@
+FHIR-17756: Audit Goal status split
+
+Issue request:
+FHIR-17756 was a Published Patient Care change request with a Persuasive with Modification disposition asking to replace the former combined Goal.status with Goal.lifecycleStatus, a 1..1 code with required binding to Goal Lifecycle Status, and Goal.achievementStatus, a 0..1 CodeableConcept with preferred binding to Goal Achievement Status.
+
+Initial application:
+The issue was applied by bb582cddb3fe ("GF#17756 Goal status replaced with lifecycleStatus and achievementStatus"), which changed the Goal spreadsheet, examples, achievement terminology, and status-code registry. Later source refactoring moved Goal to structuredefinition-Goal.xml and bundle-Goal-search-params.xml, but preserved the split elements and search parameters.
+
+Additional context:
+Goal is active in source/fhir.ini. Current source has Goal.lifecycleStatus with min 1, max 1, code type, required binding to ValueSet/goal-status, and Goal.achievementStatus with min 0, max 1, CodeableConcept type, preferred binding to ValueSet/goal-achievement. The old Goal.status element is absent from the current Goal source; the only Goal.status text hits are the distinct statusDate/statusReason names that later FHIR-53981 renamed. Later FHIR-55326 deliberately added the unknown lifecycle code, so the current lifecycle value set differs from the 2018 resolution for a known subsequent reason. Community searches found no Patient Care/Zulip/Confluence evidence conflicting with the Jira and source history.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The authoritative current Goal definition, Goal search parameters, terminology references, and examples already reflect the requested split, and the observed differences are later accepted changes rather than incomplete application of FHIR-17756.
+
+Recommendation:
+Keep this no-change audit commit as-is. No follow-up core source work is recommended for FHIR-17756; future work should evaluate only newer Goal status trackers such as FHIR-53981 or FHIR-55326 on their own merits.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17756
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-55326: later-change - Added the unknown Goal.lifecycleStatus code after FHIR-17756, explaining the extra current lifecycle code.
+FHIR-53981: later-change - Renamed later Goal status metadata elements and explains why statusDate/statusReason history is separate from the old Goal.status split.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17756: Published/Persuasive with Modification change request to split Goal.status into lifecycleStatus and achievementStatus. Learned: establishes the final requested split, cardinalities, and binding strengths.
+- E2 Source source/fhir.ini:193 and source/goal/structuredefinition-Goal.xml:115: Goal is active and Goal.lifecycleStatus is 1..1 code with required GoalLifecycleStatus binding. Learned: the current build-scope resource contains the lifecycle half of the requested split.
+- E3 Source source/goal/structuredefinition-Goal.xml:175 and source/goal/valueset-goal-achievement.xml:11: Goal.achievementStatus is 0..1 CodeableConcept with preferred GoalAchievementStatus binding to ValueSet/goal-achievement. Learned: the current build-scope resource contains the achievement half of the requested split.
+- E4 Git bb582cddb3fe: Applied FHIR-17756 by replacing Goal.status with lifecycleStatus and achievementStatus in Goal source, examples, and status-code files. Learned: the original application is explicit and matches the Jira direction.
+- E5 Git 7c5f0e11de / Jira FHIR-55326: Later Patient Care change added unknown to Goal.lifecycleStatus. Learned: current extra lifecycle code is a later approved refinement, not a missed FHIR-17756 requirement.
+- E6 Command rg 'Goal\.status|goal\.status|<path value="Goal.status"|id="Goal.status"' source: only statusDate/statusReason SVG references were found. Learned: the obsolete Goal.status element is not present in current authoritative Goal source.
+- E7 Command community search for FHIR-17756/Goal status: no relevant Confluence references or substantive Zulip discussion were found beyond a committers build-process mention. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17756",
+    "url": "https://jira.hl7.org/browse/FHIR-17756",
+    "snapshot_path": "contexts/FHIR-17756/jira/FHIR-17756.md",
+    "ref": { "jira_key": "FHIR-17756" },
+    "summary": "Published/Persuasive with Modification issue requiring Goal.status to be split into Goal.lifecycleStatus and Goal.achievementStatus with specified cardinalities and bindings.",
+    "learned": "This establishes final Patient Care intent and the source state to verify.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:193; source/goal/structuredefinition-Goal.xml:115",
+    "ref": { "path": "source/goal/structuredefinition-Goal.xml", "line": 115 },
+    "summary": "Goal is an active resource and Goal.lifecycleStatus is defined as a 1..1 code with required binding to ValueSet/goal-status.",
+    "learned": "The current build-scope Goal source contains the lifecycle status element requested by FHIR-17756.",
+    "supports": ["source_check", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/goal/structuredefinition-Goal.xml:175; source/goal/valueset-goal-achievement.xml:11",
+    "ref": { "path": "source/goal/structuredefinition-Goal.xml", "line": 175 },
+    "summary": "Goal.achievementStatus is defined as a 0..1 CodeableConcept with preferred binding to ValueSet/goal-achievement.",
+    "learned": "The current build-scope Goal source contains the achievement status element requested by FHIR-17756.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "bb582cddb3fe3b2ec2101a823051fdfaf4ae604f",
+    "ref": { "commit": "bb582cddb3fe3b2ec2101a823051fdfaf4ae604f" },
+    "summary": "Commit 'GF#17756 Goal status replaced with lifecycleStatus and achievementStatus' changed the Goal source, examples, achievement terminology, and status-code registry.",
+    "learned": "FHIR-17756 was explicitly applied in source and later carried forward through refactors.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-55326 / git 7c5f0e11de",
+    "url": "https://jira.hl7.org/browse/FHIR-55326",
+    "snapshot_path": "contexts/FHIR-55326/jira/FHIR-55326.md",
+    "ref": { "jira_key": "FHIR-55326", "commit": "7c5f0e11de0dc83a215b666f3d8f0ae8a563300b" },
+    "summary": "Applied/Persuasive 2026 issue added unknown to the required Goal.lifecycleStatus value set.",
+    "learned": "The extra current lifecycle code is a later approved refinement and does not indicate incomplete application of FHIR-17756.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current source search for obsolete Goal.status",
+    "command": "rg -n 'Goal\\.status|goal\\.status|<path value=\"Goal.status\"|id=\"Goal.status\"' source",
+    "summary": "Only distinct statusDate/statusReason SVG references were found; no current authoritative Goal.status element was found.",
+    "learned": "The obsolete combined Goal.status element is not present in current Goal source.",
+    "supports": ["source_check", "absence_of_conflict"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-17756 and Goal status split",
+    "command": "bun run zulip:search fts '\"FHIR-17756\" Goal status lifecycle achievement' --limit 10; bun run zulip:search fts '\"Goal.status\" \"achievementStatus\"' --limit 10; bun run confluence:search refs jira FHIR-17756; bun run confluence:search fts '\"FHIR-17756\" \"Goal\"' --limit 10",
+    "query": "FHIR-17756 Goal status lifecycle achievement; Goal.status achievementStatus",
+    "result_count": 1,
+    "summary": "No directly relevant Confluence references or substantive Zulip rationale were found; the lone Zulip hit was a committers build-process note during application.",
+    "learned": "No discovered community evidence conflicts with the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

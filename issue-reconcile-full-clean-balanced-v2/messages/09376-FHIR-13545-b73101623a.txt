@@ -1,0 +1,85 @@
+FHIR-13545: Audit slice constraining flag
+
+Issue request:
+FHIR-13545 was Published with resolution Persuasive with Modification for STU3. It asked for an explicit boolean that lets a derived profile say whether a named slice is intended to constrain an inherited slice, so parent profile slice additions, removals, or renames can be detected instead of silently changing child-profile meaning.
+
+Initial application:
+The Jira comment points to svn revision 14334. In git, becab2754dd6f6f16643d6a6c256c08bd8795c1a ("GF#13545 - add ElementDefinition.sliceIsConstraining") added ElementDefinition.sliceIsConstraining to source/datatypes/elementdefinition.xml with the requested definition, requirements, and comments, plus invariant eld-22 requiring sliceName when sliceIsConstraining is present.
+
+Additional context:
+The disposition originally described the new boolean as ElementDefinition.slicing.constraining, but the contemporaneous conformance Zulip thread records Grahame Grieve's concern that slices do not carry a slicing element and that placing the flag under slicing would wreck snapshot logic. The thread proposed moving the marker onto ElementDefinition itself, and current source retains that intentional placement. Later related slicing-language issues FHIR-16309 and FHIR-17821 are already represented on the combined branch and do not require this issue to make further profiling prose changes.
+
+AutoFHIR reconciliation:
+No source change was made. Current build-scope source lists ElementDefinition as an active datatype, defines ElementDefinition.sliceIsConstraining as a 0..1 boolean with the FHIR-13545 semantics and comments, and retains the invariant that the flag can only appear on a named slice. That satisfies the issue after accounting for the implementation discussion that refined the element's location/name.
+
+Recommendation:
+Keep this no-change audit commit. Revisit only if the work group wants broader narrative guidance in profiling.html about when authors should populate sliceIsConstraining; the normative datatype definition and invariant already implement the published decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13545
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-16309: background - separate published ElementDefinition slicing-language cleanup, already audited on the combined branch and not needed to decide this schema flag.
+FHIR-17821: later-change - later profiling re-slicing terminology clarification, already represented on the combined branch and consistent with leaving FHIR-13545 as implemented.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13545: Published/Persuasive with Modification, requesting a boolean to identify when a derived profile's slice constrains an inherited same-name slice. Learned: this is final WG intent for the reconciliation.
+- E2 Source source/fhir.ini:61 and source/datatypes/elementdefinition.xml:944-960,4796-4803: ElementDefinition is an active datatype; the source defines ElementDefinition.sliceIsConstraining with the requested definition, requirements, comments, and a sliceName invariant. Learned: the current build-scope source already carries the required semantics.
+- E3 Git becab2754dd6f6f16643d6a6c256c08bd8795c1a: historical GF#13545 commit added ElementDefinition.sliceIsConstraining and eld-22. Learned: the issue was explicitly applied in source history.
+- E4 Zulip #conformance > GF#13545 - Add ElementDefinition.slicing.constraining: Grahame explained that putting the flag under ElementDefinition.slicing would be wrong for slices and proposed an ElementDefinition-level flag; discussion accepted a boolean as sufficient. Learned: the current top-level sliceIsConstraining placement is intentional, not an unapplied part of the Jira resolution.
+- E5 Command checks: combined-branch grep found no prior FHIR-13545 audit, Confluence refs search found no FHIR-13545 pages, and related issue grep showed FHIR-16309/FHIR-17821 already represented. Learned: a single seed audit commit is appropriate and no community/minutes evidence conflicts with the source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13545",
+    "url": "https://jira.hl7.org/browse/FHIR-13545",
+    "snapshot_path": "contexts/FHIR-13545/jira/FHIR-13545.md",
+    "ref": { "jira_key": "FHIR-13545" },
+    "summary": "Published/Persuasive with Modification issue requiring a boolean marker for whether a derived profile slice constrains an inherited same-name slice.",
+    "learned": "This establishes the final work-group intent that current source must satisfy.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:61; source/datatypes/elementdefinition.xml:944-960,4796-4803",
+    "summary": "ElementDefinition is active in the build and the datatype sheet defines ElementDefinition.sliceIsConstraining as a 0..1 boolean with the requested semantics plus an invariant tying it to sliceName.",
+    "learned": "The current build-scope source already implements the semantic change requested by FHIR-13545.",
+    "supports": ["source_state", "reconciliation", "build_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "becab2754dd6f6f16643d6a6c256c08bd8795c1a",
+    "ref": { "commit": "becab2754dd6f6f16643d6a6c256c08bd8795c1a" },
+    "summary": "Historical commit 'GF#13545 - add ElementDefinition.sliceIsConstraining' added the element and invariant to source/datatypes/elementdefinition.xml.",
+    "learned": "The issue was explicitly applied in source history, with only the placement/name refined from the initial Jira wording.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "zulip",
+    "locator": "#conformance > GF#13545 - Add ElementDefinition.slicing.constraining",
+    "url": "https://chat.fhir.org/#narrow/stream/conformance/topic/GF%2313545%20-%20Add%20ElementDefinition.slicing.constraining",
+    "ref": { "stream": "conformance", "topic": "GF#13545 - Add ElementDefinition.slicing.constraining" },
+    "summary": "The 2018 thread records that the flag should not live under ElementDefinition.slicing because slices do not have a slicing element, and that a boolean marker was sufficient.",
+    "learned": "This explains why current source uses ElementDefinition.sliceIsConstraining and supports treating that as the correct application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "FHIR-13545 community and idempotency checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13545' ...; bun run confluence:search refs jira FHIR-13545; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-16309' ...; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-17821' ...",
+    "summary": "No prior FHIR-13545 audit was present on the combined branch; no Confluence references were found; FHIR-16309 and FHIR-17821 were already represented.",
+    "learned": "A single no-change seed audit is appropriate and there is no discovered conflicting community/minutes evidence.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,117 @@
+FHIR-5700: Audit constrained system-wide search
+
+Issue request:
+FHIR-5700 was a Published/Persuasive DSTU1 FHIR-core HTTP issue asking to remove search across all resource types because it was hard to implement, could mix same-named parameters with different meanings, and lacked a clear use case. The recorded final resolution did not remove the interaction; it constrained cross-resource search to base/common parameters, asked for a reference to that guidance and _text, and added Encounter, RelatedPerson, Practitioner, and Device compartments.
+
+Initial application:
+The directly relevant application is git-svn commit 5229cf7f3915899b829cd4d5e3780a4bfd916b17, svn revision 4386, whose subject explicitly mentions FHIR-5700. It moved root-level `GET [base]?[parameters]` out of the primary search form into variant searches, stated that all-resource searches may use only parameters defined for all resources, added _text and other common search controls to the all-resources search section, and added the requested compartment definitions. Earlier #5700 commits adjusted resource search criteria, but 5229cf7f is the commit that applied the HTTP/search/compartment decision recorded in Jira.
+
+Additional context:
+Later published issues refined the same root-search family without reversing FHIR-5700. FHIR-10459 corrected the all-resource GET URL to `GET [base]?parameter(s)`, FHIR-13836 clarified the _type/common-parameters rule for root searches, FHIR-12148 added cross-resource _type search support, and FHIR-36347 moved detailed base-search parameter guidance to `search.html#type`. Those later decisions make removing the root search interaction now unsafe; the correct current interpretation is that system-wide search remains available only under the later/common-parameter constraints.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current combined-branch source already matches the final FHIR-5700 resolution as refined by later decisions: the HTTP page still lists whole-system search and shows `GET [base]?[parameters]`, the Search page says no-_type all-resource searches may use only parameters common to all resource types and lists _text in the common-parameter table, and `source/compartments.xml` contains Encounter, RelatedPerson, Practitioner, and Device compartments.
+
+Recommendation:
+Keep this audit commit as-is. Removing system-wide search would contradict the applied FHIR-5700 resolution and later published search issues; any future removal should be handled as a new work-group decision rather than as reconciliation of this tracker.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5700
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-10459: same-change-family - corrected the all-resource search GET URL and is audited separately in this reconciliation.
+FHIR-13836: later-change - clarified the _type/common-parameters rule for root-level searches and is already represented on the combined branch.
+FHIR-12148: later-change - added explicit cross-resource _type search support and is already represented on the combined branch.
+FHIR-36347: later-change - moved detailed base-search parameter guidance to search.html#type and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5700: Published/Persuasive issue whose comments record a 5-0-0 resolution to limit cross-resource search to base parameters, add _text guidance, and define additional compartments rather than deleting root search outright. Learned: this establishes the final decision to audit.
+- E2 Git 5229cf7f3915899b829cd4d5e3780a4bfd916b17: #5700 / svn 4386 changed source/http.html, source/search.html, and source/compartments.xml. Learned: the Jira-recorded application is identifiable in source history.
+- E3 Source source/http.html:66-71 and source/http.html:1636-1656: current source lists whole-system search and shows both multi-type and all-type root search forms while delegating parameter details to the Search page. Learned: root search remains, but as constrained guidance rather than the broad primary search form challenged by the issue.
+- E4 Source source/search.html:297-300, 4781-4782, and 6618-6635: current source requires no-_type root searches to use only parameters common to all resources and lists _text among common parameters. Learned: the parameter limitation and _text portion of the resolution are present.
+- E5 Source source/compartments.xml:66-91: current source defines Encounter, RelatedPerson, Practitioner, and Device compartments. Learned: the requested compartment portion of the resolution is present in build source.
+- E6 Jira/source family FHIR-10459, FHIR-12148, FHIR-13836, and FHIR-36347: later published issues corrected the root-search URL and refined cross-resource/common-parameter rules. Learned: later final decisions support preserving constrained root search rather than removing it.
+- E7 Community and Jira-neighborhood searches: exact FHIR-5700 Zulip and Confluence searches found no direct records; broader searches found FHIR-10459 and general root-search discussions but no conflicting work-group decision. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+- E8 Idempotency command: the combined branch had no existing commit with `Issue-Reconcile-Key: FHIR-5700` before this audit. Learned: publishing this seed audit does not duplicate an existing reconciliation.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5700",
+    "url": "https://jira.hl7.org/browse/FHIR-5700",
+    "snapshot_path": "contexts/FHIR-5700/jira/FHIR-5700.md",
+    "ref": { "jira_key": "FHIR-5700" },
+    "summary": "Published/Persuasive issue asking to remove system-wide search, with final comments resolving to limit cross-resource search to base parameters, add _text guidance, and define additional compartments.",
+    "learned": "The final work-group decision was a constrained-search compromise, not deletion of the root search interaction.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "5229cf7f3915899b829cd4d5e3780a4bfd916b17",
+    "ref": { "commit": "5229cf7f3915899b829cd4d5e3780a4bfd916b17", "svn_revision": 4386 },
+    "summary": "Commit '#5700: define compartments for practitioner, related person, device, and encounter' changed the HTTP/search pages and compartments source.",
+    "learned": "The Jira-recorded source application exists in history and matches the compromise resolution.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/http.html:66-71; source/http.html:1636-1656",
+    "ref": { "path": "source/http.html", "start_line": 66, "end_line": 1656 },
+    "summary": "The current HTTP page lists whole-system search and shows root all-type search forms while linking to the Search page for parameter availability.",
+    "learned": "The current build preserves constrained root search in the active HTTP source.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/search.html:297-300; source/search.html:4781-4782; source/search.html:6618-6635",
+    "ref": { "path": "source/search.html", "start_line": 297, "end_line": 6635 },
+    "summary": "The current Search page limits no-_type root searches to parameters common to all resource types and lists _text as a common parameter.",
+    "learned": "The parameter limitation and _text portion of the FHIR-5700 resolution are present.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/compartments.xml:66-91",
+    "ref": { "path": "source/compartments.xml", "start_line": 66, "end_line": 91 },
+    "summary": "The current compartments source defines Encounter, RelatedPerson, Practitioner, and Device compartments.",
+    "learned": "The compartment portion of the Jira resolution is present in build source.",
+    "supports": ["source_check", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-10459; FHIR-12148; FHIR-13836; FHIR-36347",
+    "summary": "Later published search issues corrected the root-search URL and refined cross-resource/common-parameter rules without removing root search.",
+    "learned": "These later decisions support preserving the current constrained root-search behavior.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and Jira-neighborhood searches for FHIR-5700 system-wide search",
+    "command": "bun run jira:search sql ...FHIR-5700 links...; bun run jira:search fts '\"system wide search\" OR \"system-wide search\" OR \"search across all resource types\"' --limit 20; bun run zulip:search fts '\"FHIR-5700\"' --limit 10; bun run confluence:search refs jira FHIR-5700",
+    "query": "FHIR-5700; system wide search; search across all resource types",
+    "summary": "No Jira backlinks or direct Zulip/Confluence references were found; broader Jira search found FHIR-10459 and broader community search found no conflicting work-group decision.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Combined branch idempotency check for FHIR-5700",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-5700' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "No existing FHIR-5700 reconciliation commit was present on the combined branch before this audit.",
+    "learned": "This audit commit is not a duplicate publication for the seed issue.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

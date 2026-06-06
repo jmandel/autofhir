@@ -1,0 +1,96 @@
+FHIR-13818: Audit replaces extension ownership
+
+Issue request:
+FHIR-13818 was Published/Persuasive with Modification for STU3 and asked for conformance resources to be able to indicate that a new artifact replaces one or more pre-existing artifacts. The final decision was to create a repeating extension pointing backward to the replaced conformance resource, with a canonical value.
+
+Initial application:
+The Jira comment records svn 14477. In the Git conversion this appears as 47d19ae3e1, whose subject says "GF313818 - replaces extension" and whose git-svn-id is build@14477. That commit added a `replaces` row to `source/profiles/general-extensions-spreadsheet.xml` with `%canonicals` context expansion, cardinality 0..*, value type `canonical(Any)`, and wording that the extension references a resource being replaced. It also added spreadsheet parser support for the `%canonicals` macro. No current core commit with an `Issue-Reconcile-Key: FHIR-13818` trailer existed on the combined branch before this audit.
+
+Additional context:
+Current core still has active `MetadataResource` and `CanonicalResource` interfaces and the `general-extensions` profile entry in `source/fhir.ini`, but core no longer carries the `replaces` extension definition. Git commit dd468d4f17 removed extension definitions from the R5 core source, and the current core checkout only retains the assigned OID for `http://hl7.org/fhir/StructureDefinition/replaces`. The authoritative definition now lives in the FHIR Extension Pack at `input/definitions/multiple/StructureDefinition-replaces.xml`, where it is an active repeating extension with canonical value targeting Resource and contexts including CapabilityStatement, GraphDefinition, ImplementationGuide, MessageDefinition, OperationDefinition, Questionnaire, SearchParameter, StructureDefinition, StructureMap, TerminologyCapabilities, and TestScript. Later Published FHIR-extensions issue FHIR-40920 intentionally removed contexts that overlap with `RelatedArtifact` on metadata resources, so restoring the old broad `%canonicals` core row would be wrong.
+
+AutoFHIR reconciliation:
+This is an empty external-repo audit commit. No FHIR core source was changed because the seed issue's requested extension exists in the Extension Pack and the current core checkout is no longer the source of truth for that definition.
+
+Recommendation:
+Keep this audit as-is for core. Future semantic changes to the `replaces` extension should be made and reviewed in the FHIR Extension Pack, taking FHIR-40920's narrower context decision into account rather than reintroducing the old core spreadsheet row.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13818
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-40920: later-change - Published FHIR-extensions decision removed `replaces` contexts that overlap with RelatedArtifact, narrowing the original broad conformance-resource application.
+FHIR-33001: supporting-decision - Published clarification updated the extension description and confirmed it is for canonical resources, not ordinary clinical/business resources.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13818: Published/Persuasive with Modification; requested a repeating canonical extension for resources that replace earlier conformance resources. Learned: this establishes the original final WG request.
+- E2 Git 47d19ae3e1: Converted svn 14477 commit added `replaces` to the core general extensions spreadsheet with `%canonicals`, 0..*, and `canonical(Any)`. Learned: this identifies the initial application recorded by the Jira comment.
+- E3 Git dd468d4f17 and source check: current core removed extension definitions from R5 source; `source/fhir.ini` still lists MetadataResource/general-extensions, but core grep finds only the `replaces` OID. Learned: core no longer owns the extension definition and should not be edited to restore it.
+- E4 Source /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-replaces.xml: current Extension Pack definition has id/url `replaces`, max `*`, canonical value targeting Resource, and canonical-resource contexts such as CapabilityStatement and StructureDefinition. Learned: the seed request is represented in the external source of truth.
+- E5 Jira FHIR-40920 and Git 0e61fb3: Published FHIR-extensions decision removed contexts where `replaces` overlaps with RelatedArtifact. Learned: the current narrower context list is intentional later guidance.
+- E6 Community search: direct Zulip and Confluence searches for FHIR-13818 found no relevant discussion; FHIR-I minutes page 325457668 records the FHIR-40920 approval motion 12-0-0. Learned: no discovered community evidence contradicts the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13818",
+    "url": "https://jira.hl7.org/browse/FHIR-13818",
+    "snapshot_path": "contexts/FHIR-13818/jira/FHIR-13818.md",
+    "ref": { "jira_key": "FHIR-13818" },
+    "summary": "Published/Persuasive with Modification issue requesting a repeating canonical extension for conformance resources that replace earlier artifacts.",
+    "learned": "This is final WG intent and defines the seed issue's requested change.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "47d19ae3e1e8ea897155ec46429c429a3daeb3e3",
+    "ref": { "commit": "47d19ae3e1e8ea897155ec46429c429a3daeb3e3" },
+    "summary": "Historical core commit with git-svn-id build@14477 added the replaces extension row and %canonicals parser macro.",
+    "learned": "This matches the Jira application comment and shows the issue was originally applied in core.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "dd468d4f1799dd79819315b211588ef1cf4586e0",
+    "ref": { "commit": "dd468d4f1799dd79819315b211588ef1cf4586e0" },
+    "summary": "Core commit removed extension definitions from the R5 source spreadsheet.",
+    "learned": "The absence of the replaces extension definition from current core is expected and not a missing seed application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-replaces.xml:4-196",
+    "summary": "The Extension Pack defines http://hl7.org/fhir/StructureDefinition/replaces as a repeating Extension with canonical value targeting Resource and contexts including CapabilityStatement and StructureDefinition.",
+    "learned": "The requested extension is maintained in the external Extension Pack source of truth.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-40920",
+    "url": "https://jira.hl7.org/browse/FHIR-40920",
+    "ref": { "jira_key": "FHIR-40920" },
+    "summary": "Published FHIR-extensions issue requiring removal of replaces contexts that overlap with RelatedArtifact on metadata resources.",
+    "learned": "The current narrower context list is a deliberate later change, so the old broad %canonicals row should not be restored in core.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community searches for FHIR-13818 and FHIR-40920",
+    "command": "bun run zulip:search fts '\"FHIR-13818\" replaces conformance resource' --limit 10; bun run confluence:search fts '\"FHIR-13818\" replaces conformance resource' --limit 10; bun run confluence:search snapshot 325457668",
+    "query": "FHIR-13818 replaces conformance resource; FHIR-40920 minutes",
+    "summary": "No direct FHIR-13818 Zulip or Confluence hits were found; FHIR-I minutes page 325457668 records FHIR-40920 approval as Persuasive 12-0-0.",
+    "learned": "No community evidence changes the source-history conclusion, and minutes corroborate the later narrowing decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,119 @@
+FHIR-47248: Audit ServiceRequest.basedOn NutritionOrder support
+
+Issue request:
+FHIR-47248 was an Applied OO change request asking whether ServiceRequest.basedOn should also reference NutritionOrder, for example when a service request supports teaching a patient or family how to prepare foods for a specific diet. The persuasive-with-modification resolution was to try the whole Request pattern list, but if Reference(Request) did not work, to add NutritionOrder and handle other request resources through separate Jiras.
+
+Initial application:
+The issue was applied in ServiceRequest source history. Commit 8eed7c62a5 added NutritionOrder plus Request to ServiceRequest.basedOn, commit 91dcae7d0e then tried using only Reference(Request), and commit a910985a9b reverted to enumerated resource targets including NutritionOrder after build/CI evidence showed Reference(Request) was not valid for resource definitions.
+
+Additional context:
+FHIR-44992 records the broader tooling decision that Reference(Request) is not appropriate and that resource definitions should enumerate appropriate concrete request resources. The active source/fhir.ini includes ServiceRequest and NutritionOrder as current resources. The current ServiceRequest.basedOn target profile list includes NutritionOrder and several concrete request resources, and later same-family work such as FHIR-50001 and FHIR-54619 concerns additional concrete target alignment rather than reversing the FHIR-47248 NutritionOrder decision.
+
+AutoFHIR reconciliation:
+No source change was made. The current active ServiceRequest StructureDefinition already allows ServiceRequest.basedOn to reference NutritionOrder, and the separate mapping-exceptions file explicitly records the intentional divergence from the abstract Request pattern where ServiceRequest enumerates concrete targets instead of using Reference(Request).
+
+Recommendation:
+Keep this audit commit as-is. Do not replace the current enumerated targets with Reference(Request); future additions to ServiceRequest.basedOn should continue to be considered by separate Jira issues for the specific concrete resources.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-47248
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-44992: supporting-decision - establishes that Reference(Request) should not be used directly in resource definitions and concrete targets should be enumerated.
+FHIR-50001: same-change-family - later Applied issue for related ServiceRequest request-reference expansion, already represented on the combined branch.
+FHIR-54619: later-change - later resolved-change-required alignment of ServiceRequest.basedOn and .replaces target lists, useful context but not decided in this default Applied/Published seed run.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-47248: Applied/Persuasive with Modification; requested NutritionOrder or the whole Request list for ServiceRequest.basedOn, with a fallback to adding NutritionOrder if Reference(Request) failed. Learned: this is the final issue request and approved fallback behavior.
+- E2 Confluence OO 2024-09-30 HCP: minutes say to link to Request if possible in tooling, otherwise add NutritionOrder, with a 9-0-0 vote. Learned: meeting evidence confirms the Jira resolution wording and fallback.
+- E3 Source source/servicerequest/structuredefinition-ServiceRequest.xml:162: ServiceRequest.basedOn is an active StructureDefinition element whose targetProfiles include NutritionOrder. Learned: the requested concrete target is present in current build source.
+- E4 Source source/fhir.ini:170: active [resources] entries include nutritionorder and servicerequest. Learned: the edited/inspected artifacts are in current build scope.
+- E5 Git 8eed7c62a5, 91dcae7d0e, a910985a9b: history shows the issue was applied by trying Reference(Request) and then reverting to enumerated concrete targets including NutritionOrder after Reference(Request) failed CI. Learned: current source follows the resolution fallback rather than accidentally omitting the abstract pattern.
+- E6 Jira FHIR-44992: Applied/Not Persuasive with Modification says Reference(Request) is not appropriate and concrete appropriate resources should be enumerated. Learned: this supports not changing ServiceRequest.basedOn back to Reference(Request).
+- E7 Source source/servicerequest/servicerequest-request-mapping-exceptions.xml:21: mapping exception records missing Reference(Request) and extra concrete ServiceRequest target types including NutritionOrder. Learned: the divergence from the Request pattern is explicit and expected.
+- E8 Community search command: quoted Zulip search found no directly relevant FHIR-47248 thread; Confluence refs found the OO minutes above. Learned: no discovered Zulip evidence conflicts with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-47248",
+    "url": "https://jira.hl7.org/browse/FHIR-47248",
+    "snapshot_path": "contexts/FHIR-47248/jira/FHIR-47248.md",
+    "ref": { "jira_key": "FHIR-47248" },
+    "summary": "Applied/Persuasive with Modification issue requesting ServiceRequest.basedOn support for NutritionOrder or the Request list, with NutritionOrder as fallback if Reference(Request) did not work.",
+    "learned": "This establishes the final request and the approved fallback behavior for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "OO 2024-09-30 HCP minutes page 273943201",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/273943201/2024-09-30+OO+HCP",
+    "ref": { "confluence_page_id": 273943201 },
+    "summary": "Minutes record a motion to find FHIR-47248 persuasive with modification and say to link to Request if tooling allows, otherwise add NutritionOrder.",
+    "learned": "This confirms the Jira resolution and vote language from meeting evidence.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:162",
+    "ref": { "path": "source/servicerequest/structuredefinition-ServiceRequest.xml", "line": 162 },
+    "summary": "ServiceRequest.basedOn currently enumerates concrete targetProfiles including NutritionOrder.",
+    "learned": "The requested concrete target is already present in the authoritative ServiceRequest source.",
+    "supports": ["reconciliation", "source_check"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:170",
+    "ref": { "path": "source/fhir.ini", "line": 170 },
+    "summary": "Active [resources] entries include nutritionorder and servicerequest.",
+    "learned": "The inspected ServiceRequest and NutritionOrder artifacts are in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "8eed7c62a5, 91dcae7d0e, a910985a9b",
+    "ref": { "commit": "a910985a9ba2b62358ff4a5f7188b7797424d241" },
+    "summary": "History shows FHIR-47248 first added NutritionOrder and Request, then tried Reference(Request), then returned to enumerated concrete targets including NutritionOrder after Reference(Request) failed CI.",
+    "learned": "The current enumerated target list is the deliberate fallback path from the issue resolution.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-44992",
+    "url": "https://jira.hl7.org/browse/FHIR-44992",
+    "ref": { "jira_key": "FHIR-44992" },
+    "summary": "Applied tooling issue records that Reference(Request) is not appropriate in most resource definitions and appropriate concrete resources should be enumerated.",
+    "learned": "This supports leaving ServiceRequest.basedOn as enumerated concrete targets rather than Reference(Request).",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/servicerequest/servicerequest-request-mapping-exceptions.xml:21",
+    "ref": { "path": "source/servicerequest/servicerequest-request-mapping-exceptions.xml", "line": 21 },
+    "summary": "Mapping exceptions record ServiceRequest.basedOn as diverging from Request.basedOn by omitting Reference(Request) and enumerating concrete targets including NutritionOrder.",
+    "learned": "The pattern divergence is explicit and expected in current source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community search for FHIR-47248 ServiceRequest NutritionOrder basedOn",
+    "command": "bun run zulip:search fts '\"FHIR-47248\" \"ServiceRequest\" NutritionOrder basedOn' --limit 10; bun run confluence:search refs jira FHIR-47248; bun run confluence:search snapshot 273943201",
+    "query": "FHIR-47248 ServiceRequest NutritionOrder basedOn",
+    "summary": "No directly relevant Zulip hits were found; Confluence refs and snapshot found the OO meeting minutes supporting the Jira resolution.",
+    "learned": "No discovered community evidence conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

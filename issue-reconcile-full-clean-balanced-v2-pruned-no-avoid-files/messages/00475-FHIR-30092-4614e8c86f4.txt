@@ -1,0 +1,112 @@
+FHIR-30092: Add MedicationKnowledge treatment intent rules
+
+Issue request:
+FHIR-30092 was a Published/Persuasive Pharmacy change request for MedicationKnowledge raised against R4 and applied for R5. It requested a new administrationGuideline treatment intent CodeableConcept, a constraint requiring indication when treatmentIntent is used, and an example binding to children of SNOMED CT 262202000 Therapeutic Intents.
+
+Initial application:
+Commit 1683ac64141af807564d62a28932d70133142fb3 applied a group of MedicationKnowledge trackers including FHIR-30092 by adding treatmentIntent while simultaneously applying the FHIR-30093/FHIR-28597 refactor from administrationGuideline to indicationGuideline/dosingGuideline. That commit and the current source include MedicationKnowledge.indicationGuideline.dosingGuideline.treatmentIntent as 0..1 CodeableConcept, but they did not include the approved treatmentIntent binding or the indication constraint.
+
+Additional context:
+FHIR-30093 explains why the original administrationGuideline wording now maps to MedicationKnowledge.indicationGuideline.dosingGuideline: the model was inverted so indicationGuideline contains indication and dosingGuideline. Pharmacy WGM minutes from January 2021 explicitly record the FHIR-30092 approval with the same constraint and 262202000 example value set. FHIR-33219 is a later no-change MedicationRequest request that notes MedicationKnowledge.treatmentIntent was not yet bound; it does not reverse the FHIR-30092 MedicationKnowledge requirement.
+
+AutoFHIR reconciliation:
+This commit adds invariant mkn-1 on MedicationKnowledge.indicationGuideline so any dosingGuideline.treatmentIntent requires indication on the same indicationGuideline, marks the participating indication and treatmentIntent elements with that condition, and adds the approved example binding to the SNOMED CT implicit value set http://snomed.info/sct?fhir_vs=isa/262202000. The edited StructureDefinition is active in source/fhir.ini for the current build.
+
+Recommendation:
+Keep this source fix. It completes the published Pharmacy decision without changing the refactored R5/R6 element path or adding unrelated MedicationRequest/FormularyItem behavior; future broader alignment should use separate Jira decisions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-30092
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-30093: same-change-family - explains the indicationGuideline/dosingGuideline refactor that changes the path for the FHIR-30092 element.
+FHIR-28597: supporting-decision - the FHIR-30093 resolution cites this as the inversion from AdministrationGuideline to Indication.
+FHIR-33219: background - later no-change request notes MedicationKnowledge treatmentIntent was not yet bound but only rejects a core MedicationRequest addition.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-30092: Published/Persuasive Pharmacy issue requiring treatmentIntent, indication constraint, and an example SNOMED CT 262202000 binding. Learned: establishes the final source requirement.
+- E2 Source source/medicationknowledge/structuredefinition-MedicationKnowledge.xml:394-450: active MedicationKnowledge source now has mkn-1 and the example binding on the refactored treatmentIntent element. Learned: the reconciliation is applied in the authoritative source.
+- E3 Source source/fhir.ini:575-580,721-726,865-870: MedicationKnowledge has active work group, security category, and maturity entries. Learned: the edited StructureDefinition is in current build scope.
+- E4 Git 1683ac64141af807564d62a28932d70133142fb3: original grouped MedicationKnowledge commit added treatmentIntent on the renamed indicationGuideline/dosingGuideline path but not the binding or constraint. Learned: the issue was only partially applied.
+- E5 Jira FHIR-30093 and FHIR-28597: related MedicationKnowledge decisions moved administrationGuideline semantics under indicationGuideline/dosingGuideline. Learned: the current path is the correct modern target for the seed requirement.
+- E6 Confluence PHAR January 2021 WGM minutes page 97459150: records approval of FHIR-30092 with treatmentIntent, indication constraint, and 262202000 example value set. Learned: meeting evidence confirms the missing pieces were intentional parts of the decision.
+- E7 Command community/source checks: Zulip search found no conflicting discussion; R5 publication JSON lacked the treatmentIntent binding/constraint before this fix; XML parse and whitespace checks passed after the edit. Learned: no discovered evidence supersedes the Jira/minutes requirement and the source edit is structurally valid.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-30092",
+    "url": "https://jira.hl7.org/browse/FHIR-30092",
+    "snapshot_path": "contexts/FHIR-30092/jira/FHIR-30092.md",
+    "ref": { "jira_key": "FHIR-30092" },
+    "summary": "Published/Persuasive Pharmacy change request to add MedicationKnowledge treatmentIntent with an indication constraint and example SNOMED CT 262202000 binding.",
+    "learned": "This establishes the final approved requirement for the current MedicationKnowledge source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/medicationknowledge/structuredefinition-MedicationKnowledge.xml:394-450",
+    "ref": { "path": "source/medicationknowledge/structuredefinition-MedicationKnowledge.xml", "start_line": 394, "end_line": 450 },
+    "summary": "MedicationKnowledge.indicationGuideline now defines mkn-1 and binds dosingGuideline.treatmentIntent to the SNOMED CT implicit therapeutic-intents value set as an example binding.",
+    "learned": "The source now carries the missing approved constraint and binding on the refactored element path.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:575-580,721-726,865-870",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "MedicationKnowledge is actively listed for Pharmacy work group, business security category, and maturity level 1.",
+    "learned": "The edited StructureDefinition is part of the current core build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "1683ac64141af807564d62a28932d70133142fb3",
+    "ref": { "commit": "1683ac64141af807564d62a28932d70133142fb3" },
+    "summary": "Grouped MedicationKnowledge application commit for FHIR-30092 added treatmentIntent while applying the indicationGuideline/dosingGuideline rename, but no binding or indication constraint.",
+    "learned": "The historical application was partial rather than absent.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-30093 and FHIR-28597",
+    "url": "https://jira.hl7.org/browse/FHIR-30093",
+    "snapshot_path": "contexts/FHIR-30092/jira/FHIR-30093.md",
+    "ref": { "jira_key": "FHIR-30093" },
+    "summary": "FHIR-30093 says the MedicationKnowledge model was inverted and AdministrationGuideline was renamed to DosingGuideline under IndicationGuideline, citing FHIR-28597.",
+    "learned": "This explains why the FHIR-30092 requirement belongs on MedicationKnowledge.indicationGuideline.dosingGuideline.treatmentIntent today.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "PHAR January 2021 Virtual Pharmacy WGM Minutes page 97459150",
+    "url": "https://confluence.hl7.org/spaces/PHAR/pages/97459150/January+2021+Virtual+Pharmacy+WGM+Minutes",
+    "snapshot_path": "contexts/FHIR-30092/confluence/97459150.md",
+    "ref": { "confluence_page_id": 97459150 },
+    "summary": "Minutes record approval of FHIR-30092 with administrationGuideline.treatmentIntent, a constraint on use with indication, and an example value set of 262202000 and its children.",
+    "learned": "Community meeting evidence confirms the binding and constraint were approved, not merely suggested in the Jira text.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community, publication, and source validation checks",
+    "command": "bun run zulip:search fts 'MedicationKnowledge treatmentIntent administrationGuideline' --limit 10; curl -fsSL https://hl7.org/fhir/R5/medicationknowledge.profile.json | jq -r '.differential.element[] | select(.id==\"MedicationKnowledge.indicationGuideline.dosingGuideline.treatmentIntent\" or .id==\"MedicationKnowledge.indicationGuideline\")'; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/medicationknowledge/structuredefinition-MedicationKnowledge.xml; python - <<'PY' ... ET.parse('source/medicationknowledge/structuredefinition-MedicationKnowledge.xml') ... PY",
+    "query": "MedicationKnowledge treatmentIntent administrationGuideline",
+    "result_count": 0,
+    "summary": "No conflicting Zulip hits were found; R5 publication lacked the binding/constraint; the edited XML parsed and passed whitespace checks.",
+    "learned": "No discovered evidence supersedes FHIR-30092, and the source edit is structurally valid.",
+    "supports": ["absence_of_conflict", "verification"]
+  }
+]
+</evidence-manifest>

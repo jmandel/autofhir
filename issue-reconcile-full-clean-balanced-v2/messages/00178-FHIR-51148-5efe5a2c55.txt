@@ -1,0 +1,114 @@
+FHIR-51148: Fix MedicationRequest allergy reason example
+
+Issue request:
+FHIR-51148 was an Applied/Persuasive Pharmacy change request for R6 asking to add AllergyIntolerance as an allowed MedicationRequest.reason reference target and to include clinical examples using AllergyIntolerance as the reason for a doNotPerform or alternative medication request.
+
+Initial application:
+The issue had already been partly applied before this reconciliation: d86923e778 added AllergyIntolerance to MedicationRequest.reason.targetProfile, and 7d10e89f2c added the medicationrequest0349 and medicationrequest0350 examples and list entries. Those changes were merged through HL7/fhir#3896.
+
+Additional context:
+source/fhir.ini lists MedicationRequest as an active built resource, with active maturity/work-group metadata, so source/medicationrequest examples feed the current build. Pharmacy meeting notes from 2025-06-19 and 2025-06-30 support using MedicationRequest.reason for AllergyIntolerance and for the alternative-therapy text reason, while keeping broader premedication/alternative-therapy intent work separate. FHIR-47856 is related background because it confirmed .reason is the place to express doNotPerform reasons, but this commit does not independently decide that broader tracker.
+
+AutoFHIR reconciliation:
+This commit keeps the already-applied AllergyIntolerance targetProfile and example set, and fixes the medicationrequest0350 example so all three reasons use the current R6 MedicationRequest.reason CodeableReference shape. It replaces the retired reasonCode element with reason.concept.text and corrects the SNOMED coding display from an invalid Coding.text child to Coding.display.
+
+Recommendation:
+Keep this commit as-is. The source now reflects the Applied FHIR-51148 decision without adding speculative new clinical examples or taking over the separate intent/doNotPerform work.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-51148
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-47856: background - confirmed MedicationRequest.reason is the intended place for doNotPerform reasons, but the broader tracker is not decided by this FHIR-51148 commit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-51148: Applied/Persuasive Pharmacy issue requesting AllergyIntolerance in MedicationRequest.reason and related examples. Learned: this is final WG intent for the seed decision.
+- E2 Source source/fhir.ini:170-203 and 1388-1394: MedicationRequest is an active resource with approved maturity metadata. Learned: source/medicationrequest changes are in current build scope.
+- E3 Source source/medicationrequest/structuredefinition-MedicationRequest.xml:740-753: MedicationRequest.reason is a CodeableReference and already includes AllergyIntolerance as a targetProfile. Learned: the structural allowance requested by the issue is present.
+- E4 Source source/medicationrequest/medicationrequest0350.xml:39-61: the alternative-therapy example now represents AllergyIntolerance, alternative therapy text, and actual indication as MedicationRequest.reason entries. Learned: the example now matches the current R6 element shape.
+- E5 Git d86923e778 and 7d10e89f2c / PR HL7/fhir#3896: prior application added the target profile and examples. Learned: reconciliation should repair the applied example rather than reimplement the whole issue.
+- E6 Confluence PHAR 2025-06-19 and 2025-06-30 meeting notes: WG discussion supported AllergyIntolerance references and .reason text for alternative therapy while separating broader intent work. Learned: the bounded fix should stay within MedicationRequest.reason examples.
+- E7 Verification command: xmllint --noout source/medicationrequest/medicationrequest0349.xml source/medicationrequest/medicationrequest0350.xml; rg -n '<reasonCode>|<reasonReference>|<text value="Antibiotic therapy' source/medicationrequest/medicationrequest0350.xml; git diff --check. Learned: the edited examples are well formed, the stale example constructs were removed from the edited file, and the patch has no whitespace errors.
+- E8 Community search: bun run zulip:search fts '"FHIR-51148" MedicationRequest AllergyIntolerance' --limit 10. Learned: no Zulip discussion was found that changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-51148",
+    "url": "https://jira.hl7.org/browse/FHIR-51148",
+    "snapshot_path": "contexts/FHIR-51148/jira/FHIR-51148.md",
+    "ref": { "jira_key": "FHIR-51148" },
+    "summary": "Applied/Persuasive Pharmacy change request to add AllergyIntolerance to MedicationRequest.reason and include examples.",
+    "learned": "This establishes the final seed issue request and expected current-source behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-203; source/fhir.ini:1388-1394",
+    "summary": "MedicationRequest is listed as an active resource and has approved maturity metadata.",
+    "learned": "MedicationRequest structure and examples are in current FHIR build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationrequest/structuredefinition-MedicationRequest.xml:740-753",
+    "summary": "MedicationRequest.reason is a CodeableReference and already includes AllergyIntolerance as an allowed targetProfile.",
+    "learned": "The structural part of FHIR-51148 had been applied before reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationrequest/medicationrequest0350.xml:39-61",
+    "summary": "The alternative-therapy example now expresses all reasons as MedicationRequest.reason entries and uses Coding.display.",
+    "learned": "The example now conforms to the current R6 CodeableReference shape for MedicationRequest.reason.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "d86923e778; 7d10e89f2c; HL7/fhir#3896",
+    "ref": { "commit_1": "d86923e778", "commit_2": "7d10e89f2c", "pull_request": 3896 },
+    "summary": "Prior FHIR-51148 commits added the AllergyIntolerance target profile and the new MedicationRequest examples.",
+    "learned": "Only the stale example representation needed reconciliation in the current source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "PHAR 2025-06-19 and 2025-06-30 Agenda/Meeting Notes",
+    "url": "https://confluence.hl7.org/spaces/PHAR/pages/358879439/2025-06-30+Agenda+Meeting+Notes",
+    "ref": { "confluence_page_id": 358879439 },
+    "summary": "Pharmacy notes record agreement to use MedicationRequest.reason for AllergyIntolerance and alternative-therapy examples while pursuing broader intent work separately.",
+    "learned": "The fix should be limited to MedicationRequest.reason example correctness rather than broader intent modeling.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted XML and whitespace checks",
+    "command": "xmllint --noout source/medicationrequest/medicationrequest0349.xml source/medicationrequest/medicationrequest0350.xml; rg -n '<reasonCode>|<reasonReference>|<text value=\"Antibiotic therapy' source/medicationrequest/medicationrequest0350.xml; git diff --check",
+    "summary": "The edited examples are XML well formed, the stale constructs are absent from the edited example, and the diff has no whitespace errors.",
+    "learned": "The reconciliation did not leave the identified malformed/stale example constructs in place.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative Zulip search for FHIR-51148 MedicationRequest AllergyIntolerance",
+    "command": "bun run zulip:search fts '\"FHIR-51148\" MedicationRequest AllergyIntolerance' --limit 10",
+    "query": "\"FHIR-51148\" MedicationRequest AllergyIntolerance",
+    "result_count": 0,
+    "summary": "No Zulip discussion matching the seed key and core terms was found.",
+    "learned": "No discovered Zulip record changes the Jira, Confluence, source, and git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

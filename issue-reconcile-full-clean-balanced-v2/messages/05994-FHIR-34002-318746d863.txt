@@ -1,0 +1,117 @@
+FHIR-34002: Audit multiple-specimen Observation model
+
+Issue request:
+FHIR-34002 was a Published / Persuasive with Modification R4 issue asking how a single Observation can identify multiple specimens without changing the normative Observation.specimen cardinality from 0..1 to 0..*. The final motion was to add Group as an Observation.specimen target, constrain such Groups to specimens, and ensure searching works for groups of specimens.
+
+Initial application:
+The seed was explicitly applied for R5 in fd8f971f11 / PR #2178 by adding Group as a targetProfile on Observation.specimen and adding invariant obs-9. Later invariant QA commits 55512f8e09, 9b24283fc, and a82569d3be refined the FHIRPath into the current build-safe expression. The related FHIR-35972 application in 7816ce8037 added Specimen to Group.member.entity so a Group can actually contain specimen members.
+
+Additional context:
+OO minutes from 2022-03-07 record the approved rationale: link an Observation to either one Specimen or a Group of specimens, keep the invariant on Observation.specimen, and rely on Group.member search behavior after Specimen was added to Group.member.entity. Current source/fhir.ini lists Observation, Group, and Specimen as active resources. Later decisions reinforce the model: FHIR-38732 added Specimen grouping guidance, FHIR-39269 retained Specimen in Group to avoid breaking Observation, and FHIR-54865 was retracted after noting this design came from FHIR-34002.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current build-scoped source already matches the final approved model: Observation.specimen is still 0..1 but can reference Specimen or Group; obs-9 constrains referenced Groups to specimen members; Group includes Specimen as a type/member target; the Group member search parameter covers Group.member.entity; and Specimen notes describe grouping via Observation.specimen.
+
+Recommendation:
+Keep this no-change audit as-is. Revisit only if OO decides to reopen the normative-compatible Group indirection model or to define a new cross-resource Observation search parameter for member specimens; FHIR-34002 itself is already applied correctly.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34002
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-35972: supporting-decision - added Specimen to Group.member.entity so a specimen-only Group can support the FHIR-34002 Observation model.
+FHIR-38732: same-change-family - added Specimen grouping guidance that explicitly mentions grouping at Observation.specimen.
+FHIR-39269: later-change - retained Specimen in Group and added rationale because removing it would break the Observation multiple-specimen model.
+FHIR-54865: later-change - a later R6 challenge to Observation.specimen Reference(Group) was retracted, leaving the FHIR-34002 model intact.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34002: Published / Persuasive with Modification, approved 6-0-1 for an Observation.specimen Reference(Group) approach with a specimen-only invariant and search considerations. Learned: this establishes the final approved target state for the seed.
+- E2 Source source/fhir.ini:193,208 and source/observation/structuredefinition-Observation.xml:971-990: Group and Observation are active resources, and Observation.specimen is 0..1 Reference(Specimen|Group) with obs-9 requiring Group members to resolve as Specimen. Learned: the core conformance source implements the key FHIR-34002 change.
+- E3 Source source/group/structuredefinition-Group.xml:399,401,810; source/group/codesystem-group-type.xml:96-98; source/group/bundle-Group-search-params.xml:194-205: Group has a specimen type/member target and a member reference search parameter. Learned: the related Group source supports specimen groups and the search behavior discussed in the motion.
+- E4 Source source/observation/bundle-Observation-search-params.xml:638-650 and source/specimen/specimen-notes.xml:8-18: Observation retains the direct specimen reference search parameter, and Specimen notes describe grouping via Observation.specimen plus specimen search guidance. Learned: no missing local source location changes implementer understanding for FHIR-34002.
+- E5 Git fd8f971f11, a82569d3be, and 7816ce8037: the historical application added the Observation Group target/invariant, later fixed the invariant expression, and added Specimen to Group.member.entity. Learned: the issue family was applied through source commits rather than merely recorded in Jira.
+- E6 Confluence OO 2022-03-07 Specimen page 94634822: minutes record the persuasive-with-modification motion, the single-Specimen-or-Group-of-specimens design, the obs.specimen invariant location, and the expectation that Group.member search is updated by adding Specimen to Group.member.entity. Learned: the current source matches the work-group meeting rationale.
+- E7 Jira FHIR-38732, FHIR-39269, and FHIR-54865: later published/retracted issues retained and documented the specimen Group design rather than reversing it. Learned: later decisions do not require changing FHIR-34002 now.
+- E8 Command Zulip search for FHIR-34002 Observation specimen Group: no directly relevant Zulip hits were found. Learned: no discovered community discussion conflicts with the Jira, Confluence, git, and source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34002",
+    "url": "https://jira.hl7.org/browse/FHIR-34002",
+    "snapshot_path": "contexts/FHIR-34002/jira/FHIR-34002.md",
+    "ref": { "jira_key": "FHIR-34002" },
+    "summary": "Published / Persuasive with Modification issue approving an Observation.specimen Reference(Group) approach for observations based on multiple specimens.",
+    "learned": "The approved target state is a normative-compatible Group reference with a specimen-only invariant and search considerations, not a cardinality change.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:193,208; source/observation/structuredefinition-Observation.xml:971-990",
+    "summary": "Observation and Group are active resources, and Observation.specimen is 0..1 Reference(Specimen|Group) with obs-9 requiring referenced Group members to be Specimen resources.",
+    "learned": "The build-scoped Observation definition implements the key FHIR-34002 source change.",
+    "supports": ["build_scope", "current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/group/structuredefinition-Group.xml:399,401,810; source/group/codesystem-group-type.xml:96-98; source/group/bundle-Group-search-params.xml:194-205",
+    "summary": "Group includes Specimen in its type/member definitions and has a Group.member.entity reference search parameter.",
+    "learned": "The related Group source supports specimen-only groups and the search behavior discussed during the FHIR-34002 motion.",
+    "supports": ["current_source", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/observation/bundle-Observation-search-params.xml:638-650; source/specimen/specimen-notes.xml:8-18",
+    "summary": "Observation retains its direct specimen reference search parameter, and Specimen notes describe grouping via Observation.specimen plus specimen search guidance.",
+    "learned": "No additional build-scoped search or guidance source was found that is misleading or inconsistent with the approved model.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "fd8f971f11; a82569d3be; 7816ce8037",
+    "ref": { "commit": "fd8f971f11707a20d5c37c80b648aca5158f3c45" },
+    "summary": "FHIR-34002 added Group to Observation.specimen and obs-9; later QA refined obs-9; FHIR-35972 added Specimen to Group.member.entity.",
+    "learned": "The issue family was applied through source commits and later cleaned up for invariant correctness.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "OO 2022-03-07 Specimen minutes page 94634822",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/94634822/2022-03-07+Specimen",
+    "ref": { "confluence_page_id": 94634822 },
+    "summary": "OO minutes record the FHIR-34002 motion, the single-Specimen-or-Group-of-specimens model, the invariant location on Observation.specimen, and reliance on Group.member search after Specimen is added.",
+    "learned": "The current source matches the work-group rationale and does not need an Observation.specimen cardinality change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-38732; FHIR-39269; FHIR-54865",
+    "url": "https://jira.hl7.org/browse/FHIR-39269",
+    "summary": "Later issues added grouping guidance, retained Specimen in Group to avoid breaking Observation, and retracted a challenge to Observation.specimen Reference(Group).",
+    "learned": "Later issue history reinforces rather than reverses the FHIR-34002 model.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative Zulip search for FHIR-34002 Observation specimen Group",
+    "command": "bun run zulip:search fts '\"FHIR-34002\" \"Observation\" \"specimen\" \"Group\"' --limit 10",
+    "query": "FHIR-34002 Observation specimen Group",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip hits were found.",
+    "learned": "No discovered Zulip discussion conflicts with the Jira, Confluence, git, and source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,98 @@
+FHIR-19470: Align MedicationStatement adherence search path
+
+Issue request:
+FHIR-19470 was a Published/Persuasive Pharmacy change request for R5 asking to replace the prior MedicationUsage.takenAsOrdered compliance attribute with a CodeableConcept adherence attribute and to rename takenAsOrdered to adherence.
+
+Initial application:
+The issue was first partially applied in 2019 by ec284380a4, then substantially applied in 2021 by f351511a95 for FHIR-19468/FHIR-19470/FHIR-28593, which renamed MedicationUsage.takenAsOrdered to MedicationUsage.adherence in the StructureDefinition and search parameter expression. The 2023 FHIR-38682 rename-back commit b2032629f2 converted MedicationUsage references to MedicationStatement but left the search-parameter path extension as MedicationStatement.takenAsOrdered.
+
+Additional context:
+FHIR-19468 is the paired decision that removed not-taken semantics from status and moved taking/not-taking representation to the adherence element. FHIR-31573 later corrected MedicationStatement.effective[x] to refer to adherence and is already represented on the combined branch. FHIR-39271, also already represented on the combined branch, confirms the current model: status records the statement state, while adherence carries taking/not-taking information.
+
+AutoFHIR reconciliation:
+This commit updates the active MedicationStatement adherence SearchParameter path metadata from MedicationStatement.takenAsOrdered to MedicationStatement.adherence. The SearchParameter id, code, URL, description, and expression already name adherence, and source/fhir.ini lists MedicationStatement as an active resource, so this source file feeds the current build.
+
+Recommendation:
+Keep this commit. It is a narrow source correction that completes the already-applied FHIR-19470 rename in the current MedicationStatement search-parameter metadata; no broader MedicationStatement status or adherence redesign is attempted here.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19470
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-19468: same-change-family - paired Pharmacy decision removing not-taken from MedicationUsage.status and using adherence for taking/not-taking semantics.
+FHIR-31573: later-change - later corrected MedicationStatement.effective[x] to refer to adherence; already represented on the combined branch.
+FHIR-38682: later-change - renamed MedicationUsage back to MedicationStatement while preserving the adherence model, but left this path metadata stale.
+FHIR-39271: supporting-decision - confirms status is about the statement record and adherence carries taking/not-taking information; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19470: Published/Persuasive issue requiring MedicationUsage.takenAsOrdered to become MedicationUsage.adherence. Learned: establishes the final rename target for the stale search-parameter path.
+- E2 Source source/fhir.ini:204 and source/medicationstatement/bundle-MedicationStatement-search-params.xml:13: MedicationStatement is active and the adherence SearchParameter path metadata still referenced MedicationStatement.takenAsOrdered before this commit. Learned: the edited file is in current build scope and contained the remaining mismatch.
+- E3 Git f351511a95: applied FHIR-19468/FHIR-19470 by changing MedicationUsage.takenAsOrdered to MedicationUsage.adherence in source and search expression. Learned: the intended source direction was already established before the later resource rename.
+- E4 Git b2032629f2: renamed MedicationUsage search-parameter files to MedicationStatement for FHIR-38682 but mechanically carried forward MedicationStatement.takenAsOrdered. Learned: the current stale path came from the rename-back application rather than a new policy decision.
+- E5 Community Confluence 86978002: September 2020 Pharmacy WGM minutes include the decision to change MedicationUsage.takenAsOrdered to MedicationUsage.adherence. Learned: work-group minutes support the Jira resolution and source correction.
+- E6 Verification command/query: xmllint, rg, and git diff --check after the edit. Learned: the XML is well formed, the stale takenAsOrdered source reference is gone, and the diff has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19470",
+    "url": "https://jira.hl7.org/browse/FHIR-19470",
+    "snapshot_path": "contexts/FHIR-19470/jira/FHIR-19470.md",
+    "ref": { "jira_key": "FHIR-19470" },
+    "summary": "Published/Persuasive Pharmacy issue requiring MedicationUsage.takenAsOrdered to become a CodeableConcept adherence attribute and to be renamed to adherence.",
+    "learned": "This establishes adherence as the correct current path instead of the obsolete takenAsOrdered name.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:204; source/medicationstatement/bundle-MedicationStatement-search-params.xml:13",
+    "ref": { "path": "source/medicationstatement/bundle-MedicationStatement-search-params.xml", "line": 13 },
+    "summary": "MedicationStatement is active, and the adherence SearchParameter path extension still referenced MedicationStatement.takenAsOrdered before this edit.",
+    "learned": "The source change is in build scope and fixes the remaining stale metadata path for the adherence search parameter.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "f351511a957fc178e55907a68ff1016e2387aa80",
+    "ref": { "commit": "f351511a957fc178e55907a68ff1016e2387aa80" },
+    "summary": "FHIR-19468/FHIR-19470 application changed MedicationUsage.takenAsOrdered to MedicationUsage.adherence in the resource and search parameter expression.",
+    "learned": "The intended rename was already applied semantically, so this reconciliation only aligns leftover metadata.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "b2032629f28b8d31b9a67b46170dde873398fb0d",
+    "ref": { "commit": "b2032629f28b8d31b9a67b46170dde873398fb0d" },
+    "summary": "FHIR-38682 renamed MedicationUsage search-parameter files and URLs back to MedicationStatement but carried forward the takenAsOrdered path value.",
+    "learned": "The remaining stale reference was introduced by a mechanical rename-back, not by a conflicting later decision.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "September 2020 Virtual WGM Minutes page 86978002",
+    "url": "https://confluence.hl7.org/spaces/PHAR/pages/86978002/September+2020+Virtual+WGM+Minutes",
+    "ref": { "confluence_page_id": 86978002 },
+    "summary": "Pharmacy WGM minutes list the decision to change MedicationUsage.takenAsOrdered to MedicationUsage.adherence.",
+    "learned": "Community meeting evidence supports the Jira resolution and rules out treating takenAsOrdered as the intended current name.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "XML and stale-reference verification",
+    "command": "xmllint --noout source/medicationstatement/bundle-MedicationStatement-search-params.xml; rg -n 'takenAsOrdered' source/medicationstatement source/fhir.ini; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/medicationstatement/bundle-MedicationStatement-search-params.xml",
+    "summary": "The edited XML is well formed, no active MedicationStatement source still contains takenAsOrdered, and the diff has no whitespace errors.",
+    "learned": "The source correction is syntactically safe and removes the targeted stale path.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

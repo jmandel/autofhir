@@ -1,0 +1,116 @@
+FHIR-17638: Correct PurposeOfUse code system reference
+
+Issue request:
+FHIR-17638 was Published/Persuasive with Modification for STU3. It reported that the v3 PurposeOfUse value set expansion exposed the abstract/root "PurposeOfUse" concept as if it were an implementable code, especially for bindings such as Consent.purpose. The approved resolution was to exclude the abstract code from that value set and pursue the broader R5 question of how abstract/not-selectable codes should be identified and rendered in expansions.
+
+Initial application:
+No git commit explicitly mentioning FHIR-17638 was found. The historical v3 MIF source now has includeHeadCode="false" for the PurposeOfUse value set in tools/tx/v3/source.xml, which excludes the head PurposeOfUse code while including descendants. Conformance and MnM minutes from late 2018 record the harmonization approvals for dropping the abstract root from the value set display and treating the value set as based on the ActReason PurposeOfUse code.
+
+Additional context:
+Core FHIR no longer owns the current published THO v3 value set expansion. Current core bindings point to http://terminology.hl7.org/ValueSet/v3-PurposeOfUse, while the THO package defines that value set over http://terminology.hl7.org/CodeSystem/v3-ActReason and marks the PurposeOfUse concept notSelectable. The later implemented UTG proposal UP-528 and its Zulip discussion deliberately removed the old value-set exclusion after marking PurposeOfUse not selectable, so hierarchy could be rendered; core's $expand operation now documents excludeNotForUI for notSelectable concepts. The remaining core-source problem was that the active Security Labels narrative still named the nonexistent code system http://terminology.hl7.org/CodeSystem/v3-PurposeOfUse.
+
+AutoFHIR reconciliation:
+This commit changes source/security-labels.html so the Purpose of Use section identifies the coding system as http://terminology.hl7.org/CodeSystem/v3-ActReason while keeping the link to the PurposeOfUse value set. The page is linked from source/documentation.html and is therefore current build-scope narrative. The hunk is necessary because the stale standalone code-system URI could lead implementers to construct invalid codings and conflicts with both the original ActReason-based value-set correction and the current THO source.
+
+Recommendation:
+Keep this core-source fix. Do not reintroduce a core-owned v3 expansion change here; if the work group wants the current THO default expansion to omit notSelectable roots despite UP-528, that follow-up belongs in THO/UTG terminology governance rather than this FHIR-core checkout.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17638
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+UP-528: later-change - Implemented UTG proposal that added PurposeOfUse descendants and changed the THO handling to mark PurposeOfUse notSelectable while removing the old value-set exclusion so hierarchy could render.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17638: Published/Persuasive with Modification; requested excluding the abstract PurposeOfUse root code and addressing broader abstract-code rendering. Learned: the seed establishes the original WG intent and the abstract/notSelectable context.
+- E2 Confluence 35717749 and 42992019: 2018 Conformance and MnM minutes approved dropping the root abstract PurposeOfUse code and updating the value set to reference ActReason code PurposeOfUse as a specialized code. Learned: meeting evidence confirms the approved ActReason-based direction.
+- E3 Source tools/tx/v3/source.xml:186767-186790: current historical v3 MIF source has codeBasedContent includeHeadCode="false" for PurposeOfUse. Learned: the original value-set source representation in this checkout already contains the head-code exclusion.
+- E4 Source source/security-labels.html:203 and source/documentation.html:133: the current active Security Labels page is linked from documentation and previously named a nonexistent CodeSystem/v3-PurposeOfUse. Learned: a current in-build narrative still carried a semantic coding-system error tied to the seed vocabulary.
+- E5 THO package/URL check: hl7.terminology#7.1.0 ValueSet-v3-PurposeOfUse composes over CodeSystem/v3-ActReason, CodeSystem-v3-ActReason marks PurposeOfUse notSelectable, and CodeSystem-v3-PurposeOfUse does not exist. Learned: the corrected core URI matches the current external terminology source of truth.
+- E6 Git history: git log found no FHIR-17638 commit; 02557a9364 imported the current v3 source with includeHeadCode=false, 5c0494aacf removed source/v3 UTG content from core build, and d1f387ce5e/325d793204 show the stale security-labels URI lineage. Learned: the current reconciliation should be limited to the residual active core narrative, not regenerated v3 terminology source.
+- E7 Zulip/Jira UP-528: #terminology "ValueSet expansion including hierarchical" and implemented UP-528 show a later THO decision to remove the value-set exclusion once PurposeOfUse was notSelectable, to support hierarchy. Learned: current default expansion behavior is an external later terminology decision, not a core source defect to reverse here.
+- E8 Verification commands: rg found no remaining CodeSystem/v3-PurposeOfUse references in source, and CRLF-aware git diff --check passed for source/security-labels.html. Learned: the correction is complete for current source and introduces no whitespace issue beyond expected CRLF handling.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17638",
+    "url": "https://jira.hl7.org/browse/FHIR-17638",
+    "snapshot_path": "contexts/FHIR-17638/jira/FHIR-17638.md",
+    "ref": { "jira_key": "FHIR-17638" },
+    "summary": "Published/Persuasive with Modification issue requesting that the abstract/root PurposeOfUse code be excluded from the v3 PurposeOfUse value set expansion and that abstract-code handling be clarified.",
+    "learned": "This establishes the original WG intent and the abstract/notSelectable concern for the current source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "Conformance 2018-11-06 page 35717749 and MnM 2018-10-30 page 42992019",
+    "url": "https://confluence.hl7.org/spaces/CONF/pages/35717749/2018-11-06+Conformance+Call+Minutes",
+    "ref": { "confluence_page_id": 35717749 },
+    "summary": "Minutes record approval to drop the root abstract PurposeOfUse code from the value set display and to update the value set to reference ActReason code PurposeOfUse as a specialized code.",
+    "learned": "The approved implementation path was ActReason-based handling, not a standalone PurposeOfUse code system.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "tools/tx/v3/source.xml:186767-186790",
+    "ref": { "path": "tools/tx/v3/source.xml" },
+    "summary": "The historical v3 MIF source for ValueSet PurposeOfUse uses codeBasedContent includeHeadCode=false on code PurposeOfUse.",
+    "learned": "The original head-code exclusion is already present in the checkout's v3 terminology source representation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/security-labels.html:203 and source/documentation.html:133",
+    "ref": { "paths": "source/security-labels.html; source/documentation.html" },
+    "summary": "The active Security Labels page is linked from documentation and named Purpose of Use with system http://terminology.hl7.org/CodeSystem/v3-PurposeOfUse before this commit.",
+    "learned": "A current build-scope narrative still exposed a stale, nonexistent PurposeOfUse code-system URI that needed a core source fix.",
+    "supports": ["current_source", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current THO package and terminology URL checks",
+    "command": "jq '.compose.include[]?.system' ~/.fhir/packages/hl7.terminology#7.1.0/package/ValueSet-v3-PurposeOfUse.json; jq PurposeOfUse concept in CodeSystem-v3-ActReason.json; curl -fsI https://terminology.hl7.org/CodeSystem-v3-PurposeOfUse.html",
+    "summary": "THO ValueSet-v3-PurposeOfUse composes over CodeSystem/v3-ActReason, the ActReason PurposeOfUse concept is notSelectable, and CodeSystem-v3-PurposeOfUse returns 404.",
+    "learned": "The corrected core narrative URI matches current external terminology; the previous URI was invalid.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "git history for FHIR-17638, v3 terminology source, and security-labels PurposeOfUse URI",
+    "command": "git log --all --grep='FHIR-17638'; git blame -L 198,205 -- source/security-labels.html; git log --all -S 'includeHeadCode=\"false\" code=\"PurposeOfUse\"' -- tools/tx/v3/source.xml source/v3/source.xml",
+    "summary": "No explicit FHIR-17638 commit was found; 02557a9364 imported v3 source with includeHeadCode=false, 5c0494aacf removed source/v3 UTG content from core build, and later security-labels history retained the stale URI.",
+    "learned": "The safe current core edit is the residual narrative URI correction, not a new v3 expansion-source change.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#terminology > ValueSet expansion including hierarchical; UP-528",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/ValueSet%20expansion%20including%20hierarchical",
+    "ref": { "jira_key": "UP-528" },
+    "summary": "The 2024 thread and implemented UP-528 discuss marking PurposeOfUse notSelectable and removing the old exclusion so the THO value set can render hierarchy.",
+    "learned": "Current expansion behavior is affected by a later external THO/UTG decision and should not be reversed in core source.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Post-edit source check",
+    "command": "rg -n 'CodeSystem/v3-PurposeOfUse' source || true; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/security-labels.html",
+    "summary": "No remaining bad CodeSystem/v3-PurposeOfUse source references were found, and the CRLF-aware whitespace check passed.",
+    "learned": "The source correction is complete and clean for the edited file.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

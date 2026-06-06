@@ -1,0 +1,104 @@
+FHIR-15786: Allow multiple adjudication reasons
+
+Issue request:
+FHIR-15786 was a Published/Persuasive with Modification FM change request for STU3. It asked for a header-level adjudication backbone on ExplanationOfBenefit so claim-level adjudication amounts would not need to be forced into information or extensions; the final resolution also said to place the new adjudication element after addItem on ExplanationOfBenefit and ClaimResponse and to change the cardinality of adjudication.reason to 0..*.
+
+Initial application:
+The header-level adjudication portion was applied historically across old spreadsheet commits and then preserved by the later StructureDefinition-source migration. Commit 89bb47c31d84c7cc3fb753e5408806226f62d395 explicitly mentioned GF#15786 while touching the ExplanationOfBenefit spreadsheet, commit 47922328a9dde56d50550ccb72f1cf7ed7551e49 introduced ExplanationOfBenefit.adjudication, and commit afb5ec66f68641293bb7950b6e0eeb118fa1444a introduced ClaimResponse.adjudication. Those historical rows and the migrated current XML left the shared item.adjudication.reason definition at 0..1, so the cardinality part of the published resolution was not fully applied.
+
+Additional context:
+ClaimResponse and ExplanationOfBenefit are active current-build resources in source/fhir.ini. In the current source, both root-level adjudication elements sit after addItem and use contentReference to the item.adjudication backbone, so changing the shared item.adjudication.reason cardinality is the source-level way to make the line-item, add-item, and header-level adjudication structures allow multiple reasons consistently. Jira, Zulip, and Confluence searches found no later FHIR-core decision reversing the FHIR-15786 cardinality requirement; the nearby hits were external IG/profile discussions rather than core changes.
+
+AutoFHIR reconciliation:
+This commit changes ExplanationOfBenefit.item.adjudication.reason and ClaimResponse.item.adjudication.reason from 0..1 to 0..* in the active StructureDefinition XML, and updates the checked-in resource SVG diagrams for the same two reason rows so the visible diagrams do not contradict the authoritative source.
+
+Recommendation:
+Keep this fixed commit as-is. It completes the previously omitted cardinality portion of FHIR-15786 while preserving the already-applied header-level adjudication elements; no further core FHIR source change is needed unless FM later chooses a new adjudication-reason policy.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15786
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15786: Published/Persuasive with Modification request to add header-level adjudication to EOB, apply it to EOB and ClaimResponse after addItem, and make adjudication.reason 0..*. Learned: this establishes the final approved target behavior.
+- E2 Source source/fhir.ini:242,244: ClaimResponse and ExplanationOfBenefit are active resources in the current FHIR build. Learned: the edited StructureDefinition files are in build scope.
+- E3 Source source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:1914,3392: current EOB source has header-level adjudication after addItem via contentReference to item.adjudication, and this commit changes item.adjudication.reason to 0..*. Learned: the root adjudication structure was present but the shared reason cardinality needed correction.
+- E4 Source source/claimresponse/structuredefinition-ClaimResponse.xml:854,1957: current ClaimResponse source has header-level adjudication after addItem via contentReference to item.adjudication, and this commit changes item.adjudication.reason to 0..*. Learned: the parallel ClaimResponse structure needed the same cardinality correction.
+- E5 Git 89bb47c31d84c7cc3fb753e5408806226f62d395, 47922328a9dde56d50550ccb72f1cf7ed7551e49, afb5ec66f68641293bb7950b6e0eeb118fa1444a, 33b409a4b6d544598262f2f074ebb4b6dc466157: historical spreadsheet/source migration trail added the header-level adjudication elements but preserved reason at 0..1. Learned: the issue had a real but incomplete prior application.
+- E6 Command Jira/Zulip/Confluence search for FHIR-15786 and adjudication reason cardinality terms: no later FHIR-core reversal or conflicting community decision was found. Learned: there is no discovered evidence against applying the missing cardinality change now.
+- E7 Verification command: namespace-aware XML parse plus SVG anchor checks and git diff --check confirmed both StructureDefinition reason elements and both diagram reason rows are 0..* with no whitespace errors. Learned: the edited source matches the requested cardinality and the visible diagrams are aligned.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15786",
+    "url": "https://jira.hl7.org/browse/FHIR-15786",
+    "snapshot_path": "contexts/FHIR-15786/jira/FHIR-15786.md",
+    "ref": { "jira_key": "FHIR-15786" },
+    "summary": "Published/Persuasive with Modification FM request to add header-level adjudication to ExplanationOfBenefit, place adjudication after addItem on EOB and ClaimResponse, and change adjudication.reason to 0..*.",
+    "learned": "This establishes the final approved source behavior to reconcile.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:242,244",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "fhir.ini actively lists claimresponse=ClaimResponse and explanationofbenefit=ExplanationOfBenefit.",
+    "learned": "Both edited StructureDefinition sources are in current FHIR build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:1914,3392",
+    "ref": { "path": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml" },
+    "summary": "ExplanationOfBenefit.adjudication is present after addItem via contentReference to item.adjudication; item.adjudication.reason now has max='*'.",
+    "learned": "The EOB header-level element was already present, and this commit completes the missing shared reason cardinality change.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/claimresponse/structuredefinition-ClaimResponse.xml:854,1957",
+    "ref": { "path": "source/claimresponse/structuredefinition-ClaimResponse.xml" },
+    "summary": "ClaimResponse.adjudication is present after addItem via contentReference to item.adjudication; item.adjudication.reason now has max='*'.",
+    "learned": "The ClaimResponse parallel element was already present, and this commit completes the missing shared reason cardinality change.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "89bb47c31d84c7cc3fb753e5408806226f62d395; 47922328a9dde56d50550ccb72f1cf7ed7551e49; afb5ec66f68641293bb7950b6e0eeb118fa1444a; 33b409a4b6d544598262f2f074ebb4b6dc466157",
+    "ref": { "commit": "89bb47c31d84c7cc3fb753e5408806226f62d395" },
+    "summary": "The historical spreadsheet and migration trail added header-level adjudication elements but left the shared adjudication.reason rows at 0..1.",
+    "learned": "FHIR-15786 was partially applied before this reconciliation, with the approved cardinality change omitted.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Search for later core conflicts and community evidence",
+    "command": "bun run jira:search fts '\"change cardinality\" \"reason\" \"adjudication\"' --limit 30; bun run jira:search fts '\"adjudication\" \"reason\" \"cardinality\" \"FHIR-core\"' --limit 30; bun run zulip:search fts '\"FHIR-15786\" adjudication ExplanationOfBenefit ClaimResponse reason' --limit 10; bun run confluence:search refs jira FHIR-15786; bun run confluence:search fts '\"FHIR-15786\" adjudication ExplanationOfBenefit ClaimResponse reason' --limit 10",
+    "query": "FHIR-15786 adjudication reason cardinality ExplanationOfBenefit ClaimResponse",
+    "summary": "Searches found FHIR-15786 as the only FHIR-core adjudication reason cardinality decision and no relevant Zulip or Confluence conflict; other hits were external IG/profile issues.",
+    "learned": "No discovered later core decision reverses the published FHIR-15786 cardinality requirement.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML/SVG validation and whitespace check",
+    "command": "python3 namespace-aware parse of both StructureDefinition XML files plus SVG anchor checks; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The validation found both item.adjudication.reason elements as 0..* CodeableConcept, both diagram reason rows as [0..*], and no whitespace errors.",
+    "learned": "The source and visible diagrams now align with the requested cardinality.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

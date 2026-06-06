@@ -1,0 +1,121 @@
+FHIR-49782: Correct RequestOrchestration artifact constraint source
+
+Issue request:
+FHIR-49782 was Applied/Persuasive with Modification for R6. It started as a request to replace relatedArtifact on Library, ActivityDefinition, and PlanDefinition, but the final CDS decision instead kept RelatedArtifact and required resource-specific constraints and guidance for Library, ActivityDefinition, PlanDefinition, and RequestOrchestration.
+
+Initial application:
+The issue was initially applied in source commit 786db24816fa015ad5f9c0aad50073b686fd8cee, which added RelatedArtifact constraints to Library, ActivityDefinition, PlanDefinition, and RequestOrchestration. Commit 76f561c2361f1ced872d4a1a5a0df756e2fa1471 then removed the successor/predecessor resolve() constraints from the first three resources and converted them to narrative conformance guidance after PR review discussion. PR HL7/fhir#3916 merged those changes as 3cd78c385040041f240053d8481b7ff4797c635b. The remaining RequestOrchestration constraint was present, but its constraint source canonical was copied from PlanDefinition.
+
+Additional context:
+FHIR-50010 is the broader Applied/Persuasive RelatedArtifact simplification and usage-guidance issue that directed work groups to decide which relationships are core for each resource and to constrain inappropriate relationship types. The implementer discussion identified FHIR-49782 as the CDS follow-up tracker, alongside separate CQI and terminology trackers. The PR review discussion explains why the resolve() target-type checks should remain narrative guidance rather than executable constraints, so this reconciliation does not reintroduce them.
+
+AutoFHIR reconciliation:
+This commit changes only the source metadata for the RequestOrchestration relatedArtifact constraint rqg-2, from PlanDefinition to RequestOrchestration. The constraint expression, warning severity, and surrounding conformance behavior are unchanged. RequestOrchestration and the other CDS resources are active in source/fhir.ini, so the edited StructureDefinition XML is in current build scope.
+
+Recommendation:
+Keep this commit as-is. It is a narrow metadata correction to the applied FHIR-49782 implementation; further changes to add executable resolve() constraints or to replace RelatedArtifact should require renewed work-group review because the applied PR deliberately chose narrative guidance and resource-specific constraints instead.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-49782
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-50010: supporting-decision - broader RelatedArtifact datatype and usage-guidance issue that directed resource-specific constraints.
+FHIR-49783: same-change-family - CQI Measure relatedArtifact follow-up based on FHIR-50010, separate resource and work group scope.
+FHIR-50011: same-change-family - terminology relatedArtifact follow-up that had the same resolve() discussion but was already represented separately on the combined branch.
+FHIR-49758: background - EBM RelatedArtifact replacement issue discussed in the same family but resolved with a different relatesTo structure for EBM resources.
+FHIR-40920: background - extension-pack issue identified as the original driver for the broader RelatedArtifact discussion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-49782: Applied/Persuasive with Modification, vote 25-0-0, requiring resource-specific RelatedArtifact constraints/guidance for Library, ActivityDefinition, PlanDefinition, and RequestOrchestration. Learned: this is final CDS intent for the current source check.
+- E2 Source source/requestorchestration/structuredefinition-RequestOrchestration.xml:578-592: rqg-2 constrains RequestOrchestration.action.documentation relatedArtifact types but its source canonical pointed at PlanDefinition before this commit. Learned: the remaining defect was copied metadata on the applied constraint, not missing policy behavior.
+- E3 Source source/fhir.ini:266,273,274,276,1084,1176,1212,1228: Library, ActivityDefinition, PlanDefinition, and RequestOrchestration are active resources/definitions in the current build configuration. Learned: the edited StructureDefinition is in current build scope.
+- E4 Git 786db24816fa015ad5f9c0aad50073b686fd8cee, 76f561c2361f1ced872d4a1a5a0df756e2fa1471, and 3cd78c385040041f240053d8481b7ff4797c635b: initial FHIR-49782 application, follow-up removal of resolve() constraints in favor of comments, and PR #3916 merge. Learned: the current fix corrects a small leftover from the original application while preserving the later PR-review decision.
+- E5 Zulip #committers > PR Reviews near 553519166: Grahame Grieve questioned relatedArtifact resolve() constraints, Bryn Rhodes agreed to remove them and state the rules narratively, and the PR was re-reviewed. Learned: executable resolve() constraints should not be restored during reconciliation.
+- E6 Zulip #implementers > RelatedArtifact Replacement Discussions: discussion identified Library, ActivityDefinition, PlanDefinition, and Measure as knowledge-artifact resources in scope and linked FHIR-50010, FHIR-49782, FHIR-49783, and FHIR-50011 as follow-up trackers. Learned: FHIR-49782 is part of a broader but resource-specific RelatedArtifact decision family.
+- E7 Confluence 2025-03-26 CDS Meeting Agenda page 324969006: CDS approved a block vote including FHIR-49782 and approved applying related trackers during committee review. Learned: meeting evidence supports the Jira-applied status.
+- E8 Verification command/query: git diff --check and xmllint --noout on source/requestorchestration/structuredefinition-RequestOrchestration.xml completed without reporting an error. Learned: the edited XML is syntactically safe and whitespace-clean.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-49782",
+    "url": "https://jira.hl7.org/browse/FHIR-49782",
+    "snapshot_path": "contexts/FHIR-49782/jira/FHIR-49782.md",
+    "ref": { "jira_key": "FHIR-49782" },
+    "summary": "Applied/Persuasive with Modification R6 CDS issue requiring resource-specific RelatedArtifact constraints and guidance for Library, ActivityDefinition, PlanDefinition, and RequestOrchestration.",
+    "learned": "This establishes final CDS intent and the target source behavior for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/requestorchestration/structuredefinition-RequestOrchestration.xml:578-592",
+    "ref": { "path": "source/requestorchestration/structuredefinition-RequestOrchestration.xml", "lines": "578-592" },
+    "summary": "RequestOrchestration.action.documentation has the applied rqg-2 relatedArtifact type constraint, but its source canonical pointed at PlanDefinition before this commit.",
+    "learned": "The necessary current-spec fix is correcting copied constraint source metadata on RequestOrchestration.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini active CDS resource entries",
+    "ref": { "paths": "source/fhir.ini:266,273,274,276,1084,1176,1212,1228" },
+    "summary": "The build configuration lists Library, ActivityDefinition, PlanDefinition, and RequestOrchestration as active resources/definitions.",
+    "learned": "The edited RequestOrchestration StructureDefinition XML is in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "FHIR-49782 source application commits and PR merge",
+    "ref": { "commits": "786db24816fa015ad5f9c0aad50073b686fd8cee; 76f561c2361f1ced872d4a1a5a0df756e2fa1471; 3cd78c385040041f240053d8481b7ff4797c635b", "pr": 3916 },
+    "summary": "The initial FHIR-49782 commit added RelatedArtifact constraints, the follow-up commit removed resolve() constraints in favor of narrative guidance, and PR #3916 merged the result.",
+    "learned": "The reconciliation should preserve the applied behavior and fix only the stale RequestOrchestration source metadata.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#committers > PR Reviews near message 553519166",
+    "url": "https://chat.fhir.org/#narrow/channel/179165-committers/topic/PR.20Reviews/near/553519166",
+    "ref": { "stream": "committers", "topic": "PR Reviews", "message_id": 553519166 },
+    "summary": "PR review discussion concluded that relatedArtifact resolve() constraints were difficult because resolve() often fails, and Bryn Rhodes agreed to state those rules narratively instead.",
+    "learned": "This rules out reintroducing executable successor/predecessor resolve() constraints as part of this reconciliation.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > RelatedArtifact Replacement Discussions",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/RelatedArtifact%20Replacement%20Discussions",
+    "ref": { "stream": "implementers", "topic": "RelatedArtifact Replacement Discussions" },
+    "summary": "Discussion records the broader RelatedArtifact replacement/restriction rationale and identifies FHIR-49782 as the CDS follow-up tracker with FHIR-50010, FHIR-49783, and FHIR-50011.",
+    "learned": "FHIR-49782 belongs to a broader decision family but has a bounded CDS resource scope.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "2025-03-26 CDS Meeting Agenda page 324969006",
+    "url": "https://confluence.hl7.org/spaces/CDS/pages/324969006/2025-03-26+-+Meeting+Agenda",
+    "ref": { "confluence_page_id": 324969006 },
+    "summary": "CDS agenda/minutes record a block vote including FHIR-49782 and approval to apply related trackers during committee review.",
+    "learned": "The Jira applied status is supported by work-group meeting evidence.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Focused source checks",
+    "command": "git diff --check -- source/requestorchestration/structuredefinition-RequestOrchestration.xml && xmllint --noout source/requestorchestration/structuredefinition-RequestOrchestration.xml",
+    "summary": "Focused whitespace and XML well-formedness checks completed without reporting an error.",
+    "learned": "The edited XML remains syntactically safe for the current source tree.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

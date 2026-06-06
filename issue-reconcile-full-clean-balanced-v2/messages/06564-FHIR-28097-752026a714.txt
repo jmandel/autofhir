@@ -1,0 +1,112 @@
+FHIR-28097: Audit ObservationDefinition.device cardinality
+
+Issue request:
+FHIR-28097 is a Published/Persuasive R5 OO change request to change ObservationDefinition.device from 0..1 to 0..* and clarify that multiple devices are inclusive OR: observations of this kind use one or more listed devices or models.
+
+Initial application:
+There was no prior issue-reconcile commit for FHIR-28097 on the combined branch. The original source application appears in commit 56b91f72c1e36104fa43f12c189891648867d5bd, which changed ObservationDefinition.device to max * and added DeviceDefinition as a target while applying the coupled ObservationDefinition trackers including FHIR-26921 and FHIR-28097.
+
+Additional context:
+ObservationDefinition is an active resource in source/fhir.ini, and the current source is authoritative for this build. The current source no longer has the R5 shape; it defines ObservationDefinition.device[x] as 0..1 with Reference(Device) and canonical(DeviceDefinition). Later DeviceDefinition canonical-resource work in FHIR-39389 changed DeviceDefinition references to canonical form, which made ObservationDefinition.device a choice element. FHIR-53307 then documented the publisher rule that choice elements cannot have cardinality greater than 1 and listed the alternatives of accepting the reduced 0..1 cardinality or splitting/remodeling the element. OO minutes on 2025-11-07 record a motion to accept the revised 0..1 cardinality, but FHIR-53307 remains Triaged and later comments/minutes continue discussing use cases for specific or multiple Device instances.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Restoring max * on the current device[x] choice would violate the publisher choice-element rule, while splitting or remodeling the element would decide the still-open FHIR-53307 design question. The safe reconciliation for FHIR-28097 is therefore a human-review audit noting that the R5 change was applied historically but is now entangled with later R6 canonical DeviceDefinition modeling and an unresolved cardinality decision.
+
+Recommendation:
+Keep this audit commit and have OO finish FHIR-53307 (or a successor) by explicitly deciding whether current R6 ObservationDefinition.device[x] 0..1 supersedes FHIR-28097, or whether repeating device support should be restored through a non-choice element/backbone model. Do not apply an automated 0..* edit until that later decision is final and represented in a publisher-valid model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-28097
+Issue-Reconcile-Decision: human-review
+
+<related-jiras>
+FHIR-26921: same-change-family - companion Published issue added DeviceDefinition as an allowed target for ObservationDefinition.device and was applied in the same 2021 source commit as FHIR-28097.
+FHIR-39389: later-change - DeviceDefinition canonical-resource modeling changed references to DeviceDefinition into canonical(DeviceDefinition), creating the current choice-element shape.
+FHIR-53307: later-change - R6 cardinality issue documents the publisher constraint and the choice between accepting 0..1 or remodeling for repeatability, but remains Triaged.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-28097: Published/Persuasive issue requested ObservationDefinition.device 0..* with inclusive-OR semantics. Learned: this establishes the original R5 change request.
+- E2 Source source/fhir.ini:144 and source/observationdefinition/structuredefinition-ObservationDefinition.xml:742: ObservationDefinition is active and current device[x] is 0..1 Reference(Device) or canonical(DeviceDefinition). Learned: current build source no longer carries the R5 repeating cardinality.
+- E3 Git 56b91f7: applied FHIR-26921, FHIR-28097, FHIR-28096, FHIR-26603, and FHIR-28608, changing device max to * and adding DeviceDefinition. Learned: FHIR-28097 was historically applied.
+- E4 Git e3ef4ee/973e55b: later current-branch commits made device[x] a Reference(Device)|canonical(DeviceDefinition) choice and then changed max back to 1. Learned: the current mismatch is due to later R6 modeling, not an obviously missed original application.
+- E5 Jira FHIR-53307: Triaged/Persuasive with Modification issue explains that ObservationDefinition.device[x] was forced from 0..* to 0..1 because choice elements cannot repeat and lists the resolution alternatives. Learned: restoring 0..* requires a broader design decision.
+- E6 Confluence 2025-11-07 OO on FHIR minutes: record a 7-0-0 motion to accept revised cardinality 0..1 for FHIR-53307. Learned: there is later WG evidence supporting current 0..1, but the Jira workflow is not final.
+- E7 Community search: Zulip searches for FHIR-28097/FHIR-53307 plus ObservationDefinition.device found no direct hits; Confluence refs found the 2020 approval trail and 2025 FHIR-53307 minutes. Learned: no discovered Zulip discussion overrides the Jira/source/Confluence conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-28097",
+    "url": "https://jira.hl7.org/browse/FHIR-28097",
+    "snapshot_path": "contexts/FHIR-28097/jira/FHIR-28097.md",
+    "ref": { "jira_key": "FHIR-28097" },
+    "summary": "Published/Persuasive R5 issue requesting ObservationDefinition.device 0..* with inclusive-OR semantics.",
+    "learned": "This is the original final OO decision that the reconciliation must account for.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:144; source/observationdefinition/structuredefinition-ObservationDefinition.xml:742",
+    "ref": { "path": "source/observationdefinition/structuredefinition-ObservationDefinition.xml", "line": 742 },
+    "summary": "ObservationDefinition is active and current device[x] is 0..1 with Reference(Device) and canonical(DeviceDefinition).",
+    "learned": "The current build source conflicts with the old 0..* cardinality but uses the publisher-valid choice shape.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "56b91f72c1e36104fa43f12c189891648867d5bd",
+    "ref": { "commit": "56b91f72c1e36104fa43f12c189891648867d5bd" },
+    "summary": "2021 ObservationDefinition update applied FHIR-28097 by changing device max to * and adding DeviceDefinition support.",
+    "learned": "FHIR-28097 was not originally forgotten; it was applied and later changed.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "e3ef4ee44f6a25130aeb63548e9bb2929e103299; 973e55b751a0b9e93c02942c3be7cbd51260878a",
+    "ref": { "commit": "973e55b751a0b9e93c02942c3be7cbd51260878a" },
+    "summary": "Later current-branch commits changed device to a Reference/canonical choice and restored max 1.",
+    "learned": "The present source state is tied to R6 canonical DeviceDefinition work and a later cardinality rollback.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-53307",
+    "url": "https://jira.hl7.org/browse/FHIR-53307",
+    "snapshot_path": "contexts/FHIR-53307/jira/FHIR-53307.md",
+    "ref": { "jira_key": "FHIR-53307" },
+    "summary": "Triaged R6 issue notes publisher error for repeating device[x] and lists accepting 0..1 or splitting/remodeling as options.",
+    "learned": "A source edit to restore repetition would require resolving a later non-final design issue.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "2025-11-07 OO on FHIR page 403867067",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/403867067/2025-11-07+OO+on+FHIR",
+    "snapshot_path": "contexts/FHIR-28097/confluence/403867067.md",
+    "ref": { "confluence_page_id": 403867067 },
+    "summary": "Minutes record a 7-0-0 motion to accept revised cardinality 0..1 for FHIR-53307.",
+    "learned": "There is later WG evidence supporting the current 0..1 source, but the linked Jira is not in a final Applied/Published state.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for ObservationDefinition.device cardinality",
+    "command": "bun run zulip:search fts '\"FHIR-28097\" \"ObservationDefinition\" \"device\"' --limit 10; bun run zulip:search fts '\"FHIR-53307\" \"ObservationDefinition\" \"device\"' --limit 10; bun run confluence:search refs jira FHIR-28097; bun run confluence:search refs jira FHIR-53307",
+    "query": "FHIR-28097 FHIR-53307 ObservationDefinition device cardinality",
+    "result_count": 0,
+    "summary": "No direct Zulip hits were found; Confluence refs identified the relevant 2020 approval and 2025 later-cardinality minutes.",
+    "learned": "No discovered community discussion changes the need for human review of the later non-final design issue.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

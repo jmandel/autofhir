@@ -1,0 +1,113 @@
+FHIR-17355: Align Group membership wording
+
+Issue request:
+FHIR-17355 is Published/Persuasive for FHIR-core MeasureReport. It asked whether MeasureReport population patient collections should use Group instead of List, and the final disposition was to support Group as the containing/reporting resource and support Group-defined populations in Measure, with later Jira comments clarifying that MeasureReport should still use List for lists of individual MeasureReports and that group-specified and group-reported measures are limited to cases where the population basis matches the populations.
+
+Initial application:
+The issue was explicitly applied by 8bffead9c7e4fa14f41c966fea114be9b8e8eadd, which added Measure.group.population.groupDefinition, Measure.group.stratifier.groupDefinition, Measure.group.stratifier.component.groupDefinition, MeasureReport.group.population.subjects, and MeasureReport.group.stratifier.stratum.population.subjects. It also kept MeasureReport subjectResults as Reference(List) and clarified that this List contains individual-level MeasureReport resources, not patients.
+
+Additional context:
+Measure and MeasureReport are active resources in source/fhir.ini. FHIR-23724 had already replaced the old Group.actual boolean with Group.membership, whose current required codes include definitional and enumerated. The current FHIR-17355 application still used the retired actual-vs-definitional wording, which made the MeasureReport Group requirement less directly implementable against the current Group resource. The linked Zulip discussion supports the same distinction: Measure can use Group in a definitional role, while MeasureReport needs an enumerated collection of subjects.
+
+AutoFHIR reconciliation:
+This commit changes the authoritative Measure and MeasureReport StructureDefinition comments to name the current Group.membership values: Measure groupDefinition references SHALL use membership `definitional`, and MeasureReport subjects references SHALL use membership `enumerated`. No generated SVGs were edited.
+
+Recommendation:
+Keep this source change. It preserves the applied FHIR-17355 model while aligning the normative comments with the current Group resource terminology; no further core source work was identified for this issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17355
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-23724: supporting-decision - replaced Group.actual with Group.membership and defines the definitional/enumerated distinction used by this reconciliation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17355: Published/Persuasive, applied for R5, asks MeasureReport to use Group rather than a patient List and adds Measure Group support. Learned: this is final CQI intent, moderated by later comments preserving List for individual MeasureReports and adding the patient-basis caveat.
+- E2 Source source/fhir.ini:268-269,572-573: Measure and MeasureReport are active resources owned by CQI. Learned: the edited StructureDefinition XML files are in current build scope.
+- E3 Git 8bffead9c7e4fa14f41c966fea114be9b8e8eadd: J#17355 added Measure groupDefinition and MeasureReport subjects elements while keeping subjectResults as List. Learned: the original issue was substantially applied in these source files.
+- E4 Source source/measure/structuredefinition-Measure.xml:1525,1687,1800: groupDefinition elements reference Group and carry the population-basis caveat. Learned: Measure needs the current Group.membership code for definitional group use.
+- E5 Source source/measurereport/structuredefinition-MeasureReport.xml:763,794,1208: subjectResults remains Reference(List) of individual reports, and subjects references Group for the reported population. Learned: MeasureReport needs the current Group.membership code for enumerated group use.
+- E6 Jira FHIR-23724 and Source source/group/structuredefinition-Group.xml:427-444: Group.actual was replaced by required Group.membership codes including definitional and enumerated. Learned: actual-vs-definitional wording should be expressed with current membership codes.
+- E7 Zulip #implementers > Group vs List. Should a Group be able to point to a List?: Lloyd/Bryn/Grahame discuss Group as action subject, MeasureReport strict enumeration, and Measure definitional use. Learned: community rationale supports the distinction corrected here.
+- E8 Verification command: python3 XML parse for Measure, MeasureReport, and Group plus CRLF-aware git diff --check. Learned: the edited XML remains well-formed and the diff has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17355",
+    "url": "https://jira.hl7.org/browse/FHIR-17355",
+    "snapshot_path": "contexts/FHIR-17355/jira/FHIR-17355.md",
+    "ref": { "jira_key": "FHIR-17355" },
+    "summary": "Published/Persuasive CQI issue asking whether MeasureReport should use Group rather than List for population patients and adding Measure Group support.",
+    "learned": "The final issue family supports Group-specified and Group-reported measures, but keeps List for individual MeasureReports and limits Group use to matching population-basis cases.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:268-269,572-573",
+    "summary": "Measure and MeasureReport are listed as active resources and assigned to CQI.",
+    "learned": "The edited Measure and MeasureReport StructureDefinition files are in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "8bffead9c7e4fa14f41c966fea114be9b8e8eadd",
+    "ref": { "commit": "8bffead9c7e4fa14f41c966fea114be9b8e8eadd" },
+    "summary": "J#17355 added Group-based Measure and MeasureReport elements while preserving subjectResults as a List of individual reports.",
+    "learned": "The explicit application commit identifies the intended source locations and confirms List was intentionally retained for report references.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/measure/structuredefinition-Measure.xml:1525,1687,1800",
+    "summary": "Measure groupDefinition elements reference Group and carry the matching-population-basis caveat.",
+    "learned": "These comments need to express definitional Group use with the current Group.membership code.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/measurereport/structuredefinition-MeasureReport.xml:763,794,1208",
+    "summary": "MeasureReport subjectResults remains Reference(List) of individual reports and subjects references Group for the individuals in the population.",
+    "learned": "These comments need to express enumerated Group use with the current Group.membership code.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-23724 and source/group/structuredefinition-Group.xml:427-444",
+    "url": "https://jira.hl7.org/browse/FHIR-23724",
+    "ref": { "jira_key": "FHIR-23724" },
+    "summary": "Published/Persuasive with Modification issue changed Group.actual to required Group.membership with definitional and enumerated codes.",
+    "learned": "The current spec terminology for the FHIR-17355 Group distinction is membership, not actual.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > Group vs List. Should a Group be able to point to a List?",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Group%20vs%20List.%20Should%20a%20Group%20be%20able%20to%20point%20to%20a%20List%3F",
+    "ref": { "stream": "implementers", "topic": "Group vs List. Should a Group be able to point to a List?" },
+    "summary": "The originating discussion distinguishes List from Group, supports strict enumeration for MeasureReport, and discusses definitional Group use for Measure.",
+    "learned": "The community rationale matches the source correction to use enumerated for MeasureReport and definitional for Measure.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted XML and whitespace validation",
+    "command": "python3 - <<'PY' ... ET.parse(...) ... PY; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The edited XML files parsed successfully and the diff had no whitespace errors.",
+    "learned": "The source change is syntactically safe for the edited artifacts.",
+    "supports": ["confidence"]
+  }
+]
+</evidence-manifest>

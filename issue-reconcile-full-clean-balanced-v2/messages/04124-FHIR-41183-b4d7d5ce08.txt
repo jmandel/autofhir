@@ -1,0 +1,119 @@
+FHIR-41183: Audit ElementDefinition id metadata fix
+
+Issue request:
+FHIR-41183 was an Applied/Persuasive FHIR-I change request for the R5 ElementDefinition metadata. The R5 generated StructureDefinition for ElementDefinition.id carried structuredefinition-fhir-type valueUrl "id" even though ElementDefinition.id is inherited from Element.id and should use the FHIR string flavor; Jira records the requested correction as "It should be string, not id" and notes that it was actually fixed in R6.
+
+Initial application:
+The historical R5 profile cache still shows the defect in tools/history/release5/profiles-types.xml, and no commit in this FHIR source checkout directly references FHIR-41183. The implementation appears to have happened in the external Kindling generator: HL7/kindling commit 62a8c188e5ff9dcee8bbfe6ac10a7670d934abed is titled "FHIR-41183 R5 ElementDefinition.id metadata specifies id data type instead of string" and modified ProfileGenerator.java.
+
+Additional context:
+The active FHIR source still defines Element.@id as type string and fhir.ini keeps ElementDefinition in the current datatype/build scope. Current R6 ballot4/build artifacts now emit ElementDefinition.id with structuredefinition-fhir-type valueUrl "string", while the published R5 artifact emits "id". FHIR-25262 separately establishes that Resource.id should remain fhir-type "id"; FHIR-57383 is a later Submitted report that the Kindling change may have regressed inherited resource ids such as Patient.id, but that issue is unresolved and is not decided here.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no FHIR source change. The seed issue's current target output is already corrected, and the remaining nearby Resource.id/Patient.id concern is a separate unresolved generator issue rather than an approved source edit for FHIR-41183.
+
+Recommendation:
+Keep this no-change audit as the FHIR-41183 reconciliation. Do not broaden this issue into Resource.id or inherited resource id edits; follow FHIR-57383/Kindling if the work group approves a separate generator correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-41183
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25262: supporting-decision - Resource.id intentionally uses structuredefinition-fhir-type id, which prevents applying the Element.id correction to resource logical ids.
+FHIR-57383: background - Submitted R6 report that the Kindling fix for FHIR-41183 may have regressed inherited resource id metadata; unresolved and not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-41183: Applied/Persuasive FHIR-I issue says ElementDefinition.id should use string, not id, and later comments that it was fixed in R6. Learned: this is final WG intent for the seed correction.
+- E2 Source source/datatypes/element.xml:616-621 and source/fhir.ini:61,88,1017,1148: Element.@id is type string and ElementDefinition is active/normative in the current datatype build scope. Learned: the authoritative current source basis is compatible with the requested string flavor.
+- E3 Published spec R5/current: R5 elementdefinition.profile.json has ElementDefinition.id fhir-type id, while current build/R6 ballot4 has fhir-type string. Learned: the reported R5 defect is corrected in current generated output.
+- E4 Git HL7/kindling 62a8c188: ProfileGenerator.java was changed with a commit message naming FHIR-41183. Learned: the practical application was in the external generator, not a source file in this FHIR checkout.
+- E5 Confluence FHIR-I minutes 2024-01-08 page 212761335: minutes record FHIR-41183, "It should be string, not id", Persuasive, 16-0-0. Learned: WG minutes confirm the Jira disposition.
+- E6 Zulip #fhirpath > Is a resource id a String?: discussion distinguishes FHIR-41183's ElementDefinition.id/Element.id concern from Resource.id/Patient.id typing. Learned: avoid overbroad source changes to resource ids under this seed.
+- E7 Jira FHIR-25262 and FHIR-57383: FHIR-25262 says Resource.id should be id; FHIR-57383 is a Submitted, unresolved report about a possible inherited resource id regression. Learned: related issues inform scope but do not justify a FHIR-41183 source edit.
+- E8 Verification command: curl/jq checks of R5, build, R6 ballot4 ElementDefinition, Patient, and Resource profiles. Learned: the seed target is corrected and the nearby Patient.id concern remains distinct.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-41183",
+    "url": "https://jira.hl7.org/browse/FHIR-41183",
+    "snapshot_path": "contexts/FHIR-41183/jira/FHIR-41183.md",
+    "ref": { "jira_key": "FHIR-41183" },
+    "summary": "Applied/Persuasive FHIR-I issue requiring ElementDefinition.id metadata to use fhir-type string instead of id; Jira notes it was fixed in R6.",
+    "learned": "This establishes the final work-group intent for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/element.xml:616-621; source/fhir.ini:61,88,1017,1148",
+    "summary": "Element.@id is declared as type string and ElementDefinition is an active/normative datatype in fhir.ini.",
+    "learned": "The current authoritative source basis is in build scope and aligns with the requested string flavor for ElementDefinition.id.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "published-spec",
+    "locator": "R5 and current elementdefinition.profile.json",
+    "url": "https://build.fhir.org/elementdefinition.profile.json",
+    "summary": "Published R5 has ElementDefinition.id structuredefinition-fhir-type valueUrl id, while current build/R6 ballot4 has valueUrl string.",
+    "learned": "The defect reported against R5 is corrected in the current generated specification output.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "HL7/kindling@62a8c188e5ff9dcee8bbfe6ac10a7670d934abed",
+    "url": "https://github.com/HL7/kindling/commit/62a8c188e5ff9dcee8bbfe6ac10a7670d934abed",
+    "ref": { "commit": "62a8c188e5ff9dcee8bbfe6ac10a7670d934abed" },
+    "summary": "Kindling commit titled for FHIR-41183 modified ProfileGenerator.java.",
+    "learned": "The application of this issue occurred in the external generator rather than as a FHIR source checkout edit.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2024-01-08 page 212761335",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/212761335/FHIR+Infrastructure+Minutes+CC+2024-01-08",
+    "snapshot_path": "contexts/FHIR-41183/confluence/212761335.md",
+    "ref": { "confluence_page_id": 212761335 },
+    "summary": "Minutes record FHIR-41183 as Persuasive with 'It should be string, not id' and a 16-0-0 vote.",
+    "learned": "This confirms the Jira resolution in work-group minutes.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#fhirpath > Is a resource id a String?",
+    "url": "https://chat.fhir.org/#narrow/stream/fhirpath/topic/Is%20a%20resource%20id%20a%20String%3F",
+    "snapshot_path": "contexts/FHIR-41183/zulip/fhirpath--Is-a-resource-id-a-String.md",
+    "ref": { "stream": "fhirpath", "topic": "Is a resource id a String?" },
+    "summary": "Thread notes FHIR-41183 is about ElementDefinition.id/Element.id, while Patient.id comes from Resource.id.",
+    "learned": "The discussion supports keeping Resource.id behavior out of the FHIR-41183 decision.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-25262 and FHIR-57383",
+    "url": "https://jira.hl7.org/browse/FHIR-57383",
+    "summary": "FHIR-25262 is a published decision that Resource.id should use fhir-type id; FHIR-57383 is a Submitted unresolved report of a possible R6 inherited resource id regression.",
+    "learned": "These related issues constrain the scope and should not be decided as part of the seed.",
+    "supports": ["additional_context", "related_not_decided"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "curl/jq metadata verification",
+    "command": "curl -fsSL https://hl7.org/fhir/R5/elementdefinition.profile.json; curl -fsSL https://build.fhir.org/elementdefinition.profile.json; curl -fsSL https://hl7.org/fhir/6.0.0-ballot4/patient.profile.json; curl -fsSL https://hl7.org/fhir/6.0.0-ballot4/resource.profile.json",
+    "summary": "Checked ElementDefinition.id, Patient.id, and Resource.id fhir-type extensions across R5 and current/R6 ballot4 artifacts.",
+    "learned": "The seed target now emits string; Patient.id/Resource.id findings are separate scope.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,103 @@
+FHIR-13482: Restore IG example default
+
+Issue request:
+FHIR-13482 was Published/Persuasive for STU3 and asked that ImplementationGuide.package.resource.example stop being mandatory while retaining a default of false, because there is no useful unknown state for whether a listed IG resource is an example.
+
+Initial application:
+The issue was applied in historical git-svn commit 9ac87a33556212faffb63475f323c4fab59090b2 / svn revision 12721, which changed ImplementationGuide.package.resource.example from 1..1 to 0..1 and added Default Value = False in the spreadsheet source. In the current source the cardinality had survived on the renamed successor fields, but the formal default was absent.
+
+Additional context:
+Current source/fhir.ini lists ImplementationGuide as an active build resource, maps the R3 package.resource path to ImplementationGuide.definition.resource, and maps the later example[x] paths to isExample. FHIR-23965 later changed exampleBoolean/exampleCanonical to isExample/profile for R5 and FHIR-I minutes approved that rename/split, but neither source nor community evidence found a decision to remove the false default.
+
+AutoFHIR reconciliation:
+This commit restores defaultValueBoolean=false on the current ImplementationGuide.definition.resource.isExample successor and on the parallel ImplementationGuide.manifest.resource.isExample flag so both current IG resource listings preserve the approved false default while staying 0..1.
+
+Recommendation:
+Keep this source fix. It restores a previously approved computable default that was lost through later refactoring, without changing the later FHIR-23965 isExample/profile model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13482
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-23965: later-change - renamed/split ImplementationGuide resource.example[x] into isExample plus profile, establishing the current successor fields without reversing FHIR-13482's false default.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13482: Published/Persuasive; requested package.resource.example be 0..1 with default false. Learned: final WG intent requires optional cardinality plus a computable false default.
+- E2 Git 9ac87a3355: historical application changed the spreadsheet row from 1..1 to 0..1 and added Default Value = False. Learned: the original implementation included both parts of the Jira request.
+- E3 Source source/fhir.ini:197,1831-1832,2626-2630: ImplementationGuide is active and maps package.resource/example[x] to the current definition.resource/isExample model. Learned: the edited source is in current build scope and is the current successor of the STU3 path.
+- E4 Jira/Confluence FHIR-23965 and page 76153514: Published later change approved isExample 0..1 plus profile 0..*. Learned: later WG intent renamed/split the element but did not remove the false default.
+- E5 Source source/implementationguide/structuredefinition-ImplementationGuide.xml:731-740,991-1000: current source now carries defaultValueBoolean=false on both IG resource isExample flags. Learned: the reconciliation restores the missing computable default on the active definitions.
+- E6 Zulip search/snapshot for FHIR-13482, package.resource.example, and FHIR-23965 terms: found seed application bot/context and FHIR-23965 discussion, with no conflicting default-removal rationale. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E7 Verification command: git diff --check and XML parser validation on structuredefinition-ImplementationGuide.xml succeeded. Learned: the XML edit is syntactically valid and has no diff whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13482",
+    "url": "https://jira.hl7.org/browse/FHIR-13482",
+    "snapshot_path": "contexts/FHIR-13482/jira/FHIR-13482.md",
+    "ref": { "jira_key": "FHIR-13482" },
+    "summary": "Published/Persuasive STU3 issue requesting ImplementationGuide.package.resource.example be 0..1 with default false.",
+    "learned": "This establishes the final approved request: optional cardinality plus a computable false default.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "9ac87a33556212faffb63475f323c4fab59090b2",
+    "ref": { "commit": "9ac87a33556212faffb63475f323c4fab59090b2", "svn_revision": 12721 },
+    "summary": "Historical application changed the IG spreadsheet row to 0..1 and added Default Value = False.",
+    "learned": "The original source application included the default, so its absence in current source is a refactoring loss rather than the applied state.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:197,1831-1832,2626-2630",
+    "summary": "ImplementationGuide is an active resource; package.resource maps to definition.resource and example[x] maps to isExample.",
+    "learned": "The current StructureDefinition is in build scope and definition.resource.isExample is the current successor of the issue's STU3 path, with manifest.resource.isExample as the parallel current flag.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-23965",
+    "url": "https://jira.hl7.org/browse/FHIR-23965",
+    "ref": { "jira_key": "FHIR-23965", "confluence_page_id": 76153514 },
+    "summary": "Published/Persuasive with Modification later issue changing exampleBoolean/exampleCanonical to isExample 0..1 plus profile 0..*.",
+    "learned": "This explains the current element names and does not provide a decision to remove FHIR-13482's false default.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/implementationguide/structuredefinition-ImplementationGuide.xml:731-740,991-1000",
+    "summary": "The current source now has defaultValueBoolean=false on ImplementationGuide.definition.resource.isExample and ImplementationGuide.manifest.resource.isExample.",
+    "learned": "The source fix restores the approved false default on the active current definitions.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community searches for FHIR-13482, package.resource.example, FHIR-23965, and ImplementationGuide exampleCanonical/isExample terms",
+    "command": "bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-13482%' OR content LIKE '%package.resource.example%' OR content LIKE '%FHIR-23965%' OR content LIKE '%resource.exampleCanonical%'\"; bun run confluence:search refs jira FHIR-13482; bun run confluence:search refs jira FHIR-23965; bun run zulip:search snapshot 'IG creation' 'ImplementationGuide.definition.resource.example[x]'",
+    "summary": "Searches found no FHIR-13482 WG minutes and no conflicting default-removal rationale; FHIR-23965 discussion/minutes only explain the later rename/split.",
+    "learned": "No discovered community evidence changes the Jira, git, and current-source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "git diff --check; xmllint --noout source/implementationguide/structuredefinition-ImplementationGuide.xml",
+    "summary": "Whitespace and XML syntax checks completed successfully.",
+    "learned": "The edited XML is syntactically valid and does not introduce diff whitespace errors.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

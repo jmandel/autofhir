@@ -1,0 +1,115 @@
+FHIR-25773: Remove stale DocumentReference masterIdentifier ModelInfo
+
+Issue request:
+FHIR-25773 was Published with a Persuasive OO resolution for R5. It asked to remove the confusing and misplaced DocumentReference.masterIdentifier element, move that document-identifier function into DocumentReference.content.identifier, and adjust the identifier search parameter.
+
+Initial application:
+No local commit message directly names FHIR-25773, but the July 2020 DocumentReference block-vote commit 0bf0b46a829ce94829ceef7e036dcb2043c74d18 removed masterIdentifier from a DocumentReference example and added content.identifier in the DocumentReference spreadsheet/example source. That matched the original Jira request at the resource source level.
+
+Additional context:
+FHIR-32584 later superseded the content.identifier model by removing DocumentReference.content.identifier and consolidating business identifiers on DocumentReference.identifier. The current DocumentReference StructureDefinition and identifier search parameter already reflect that later model, and source/fhir.ini maps the old R4 DocumentReference.masterIdentifier to DocumentReference.identifier. The active FHIR ModelInfo Library, however, still exposed a stale DocumentReference.masterIdentifier element even though DocumentReference and Library are both active build resources and the ModelInfo payload is published as a Library example.
+
+AutoFHIR reconciliation:
+This commit removes the stale DocumentReference.masterIdentifier element from source/library/library-fhir-model-definition-content.xml and regenerates the embedded base64 payload in source/library/library-fhir-model-definition.xml. It intentionally does not add content.identifier because the later FHIR-32584 decision made DocumentReference.identifier the correct current target.
+
+Recommendation:
+Keep this source fix. It reconciles the remaining current-build FHIR ModelInfo surface with FHIR-25773 as superseded by FHIR-32584; any broader QUICK or historical model-definition cleanup should be handled separately because this issue concerns the current FHIR DocumentReference model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25773
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-32584: superseded-by - later Published/Persuasive with Modification issue removed DocumentReference.content.identifier and consolidated business identifiers on DocumentReference.identifier.
+FHIR-38197: supporting-decision - later Resolved - No Change issue records that DocumentReference.masterIdentifier had been removed, supporting no reintroduction of that element.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25773: Published/Persuasive R5 issue requesting masterIdentifier removal, move to content.identifier, and search-parameter adjustment. Learned: establishes the original applied work-group request.
+- E2 Zulip #ihe > MHDS out for public comment: John Moehrke proposed moving DocumentReference.masterIdentifier into DocumentReference.content.identifier and then noted creation of FHIR-25773. Learned: confirms the MHD/XDS motivation behind the Jira request.
+- E3 Confluence OO 2020-07-16 Main page 86974287: minutes list FHIR-25773 in the DocumentReference block vote and record acceptance 8-0-5. Learned: corroborates the formal OO block-vote trail.
+- E4 Git 0bf0b46a829ce94829ceef7e036dcb2043c74d18: DocumentReference block-vote source changes removed example masterIdentifier and added content.identifier. Learned: initial source application happened without an explicit Jira key in the commit subject.
+- E5 Jira FHIR-32584 and git ca42e22e8898847779efb3f173a39b7bcc9ef204 / 21005a11f7db7e07fa0df26d90b1611045353745: later Published decision removed content.identifier and clarified DocumentReference.identifier. Learned: current reconciliation must target identifier, not recreate content.identifier.
+- E6 Source source/documentreference/structuredefinition-DocumentReference.xml:138-143, source/documentreference/bundle-DocumentReference-search-params.xml:336-342, source/fhir.ini:1715: current core source has DocumentReference.identifier and maps old masterIdentifier to it, with no content.identifier element or search expression. Learned: the authoritative resource source is already correct after later decisions.
+- E7 Source source/fhir.ini:189,265; source/library/list-Library-examples.xml:72-75; publish.ini:206; source/library/library-fhir-model-definition-content.xml:1979-1982: DocumentReference and Library are active, FHIR-ModelInfo is listed/published, and the stale masterIdentifier element is now removed from the ModelInfo DocumentReference class. Learned: the edited files are current build-visible source surfaces.
+- E8 Verification command/query: XML parsing, base64 payload comparison, focused ModelInfo assertions, targeted rg checks, and CRLF-aware diff check passed. Learned: the source edit is structurally valid, synchronized, and leaves only historical mapping/QUICK references to masterIdentifier.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25773",
+    "url": "https://jira.hl7.org/browse/FHIR-25773",
+    "snapshot_path": "contexts/FHIR-25773/jira/FHIR-25773.md",
+    "ref": { "jira_key": "FHIR-25773" },
+    "summary": "Published/Persuasive OO issue for R5 requesting DocumentReference.masterIdentifier removal, movement to content.identifier, and search parameter adjustment.",
+    "learned": "This establishes the original final work-group request to remove the top-level masterIdentifier surface.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#ihe > MHDS out for public comment",
+    "command": "bun run zulip:search snapshot ihe 'MHDS out for public comment'",
+    "summary": "John Moehrke proposed moving DocumentReference.masterIdentifier into DocumentReference.content.identifier and then noted creation of FHIR-25773.",
+    "learned": "The community discussion confirms the MHD/XDS motivation and matches the Jira request.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "OO 2020-07-16 Main page 86974287",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/86974287/2020-07-16+Main",
+    "ref": { "confluence_page_id": 86974287 },
+    "summary": "OO minutes include FHIR-25773 in the DocumentReference block vote and record acceptance 8-0-5.",
+    "learned": "This corroborates the work-group vote trail for the seed issue.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "0bf0b46a829ce94829ceef7e036dcb2043c74d18",
+    "ref": { "commit": "0bf0b46a829ce94829ceef7e036dcb2043c74d18" },
+    "summary": "The July 2020 DocumentReference block-vote commit removed an example masterIdentifier and added content.identifier in DocumentReference source.",
+    "learned": "Initial application of the FHIR-25773 resource change happened despite no explicit issue key in the commit subject.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-32584 / ca42e22e8898847779efb3f173a39b7bcc9ef204 / 21005a11f7db7e07fa0df26d90b1611045353745",
+    "url": "https://jira.hl7.org/browse/FHIR-32584",
+    "ref": { "jira_key": "FHIR-32584", "commit": "21005a11f7db7e07fa0df26d90b1611045353745" },
+    "summary": "Later Published/Persuasive with Modification decision removed DocumentReference.content.identifier and clarified DocumentReference.identifier business-identifier guidance.",
+    "learned": "Current source should not reintroduce content.identifier; the right current target for old masterIdentifier semantics is DocumentReference.identifier.",
+    "supports": ["additional_context", "related_jiras", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/documentreference/structuredefinition-DocumentReference.xml:138-143; source/documentreference/bundle-DocumentReference-search-params.xml:336-342; source/fhir.ini:1715",
+    "summary": "Current DocumentReference source defines identifier, the identifier search parameter only searches DocumentReference.identifier, and R4 mapping points masterIdentifier to DocumentReference.identifier.",
+    "learned": "The authoritative resource and search-parameter source already reflect the later-corrected model.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/fhir.ini:189,265; source/library/list-Library-examples.xml:72-75; publish.ini:206; source/library/library-fhir-model-definition-content.xml:1979-1982",
+    "summary": "DocumentReference and Library are active resources, FHIR-ModelInfo is a listed/published Library example, and its DocumentReference class now starts with identifier rather than masterIdentifier.",
+    "learned": "The stale current-build ModelInfo surface was in scope and is fixed by this commit.",
+    "supports": ["build_scope", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted ModelInfo validation",
+    "command": "python3 XML/base64/model assertions; rg -n 'name=\"masterIdentifier\"|DocumentReference.masterIdentifier|DocumentReference.content.identifier|DocumentReference.identifier' source/library/library-fhir-model-definition-content.xml source/library/library-fhir-model-definition.xml source/documentreference/structuredefinition-DocumentReference.xml source/documentreference/bundle-DocumentReference-search-params.xml source/fhir.ini; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/library/library-fhir-model-definition-content.xml source/library/library-fhir-model-definition.xml",
+    "summary": "XML parsing, embedded base64 comparison, focused ModelInfo assertions, targeted source searches, and whitespace checks passed.",
+    "learned": "The edited XML is valid, the embedded Library payload matches, and no stale masterIdentifier remains in current FHIR ModelInfo or DocumentReference source.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

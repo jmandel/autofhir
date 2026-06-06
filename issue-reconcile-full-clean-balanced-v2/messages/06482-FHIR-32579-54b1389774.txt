@@ -1,0 +1,125 @@
+FHIR-32579: Align DocumentReference event ModelInfo
+
+Issue request:
+FHIR-32579 was a Published/Persuasive OO change request for R5. It asked for DocumentReference.event to be able to point to a Procedure, Observation, or other described resource, like Composition. The Jira comments clarified that this should not add RelatedArtifact or mirror the Composition event backbone; the approved change was to make DocumentReference.event 0..* CodeableReference, keep the existing event value set, and allow Reference(Any).
+
+Initial application:
+No git commit message in the local history directly mentions FHIR-32579, but git 56832a9e59e07d5449776a61dbb3d0ec3cd0f3d2 changed source/documentreference/structuredefinition-DocumentReference.xml from CodeableConcept to CodeableReference and split the search parameter into event-code and event-reference. OO minutes on 2022-03-17 record a FHIR pull request including FHIR-32579 with the summary item "Make event CodeableReference." Current DocumentReference StructureDefinition, search parameters, and examples already use CodeableReference concept/reference. The active FHIR-ModelInfo Library, however, still lacked DocumentReference.event and exposed only the old nested DocumentReference.Context.event as a list of CodeableConcept.
+
+Additional context:
+FHIR-32538 is the same R5 change family for Composition, changing Composition.event.detail to CodeableReference and updating the parallel Composition event search parameters. Later DocumentReference work, including FHIR-37549, refined mappings for the already-current DocumentReference.event but did not change the CodeableReference decision. source/fhir.ini keeps both DocumentReference and Library in the active build, and source/library/list-Library-examples.xml includes Library/FHIR-ModelInfo, so the ModelInfo Library is a current build surface. Exact Zulip searches for FHIR-32579 found no directly relevant discussion that changes the Jira/source conclusion; Confluence minutes support both the January 2022 vote and the March 2022 application review.
+
+AutoFHIR reconciliation:
+This commit updates the active FHIR-ModelInfo source to match the approved DocumentReference.event shape. It adds DocumentReference.event as a list of FHIR.CodeableReference in source/library/library-fhir-model-definition-content.xml, removes the stale nested DocumentReference.Context.event CodeableConcept entry, and regenerates the embedded base64 attachment in source/library/library-fhir-model-definition.xml. It intentionally leaves other older DocumentReference ModelInfo fields alone because this issue is specifically about event.
+
+Recommendation:
+Keep this source fix as-is. It completes the remaining current-build surface for FHIR-32579 without reopening the broader DocumentReference ModelInfo cleanup; any future work to align unrelated stale DocumentReference ModelInfo fields should be handled by separate tracker decisions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32579
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-32538: same-change-family - Composition.event.detail was changed to CodeableReference for the same R5 event-code/reference modeling pattern that FHIR-32579 applied to DocumentReference.event.
+FHIR-37549: later-change - later current-source cleanup restored the XDS mapping for DocumentReference.event to include both eventCodeList and referenceIdList, confirming the event is now both code and reference capable.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32579: Published/Persuasive R5 issue asking to make DocumentReference.event a CodeableReference, with comments clarifying value set retention and Reference(Any). Learned: establishes the approved target shape for DocumentReference.event.
+- E2 Source source/fhir.ini:189,265 and source/library/list-Library-examples.xml:75: DocumentReference and Library are active resources and Library/FHIR-ModelInfo is listed as a Library example. Learned: both the resource definition and FHIR-ModelInfo Library are current build inputs.
+- E3 Source source/documentreference/structuredefinition-DocumentReference.xml:514-543 and source/documentreference/bundle-DocumentReference-search-params.xml:216-249: current DocumentReference.event is CodeableReference with Resource target and has concept/reference search parameters. Learned: the main resource and search parameter source were already applied correctly.
+- E4 Source source/library/library-fhir-model-definition-content.xml:1974-2005,6775-6786: before this commit, ModelInfo had no top-level DocumentReference.event and still exposed nested DocumentReference.Context.event as CodeableConcept; this commit adds the top-level CodeableReference list and removes the stale nested event. Learned: ModelInfo was the remaining current-build semantic gap.
+- E5 Git 56832a9e59e07d5449776a61dbb3d0ec3cd0f3d2: initial DocumentReference update changed event to CodeableReference and split event search parameters. Learned: historical source application matches the Jira decision but did not cover the ModelInfo Library.
+- E6 Jira FHIR-32538 and git 67e426c9eb124dff1fc055447c581320e2da42e7: Composition.event.detail was changed to CodeableReference with parallel event-code/event-reference search parameters. Learned: supports the same-change-family interpretation behind FHIR-32579.
+- E7 Confluence OO minutes pages 81030530 and 94640682: January 2022 WGM minutes record the FHIR-32579 persuasive vote, and March 2022 main minutes record the DocumentReference pull request summary including "Make event CodeableReference." Learned: community/work-group evidence supports the Jira disposition and application trail.
+- E8 Command community search: exact Zulip search for FHIR-32579 plus DocumentReference/CodeableReference found no results, and broader DocumentReference event CodeableReference searches found no conflicting discussion. Learned: no discovered Zulip evidence changes the Jira/source conclusion.
+- E9 Verification command: CRLF-aware git diff --check, XML parsing, focused ModelInfo assertions, and embedded base64 comparison succeeded. Learned: the edited XML remains well formed, the embedded Library payload matches the content file, and the intended ModelInfo event shape is present.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32579",
+    "url": "https://jira.hl7.org/browse/FHIR-32579",
+    "snapshot_path": "contexts/FHIR-32579/jira/FHIR-32579.md",
+    "ref": { "jira_key": "FHIR-32579" },
+    "summary": "Published/Persuasive OO issue for R5 requesting DocumentReference.event as a 0..* CodeableReference that keeps the existing event value set and can reference any resource.",
+    "learned": "This establishes the final approved target shape for DocumentReference.event.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:189,265; source/library/list-Library-examples.xml:75",
+    "summary": "The active resource list includes documentreference=DocumentReference and library=Library, and the Library examples list includes Library/FHIR-ModelInfo.",
+    "learned": "The edited DocumentReference and FHIR-ModelInfo sources are current build inputs.",
+    "supports": ["source_change_scope", "build_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/documentreference/structuredefinition-DocumentReference.xml:514-543; source/documentreference/bundle-DocumentReference-search-params.xml:216-249",
+    "summary": "Current DocumentReference.event is a CodeableReference targeting Resource and has event-code and event-reference search parameters over concept and reference.",
+    "learned": "The main resource and search parameter source already preserve the Jira decision.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:1974-2005,6775-6786; source/library/library-fhir-model-definition.xml:data",
+    "summary": "FHIR-ModelInfo now includes DocumentReference.event as a list of FHIR.CodeableReference, removes stale nested DocumentReference.Context.event, and embeds the updated payload in the Library resource.",
+    "learned": "This is the current-build source gap fixed by the reconciliation.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "56832a9e59e07d5449776a61dbb3d0ec3cd0f3d2",
+    "ref": { "commit": "56832a9e59e07d5449776a61dbb3d0ec3cd0f3d2" },
+    "summary": "The March 2022 DocumentReference update changed event from CodeableConcept to CodeableReference and split the event search parameter into code and reference variants.",
+    "learned": "The initial resource-level application matches FHIR-32579, while ModelInfo remained stale.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-32538 / git 67e426c9eb124dff1fc055447c581320e2da42e7",
+    "url": "https://jira.hl7.org/browse/FHIR-32538",
+    "ref": { "jira_key": "FHIR-32538", "commit": "67e426c9eb124dff1fc055447c581320e2da42e7" },
+    "summary": "Composition.event.detail was changed to CodeableReference with parallel event-code/event-reference search parameters.",
+    "learned": "This supports the same-change-family interpretation of FHIR-32579's Composition comparison.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "OO minutes pages 81030530 and 94640682",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/81030530/2022-01-18-21+WGM",
+    "ref": { "confluence_page_id": 81030530 },
+    "summary": "OO minutes record the FHIR-32579 persuasive vote and a later DocumentReference pull request review that includes 'Make event CodeableReference'.",
+    "learned": "Work-group minutes confirm both the decision and the application trail.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-32579 and DocumentReference event CodeableReference",
+    "command": "bun run zulip:search fts '\"FHIR-32579\" DocumentReference CodeableReference' --limit 10; bun run zulip:search fts 'DocumentReference event CodeableReference' --limit 10; bun run confluence:search refs jira FHIR-32579",
+    "query": "FHIR-32579 DocumentReference event CodeableReference",
+    "summary": "Exact Zulip search found no results; broader Zulip hits did not conflict; Confluence refs found the OO minutes used as E7.",
+    "learned": "No discovered community discussion changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "XML, whitespace, ModelInfo, and base64 validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; python3 XML parse and ModelInfo/base64 assertions",
+    "summary": "CRLF-aware whitespace checks, XML parsing, focused ModelInfo assertions, and embedded payload comparison succeeded.",
+    "learned": "The source edit is structurally valid and the Library resource embeds the same ModelInfo content file.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

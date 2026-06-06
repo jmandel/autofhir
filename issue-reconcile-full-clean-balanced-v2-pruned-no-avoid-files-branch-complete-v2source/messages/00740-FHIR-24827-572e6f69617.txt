@@ -1,0 +1,120 @@
+FHIR-24827: Require InsurancePlan product reference
+
+Issue request:
+FHIR-24827 was Applied/Persuasive for the Patient Administration work group. The final resolution replaced the original parent-link proposal with a split of the former InsurancePlan model: create InsuranceProduct for the product-level content, move the old .plan backbone content into a new InsurancePlan resource, add a 1..1 InsurancePlan.product reference to InsuranceProduct, make Coverage.insurancePlan refer to the new InsurancePlan, and update administrative-module descriptions and diagrams.
+
+Initial application:
+The split was partially applied in the December 2023 source history. Commit b9ef5a8515 added the InsuranceProduct resource source, commit 2028e3df2d split InsurancePlan and added InsuranceProduct to the administration module, and PR 2999 repeated the 1..1 InsurancePlan-to-InsuranceProduct requirement. The new InsurancePlan.product element was not added by that split commit; it was added immediately afterward in commit 3a93debb82 as 0..1 while adding the InsurancePlan-product search parameter, and commit a66f52b70 updated the search parameter bundle. That left the active source with the intended reference target but the wrong cardinality.
+
+Additional context:
+FHIR-24694 is the duplicate issue that describes the same 2019 PA/FM refactor need. The Confluence Insurance Plan and Product Representation page records the same two-resource approach, with InsurancePlan containing the former plan-level content and a .product property linking to InsuranceProduct. FHIR-33272 was applied in the same restructuring family and assumes the InsurancePlan/InsuranceProduct split, but its resolution concerns InsuranceProduct.related and does not supersede the FHIR-24827 product cardinality. Later applied narrative clarifications in FHIR-47649/FHIR-47650 explain the plan/product relationship and do not approve making InsurancePlan.product optional. FHIR-49710 records later unresolved work to improve examples, so this reconciliation only keeps existing examples valid for the corrected cardinality.
+
+AutoFHIR reconciliation:
+This commit changes the active InsurancePlan StructureDefinition source so InsurancePlan.product is 1..1 Reference(InsuranceProduct), matching the applied FHIR-24827 resolution. It also adds product references to the current InsurancePlan example XML files so the examples remain valid when the required element is enforced. The edited StructureDefinition and examples are in build scope through active source/fhir.ini entries for InsurancePlan and InsuranceProduct; no generated SVG/diagram artifacts were edited.
+
+Recommendation:
+Keep this source fix. If the work group now wants InsurancePlan.product to be optional, that would be a new substantive decision because it reverses the explicit FHIR-24827 applied cardinality and is not established by the later narrative-only clarification issues.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-24827
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-24694: duplicate - duplicate tracker from the same 2019 PA/FM discussion, closed in favor of FHIR-24827.
+FHIR-33272: same-change-family - applied immediately after the split and assumes the InsurancePlan/InsuranceProduct restructuring, but its approved change is InsuranceProduct.related.
+FHIR-47649: supporting-decision - later applied InsurancePlan narrative explains that InsuranceProduct carries the benefits referenced from InsurancePlan.product without reversing cardinality.
+FHIR-47650: supporting-decision - parallel later applied InsuranceProduct narrative describes the same plan/product relationship.
+FHIR-49710: background - unresolved example-improvement issue, relevant only to why this commit keeps touched examples valid without doing the broader example rewrite.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-24827: Applied/Persuasive PA issue with vote 19-0-2. Learned: the final WG decision requires a new InsurancePlan.product 1..1 Reference(InsuranceProduct) and Coverage.insurancePlan targeting InsurancePlan.
+- E2 Confluence 79502757: Insurance Plan and Product Representation page. Learned: the design rationale was a two-resource refactor where InsurancePlan has a .product link to InsuranceProduct instead of an ambiguous parent hierarchy.
+- E3 Git b9ef5a8515, 2028e3df2d, 3a93debb82, a66f52b70 and PR 2999: December 2023 application trail. Learned: the resource split and search parameter were applied, but the product element landed as optional despite the PR/Jira 1..1 requirement.
+- E4 Source source/fhir.ini and current InsurancePlan/Coverage/Admin sources: active build entries include InsurancePlan and InsuranceProduct, Coverage.insurancePlan already targets InsurancePlan, and the administration resource table includes both resources. Learned: the edited files are current build inputs and the remaining source defect is the product cardinality.
+- E5 Jira FHIR-47649 and FHIR-47650: later Applied narrative clarifications. Learned: later decisions describe the benefits as coming from the InsuranceProduct referenced in InsurancePlan.product and do not supersede the required product link.
+- E6 Source source/insuranceplan/structuredefinition-InsurancePlan.xml and InsurancePlan examples: changed product min from 0 to 1 and added example product references. Learned: the reconciliation directly implements the missing applied cardinality and keeps examples valid.
+- E7 Community/search commands: Zulip exact-key search found only an agenda-style mention and broader product/plan search found no substantive thread; Confluence refs found the PA pages cited above. Learned: no discovered community evidence reverses the Jira/source conclusion.
+- E8 Verification command: git diff --check with CRLF-aware whitespace and XML parsing of the edited files passed. Learned: the surgical source edits are syntactically valid and do not introduce whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-24827",
+    "url": "https://jira.hl7.org/browse/FHIR-24827",
+    "snapshot_path": "contexts/FHIR-24827/jira/FHIR-24827.md",
+    "ref": { "jira_key": "FHIR-24827" },
+    "summary": "Applied/Persuasive PA issue requiring the InsurancePlan/InsuranceProduct split, a 1..1 InsurancePlan.product reference, and Coverage.insurancePlan targeting InsurancePlan.",
+    "learned": "This establishes the final source requirement and shows the current optional product reference was not faithful to the applied cardinality.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "Insurance Plan and Product Representation page 79502757",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/79502757/Insurance+Plan+and+Product+Representation",
+    "ref": { "confluence_page_id": 79502757 },
+    "summary": "The PA/FM design page describes refactoring InsurancePlan into InsuranceProduct plus InsurancePlan, with InsurancePlan.product linking to InsuranceProduct.",
+    "learned": "This confirms the intended model is a direct plan-to-product reference rather than the original generic parent hierarchy.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "b9ef5a8515; 2028e3df2d; 3a93debb82; a66f52b70; HL7/fhir#2999",
+    "url": "https://github.com/HL7/fhir/pull/2999",
+    "ref": { "pull_request": 2999 },
+    "summary": "The December 2023 split added InsuranceProduct and split InsurancePlan, but InsurancePlan.product was added immediately afterward as 0..1 while adding the product search parameter.",
+    "learned": "The issue was partially applied and the remaining mismatch is specifically the product reference cardinality.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini; source/coverage/structuredefinition-Coverage.xml; source/administration-module.html",
+    "summary": "Active fhir.ini entries include InsurancePlan and InsuranceProduct, Coverage.insurancePlan already targets InsurancePlan, and the administration module lists both resources.",
+    "learned": "The edit belongs to active FHIR core build inputs and does not need an external-repo or diagram-only decision.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-47649 and FHIR-47650",
+    "url": "https://jira.hl7.org/browse/FHIR-47649",
+    "ref": { "jira_key": "FHIR-47649" },
+    "summary": "Later Applied R6 narrative issues explain that InsurancePlan costs are paired with InsuranceProduct benefits referenced through InsurancePlan.product.",
+    "learned": "These later decisions support the plan/product relationship and do not establish an optional-product reversal.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/insuranceplan/structuredefinition-InsurancePlan.xml; source/insuranceplan/insuranceplan-example*.xml",
+    "summary": "The reconciliation changes InsurancePlan.product to min 1 and adds product references to InsurancePlan examples.",
+    "learned": "The source now implements the applied 1..1 cardinality while keeping examples valid.",
+    "supports": ["reconciliation", "source_changes"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-24827 and InsurancePlan/InsuranceProduct",
+    "command": "bun run zulip:search fts '\"FHIR-24827\"' --limit 10; bun run zulip:search fts 'InsurancePlan InsuranceProduct product plan' --limit 10; bun run confluence:search refs jira FHIR-24827",
+    "query": "FHIR-24827 InsurancePlan InsuranceProduct product plan",
+    "summary": "Zulip had no substantive plan/product discussion hits beyond an agenda-style mention, while Confluence refs found the PA design and meeting pages used as context.",
+    "learned": "No discovered community discussion supersedes the Jira decision or the source-history finding.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted validation of edited files",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; xmllint --noout source/insuranceplan/structuredefinition-InsurancePlan.xml source/insuranceplan/insuranceplan-example.xml source/insuranceplan/insuranceplan-example1.xml source/insuranceplan/insuranceplan-example-onc.xml",
+    "summary": "CRLF-aware whitespace checking and XML parsing completed successfully for the edited files.",
+    "learned": "The source edits are syntactically valid and do not introduce whitespace errors.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

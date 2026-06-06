@@ -1,0 +1,119 @@
+FHIR-34316: Align AdverseEvent effect ModelInfo
+
+Issue request:
+FHIR-34316 was a Published/Persuasive with Modification FHIR-core Patient Care change request for R5 AdverseEvent. It asked that AdverseEvent.resultingCondition cover consequences represented as Observation as well as Condition, and the final resolution renamed the element to resultingEffect and supported Reference(Condition | Observation).
+
+Initial application:
+The issue was initially applied by cd56c64aad2d9729209bf8268b4d6d9ee494714e, which renamed AdverseEvent.resultingCondition to resultingEffect in the resource StructureDefinition and added Observation as a target, and by 03c97a14f97d78ce86c5a466a31fa5e17037585f, which renamed the AdverseEvent search parameter. Current AdverseEvent source and search parameters already use resultingEffect, but the active FHIR ModelInfo Library still exposed the old resultingCondition property.
+
+Additional context:
+FHIR-48833 later made AdverseEvent.resultingEffect a CodeableReference with an example binding to clinical-findings, so current reconciliation must preserve the current CodeableConcept-or-Reference surface rather than reverting to a plain Reference. source/fhir.ini keeps AdverseEvent and Library active, and source/library/list-Library-examples.xml registers Library/library-fhir-model-definition as the FHIR Model Definition example. The fhir.ini R4-to-R6 resultingCondition alias is intentional historical mapping, not stale current element metadata.
+
+AutoFHIR reconciliation:
+This commit updates the active FHIR ModelInfo Library so AdverseEvent exposes resultingEffect as a list of CodeableConcept-or-Reference choices and no longer exposes resultingCondition. It also resynchronizes the embedded Library/library-fhir-model-definition attachment from the raw modelinfo content.
+
+Recommendation:
+Keep this source fix. It completes the remaining current-build computable metadata gap for FHIR-34316 while respecting the later FHIR-48833 CodeableReference decision. Broader cleanup of unrelated stale AdverseEvent ModelInfo fields should be tracked separately rather than expanded into this reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34316
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-48833: later-change - changed AdverseEvent.resultingEffect from Reference to CodeableReference; relevant because this reconciliation uses the current CodeableConcept-or-Reference model surface instead of the older Reference-only shape.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34316: Published/Persuasive with Modification issue requesting resultingCondition be renamed to resultingEffect and support Condition or Observation. Learned: establishes the final approved seed change.
+- E2 Git cd56c64aad2d9729209bf8268b4d6d9ee494714e and 03c97a14f97d78ce86c5a466a31fa5e17037585f: initial application renamed the StructureDefinition element, added Observation, and renamed the search parameter. Learned: main AdverseEvent source was already applied before this reconciliation.
+- E3 Source source/adverseevent/structuredefinition-AdverseEvent.xml:345-358 and source/adverseevent/bundle-AdverseEvent-search-params.xml:180-211: current resource source defines resultingEffect as CodeableReference targeting Condition and Observation and search parameters use resultingEffect reference/concept expressions. Learned: authoritative AdverseEvent definitions already carry the accepted semantics.
+- E4 Source source/fhir.ini:138,266,280 and source/library/list-Library-examples.xml:67-76: AdverseEvent and Library are active and the FHIR Model Definition Library is registered. Learned: the edited ModelInfo Library is in current build scope.
+- E5 Jira/Git FHIR-48833 and d30b11118f2fafe00deae85e2c460402be30089f: later Applied/Persuasive issue changed resultingEffect to CodeableReference. Learned: the remaining ModelInfo fix must reflect the current CodeableConcept-or-Reference type shape.
+- E6 Source source/library/library-fhir-model-definition-content.xml:7822-7829 and source/library/library-fhir-model-definition.xml:277: ModelInfo now exposes resultingEffect as list-valued CodeableConcept-or-Reference and the embedded Library data is synchronized. Learned: the stale computable model surface was corrected.
+- E7 Confluence 2022 May and Sept Patient Care WGM minutes plus negative Zulip searches: minutes record AdverseEvent/Observation discussion and Vulcan AE context; Zulip searches found no conflicting discussion for FHIR-34316/resultingEffect. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E8 Verification command: XML parsing, embedded ModelInfo attachment comparison, targeted resultingCondition/resultingEffect assertions, and CRLF-aware git diff --check passed. Learned: the source fix is syntactically safe, synchronized, and targeted.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34316",
+    "url": "https://jira.hl7.org/browse/FHIR-34316",
+    "snapshot_path": "contexts/FHIR-34316/jira/FHIR-34316.md",
+    "ref": { "jira_key": "FHIR-34316" },
+    "summary": "Published/Persuasive with Modification Patient Care issue requesting AdverseEvent.resultingCondition be renamed to resultingEffect and support Condition or Observation.",
+    "learned": "This establishes the final approved seed change for AdverseEvent resulting effects.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "cd56c64aad2d9729209bf8268b4d6d9ee494714e; 03c97a14f97d78ce86c5a466a31fa5e17037585f",
+    "url": "https://github.com/HL7/fhir/pull/2432",
+    "ref": { "commits": "cd56c64aad2d9729209bf8268b4d6d9ee494714e,03c97a14f97d78ce86c5a466a31fa5e17037585f" },
+    "summary": "Prior application renamed the AdverseEvent StructureDefinition element, added Observation, and renamed the search parameter.",
+    "learned": "The primary AdverseEvent source was applied before this reconciliation; the remaining defect was in a parallel ModelInfo surface.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/adverseevent/structuredefinition-AdverseEvent.xml:345-358; source/adverseevent/bundle-AdverseEvent-search-params.xml:180-211",
+    "ref": { "paths": "source/adverseevent/structuredefinition-AdverseEvent.xml; source/adverseevent/bundle-AdverseEvent-search-params.xml" },
+    "summary": "Current AdverseEvent source defines resultingEffect as CodeableReference targeting Condition and Observation, with resultingEffect search parameters for reference and concept.",
+    "learned": "The authoritative resource and search-parameter source already convey the accepted current semantics.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:138,266,280; source/library/list-Library-examples.xml:67-76",
+    "ref": { "paths": "source/fhir.ini; source/library/list-Library-examples.xml" },
+    "summary": "AdverseEvent and Library are active resources, and Library/library-fhir-model-definition is registered as the FHIR Model Definition example.",
+    "learned": "The edited FHIR ModelInfo Library is a current-build source artifact.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-48833 and d30b11118f2fafe00deae85e2c460402be30089f",
+    "url": "https://jira.hl7.org/browse/FHIR-48833",
+    "ref": { "jira_key": "FHIR-48833", "commit": "d30b11118f2fafe00deae85e2c460402be30089f" },
+    "summary": "Later Applied/Persuasive AdverseEvent issue changed resultingEffect to CodeableReference with an example clinical-findings binding.",
+    "learned": "Current ModelInfo reconciliation should expose both CodeableConcept and Reference choices, not the original Reference-only type.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:7822-7829; source/library/library-fhir-model-definition.xml:277",
+    "ref": { "paths": "source/library/library-fhir-model-definition-content.xml; source/library/library-fhir-model-definition.xml" },
+    "summary": "The FHIR ModelInfo Library now exposes list-valued resultingEffect choices for CodeableConcept or Reference, and its embedded attachment is synchronized from the raw modelinfo content.",
+    "learned": "This fixes the stale current-build computable metadata that still used resultingCondition.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "2022 May and Sept Patient Care WGM minutes, pages 90341474 and 101362573",
+    "url": "https://confluence.hl7.org/spaces/PC/pages/90341474/2022+May+WGM+Patient+Care+Agenda+and+Minutes",
+    "ref": { "confluence_page_ids": "90341474,101362573" },
+    "summary": "Patient Care minutes record AdverseEvent/Observation discussion and later Vulcan AdverseEvent context referencing FHIR-34316.",
+    "learned": "Meeting context is consistent with the Jira resolution and does not broaden this reconciliation beyond resultingEffect metadata.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted community and source validation",
+    "command": "bun run zulip:search fts '\"FHIR-34316\" AdverseEvent resultingCondition resultingEffect Observation' --limit 10; bun run zulip:search fts 'AdverseEvent resultingEffect Observation resultingCondition' --limit 10; python3 XML parse and embedded-data assertions; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "query": "FHIR-34316 AdverseEvent resultingCondition resultingEffect Observation",
+    "result_count": 0,
+    "summary": "Zulip searches found no directly relevant or conflicting hits; edited XML parsed, embedded ModelInfo data matched the raw content, targeted assertions passed, and diff --check passed.",
+    "learned": "No discovered community conflict changes the decision, and the source edit is structurally consistent and targeted.",
+    "supports": ["absence_of_conflict", "verification", "confidence"]
+  }
+]
+</evidence-manifest>

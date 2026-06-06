@@ -1,0 +1,134 @@
+FHIR-6906: Audit questionnaire answer nesting
+
+Issue request:
+FHIR-6906 was a Published FHIR-core QuestionnaireAnswers change request from the 2015 May SDC ballot asking how to nest questions under answers and whether QuestionnaireAnswers.group.question.answer should have a group child. The final resolution was Not Persuasive with Modification: use Questionnaire-side enable-when behavior for answer-dependent questions and add Questionnaire notes calling out the extension and other complex-workflow aids, while keeping the linkage on the Questionnaire side unless evidence showed that was insufficient.
+
+Initial application:
+The Jira comment records SVN #5941. Git commit 26e8b597d5034f4372a848e5660a88268f4b664c is the corresponding git-svn commit and explicitly lists {#6906}; it added Questionnaire notes saying the conditional display extension [enable-when] can enable groups nested beneath a question based on a specific answer, giving the behavior of questions under answers. Later commit 52dbc1c47868e26651369ea4109008738f17ce5e refactored Questionnaire and QuestionnaireResponse for {#8986}, replacing the old QuestionnaireAnswers shape with the current item model and carrying forward explicit nested-question support and QuestionnaireResponse.item.answer.item.
+
+Additional context:
+Questionnaire and QuestionnaireResponse are active resources in source/fhir.ini, so their source definitions and notes are in current build scope. Current Questionnaire now has core Questionnaire.item.enableWhen and notes that questions may be nested under groups or questions, with SDC guidance for advanced question flow. Current QuestionnaireResponse explicitly distinguishes item.item for group children from item.answer.item for children of a question answer. Later Published issues FHIR-10481 and FHIR-20768 challenged the dual nesting points and were resolved by retaining item.answer.item with clarification; FHIR-34184 added diagram guidance for the same nesting concept, and FHIR-32665 tightened answer.value cardinality when answers contain child items. Zulip discussion around those later issues records the same rationale, and direct FHIR-6906/community searches found no conflicting evidence.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. The current build already satisfies the seed issue's final decision and subsequent refinements: Questionnaire-side enableWhen governs answer-dependent enablement, Questionnaire permits nested child items, and QuestionnaireResponse preserves per-answer child items where repeated answers need their own follow-up questions.
+
+Recommendation:
+Keep this commit as a no-change audit. Do not reintroduce the old DSTU1 enable-when extension wording into current narrative; the mechanism is now a core Questionnaire element and the later item.answer.item issue family confirms the current representation. Any future work should be driven by new Questionnaire/SDC tracker decisions rather than FHIR-6906.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6906
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-10481: later-change - challenged removal of QuestionnaireResponse.item.answer.item and confirmed it is needed for items nested under answers.
+FHIR-20768: later-change - again challenged item.answer.item and resolved to add clearer guidance rather than remove it.
+FHIR-34184: supporting-decision - requested diagram guidance for nesting items within answers and repeated items.
+FHIR-32665: supporting-decision - clarified answer.value cardinality for answer items that contain child items.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6906: Published/Not Persuasive with Modification; use enable-when and Questionnaire notes rather than adding a QuestionnaireAnswers answer.group. Learned: establishes the seed's final decision.
+- E2 Source source/fhir.ini:169,219-220: Questionnaire and QuestionnaireResponse are active resources. Learned: relevant source files are in current build scope.
+- E3 Source source/questionnaire/questionnaire-notes.xml:8-19,331-347: current notes support nested questions, enableWhen-based missing-response child questions, and SDC/advanced flow guidance. Learned: current Questionnaire narrative covers the requested design pattern without stale extension wording.
+- E4 Source source/questionnaire/structuredefinition-Questionnaire.xml:1011-1019: Questionnaire.item.enableWhen is a core element for conditional enablement based on other answers. Learned: the old extension-based resolution is now represented by the current core mechanism.
+- E5 Source source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:374-384,554-559: QuestionnaireResponse separates group children from answer-specific child items. Learned: current response structure supports per-answer follow-up questions where needed.
+- E6 Git 26e8b597: git-svn SVN #5941 commit explicitly lists {#6906} and added enable-when/question-under-answer notes. Learned: initial application is traceable.
+- E7 Git 52dbc1c: later Questionnaire/QuestionnaireResponse refactor retained nested questions and introduced the current item.answer.item representation. Learned: later structural changes preserved the seed's semantics.
+- E8 Jira FHIR-10481/FHIR-20768/FHIR-34184/FHIR-32665: later Published decisions retained and clarified answer-specific nesting. Learned: later decisions support the current source rather than a source fix for FHIR-6906.
+- E9 Zulip #implementers > Nested QuestionnaireResposne items and Items that have both answers and nested items in Q.Response: participants discussed why group children use item.item and question children use item.answer.item. Learned: community rationale aligns with the current source.
+- E10 Command searches: quoted FHIR-6906 Zulip search, Confluence refs, and Confluence FTS searches found no direct conflicting community evidence. Learned: no discovered community record changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6906",
+    "url": "https://jira.hl7.org/browse/FHIR-6906",
+    "snapshot_path": "contexts/FHIR-6906/jira/FHIR-6906.md",
+    "ref": { "jira_key": "FHIR-6906" },
+    "summary": "Published/Not Persuasive with Modification issue asking how to nest questions under answers in QuestionnaireAnswers.",
+    "learned": "The approved resolution was to use Questionnaire-side enable-when behavior and explanatory notes rather than add an answer.group element.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,219-220",
+    "summary": "Questionnaire and QuestionnaireResponse are active resources in the current build configuration.",
+    "learned": "The inspected Questionnaire and QuestionnaireResponse source files are in build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/questionnaire/questionnaire-notes.xml:8-19,331-347",
+    "summary": "Questionnaire notes say questions may be nested under groups or questions, mention enableWhen for child missing-response items, and point advanced flow needs to SDC.",
+    "learned": "Current narrative gives implementers the answer-dependent design guidance intended by the seed issue without outdated extension phrasing.",
+    "supports": ["reconciliation", "current_source"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/questionnaire/structuredefinition-Questionnaire.xml:1011-1019",
+    "summary": "Questionnaire.item.enableWhen is defined as conditional enablement based on answers to other questions.",
+    "learned": "The original enable-when extension behavior is now a core Questionnaire element in the current specification.",
+    "supports": ["reconciliation", "current_source"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:374-384,554-559",
+    "summary": "QuestionnaireResponse comments and element definitions distinguish item.item for group children from item.answer.item for question-answer children.",
+    "learned": "The current response structure supports answer-specific nested follow-up questions where repeated answers each need child items.",
+    "supports": ["reconciliation", "current_source"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "26e8b597d5034f4372a848e5660a88268f4b664c",
+    "summary": "SVN #5941 git-svn commit lists {#6906} and added Questionnaire notes about enable-when providing questions-under-answers behavior.",
+    "learned": "The initial application of FHIR-6906 is traceable and consistent with the Jira resolution.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "52dbc1c47868e26651369ea4109008738f17ce5e",
+    "summary": "Later Questionnaire refactor combined group/question into item and retained nested-question semantics plus QuestionnaireResponse.item.answer.item.",
+    "learned": "Current structural differences from DSTU1 are later refactors, not a loss of the seed decision.",
+    "supports": ["additional_context", "history"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-10481, FHIR-20768, FHIR-34184, FHIR-32665",
+    "url": "https://jira.hl7.org/browse/FHIR-10481",
+    "summary": "Later Published QuestionnaireResponse issues retained and clarified answer-specific item nesting.",
+    "learned": "Subsequent work group decisions support the current representation rather than a FHIR-6906 source change.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "zulip",
+    "locator": "#implementers > Nested QuestionnaireResposne items; #implementers > Items that have both answers and nested items in Q.Response",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Nested%20QuestionnaireResposne%20items",
+    "snapshot_path": "worker-saved:/tmp/zulip-nested-qresponse.md",
+    "summary": "Community discussions explain that groups have item.item children while questions with answers use item.answer.item for per-answer children.",
+    "learned": "The informal rationale aligns with the later Jira decisions and current source.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E10",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-6906",
+    "command": "bun run zulip:search fts '\"FHIR-6906\"' --limit 10; bun run confluence:search refs jira FHIR-6906; bun run confluence:search fts '\"questions under answers\" Questionnaire' --limit 10",
+    "query": "FHIR-6906; questions under answers Questionnaire",
+    "result_count": 0,
+    "summary": "No direct FHIR-6906 Zulip or Confluence references and no conflicting questions-under-answers Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

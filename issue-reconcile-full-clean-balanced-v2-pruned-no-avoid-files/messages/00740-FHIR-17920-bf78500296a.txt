@@ -1,0 +1,96 @@
+FHIR-17920: Complete Claim summary flags
+
+Issue request:
+FHIR-17920 was Published/Persuasive with Modification for the FM Claim resource. It requested adding Claim.identifier, Claim.use, patient, created, billingPeriod, provider, and insurer to the summary view, with the final resolution also adding the total amount.
+
+Initial application:
+The 2018 Jira-tagged batch commit afb5ec66f6 applied most of the request in the then-active Claim spreadsheet by marking use, patient, billablePeriod, created, insurer, and provider as summary, but it left Claim.identifier and the Claim total amount element unset. The current XML StructureDefinition inherited those two omissions through the source conversion.
+
+Additional context:
+Claim is an active current-build resource in source/fhir.ini. Later source refactors renamed the older Claim.patient path to Claim.subject, and the current source uses Claim.billablePeriod and Claim.total for the billingPeriod/total amount concepts. The parallel ClaimResponse summary issue FHIR-17931 has already been reconciled separately on the combined branch and confirms this is a same-change-family issue, not a reason to broaden the Claim edit beyond the two missing current Claim elements. Zulip and Confluence searches found no relevant conflicting community record.
+
+AutoFHIR reconciliation:
+Marked Claim.identifier and Claim.total with isSummary=true in source/claim/structuredefinition-Claim.xml. Existing summary flags already covered Claim.use, Claim.subject, Claim.billablePeriod, Claim.created, Claim.insurer, and Claim.provider.
+
+Recommendation:
+Keep this source fix. It completes the Published FHIR-17920 request for the current Claim element names without reintroducing removed/non-current paths or changing unrelated Claim elements.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17920
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-17931: same-change-family - the parallel ClaimResponse summary issue was reconciled separately and supports the same summary-flag interpretation for the financial management resource family.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17920: Published/Persuasive with Modification request to add Claim summary fields including identifier/use/patient/created/billingPeriod/provider/insurer and total amount by resolution. Learned: this is final WG intent for Claim summary flags.
+- E2 Source source/fhir.ini:241 and source/fhir.ini:1618,2123: Claim is an active resource and old Claim.patient maps to current Claim.subject. Learned: the edited StructureDefinition is in current build scope and the patient request maps to the current subject element.
+- E3 Source source/claim/structuredefinition-Claim.xml:95,106,2210,2220: Claim.identifier and Claim.total now have isSummary=true. Learned: the missing current summary flags are fixed in authoritative source.
+- E4 Git afb5ec66f6 and source conversion 33b409a4b6: the original 2018 batch marked use/patient/billablePeriod/created/insurer/provider as summary but left identifier and total unset; the XML conversion preserved that state. Learned: the remaining omissions are incomplete initial application rather than a discovered later reversal.
+- E5 Community search: quoted FHIR-17920 and Claim summary/totalAmount searches in Zulip and Confluence found no relevant or conflicting records. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+- E6 Verification command: XML parse checked all current requested Claim summary elements and diff whitespace check passed. Learned: the fixed source satisfies the issue against current element names without changing unrelated elements.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17920",
+    "url": "https://jira.hl7.org/browse/FHIR-17920",
+    "snapshot_path": "contexts/FHIR-17920/jira/FHIR-17920.md",
+    "ref": { "jira_key": "FHIR-17920" },
+    "summary": "Published/Persuasive with Modification issue requesting additional Claim fields in the summary view, with total amount added by resolution.",
+    "learned": "This establishes final WG intent for the Claim summary flag reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:241, source/fhir.ini:1618, source/fhir.ini:2123",
+    "ref": { "path": "source/fhir.ini", "lines": "241,1618,2123" },
+    "summary": "Claim is an active resource and old Claim.patient maps to current Claim.subject.",
+    "learned": "The edited Claim StructureDefinition is in build scope and subject is the current element corresponding to the patient request.",
+    "supports": ["build_scope", "additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/claim/structuredefinition-Claim.xml:95,106,2210,2220",
+    "ref": { "path": "source/claim/structuredefinition-Claim.xml", "lines": "95,106,2210,2220" },
+    "summary": "The current Claim.identifier and Claim.total elements are now marked isSummary=true.",
+    "learned": "The previously missing current summary flags have been applied in authoritative source.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "afb5ec66f68641293bb7950b6e0eeb118fa1444a; 33b409a4b6d544598262f2f074ebb4b6dc466157",
+    "ref": { "commit": "afb5ec66f68641293bb7950b6e0eeb118fa1444a" },
+    "summary": "The original 2018 Claim batch mentioned FHIR-17920 and marked use, patient, billablePeriod, created, insurer, and provider as summary while leaving identifier and total unset; the 2021 XML source conversion preserved the omissions.",
+    "learned": "The remaining missing flags are incomplete initial application, not an intentional later removal found in source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-17920 and Claim summary terms",
+    "command": "bun run zulip:search fts '\"FHIR-17920\"' --limit 10; bun run zulip:search fts 'Claim summary identifier totalAmount' --limit 10; bun run confluence:search refs jira FHIR-17920; bun run confluence:search fts '\"FHIR-17920\" Claim summary totalAmount' --limit 10",
+    "query": "FHIR-17920 Claim summary identifier totalAmount",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Targeted XML summary verification",
+    "command": "python3 XML parse of source/claim/structuredefinition-Claim.xml for requested current summary elements; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/claim/structuredefinition-Claim.xml",
+    "summary": "The parser reported identifier, use, subject, billablePeriod, created, insurer, provider, and total as summary=true, with patientPaid still not summary; whitespace check passed.",
+    "learned": "The current source satisfies FHIR-17920 using current element names without changing unrelated elements.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

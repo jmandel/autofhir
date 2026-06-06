@@ -1,0 +1,108 @@
+FHIR-38953: Align ObservationDefinition unit ModelInfo
+
+Issue request:
+FHIR-38953 was a Published/Persuasive with Modification OO issue raised against R5 ObservationDefinition. It reported that quantitativeDetails was too limited and underspecified, and the final approved resolution removed that backbone, removed customaryUnit/conversionFactor/decimalPrecision semantics, added repeating ObservationDefinition.permittedUnit and ObservationDefinition.component.permittedUnit Coding elements with a preferred UCUM binding, and added invariants requiring Quantity in permittedDataType when permittedUnit is present.
+
+Initial application:
+The authoritative ObservationDefinition source was previously applied by Jira-tagged commits, especially 5da2794a1c32b915b8a4c420224a43e5f10f382c, which removed quantitativeDetails from source/observationdefinition/structuredefinition-ObservationDefinition.xml and added permittedUnit at the resource and component levels. Later FHIR-38953 commits added invariant tests and corrected the FHIRPath expressions. FHIR-40678 separately corrected the missed narrative reference and is already represented on the combined branch, so this commit does not publish a duplicate FHIR-40678 decision.
+
+Additional context:
+ObservationDefinition is active in source/fhir.ini. The FHIR ModelInfo Library is also in current publication scope through the Library examples and publish.ini's copy of source/library/library-fhir-model-definition-content.xml. That ModelInfo surface still advertised ObservationDefinition.quantitativeDetails and the removed ObservationDefinition.QuantitativeDetails class, so CQL/model-info consumers would continue to see the old backbone even though the StructureDefinition and examples use permittedUnit. The embedded Library resource payload also needed to be refreshed from the sidecar; that refresh carries the already-landed FHIR-39069 sidecar state as part of synchronization, not as a new FHIR-39069 decision. The remaining quantitativeDetails strings are in the generated-looking observationdefinition.svg diagram, which was not hand-edited because the authoritative XML and ModelInfo source define the current behavior.
+
+AutoFHIR reconciliation:
+Updated source/library/library-fhir-model-definition-content.xml so ObservationDefinition exposes permittedUnit as a repeating Coding, exposes component as a repeating ObservationDefinition.Component, and defines ObservationDefinition.Component with code, permittedDataType, permittedUnit, and qualifiedValue. Removed the stale ObservationDefinition.QuantitativeDetails class from that ModelInfo content and refreshed source/library/library-fhir-model-definition.xml so its embedded base64 payload exactly matches the sidecar.
+
+Recommendation:
+Keep this commit. It completes the applied FHIR-38953 change across the active FHIR ModelInfo publication surface while preserving the already-correct ObservationDefinition StructureDefinition, examples, narrative, and invariant tests. If the checked-in SVG diagram is still used by the publisher, regenerate it from the current StructureDefinition rather than maintaining a manual SVG patch.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-38953
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-40678: same-change-family - later Applied technical correction for narrative missed by the quantitativeDetails refactoring; already represented on the combined branch and not decided here.
+FHIR-39069: background - prior ModelInfo reconciliation on the same FHIR ModelInfo sidecar changed ObservationDefinition qualifiedValue; refreshing the embedded payload preserves that already-landed sidecar state while applying FHIR-38953.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-38953: Published/Persuasive with Modification issue replaced quantitativeDetails with repeating permittedUnit elements and Quantity invariants. Learned: establishes the final current-source target for the reconciliation.
+- E2 Confluence OO 2023-03-23 Main page 161059223: minutes record the reopen and Persuasive with Modification votes, permittedUnit 0..* Coding details, component permittedUnit, UCUM preferred binding, and invariant text. Learned: confirms the approved final scope after the earlier temporary resolutions.
+- E3 Git 5da2794a1c, 7f1905f29e, cb47daa993, f52374bad1, and 79bc68aa85: prior issue-tagged history removed quantitativeDetails, added invariant tests, fixed invariant expressions, and later corrected the narrative through FHIR-40678. Learned: authoritative ObservationDefinition source was mostly applied before this reconciliation.
+- E4 Source source/observationdefinition/structuredefinition-ObservationDefinition.xml:95-100,772-789,1006-1093 and source/observationdefinition/observationdefinition-example-ck-panel.xml:64-68: current resource source and examples use permittedUnit and component.permittedUnit. Learned: this defines the model-info target shape and shows no additional StructureDefinition edit was needed.
+- E5 Source source/fhir.ini:144,281; source/library/list-Library-examples.xml:67-76; source/library/library-examples-header.xml:37-42; publish.ini:206: ObservationDefinition and the FHIR ModelInfo Library sidecar are active current-build/publication surfaces. Learned: the edited ModelInfo files are in scope.
+- E6 Source source/library/library-fhir-model-definition-content.xml:2359-2367,5027-5038 and source/library/library-fhir-model-definition.xml:278: ModelInfo now exposes permittedUnit and ObservationDefinition.Component and the embedded Library payload matches the sidecar. Learned: the stale ModelInfo representation of quantitativeDetails has been corrected.
+- E7 Command searches and validation: Jira SQL confirmed Published/Persuasive with Modification; Confluence searches found OO minutes; Zulip searches for FHIR-38953 and ObservationDefinition quantitativeDetails/permittedUnit found no hits; XML parsing, embedded payload equality, stale ModelInfo grep, target assertion, and CRLF-aware diff checks passed. Learned: no discovered community conflict changes the decision and the edited source is syntactically coherent.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-38953",
+    "url": "https://jira.hl7.org/browse/FHIR-38953",
+    "snapshot_path": "contexts/FHIR-38953/jira/FHIR-38953.md",
+    "ref": { "jira_key": "FHIR-38953" },
+    "summary": "Published/Persuasive with Modification OO issue replacing ObservationDefinition quantitativeDetails with repeating permittedUnit elements and Quantity-related invariants.",
+    "learned": "This establishes the final approved behavior that current source must expose.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "OO 2023-03-23 Main page 161059223",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/161059223/2023-03-23+Main",
+    "ref": { "confluence_page_id": 161059223 },
+    "summary": "OO minutes record reopening FHIR-38953 and approving the permittedUnit 0..* Coding, component permittedUnit, UCUM preferred binding, invariant text, and Pink Ribbon removal scope with 8-0-0 votes.",
+    "learned": "This confirms the final resolution scope after earlier temporary dispositions.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "5da2794a1c; 7f1905f29e; cb47daa993; f52374bad1; 79bc68aa85",
+    "ref": { "commits": "5da2794a1c32b915b8a4c420224a43e5f10f382c,7f1905f29ea340d4415cdc9d8ddef22a03c8ffa6,cb47daa993dd4e6631a4c368dc327643bf6de98d,f52374bad1ba21a3eb2850ebb93f946be255aa85,79bc68aa8541865b7f4807cde97950bb52e674b4" },
+    "summary": "Prior source history removed quantitativeDetails, added and fixed invariant tests, and later corrected the narrative reference through FHIR-40678.",
+    "learned": "The main ObservationDefinition definition was already applied; the remaining stale active surface was ModelInfo.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/observationdefinition/structuredefinition-ObservationDefinition.xml:95-100,772-789,1006-1093; source/observationdefinition/observationdefinition-example-ck-panel.xml:64-68",
+    "ref": { "path": "source/observationdefinition/structuredefinition-ObservationDefinition.xml", "start_line": 95, "end_line": 1093 },
+    "summary": "Current ObservationDefinition source defines permittedUnit and component.permittedUnit with Coding and the permittedDataType/Quantity invariants, and examples use permittedUnit.",
+    "learned": "This is the authoritative target shape for the ModelInfo correction.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:144,281; source/library/list-Library-examples.xml:67-76; source/library/library-examples-header.xml:37-42; publish.ini:206",
+    "ref": { "path": "publish.ini", "line": 206 },
+    "summary": "ObservationDefinition is active and the FHIR ModelInfo Library sidecar is listed as a published file and linked from Library examples.",
+    "learned": "The edited ModelInfo files are current build/publication-scope source surfaces.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:2359-2367,5027-5038; source/library/library-fhir-model-definition.xml:278",
+    "ref": { "path": "source/library/library-fhir-model-definition-content.xml", "start_line": 2359, "end_line": 5038 },
+    "summary": "The FHIR ModelInfo sidecar now exposes ObservationDefinition.permittedUnit and ObservationDefinition.Component and no longer defines ObservationDefinition.QuantitativeDetails; the Library resource embeds the synchronized payload.",
+    "learned": "This fixes the remaining active stale ModelInfo representation of the removed quantitativeDetails backbone.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "FHIR-38953 community/source validation commands",
+    "command": "bun run jira:search sql \"SELECT key, status, resolution FROM issues WHERE key = 'FHIR-38953'\"; bun run confluence:search snapshot 161059223; bun run zulip:search fts '\"FHIR-38953\"' --limit 10; ruby XML/base64 payload validation; rg stale ModelInfo terms; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "query": "FHIR-38953 ObservationDefinition quantitativeDetails permittedUnit",
+    "result_count": 0,
+    "summary": "Jira and Confluence confirmed the approved issue state, no Zulip hits were found, XML parsing and embedded payload equality passed, stale ModelInfo terms were absent, and whitespace checks passed.",
+    "learned": "No discovered community evidence conflicts with the source fix, and the edited ModelInfo files are coherent.",
+    "supports": ["verification", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

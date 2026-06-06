@@ -1,0 +1,120 @@
+FHIR-46973: Audit DeviceAssociation search parameters
+
+Issue request:
+FHIR-46973 was an Applied/Persuasive OO R6 change request about DeviceAssociation search parameters. It asked to restore/add a patient reference search parameter constrained to Patient, correct subject so it describes the broader individual or entity and uses DeviceAssociation.subject, and update DeviceAssociation patient compartment membership to include patient alongside subject/operator.
+
+Initial application:
+Jira records application in 11a4adc200. That commit updated source/deviceassociation/bundle-DeviceAssociation-search-params.xml by changing subject from the patient-only expression/description to DeviceAssociation.subject with the broader description, adding DeviceAssociation-patient with DeviceAssociation.subject.where(resolve() is Patient) and target Patient, and updating source/compartments.xml from subject | operator to patient | subject | operator for the patient compartment. Follow-up commit 2d0736366a changed the patient search parameter description to the approved "The patient associated with the device" wording.
+
+Additional context:
+DeviceAssociation is active in source/fhir.ini, and the current source keeps the FHIR-46973 search-parameter fixes. The subject reference target list is supplied by DeviceAssociation.subject in the StructureDefinition and appears on the generated search page; the patient search parameter renders as the common clinical-patient parameter with Target Resources Patient. Later applied FHIR-47604 removed DeviceAssociation.operator, added DeviceAssociation.focus, and replaced operator-based compartment participation with focus, so the current patient compartment row correctly reads patient | subject | focus rather than the older operator text. FHIR-47604 and FHIR-51498 are already represented on the combined branch, and no direct Zulip discussion for FHIR-46973 was found.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current source and the current generated build already satisfy the FHIR-46973 search-parameter request, and changing the compartment row back to operator would contradict later applied DeviceAssociation focus work.
+
+Recommendation:
+Keep this no-change audit commit. No core source follow-up is needed for FHIR-46973 unless a future work-group decision changes the later subject/focus compartment model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-46973
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-42766: same-change-family - Earlier Applied issue changed DeviceAssociation subject search from patient-only to all subject types; it supports the subject expression now audited here.
+FHIR-47604: later-change - Later Applied/Persuasive with Modification issue removed operator, added focus, and superseded the operator wording in the FHIR-46973 compartment line; it already has an Issue-Reconcile-Key commit on the combined branch.
+FHIR-51498: background - Device-related compartment audit explains nearby DeviceAssociation compartment evolution and already has an Issue-Reconcile-Key commit on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-46973: Applied/Persuasive, vote 11-0-3, requested patient search parameter, corrected subject search parameter, and patient compartment update. Learned: this establishes the final requested change for the seed issue.
+- E2 Source source/fhir.ini:170-306,683-685 and source/deviceassociation/bundle-DeviceAssociation-search-params.xml:27-60: DeviceAssociation is an active core resource, and current source defines subject and patient exactly as requested. Learned: the authoritative build inputs already contain the FHIR-46973 search-parameter fixes.
+- E3 Source source/deviceassociation/structuredefinition-DeviceAssociation.xml:185-208 and source/compartments.xml:355-360: subject has the broad targetProfiles list, and the patient compartment row is patient | subject | focus. Learned: target resources and compartment membership are correct after later focus work.
+- E4 Git 11a4adc200 and 2d0736366a: initial application added/updated the search parameters and compartment entry, then corrected the patient description. Learned: the Jira-tagged application and immediate follow-up account for the current source state.
+- E5 Jira FHIR-47604 and combined commit 692324e7: later applied decision removed operator and added focus for DeviceAssociation, including compartment participation. Learned: the current focus wording supersedes FHIR-46973's older operator wording.
+- E6 Confluence 358282125 and 391645146: Devices WGM notes say the patient search parameter should be reinstated and definitions refined; OO Main minutes list the FHIR-46973 vote. Learned: meeting evidence matches Jira's applied disposition.
+- E7 Published-spec check https://build.fhir.org/deviceassociation-search.html and https://build.fhir.org/compartmentdefinition-patient.html: the rendered build shows patient constrained to Patient, subject with broad targets, and DeviceAssociation in patient by patient or subject or focus. Learned: current generated output matches the source conclusion.
+- E8 Verification commands: xmllint parsed the relevant XML source files; Zulip direct issue-key search found no FHIR-46973 hits. Learned: no source validity issue or conflicting direct community discussion was discovered.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-46973",
+    "url": "https://jira.hl7.org/browse/FHIR-46973",
+    "snapshot_path": "contexts/FHIR-46973/jira/FHIR-46973.md",
+    "ref": { "jira_key": "FHIR-46973" },
+    "summary": "Applied/Persuasive OO R6 issue requesting DeviceAssociation patient and subject search-parameter corrections and patient compartment inclusion.",
+    "learned": "This establishes the approved seed request and its final disposition.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-306,683-685; source/deviceassociation/bundle-DeviceAssociation-search-params.xml:27-60",
+    "ref": { "paths": "source/fhir.ini, source/deviceassociation/bundle-DeviceAssociation-search-params.xml" },
+    "summary": "DeviceAssociation is an active resource, and current search-parameter source defines subject as DeviceAssociation.subject and patient as DeviceAssociation.subject.where(resolve() is Patient) with target Patient.",
+    "learned": "The authoritative current build inputs already contain the requested search-parameter semantics.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/deviceassociation/structuredefinition-DeviceAssociation.xml:185-208; source/compartments.xml:355-360",
+    "ref": { "paths": "source/deviceassociation/structuredefinition-DeviceAssociation.xml, source/compartments.xml" },
+    "summary": "DeviceAssociation.subject carries the broad targetProfile list, and DeviceAssociation's patient compartment row is patient | subject | focus.",
+    "learned": "The target-resource and compartment surfaces are consistent with FHIR-46973 plus the later focus change.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "11a4adc200 and 2d0736366a",
+    "ref": { "commits": "11a4adc20007b9954df0bf19de65c83efbea533a,2d0736366abc851943c7fcdd2c6dfe89a697cd53" },
+    "summary": "11a4adc200 applied the search-parameter and compartment changes for FHIR-46973; 2d0736366a updated the patient description to the final wording.",
+    "learned": "The historical application explains why no new source edit is needed.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-47604 and combined commit 692324e7",
+    "url": "https://jira.hl7.org/browse/FHIR-47604",
+    "ref": { "jira_key": "FHIR-47604", "commit": "692324e7b3376004c65de20d5ab4781136fdea15" },
+    "summary": "Later Applied/Persuasive with Modification issue removed DeviceAssociation.operator and added DeviceAssociation.focus, including focus compartment participation.",
+    "learned": "The current focus compartment wording intentionally supersedes FHIR-46973's older operator wording.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "HCD WGM 2025-09 page 358282125; OO Main 2025-10-09 page 391645146",
+    "url": "https://confluence.hl7.org/spaces/HCD/pages/358282125/Meeting+Notes+2025+September+15-19+HL7+Devices+Work+Group+Pittsburgh+USA",
+    "ref": { "confluence_page_id": 358282125 },
+    "summary": "Meeting notes state that FHIR-46973 reinstated the patient search parameter, refined patient/subject definitions, and removed inappropriate patient targets; OO minutes list the FHIR-46973 vote.",
+    "learned": "Community meeting evidence aligns with the Jira disposition and source state.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "published-spec",
+    "locator": "build.fhir.org DeviceAssociation search and patient compartment pages",
+    "url": "https://build.fhir.org/deviceassociation-search.html",
+    "summary": "The rendered build shows clinical-patient with Target Resources Patient, subject with the broad target resources, and DeviceAssociation in the patient compartment by patient or subject or focus.",
+    "learned": "Current generated output matches the source-based no-change decision.",
+    "supports": ["verification", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML validation and direct Zulip key search",
+    "command": "xmllint --noout source/deviceassociation/bundle-DeviceAssociation-search-params.xml source/deviceassociation/structuredefinition-DeviceAssociation.xml source/compartments.xml; bun run zulip:search fts '\"FHIR-46973\"' --limit 10",
+    "query": "FHIR-46973",
+    "result_count": 0,
+    "summary": "The relevant XML files parse, and direct Zulip issue-key search found no hits.",
+    "learned": "No source validity issue or directly conflicting Zulip discussion was discovered.",
+    "supports": ["verification", "absence_of_conflict"]
+  }
+]
+</evidence-manifest>

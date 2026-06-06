@@ -1,0 +1,108 @@
+FHIR-13860: Correct lastn code grouping wording
+
+Issue request:
+FHIR-13860 was a Published/Persuasive STU3 Observation change request asking to clarify the Observation `$lastn` operation based on connectathon implementation experience: how CodeableConcept group equivalence works, that unfiltered results include `entered-in-error`, that effective-time ties can return more than `max`, and that text-only CodeableConcepts group by text.
+
+Initial application:
+The issue appears to have been applied in 2017 by commits b6ad40bbc2f5218d7e9e1f848ed862a726753c49 and 29d523c8173d2ffd355d5606e88092c6917df0f5, which updated the then-authoritative Observation spreadsheet source with the requested `$lastn` description. That source was later migrated into the active `source/observation/operationdefinition-Observation-lastn.xml` OperationDefinition.
+
+Additional context:
+Observation is an active resource in `source/fhir.ini`, and `source/observation/list-Observation-operations.xml` references `OperationDefinition/Observation-lastn`, so the edited XML is in current build scope. Later FHIR-41448 clarified group ordering and tie wording while preserving the same equivalence model, and FHIR-16439 already corrected a separate text-only table typo on the combined branch. The linked 2017 Zulip thread confirms the intended grouping rule: Coding equality is by system/code, CodeableConcept grouping is by non-empty coding intersection/transitive closure, and text-only concepts use exact text.
+
+AutoFHIR reconciliation:
+This commit keeps the applied `$lastn` semantics and fixes two remaining source typos in the central grouping clarification: `coding.value` is corrected to `coding.code`, and the example group `[a.c]` is corrected to `[a,c]`.
+
+Recommendation:
+Keep this commit as-is. It is a narrow correction to the active OperationDefinition source that makes the already-applied FHIR-13860 clarification use the actual FHIR Coding element name and an unambiguous example group label.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13860
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-41448: later-change - clarified `$lastn` group ordering and tie wording in the same OperationDefinition while preserving the FHIR-13860 grouping model.
+FHIR-16439: same-change-family - already represented on the combined branch; corrected a separate typo in the same `$lastn` example table.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13860: Published/Persuasive Observation issue requesting clarification of `$lastn` grouping, status inclusion, ties, and text-only CodeableConcepts. Learned: the current source must clearly express these four rules.
+- E2 Zulip #implementers > $lastN operation: 2017 thread linked from Jira discusses mandatory subject/code/category inputs, inclusion of entered-in-error, grouping by non-empty coding intersection/transitive equality, and exact text matching. Learned: the intended Coding comparison is system/code, not a non-existent value element.
+- E3 Git b6ad40bbc2 and 29d523c817: original GF#13860 commits updated the Observation spreadsheet `$lastn` documentation with the requested clarification. Learned: the issue was applied historically but carried forward the `coding.value` and `[a.c]` typos.
+- E4 Source source/fhir.ini:169-208, source/fhir.ini:945, source/observation/list-Observation-operations.xml:14: Observation is active and lists OperationDefinition/Observation-lastn. Learned: `source/observation/operationdefinition-Observation-lastn.xml` is a current build input.
+- E5 Source source/observation/operationdefinition-Observation-lastn.xml:57: current `$lastn` description contains all requested FHIR-13860 semantics but used `coding.value` and `[a.c]`. Learned: a narrow source correction is needed for the grouping clarification to be accurate.
+- E6 Jira FHIR-41448: later Applied/Persuasive with Modification issue clarified code group ordering, effective-time tie wording, and implicit code grouping. Learned: later WG context does not reverse FHIR-13860 and supports keeping the grouping model while fixing typos.
+- E7 Verification command/query: git diff --check, XML parse, and grep for corrected/old terms succeeded. Learned: the edit is syntactically safe and replaces the stale terms.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13860",
+    "url": "https://jira.hl7.org/browse/FHIR-13860",
+    "snapshot_path": "contexts/FHIR-13860/jira/FHIR-13860.md",
+    "ref": { "jira_key": "FHIR-13860" },
+    "summary": "Published/Persuasive STU3 Observation issue requesting clarification of the `$lastn` operation's grouping, status inclusion, effective-time tie, and text-only CodeableConcept behavior.",
+    "learned": "This establishes the final work-group request and the semantics the current OperationDefinition must convey.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > $lastN operation",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/%24lastN%20operation",
+    "ref": { "stream": "implementers", "topic": "$lastN operation" },
+    "summary": "The 2017 linked discussion records the rationale for requiring subject/code-or-category inputs, including entered-in-error, grouping CodeableConcepts through coding intersection/transitive equality, and using exact text for text-only concepts.",
+    "learned": "The intended Coding comparison is by system and code, so the current `coding.value` wording is a typo rather than an intentional semantic choice.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "b6ad40bbc2f5218d7e9e1f848ed862a726753c49 and 29d523c8173d2ffd355d5606e88092c6917df0f5",
+    "ref": { "commits": "b6ad40bbc2f5218d7e9e1f848ed862a726753c49,29d523c8173d2ffd355d5606e88092c6917df0f5" },
+    "summary": "The original GF#13860 commits updated the Observation spreadsheet `$lastn` documentation with the requested rules.",
+    "learned": "The issue was applied historically, but the wording that migrated forward included `coding.value` and `[a.c]` typos in the grouping clarification.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini and source/observation/list-Observation-operations.xml",
+    "ref": { "paths": "source/fhir.ini:169-208, source/fhir.ini:945, source/observation/list-Observation-operations.xml:14" },
+    "summary": "Observation is an active resource and the Observation operations list references OperationDefinition/Observation-lastn.",
+    "learned": "The edited OperationDefinition is in current FHIR build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/observation/operationdefinition-Observation-lastn.xml:57",
+    "ref": { "path": "source/observation/operationdefinition-Observation-lastn.xml", "line": 57 },
+    "summary": "The active `$lastn` description contains the requested FHIR-13860 semantics but used `coding.value` and `[a.c]` in the grouping rule/example.",
+    "learned": "A narrow edit is required to make the grouping clarification accurate and unambiguous.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-41448",
+    "url": "https://jira.hl7.org/browse/FHIR-41448",
+    "snapshot_path": "contexts/FHIR-41448/jira/FHIR-41448.md",
+    "ref": { "jira_key": "FHIR-41448" },
+    "summary": "Later Applied/Persuasive with Modification issue clarified `$lastn` code group ordering, effective-time tie wording, and implicit grouping from category or :below searches.",
+    "learned": "Later WG action preserved the FHIR-13860 grouping semantics and does not conflict with correcting the element-name and example typos.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local validation of XML and replacements",
+    "command": "git diff --check; xmllint --noout source/observation/operationdefinition-Observation-lastn.xml; rg -n 'coding\\.code|2 \\[a,c\\]|coding\\.value|2 \\[a\\.c\\]' source/observation/operationdefinition-Observation-lastn.xml",
+    "summary": "Whitespace check and XML parse succeeded; grep showed the corrected `coding.code` and `[a,c]` text in the active source.",
+    "learned": "The source edit is syntactically safe and addresses the exact stale terms.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

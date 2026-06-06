@@ -1,0 +1,100 @@
+FHIR-36649: Audit ImagingSelection coordinate cardinality
+
+Issue request:
+FHIR-36649 was Published/Persuasive with Modification for R5 and asked the Imaging Integration work group to change ImagingSelection coordinate cardinality from 1..* to 2..* because even a point requires both x and y coordinate values. The accepted resolution pointed to the grouped IMIN Confluence page for FHIR-36648, FHIR-36649, and the related ImagingSelection coordinate work.
+
+Initial application:
+The grouped ImagingSelection update was applied through commit 5c5a620527e102650cad53df57ff594d1706fe2a and merge commit 471fbc468b8fd5427fcebad076569e16590ac707. That implementation split 2D coordinate content under instance.imageRegion2D, retained 3D coordinate content at imageRegion3D, and added the textual requirements that 2D coordinate counts are multiples of two and 3D coordinate counts are multiples of three, but it did not change the coordinate min values in the source to 2 or 3.
+
+Additional context:
+ImagingSelection is active in source/fhir.ini, so source/imagingselection/structuredefinition-ImagingSelection.xml is current build scope. Later applied ImagingSelection work in PR HL7/fhir#3729 for FHIR-51645 briefly changed instance.imageRegion2D.coordinate to min 2 and imageRegion3D.coordinate to min 3, then commit 6be488465a4c7d957c5cb8a0f9b0a8d00aa3b816 changed both mins back to 1 before the PR merged. The current source still has required invariants isl-7 and isl-8, so a single 2D coordinate or one/two 3D coordinates remains invalid even though the element cardinality display remains 1..*.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The seed issue's substantive rule that coordinates cannot consist of a lone x value is already enforced by the current build-scoped StructureDefinition through the multiple-of-two and multiple-of-three invariants, and changing the mins now would override later applied source history without a clear later WG decision to reverse that representation.
+
+Recommendation:
+Keep this no-change audit for FHIR-36649. If the work group wants the rendered cardinality row itself to show 2..* for 2D and 3..* for 3D, revisit that as a follow-up tied to FHIR-51645/PR 3729 because it would reverse the later merged commit that restored min 1 while preserving the invariant constraints.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36649
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-36648: same-change-family - grouped on the same IMIN Confluence page and 2022 commit for ImagingSelection graphic-type terminology, but it is a separate terminology decision.
+FHIR-37409: same-change-family - grouped coordinate-scope clarification applied with the same source history and already represented on the combined branch as an audit commit.
+FHIR-51645: later-change - later Applied ImagingSelection cleanup briefly set coordinate mins to 2/3, then PR 3729 merged with commit 6be488465a changing them back to 1 while keeping the coordinate-count invariants.
+FHIR-34709: background - appears in the Confluence page title, but the Jira key is an unrelated PACIO retracted issue; the page content and Jira references show FHIR-37409 as the related ImagingSelection issue.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36649: Published/Persuasive with Modification issue requesting ImagingSelection coordinate cardinality 2..* because x and y are required even for a point. Learned: this establishes the seed request and the intended no-single-coordinate rule.
+- E2 Confluence 104764643: grouped IMIN resolution page shows ImagingSelection.instance.imageRegion.coordinate as 2..* and the 3D coordinate row as a 3-value minimum, with requirements for multiples of two/three. Learned: the WG resolution intended coordinate values to be supplied in complete 2D or 3D tuples.
+- E3 Git 5c5a620527 / 471fbc468: initial grouped ImagingSelection implementation and merge applied terminology, 2D/3D split, examples, and requirements, but left coordinate min values at 1. Learned: the seed was partially represented through requirements but not literal cardinality.
+- E4 Source source/fhir.ini:195 and source/imagingselection/structuredefinition-ImagingSelection.xml:125-136,825-838,889-902: ImagingSelection is active; current source has min 1 for both coordinate elements and required invariants that counts must be multiples of two or three. Learned: current conformance source rejects incomplete coordinate tuples despite the displayed 1..* cardinality.
+- E5 Jira/Confluence/Git FHIR-51645 and PR HL7/fhir#3729: later Applied cleanup and Confluence page included coordinate cardinality text, but merged commit 6be488465a changed 2D/3D coordinate mins from 2/3 back to 1. Learned: changing mins now would conflict with later applied source history unless WG explicitly revisits it.
+- E6 Community search: quoted Zulip and Confluence searches found no directly relevant Zulip discussion and no conflicting community record beyond the Confluence resolution pages. Learned: no discovered community evidence changes the source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36649",
+    "url": "https://jira.hl7.org/browse/FHIR-36649",
+    "snapshot_path": "contexts/FHIR-36649/jira/FHIR-36649.md",
+    "ref": { "jira_key": "FHIR-36649" },
+    "summary": "Published/Persuasive with Modification ImagingSelection issue requesting coordinate cardinality 2..* because x and y are both required even for a point.",
+    "learned": "This establishes the seed request and the intended rule that incomplete coordinate tuples are invalid.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "IMIN page 104764643 FHIR-36648 FHIR-36649 FHIR-34709",
+    "url": "https://confluence.hl7.org/spaces/IMIN/pages/104764643/FHIR-36648+FHIR-36649+FHIR-34709",
+    "ref": { "confluence_page_id": 104764643 },
+    "summary": "The grouped resolution page records 2D coordinate cardinality as 2..* and 3D coordinate cardinality as a three-value minimum, with tuple-count requirements.",
+    "learned": "The accepted change family intended complete 2D or 3D coordinate tuples rather than lone coordinate values.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "5c5a620527e102650cad53df57ff594d1706fe2a and 471fbc468b8fd5427fcebad076569e16590ac707",
+    "ref": { "commit": "5c5a620527e102650cad53df57ff594d1706fe2a", "merge_commit": "471fbc468b8fd5427fcebad076569e16590ac707" },
+    "summary": "The original grouped ImagingSelection implementation split 2D and 3D image-region coordinates and added multiple-of-two/three requirements, but left coordinate min values at 1.",
+    "learned": "The seed was applied through source requirements and structure changes, though not as a literal min-cardinality change.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:195; source/imagingselection/structuredefinition-ImagingSelection.xml:125-136,825-838,889-902",
+    "summary": "ImagingSelection is active; current coordinate elements have min 1, requirements for multiple-of-two/three counts, and invariants isl-7/isl-8 enforcing those counts.",
+    "learned": "The authoritative current source rejects incomplete 2D and 3D coordinate tuples even with min 1 cardinalities.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "FHIR-51645 / PR HL7/fhir#3729 / 6be488465a4c7d957c5cb8a0f9b0a8d00aa3b816",
+    "url": "https://github.com/HL7/fhir/pull/3729",
+    "snapshot_path": "contexts/FHIR-51645/jira/FHIR-51645.md",
+    "ref": { "jira_key": "FHIR-51645", "pr": 3729, "commit": "6be488465a4c7d957c5cb8a0f9b0a8d00aa3b816" },
+    "summary": "Later Applied ImagingSelection cleanup briefly set coordinate mins to 2/3, but the merged PR included a follow-up commit changing both coordinate mins back to 1.",
+    "learned": "A new min-cardinality edit would reverse later applied source history without a fresh WG decision.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-36649 and FHIR-51645 coordinate cardinality",
+    "command": "bun run zulip:search fts '\"FHIR-36649\" ImagingSelection coordinate' --limit 10; bun run confluence:search refs jira FHIR-36649; bun run zulip:search fts '\"FHIR-51645\" \"coordinate\" \"cardinality\"' --limit 10; bun run confluence:search fts '\"FHIR-51645\" \"2..*\" \"coordinate\"' --kind any --limit 10",
+    "query": "FHIR-36649 ImagingSelection coordinate; FHIR-51645 coordinate cardinality",
+    "summary": "No directly relevant Zulip discussion was found; Confluence hits were the expected grouped resolution pages and no conflicting community record.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

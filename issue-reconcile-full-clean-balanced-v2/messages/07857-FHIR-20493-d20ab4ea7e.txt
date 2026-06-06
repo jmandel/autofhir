@@ -1,0 +1,94 @@
+FHIR-20493: Audit terminology value set version handling
+
+Issue request:
+FHIR-20493 was a Published/Persuasive FHIR-core change request for the validator to stop appending the FHIR release version, such as |4.0.0, to terminology.hl7.org / terminology.fhir.org ValueSet bindings like the then-current Composition.confidentiality binding to v3-ConfidentialityClassification. A later Jira comment noted the intermediate behavior had changed to duplicating the THO version instead.
+
+Initial application:
+The Jira comment recorded Git Kindling b400b4b. In local git history, the explicit issue-tagged application is commit 1e00672e608e5357f8d8db1349db0c091031acae, GF#20493: Fix incorrect version appended by validator to terminology.fhir.org value sets. That commit changed the old tools/java ProfileGenerator so required bindings used the referenced ValueSet's own version when present instead of blindly appending the FHIR version. The old Java tools tree is not present in the current FHIR checkout and that historical commit is not an ancestor of the current worker branch.
+
+Additional context:
+Composition remains an active build resource in source/fhir.ini, but the current Composition source no longer has Composition.confidentiality and now documents CDA confidentiality through Bundle.meta.security. Current Composition terminology.hl7.org ValueSet bindings are unversioned in source, and source-wide checks found no terminology.hl7.org ValueSet binding with duplicate pipe versions or a FHIR release version suffix. The linked Zulip topic confirms the issue was a validator/tooling correction rather than a request to add versions to core conformance source. Confluence searches found no additional FHIR-20493 decision record.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no FHIR source change. The current core source checkout has no incorrect version-appended terminology.hl7.org ValueSet references to correct, and the only historical code-level fix was in validator/generator tooling that is no longer part of this checkout.
+
+Recommendation:
+Keep this audit commit as-is for FHIR core. If the value-set version behavior regresses, handle it in the current external validator/IG Publisher tooling rather than by editing core resource definitions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20493
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20493: Published/Persuasive issue reporting FHIR version suffixes on terminology value-set bindings, with later comment about duplicate THO versions. Learned: the approved request was a validator/tooling correction for terminology ValueSet resolution.
+- E2 Zulip #conformance > Validator issue with inconsistent value set version: Rob Hausam reported the same Composition.confidentiality warning and Grahame Grieve said 4.0.0 was not supposed to be appended to terminology.fhir.org value sets. Learned: the community discussion matches the Jira intent and points to tooling, not a source-level ValueSet URL change.
+- E3 Git 1e00672e608e5357f8d8db1349db0c091031acae: GF#20493 changed old tools/java ProfileGenerator version handling for required bindings. Learned: the historical application was in generator/validator code, not current conformance XML.
+- E4 Source source/fhir.ini:169-188 and source/composition/structuredefinition-Composition.xml:537,554,950: Composition is active and current terminology.hl7.org ValueSet bindings are unversioned. Learned: current build source does not encode the wrong FHIR-versioned terminology URLs.
+- E5 Command checks: searches found no current Composition.confidentiality/v3-ConfidentialityClassification binding and no terminology.hl7.org ValueSet URLs with duplicate pipe versions or FHIR release version suffixes; git tree checks found no current tools/java ProfileGenerator or ResourceValidator. Learned: there is no in-checkout source fix to apply for this historical tooling issue.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20493",
+    "url": "https://jira.hl7.org/browse/FHIR-20493",
+    "snapshot_path": "contexts/FHIR-20493/jira/FHIR-20493.md",
+    "ref": { "jira_key": "FHIR-20493" },
+    "summary": "Published/Persuasive issue reporting that the validator appended an invalid FHIR version to terminology.fhir.org ValueSet bindings and later duplicated THO versions.",
+    "learned": "This establishes final WG intent to fix validator/tooling version handling for terminology ValueSets.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#conformance > Validator issue with inconsistent value set version",
+    "url": "https://chat.fhir.org/#narrow/stream/conformance/topic/Validator%20issue%20with%20inconsistent%20value%20set%20version",
+    "ref": { "stream": "conformance", "topic": "Validator issue with inconsistent value set version" },
+    "summary": "The thread reports the Composition.confidentiality warning and records that FHIR release versions were not supposed to be appended to terminology.fhir.org ValueSets.",
+    "learned": "The community evidence confirms the problem was validator/tooling behavior rather than a request to add versions into core source bindings.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "1e00672e608e5357f8d8db1349db0c091031acae",
+    "ref": { "commit": "1e00672e608e5357f8d8db1349db0c091031acae" },
+    "summary": "GF#20493 changed the old tools/java ProfileGenerator buildValueSetReference logic to prefer a referenced ValueSet's own version for required bindings.",
+    "learned": "The issue was historically applied in Java generator/validator tooling that is absent from the current FHIR checkout.",
+    "supports": ["initial_application", "external_repo"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-188; source/composition/structuredefinition-Composition.xml:537,554,950; source/composition/composition-introduction.xml:135",
+    "summary": "Composition is in the active resource list; current Composition THO ValueSet bindings are unversioned, and document confidentiality is now described through Bundle.meta.security.",
+    "learned": "The current build source does not contain the historical Composition.confidentiality binding or wrong FHIR-versioned terminology ValueSet URLs.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current source/tooling checks for FHIR-20493",
+    "command": "rg '<valueSet value=\"http://terminology\\.hl7\\.org/ValueSet/[^\"]*\\|[^\"|]+\\|[^\"|]+\"' source; rg '<valueSet value=\"http://terminology\\.hl7\\.org/ValueSet/[^\"]*\\|[0-9]+\\.[0-9]+\\.[0-9]+\"' source; rg 'Composition\\.confidentiality|<element id=\"Composition\\.confidentiality\"|v3-ConfidentialityClassification' source/composition/structuredefinition-Composition.xml; git ls-tree -r --name-only HEAD | rg 'ProfileGenerator\\.java|ResourceValidator\\.java|tools/java/org.hl7.fhir.tools.core'",
+    "result_count": 0,
+    "summary": "No duplicate-pipe or FHIR-release-versioned terminology.hl7.org ValueSet bindings, no current Composition.confidentiality binding, and no current old Java ProfileGenerator/ResourceValidator files were found.",
+    "learned": "There is no current core source hunk to apply; any future regression belongs in external validator/publisher tooling.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Confluence search for FHIR-20493",
+    "command": "bun run confluence:search refs jira FHIR-20493; bun run confluence:search fts '\"FHIR-20493\" terminology validator version' --limit 10",
+    "result_count": 0,
+    "summary": "No directly relevant Confluence references or high-signal full-text hits were found.",
+    "learned": "No discovered work-group minutes change the Jira, Zulip, source, and git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

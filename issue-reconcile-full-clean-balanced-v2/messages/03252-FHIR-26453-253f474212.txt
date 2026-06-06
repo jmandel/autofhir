@@ -1,0 +1,120 @@
+FHIR-26453: Add Ingredient strength text to ModelInfo
+
+Issue request:
+FHIR-26453 was Published/Persuasive for the BR&R MedicinalProductIngredient/Ingredient model. It requested text expressions of strength for both the presentation and concentration forms, in addition to the structured strength representation, because some real-world strengths are too complex or too legacy-textual for a simple ratio.
+
+Initial application:
+The Jira-tagged application commit 35630a55b9 added Ingredient.specifiedSubstance.strength.presentationText and concentrationText to the old Ingredient spreadsheet. Later source refactors moved Ingredient into source/ingredient/structuredefinition-Ingredient.xml, where the current active StructureDefinition already contains the requested text strength elements as Ingredient.substance.strength.textPresentation and textConcentration. The remaining omission found during reconciliation was the active FHIR ModelInfo Library example, which still listed MedicinalProductIngredient.Strength without corresponding text strength properties.
+
+Additional context:
+FHIR-36687 later determined that presentationText and concentrationText were invalid peer names beside presentation[x] and concentration[x], and renamed them to textPresentation and textConcentration without changing the meaning. source/fhir.ini keeps Ingredient and Library active in the current build, maps MedicinalProductIngredient to Ingredient, and source/library/list-Library-examples.xml includes Library/FHIR-ModelInfo as the FHIR ModelInfo example. The embedded Library data in source/library/library-fhir-model-definition.xml matched source/library/library-fhir-model-definition-content.xml before this edit, so both files needed to be synchronized. Direct Zulip and Confluence searches for FHIR-26453 and the strength-text terms found no conflicting community guidance.
+
+AutoFHIR reconciliation:
+Added textPresentation and textConcentration as FHIR.string elements to MedicinalProductIngredient.Strength in source/library/library-fhir-model-definition-content.xml, and regenerated the embedded base64 data in source/library/library-fhir-model-definition.xml so the Library resource and linked XML content stay aligned. No Ingredient StructureDefinition edit was needed because the authoritative resource definition already carries the current renamed text elements.
+
+Recommendation:
+Keep this commit as-is. It completes FHIR-26453 on the current build's parallel ModelInfo surface while preserving the FHIR-36687 element names; do not restore the original presentationText/concentrationText names.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26453
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-36687: later-change - renamed the originally requested presentationText/concentrationText elements to textPresentation/textConcentration because peer names cannot start with a choice-type prefix.
+FHIR-31816: background - prior reconciliation established that the FHIR ModelInfo Library example is active build-scoped source for Ingredient model cleanup.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26453: Published/Persuasive; requested textual presentation and concentration strength fields in addition to structured strengths. Learned: this is the final work-group request being reconciled.
+- E2 Source source/ingredient/structuredefinition-Ingredient.xml:405 and :447: Ingredient.substance.strength.textPresentation and textConcentration already exist as 0..1 string elements next to presentation[x] and concentration[x]. Learned: the authoritative Ingredient StructureDefinition already preserves the requested capability under later valid names.
+- E3 Source source/fhir.ini:152, :266, :294, :1933 and source/library/list-Library-examples.xml:67: Ingredient and Library are active resources, MedicinalProductIngredient maps to Ingredient, and the FHIR ModelInfo Library example is listed. Learned: the edited ModelInfo files are current build-scoped source, not out-of-build collateral.
+- E4 Git 35630a55b9: added the original Ingredient strength text elements for FHIR-26453 in the old spreadsheet source. Learned: the seed was initially applied to the main Ingredient model but not completely carried through every current parallel model surface.
+- E5 Jira/Git FHIR-36687 and e627a7a0a3: final Published/Persuasive with Modification decision and implementation renamed presentationText/concentrationText to textPresentation/textConcentration. Learned: the current names used by this reconciliation are intentional and should be preserved.
+- E6 Source source/library/library-fhir-model-definition-content.xml:10065 and :10068 plus source/library/library-fhir-model-definition.xml:278: ModelInfo now includes textPresentation and textConcentration, and the embedded Library data was regenerated from the content XML. Learned: the remaining ModelInfo omission has been fixed without diverging the two ModelInfo source surfaces.
+- E7 Community search: quoted-key and concept Zulip searches plus Confluence refs/FTS searches found no direct FHIR-26453 discussion or conflicting decision. Learned: no community evidence changes the Jira/source conclusion.
+- E8 Verification commands: XML parse of the touched files, embedded-data equality check, term counts, idempotency grep, and CRLF-aware git diff --check all passed. Learned: the source edit is mechanically valid, synchronized, and not a duplicate combined-branch decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26453",
+    "url": "https://jira.hl7.org/browse/FHIR-26453",
+    "snapshot_path": "contexts/FHIR-26453/jira/FHIR-26453.md",
+    "ref": { "jira_key": "FHIR-26453" },
+    "summary": "Published/Persuasive BR&R issue requesting text expressions for Ingredient presentation and concentration strength in addition to structured strength.",
+    "learned": "This establishes the final work-group request and the target capability that must exist in current Ingredient model surfaces.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/ingredient/structuredefinition-Ingredient.xml:405,447",
+    "ref": { "path": "source/ingredient/structuredefinition-Ingredient.xml", "line": 405 },
+    "summary": "The active Ingredient StructureDefinition contains Ingredient.substance.strength.textPresentation and textConcentration as string elements adjacent to presentation[x] and concentration[x].",
+    "learned": "The authoritative resource definition already implements FHIR-26453 under the later valid element names.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:152,266,294,1933; source/library/list-Library-examples.xml:67",
+    "ref": { "path": "source/fhir.ini", "line": 152 },
+    "summary": "Ingredient and Library are active resources, MedicinalProductIngredient maps to Ingredient, and the Library examples include Library/FHIR-ModelInfo.",
+    "learned": "The ModelInfo source files are current build-scoped parallel source for the FHIR data model.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "35630a55b9ba1df679df5765243f01a2e4162512",
+    "ref": { "commit": "35630a55b9ba1df679df5765243f01a2e4162512" },
+    "summary": "Historical application commit added Ingredient specified-substance strength presentationText and concentrationText for FHIR-26453 in the old spreadsheet source.",
+    "learned": "FHIR-26453 was applied to the Ingredient model before later source refactors, so reconciliation should preserve the capability rather than reinterpret it.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-36687 / e627a7a0a39ba3386173770c3462ecd3eeaa9fa0",
+    "url": "https://jira.hl7.org/browse/FHIR-36687",
+    "ref": { "jira_key": "FHIR-36687", "commit": "e627a7a0a39ba3386173770c3462ecd3eeaa9fa0" },
+    "summary": "Published/Persuasive with Modification issue renamed the invalid presentationText/concentrationText element names to textPresentation/textConcentration.",
+    "learned": "The ModelInfo fix must use the current renamed elements, not the obsolete originally requested names.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:10065,10068; source/library/library-fhir-model-definition.xml:278",
+    "ref": { "path": "source/library/library-fhir-model-definition-content.xml", "line": 10065 },
+    "summary": "MedicinalProductIngredient.Strength in FHIR ModelInfo now includes textPresentation and textConcentration, and the embedded Library data was regenerated from the content XML.",
+    "learned": "This completes the missing current-build ModelInfo surface for FHIR-26453 while keeping both ModelInfo source representations synchronized.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-26453 Ingredient strength text",
+    "command": "bun run zulip:search fts '\"FHIR-26453\" Ingredient strength text presentation concentration' --limit 10; bun run zulip:search fts 'Ingredient strength text presentation concentration' --limit 10; bun run confluence:search refs jira FHIR-26453; bun run confluence:search fts '\"FHIR-26453\" Ingredient strength text' --limit 10",
+    "query": "FHIR-26453 Ingredient strength text presentation concentration",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence hits for FHIR-26453 or the strength-text terms were found; one broader Confluence concept hit concerned Medication, not Ingredient.",
+    "learned": "No discovered community record conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "ModelInfo validation and idempotency checks",
+    "command": "python3 XML parse and embedded-data equality checks; rg -n 'textPresentation|textConcentration' source/ingredient/structuredefinition-Ingredient.xml source/library/library-fhir-model-definition-content.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-26453' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "query": "textPresentation|textConcentration",
+    "result_count": 4,
+    "summary": "The touched XML files parsed, embedded ModelInfo data matches the content XML, only the current renamed terms are present, whitespace checks passed, and no prior combined-branch FHIR-26453 commit exists.",
+    "learned": "The fix is mechanically valid, synchronized, and safe to publish as the seed's single reconciliation commit.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

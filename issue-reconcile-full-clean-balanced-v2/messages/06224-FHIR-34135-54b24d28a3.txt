@@ -1,0 +1,117 @@
+FHIR-34135: Audit Device subject Person exclusion
+
+Issue request:
+FHIR-34135 was Published/Persuasive for R5 and asked to remove Person from Device.subject, with explanatory wording that people using devices outside a healthcare setting, such as fitness trackers, are still represented as Patient rather than Person.
+
+Initial application:
+The Jira comment points to commit 5dfb107768496eb70edb269449cf60cef14a5088, which removed the Person target from Device.subject and added the Patient/fitness-tracker explanatory sentence to the Device.subject definition. Later Device work moved then removed Device.subject/Device.association from Device as part of the DeviceAssociation reconciliation.
+
+Additional context:
+FHIR-30243 originally broadened Device.patient to Device.subject and included Person; FHIR-34135 corrected that choice. FHIR-32570 then superseded Device.subject with an association subject, and FHIR-38904/FHIR-39009 resolved the overlapping Device subject work by creating DeviceAssociation and removing patient-identifying association data from Device. In the current build, DeviceAssociation is an active resource, Device has no active Device.subject, and DeviceAssociation.subject includes Patient, Practitioner, PractitionerRole, RelatedPerson, and other non-Person targets but not Person. DeviceAssociation narrative also lists Patient activity trackers and other subjects without using FHIR Person.
+
+AutoFHIR reconciliation:
+This is an empty no-change audit commit. No source edit is needed because the current in-scope source no longer exposes Device.subject and the active replacement subject element does not allow Person; the use of Patient for activity trackers is already conveyed in DeviceAssociation narrative.
+
+Recommendation:
+Keep this audit commit as-is. Future DeviceAssociation changes should continue to avoid adding StructureDefinition/Person as a subject/focus target unless a later explicit work-group decision reverses the general Person-participant rule.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34135
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-30243: same-change-family - originally changed Device.patient to Device.subject and allowed Person, which FHIR-34135 corrected.
+FHIR-32570: later-change - removed Device.subject after moving the association subject into the association work.
+FHIR-38904: later-change - created DeviceAssociation and removed patient-identifying association data from Device.
+FHIR-39009: supporting-decision - explicitly recognized the FHIR-30243/FHIR-34135/FHIR-32570 overlap and pointed to the FHIR-38904 disposition.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34135: Published/Persuasive issue says Person cannot be a direct participant and asks to remove Person from Device.subject while explaining fitness-tracker users are Patient. Learned: establishes the final requested correction.
+- E2 Git 5dfb107768496eb70edb269449cf60cef14a5088: historical application removed the Person target from Device.subject and added the Patient/fitness-tracker definition text. Learned: the issue was initially applied to Device.subject.
+- E3 Source source/fhir.ini:185 and source/fhir.ini:305: Device and DeviceAssociation are active resources in the current build. Learned: DeviceAssociation source is in current build scope for the later replacement element.
+- E4 Source source/deviceassociation/structuredefinition-DeviceAssociation.xml:185: DeviceAssociation.subject is active and its target list includes Patient, Practitioner, PractitionerRole, RelatedPerson, and other resources but not Person. Learned: the current conformance source preserves the Person exclusion.
+- E5 Source source/deviceassociation/deviceassociation-introduction.xml:23: DeviceAssociation narrative covers personal health devices and activity trackers under Patient without referring to FHIR Person. Learned: the current narrative conveys the non-healthcare device use case through Patient.
+- E6 Jira FHIR-38904 and FHIR-39009: later Published issues moved patient association out of Device into DeviceAssociation and resolved the overlapping Device subject Jiras. Learned: the absence of Device.subject is an intentional later design, not a missing application of FHIR-34135.
+- E7 Community search: Zulip search for "FHIR-34135" Device subject Person Patient found no direct results; Confluence found the 2022-01-03 OO minutes recording the FHIR-34135 persuasive motion and later Device subject overlap references. Learned: discovered community evidence supports the Jira/source conclusion and found no conflicting discussion.
+- E8 Verification command/query: rg '<element id="Device.subject"|targetProfile value="http://hl7.org/fhir/StructureDefinition/Person"|<element id="DeviceAssociation.subject"' source/device/structuredefinition-Device.xml source/deviceassociation/structuredefinition-DeviceAssociation.xml returned only DeviceAssociation.subject and no Person target. Learned: the current relevant source has no active Device.subject or Person target.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34135",
+    "url": "https://jira.hl7.org/browse/FHIR-34135",
+    "snapshot_path": "contexts/FHIR-34135/jira/FHIR-34135.md",
+    "ref": { "jira_key": "FHIR-34135" },
+    "summary": "Published/Persuasive issue requiring removal of Person from Device.subject and clarification that non-healthcare device users such as fitness-tracker users are represented as Patient.",
+    "learned": "This establishes the final work-group request for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "5dfb107768496eb70edb269449cf60cef14a5088",
+    "ref": { "commit": "5dfb107768496eb70edb269449cf60cef14a5088" },
+    "summary": "The Jira-linked commit removed the Device.subject Person target and added the Patient/fitness-tracker explanatory sentence.",
+    "learned": "The seed issue was initially applied to the then-current Device.subject element.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:185 and source/fhir.ini:305",
+    "summary": "fhir.ini lists both device=Device and deviceassociation=DeviceAssociation as active resources.",
+    "learned": "DeviceAssociation is in current build scope and is the relevant successor surface for device-subject associations.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/deviceassociation/structuredefinition-DeviceAssociation.xml:185",
+    "summary": "DeviceAssociation.subject is active and targets Patient, Practitioner, PractitionerRole, RelatedPerson, and other non-Person resources, with no StructureDefinition/Person target.",
+    "learned": "The current conformance source preserves the Person exclusion required by FHIR-34135.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/deviceassociation/deviceassociation-introduction.xml:23",
+    "summary": "DeviceAssociation scope covers personal health devices, and its subject list says activity trackers are associated with Patient.",
+    "learned": "The current narrative carries forward the non-healthcare device use case without using FHIR Person.",
+    "supports": ["reconciliation", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-38904 and FHIR-39009",
+    "url": "https://jira.hl7.org/browse/FHIR-38904",
+    "ref": { "jira_key": "FHIR-38904" },
+    "summary": "Later Published Device issues created DeviceAssociation, removed association data from Device, and recognized the FHIR-30243/FHIR-34135/FHIR-32570 overlap.",
+    "learned": "The absence of Device.subject is intentional later design context rather than a missing seed application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-34135 and Device subject Person Patient",
+    "command": "bun run zulip:search fts '\"FHIR-34135\" Device subject Person Patient' --limit 10; bun run confluence:search fts '\"Person cannot be used\" \"device subject\"' --limit 10",
+    "query": "FHIR-34135 Device subject Person Patient",
+    "result_count": 1,
+    "summary": "No direct Zulip results were found; Confluence found the OO 2022-01-03 minutes recording the persuasive FHIR-34135 motion and later overlap references.",
+    "learned": "No discovered community discussion conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Current source check for Device.subject and StructureDefinition/Person",
+    "command": "rg -n '<element id=\"Device.subject\"|targetProfile value=\"http://hl7.org/fhir/StructureDefinition/Person\"|<element id=\"DeviceAssociation.subject\"' source/device/structuredefinition-Device.xml source/deviceassociation/structuredefinition-DeviceAssociation.xml",
+    "summary": "The search returned DeviceAssociation.subject and no Device.subject or Person target in the checked current source files.",
+    "learned": "The relevant current conformance source excludes Person and has no remaining Device.subject element needing correction.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,99 @@
+FHIR-13722: Add Appointment.description title alias
+
+Issue request:
+FHIR-13722 was Published with a Persuasive with Modification resolution for STU3 Appointment. The PA decision was to map Appointment.description to iCalendar SUMMARY, map Appointment.comment to iCalendar DESCRIPTION, add alias "title" to Appointment.description, and add patientInstructions for patient-facing details.
+
+Initial application:
+Git commit d777ec203416f644c5658bf99deb6c89dd2cd31b explicitly applied GF#13722 by changing the Appointment spreadsheet iCalendar mappings and adding Appointment.patientInstruction. That commit did not add the approved title alias to Appointment.description, and the current StructureDefinition still lacked the alias before this reconciliation.
+
+Additional context:
+Appointment is active in source/fhir.ini, so source/appointment/structuredefinition-Appointment.xml is current build input. Later published Appointment issues changed the surrounding field names and types: FHIR-19521 changed Appointment.comment to Appointment.note, FHIR-27849 changed patientInstruction from 0..1 string to 0..* CodeableReference(DocumentReference, Binary, Communication), and FHIR-40254 corrected Appointment.description to refer to the note field. Those later decisions supersede the older comment/string wording but do not remove the title-alias requirement.
+
+AutoFHIR reconciliation:
+Added the missing <alias value="title"/> to Appointment.description. No other Appointment wording or cardinality was changed because the iCalendar mappings, note wording, and patientInstruction datatype/cardinality already reflect FHIR-13722 plus later PA decisions.
+
+Recommendation:
+Keep this source fix. It completes the one missing durable part of the FHIR-13722 resolution while preserving later published Appointment changes.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13722
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-19521: later-change - changed Appointment.comment to Appointment.note, explaining why current text no longer uses the original comment element name.
+FHIR-27849: later-change - expanded Appointment.patientInstruction from 0..1 string to 0..* CodeableReference with document/binary/communication targets.
+FHIR-40254: later-change - corrected Appointment.description prose to point detailed information to note rather than comment.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13722: Published/Persuasive with Modification; PA approved description->iCal SUMMARY, comment->iCal DESCRIPTION, a title alias for description, and patientInstructions. Learned: establishes the missing title alias as final WG intent.
+- E2 Source source/fhir.ini:230 and source/appointment/structuredefinition-Appointment.xml:469: Appointment is active build input and Appointment.description carries the subject-line definition and iCalendar SUMMARY mapping. Learned: this is the authoritative current source location to fix.
+- E3 Git d777ec203416f644c5658bf99deb6c89dd2cd31b: Applied GF#13722 by changing iCalendar mappings and adding Appointment.patientInstruction. Learned: initial application covered most of the issue but omitted the title alias.
+- E4 Jira FHIR-19521, FHIR-27849, and FHIR-40254: later published PA changes renamed comment to note, expanded patientInstruction, and corrected description wording. Learned: current note/patientInstruction differences are intentional later changes, not FHIR-13722 regressions.
+- E5 Community search: Zulip exact-key and concept searches found no hits; Confluence refs found no FHIR-13722 references and FTS concept hits were unrelated OO pages. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E6 Verification command: git diff --check and Python XML parse of source/appointment/structuredefinition-Appointment.xml succeeded. Learned: the source edit is syntactically safe.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13722",
+    "url": "https://jira.hl7.org/browse/FHIR-13722",
+    "snapshot_path": "contexts/FHIR-13722/jira/FHIR-13722.md",
+    "ref": { "jira_key": "FHIR-13722" },
+    "summary": "Published/Persuasive with Modification PA issue requesting Appointment description/title support, iCalendar mapping updates, and patientInstructions.",
+    "learned": "The title alias on Appointment.description is final approved scope, while mappings and patient-facing instructions are also part of the same resolution.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:230; source/appointment/structuredefinition-Appointment.xml:469",
+    "ref": { "path": "source/appointment/structuredefinition-Appointment.xml", "line": 469 },
+    "summary": "Appointment is an active resource and Appointment.description is the current StructureDefinition element carrying the subject-line definition and iCalendar SUMMARY mapping.",
+    "learned": "The current build-scope source already has the mapping and wording, but needed the missing title alias on the element itself.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "d777ec203416f644c5658bf99deb6c89dd2cd31b",
+    "ref": { "commit": "d777ec203416f644c5658bf99deb6c89dd2cd31b" },
+    "summary": "Applied GF#13722 by changing Appointment.description iCalendar mapping to SUMMARY, changing comment mapping to DESCRIPTION (for internal use), and adding Appointment.patientInstruction mapped to DESCRIPTION (for patient use).",
+    "learned": "The initial application was real but omitted the approved title alias, leaving a bounded source fix.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-19521, FHIR-27849, FHIR-40254",
+    "url": "https://jira.hl7.org/browse/FHIR-27849",
+    "ref": { "jira_key": "FHIR-27849" },
+    "summary": "Later published PA decisions changed comment to note, expanded patientInstruction to 0..* CodeableReference, and corrected Appointment.description to refer to note.",
+    "learned": "These decisions explain why the current source differs from the older FHIR-13722 comment/string wording and should be preserved.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-13722 Appointment title/subject/patientInstruction",
+    "command": "bun run zulip:search fts '\"FHIR-13722\" Appointment title subject patientInstruction' --limit 10; bun run zulip:search fts 'Appointment title subject patientInstruction' --limit 10; bun run confluence:search refs jira FHIR-13722; bun run confluence:search fts '\"FHIR-13722\" Appointment title subject patientInstruction' --limit 10",
+    "query": "FHIR-13722 Appointment title subject patientInstruction",
+    "result_count": 0,
+    "summary": "No relevant Zulip hits or Confluence Jira references were found; broader Confluence concept hits were unrelated OO pages.",
+    "learned": "No discovered community record conflicts with the Jira/source-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "XML and diff validation",
+    "command": "git diff --check -- source/appointment/structuredefinition-Appointment.xml; python3 - <<'PY' ... ET.parse('source/appointment/structuredefinition-Appointment.xml') ... PY",
+    "summary": "Whitespace check and XML parse completed successfully for the edited Appointment StructureDefinition.",
+    "learned": "The one-line alias addition is syntactically valid XML without whitespace errors.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

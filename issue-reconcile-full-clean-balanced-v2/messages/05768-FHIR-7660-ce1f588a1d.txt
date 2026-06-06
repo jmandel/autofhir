@@ -1,0 +1,131 @@
+FHIR-7660: Audit Encounter discharge diagnoses
+
+Issue request:
+FHIR-7660 is a Published/Persuasive Patient Administration DSTU1 issue asking why Encounter.hospitalization.dischargeDiagnosis was only 0..1 and whether additional discharge diagnoses belonged elsewhere, such as Encounter.reason. Its resolution treats the issue as part of the Encounter diagnosis duplicate family and records that reason/indication diagnosis references were constrained while discharge diagnosis was constrained to Condition.
+
+Initial application:
+The discharge-diagnosis part of the family was initially applied in git commit 06c7ab8513 for FHIR-7304, changing Encounter.hospitalization.dischargeDiagnosis from 0..1 Reference(Any) to 0..* Reference(Condition). The broader duplicate-family application was completed in git commit 0983925cea, whose message explicitly lists tracker 7660 and related Encounter diagnosis trackers; that commit constrained Encounter.indication from Reference(Any) to Reference(Condition|Procedure), added admission-diagnosis aliases and primaryDiagnosis guidance, and updated examples.
+
+Additional context:
+Later final PA decisions intentionally replaced the old DSTU1 representation. FHIR-10544 removed hospitalization.admittingDiagnosis/dischargeDiagnosis and the Encounter-specific diagnosis extensions in favor of an Encounter.diagnosis backbone. FHIR-16148 then redesigned Encounter.reason and Encounter.diagnosis for R5 so reason carries expected reasons/admitting diagnoses and diagnosis carries conditions actually addressed, with billing-related ranking documented on Account. FHIR-19285 added Account.diagnosis.sequence/type for billing diagnoses. FHIR-20484, FHIR-38807, and FHIR-7906 are already represented on the combined branch and support the same conclusion. FHIR-50827 is a current Triaged R6 terminology issue about the Encounter.diagnosis.use value set and is not final enough for this worker to decide or edit.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change because the current active source already satisfies FHIR-7660 at the current specification level. Encounter is active in source/fhir.ini; Encounter.diagnosis is repeatable; Encounter.diagnosis.condition is repeatable and limited to CodeableReference(Condition); Encounter.diagnosis.use carries the role such as admission or discharge; and Account.diagnosis carries billing sequence/type details. Re-introducing the retired hospitalization.dischargeDiagnosis element or applying the 2015 wording literally would contradict later applied PA decisions.
+
+Recommendation:
+Keep this no-change audit. Do not reopen the old dischargeDiagnosis element for FHIR-7660; any remaining concern about the diagnosis-use value set should proceed through FHIR-50827 or another current PA/terminology decision, not through this published DSTU1 reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7660
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7304: same-change-family - specifically changed hospitalization.dischargeDiagnosis from 0..1 Reference(Any) to 0..* Reference(Condition).
+FHIR-8372: same-change-family - requested support for multiple discharge diagnoses.
+FHIR-3779: same-change-family - duplicate-family issue with the same reason/dischargeDiagnosis constraint resolution.
+FHIR-7906: same-change-family - duplicate-family Encounter diagnosis relationship issue already audited on the combined branch.
+FHIR-10544: later-change - replaced Encounter.indication and hospitalization admission/discharge diagnosis elements with Encounter.diagnosis.
+FHIR-16148: later-change - redesigned Encounter.reason and Encounter.diagnosis into the current R5/R6 model.
+FHIR-19285: later-change - moved billing diagnosis ranking/type to Account.
+FHIR-20484: later-change - addressed Encounter.diagnosis.use cardinality/terminology and is already audited on the combined branch.
+FHIR-38807: supporting-decision - applied outstanding Encounter reason/diagnosis changes for R5 and is already represented on the combined branch.
+FHIR-50827: background - current Triaged terminology issue about Encounter.diagnosis.use; not decided here because workflow status is not final.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7660: Published/Persuasive issue asks why Encounter.dischargeDiagnosis is 0..1 and records the duplicate-family reason/dischargeDiagnosis constraint resolution. Learned: the seed's final request is to ensure discharge diagnoses are repeatable and constrained to diagnosis resources, not to preserve the retired DSTU1 element shape.
+- E2 Jira FHIR-7304, FHIR-8372, and FHIR-3779: related Published issues request multiple discharge diagnoses and Condition-only discharge diagnosis references. Learned: these clarify the duplicate-family target that FHIR-7660 participated in.
+- E3 Git 06c7ab8513 and 0983925cea: 06c7 changed dischargeDiagnosis to 0..* Reference(Condition); 098 explicitly listed tracker 7660 and constrained related Encounter diagnosis references. Learned: the seed family was historically applied before the later Encounter refactors.
+- E4 Jira FHIR-10544, FHIR-16148, FHIR-19285, FHIR-20484, and FHIR-38807: later final PA decisions replaced the old representation with Encounter.diagnosis and Account.diagnosis details. Learned: current source must be judged against the later applied model rather than the obsolete hospitalization.dischargeDiagnosis element.
+- E5 Source source/fhir.ini:190 and source/encounter/structuredefinition-Encounter.xml:787-936: Encounter is active; Encounter.reason.value and repeatable Encounter.diagnosis/condition/use carry admission, addressed-condition, and discharge role semantics. Learned: the authoritative current build source already supports multiple Condition-based discharge diagnoses.
+- E6 Source source/account/structuredefinition-Account.xml:474-550: Account.diagnosis is repeatable, Condition-only, and has sequence/type for billing-related diagnosis ranking. Learned: later decisions moved ranking/billing details out of Encounter rather than forgetting them.
+- E7 Jira FHIR-50827 and community searches: FHIR-50827 is Triaged and discusses a possible missed discharge-diagnosis value-set change; direct Zulip and Confluence searches for FHIR-7660 found no relevant conflicting records. Learned: there is a separate non-final terminology follow-up, but no final community evidence that changes the no-change decision for FHIR-7660.
+- E8 Verification command/query: combined-branch idempotency checks found no FHIR-7660 commit, while FHIR-7906, FHIR-20484, and FHIR-38807 were already represented; local source searches confirmed no active dischargeDiagnosis element remains. Learned: this worker should publish one seed audit commit and not duplicate related issue decisions.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7660",
+    "url": "https://jira.hl7.org/browse/FHIR-7660",
+    "snapshot_path": "contexts/FHIR-7660/jira/FHIR-7660.md",
+    "ref": { "jira_key": "FHIR-7660" },
+    "summary": "Published/Persuasive PA issue asking why Encounter.dischargeDiagnosis was 0..1 and whether additional discharge diagnoses belonged elsewhere.",
+    "learned": "The final request belongs to the Encounter diagnosis duplicate family and targets repeatable, Condition-constrained discharge diagnosis support.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-7304; FHIR-8372; FHIR-3779",
+    "url": "https://jira.hl7.org/browse/FHIR-7304",
+    "snapshot_path": "contexts/FHIR-7304/jira/FHIR-7304.md",
+    "ref": { "jira_key": "FHIR-7304" },
+    "summary": "Related Published Encounter issues requested multiple discharge diagnoses and Condition-only discharge diagnosis references.",
+    "learned": "These duplicate-family records clarify the concrete cardinality and type changes underlying FHIR-7660.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "06c7ab85137432aeaa608312554b0f2f73e0dd7c; 0983925cea4a4bac6ef715d2060f15156f6916d7",
+    "ref": { "commit": "0983925cea4a4bac6ef715d2060f15156f6916d7" },
+    "summary": "Historical Encounter commits changed dischargeDiagnosis to 0..* Reference(Condition) and explicitly applied tracker 7660 with the related Encounter diagnosis family.",
+    "learned": "FHIR-7660 was historically applied before later source refactors replaced the old element shape.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-10544; FHIR-16148; FHIR-19285; FHIR-20484; FHIR-38807",
+    "url": "https://jira.hl7.org/browse/FHIR-16148",
+    "snapshot_path": "contexts/FHIR-16148/jira/FHIR-16148.md",
+    "ref": { "jira_key": "FHIR-16148" },
+    "summary": "Later final PA decisions replaced old Encounter admission/discharge diagnosis properties with Encounter.diagnosis and Account billing diagnosis structures.",
+    "learned": "The current source should not be changed back to the literal DSTU1 dischargeDiagnosis representation.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:190; source/encounter/structuredefinition-Encounter.xml:787-936",
+    "ref": { "path": "source/encounter/structuredefinition-Encounter.xml" },
+    "summary": "Encounter is active in the build and currently defines repeatable Encounter.diagnosis, repeatable Encounter.diagnosis.condition limited to Condition, and Encounter.diagnosis.use for diagnosis role/use.",
+    "learned": "The authoritative current source already supports multiple Condition-based discharge diagnoses under the later model.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/account/structuredefinition-Account.xml:474-550",
+    "ref": { "path": "source/account/structuredefinition-Account.xml" },
+    "summary": "Account.diagnosis is repeatable, Condition-only, and carries sequence/type for billing-related diagnosis ranking.",
+    "learned": "Later billing/ranking semantics were moved to Account rather than omitted from the specification.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-50827",
+    "url": "https://jira.hl7.org/browse/FHIR-50827",
+    "snapshot_path": "contexts/FHIR-50827/jira/FHIR-50827.md",
+    "ref": { "jira_key": "FHIR-50827" },
+    "summary": "Current Triaged R6 issue says Encounter.diagnosis.use may be missing a discharge-diagnosis value-set change.",
+    "learned": "This is a separate non-final terminology follow-up and is not safe to decide or edit as part of FHIR-7660.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community and idempotency searches for FHIR-7660",
+    "command": "bun run zulip:search fts '\"FHIR-7660\" Encounter \"discharge diagnosis\"' --limit 10; bun run confluence:search refs jira FHIR-7660; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-7660' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "query": "FHIR-7660 Encounter discharge diagnosis",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence references and no prior combined-branch FHIR-7660 audit commit were found.",
+    "learned": "There was no duplicate publication or community conflict that changed the no-change decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

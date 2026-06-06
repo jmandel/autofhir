@@ -1,0 +1,118 @@
+FHIR-11206: Audit AllergyIntolerance status hierarchy
+
+Issue request:
+FHIR-11206 was a Published/Persuasive with Modification Patient Care change request for DSTU2 AllergyIntolerance. It asked to remove entered-in-error from under inactive in the AllergyIntolerance.status code hierarchy, place it at the same level as active and inactive, and align AllergyIntolerance with Condition; the resolution also noted that the mixed clinical/workflow status question would be handled by FHIR-11151.
+
+Initial application:
+The issue was applied in git commit e7c9c0d32a1b91ac406c98fd0a2441fec2c625fb, whose message explicitly cites #11206 and whose AllergyIntolerance spreadsheet diff removes `Parent = #2` from the entered-in-error row. The same commit also applied related FHIR-11207 narrative wording. Later commit ed170ff0754268f2a677a011f9d432d1328415f0 applied FHIR-11151 by replacing the old combined AllergyIntolerance.status with separate clinicalStatus and verificationStatus elements.
+
+Additional context:
+source/fhir.ini actively lists allergyintolerance=AllergyIntolerance, so the checked AllergyIntolerance StructureDefinition and supporting terminology references are in current build scope. The current StructureDefinition has AllergyIntolerance.clinicalStatus bound to the clinical value set with active/inactive/resolved and AllergyIntolerance.verificationStatus bound to the verification value set with unconfirmed/presumed/confirmed/refuted/entered-in-error. Current local terminology package artifacts mirror that split: inactive has only resolved as a child in allergyintolerance-clinical, while entered-in-error is a separate top-level allergyintolerance-verification code. Condition now uses the same clinicalStatus/verificationStatus pattern with entered-in-error on verificationStatus, preserving the requested alignment. A related FHIR-11207 audit is already present on the combined branch.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The original hierarchy problem is gone from current core source, the current source no longer exposes a combined AllergyIntolerance.status where entered-in-error could be a child of inactive, and the current clinical/verification split conveys the issue's requested semantics without redundant edits.
+
+Recommendation:
+Keep this audit commit as-is. No current FHIR core source work is needed for FHIR-11206; future changes to the external terminology package should be handled through the normal terminology/UTG process if Patient Care reopens the status hierarchy.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11206
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-11151: same-change-family - Published related issue split the old AllergyIntolerance.status into clinicalStatus and verificationStatus, explaining the current representation.
+FHIR-11207: same-change-family - Published related issue fixed the narrative wording that had treated entered-in-error as inactive; it is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11206: Published/Persuasive with Modification issue requested moving entered-in-error out from under inactive in AllergyIntolerance.status and aligning with Condition. Learned: this is the final seed issue request and target semantics.
+- E2 Git e7c9c0d32a1b91ac406c98fd0a2441fec2c625fb: Commit explicitly cites #11206 and removes `Parent = #2` from the AllergyIntolerance entered-in-error status row. Learned: the requested hierarchy change was applied historically.
+- E3 Jira FHIR-11151 and git ed170ff0754268f2a677a011f9d432d1328415f0: Related Published decision and implementation split AllergyIntolerance.status into clinicalStatus and verificationStatus. Learned: current source should be judged against the later split representation, not the obsolete DSTU2 combined status.
+- E4 Source source/allergyintolerance/structuredefinition-AllergyIntolerance.xml:23-175: Current resource uses `.verificationStatus = entered-in-error`, clinicalStatus short value active | inactive | resolved, and verificationStatus short value unconfirmed | presumed | confirmed | refuted | entered-in-error. Learned: entered-in-error is not modeled as inactive clinical status.
+- E5 Source source/fhir.ini:175: allergyintolerance=AllergyIntolerance is active under [resources]. Learned: the checked AllergyIntolerance source is in current build scope.
+- E6 Command local terminology package check: hl7.terminology.r5#5.3.0 has inactive -> resolved in allergyintolerance-clinical and entered-in-error as a top-level allergyintolerance-verification code; the R2 package shows the old inactive -> entered-in-error hierarchy. Learned: the current terminology surface no longer has the seed defect.
+- E7 Source source/condition/structuredefinition-Condition.xml:23-199: Condition also records entered-in-error via verificationStatus, while clinicalStatus is separate. Learned: the current source is aligned with Condition on the clinical/verification split.
+- E8 Command community searches: Jira/Zulip/Confluence searches for FHIR-11206 and AllergyIntolerance entered-in-error found the seed, supporting FHIR-11151/FHIR-11207 context, and no conflicting community decision. Learned: no discovered community evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11206",
+    "url": "https://jira.hl7.org/browse/FHIR-11206",
+    "snapshot_path": "contexts/FHIR-11206/jira/FHIR-11206.md",
+    "ref": { "jira_key": "FHIR-11206" },
+    "summary": "Published/Persuasive with Modification Patient Care issue requested moving entered-in-error out from under inactive in AllergyIntolerance.status and aligning with Condition.",
+    "learned": "This establishes the final seed request and the target semantics for current-source reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e7c9c0d32a1b91ac406c98fd0a2441fec2c625fb",
+    "ref": { "commit": "e7c9c0d32a1b91ac406c98fd0a2441fec2c625fb" },
+    "summary": "The 2016 commit explicitly mentions #11206 and removes `Parent = #2` from the AllergyIntolerance entered-in-error status row.",
+    "learned": "The requested hierarchy change was applied in the historical AllergyIntolerance source.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-11151",
+    "url": "https://jira.hl7.org/browse/FHIR-11151",
+    "snapshot_path": "contexts/FHIR-11151/jira/FHIR-11151.md",
+    "ref": { "jira_key": "FHIR-11151" },
+    "summary": "Published/Persuasive related issue directed replacing the mixed AllergyIntolerance.status with clinicalStatus and verificationStatus.",
+    "learned": "Current source should be reconciled against the later split status model rather than the obsolete combined status hierarchy.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/allergyintolerance/structuredefinition-AllergyIntolerance.xml:23-175",
+    "ref": { "path": "source/allergyintolerance/structuredefinition-AllergyIntolerance.xml", "line": 23 },
+    "summary": "Current AllergyIntolerance records entered-in-error through verificationStatus and keeps clinicalStatus to active/inactive/resolved.",
+    "learned": "The build-scope conformance source no longer treats entered-in-error as inactive clinical status.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:175",
+    "ref": { "path": "source/fhir.ini", "line": 175 },
+    "summary": "The [resources] section actively lists allergyintolerance=AllergyIntolerance.",
+    "learned": "The AllergyIntolerance source checked for this audit is part of the current build scope.",
+    "supports": ["source_scope", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Local FHIR package terminology comparison",
+    "command": "jq -r '.concept[]? | [.code, (\"children=\" + ((.concept // []) | map(.code) | join(\",\")))] | @tsv' ~/.fhir/packages/hl7.terminology.r5#5.3.0/package/CodeSystem-allergyintolerance-clinical.json ~/.fhir/packages/hl7.terminology.r5#5.3.0/package/CodeSystem-allergyintolerance-verification.json; jq -r '.codeSystem.concept[]? | [.code, (\"children=\" + ((.concept // []) | map(.code) | join(\",\")))] | @tsv' ~/.fhir/packages/hl7.fhir.r2.core#1.0.2/package/ValueSet-allergy-intolerance-status.json",
+    "summary": "Current terminology has inactive with child resolved only and entered-in-error as a verification code; the R2 package shows the old inactive child entered-in-error hierarchy.",
+    "learned": "The current terminology surface has moved away from the seed defect.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/condition/structuredefinition-Condition.xml:23-199",
+    "ref": { "path": "source/condition/structuredefinition-Condition.xml", "line": 23 },
+    "summary": "Current Condition also identifies entered-in-error through verificationStatus while keeping clinicalStatus separate.",
+    "learned": "AllergyIntolerance is aligned with Condition on the status split relevant to this issue.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community/source searches for FHIR-11206 and AllergyIntolerance entered-in-error",
+    "command": "bun run jira:search snapshot FHIR-11206; bun run jira:search snapshot FHIR-11151; bun run jira:search fts '\"entered-in-error\" AllergyIntolerance inactive' --limit 20; bun run zulip:search fts '\"FHIR-11206\" AllergyIntolerance' --limit 10; bun run confluence:search refs jira FHIR-11206; rg -n 'entered-in-error.*inactive|inactive.*entered-in-error' source/allergyintolerance",
+    "query": "FHIR-11206 AllergyIntolerance entered-in-error inactive",
+    "summary": "Searches found the seed and related status-family issues but no conflicting community decision and no remaining build-scope AllergyIntolerance text saying entered-in-error is inactive.",
+    "learned": "No discovered community or source evidence requires a source edit.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

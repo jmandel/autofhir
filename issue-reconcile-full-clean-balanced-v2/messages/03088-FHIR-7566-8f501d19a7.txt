@@ -1,0 +1,119 @@
+FHIR-7566: Audit AuditEvent security label rename
+
+Issue request:
+FHIR-7566 was a Published/Persuasive with Modification DSTU1 Security change request asking to replace AuditEvent.object.sensitivity with the correct confidentiality/security-label terminology. The final resolution was to rename sensitivity to security-tags and use the same explanation as Resource meta security tags, allowing the element to carry any security tag.
+
+Initial application:
+The issue appears to have been applied in git commit 8e1a48066d70501f76de61f4511ec19b48da2df2, a multi-issue Security update whose AuditEvent spreadsheet source changed AuditEvent.object.sensitivity to AuditEvent.object.securityLabel, switched the binding from AuditEventObjectSensitivity to SecurityLabels, and described the element as security labels applied to the object. No current source still defines AuditEvent.object.sensitivity.
+
+Additional context:
+AuditEvent is active in the current build through source/fhir.ini. Later AuditEvent refactoring renamed the old object backbone to entity, and source/fhir.ini maps AuditEvent.object to AuditEvent.entity for version conversion. Current source therefore carries the successor element as AuditEvent.entity.securityLabel. Later Published issue FHIR-32471 changed AuditEvent and other non-normative securityLabel bindings to example security-label value sets, so the current example binding should not be reverted merely to match the older DSTU1 wording literally. FHIR-7709 is a duplicate of the same 2015 request. Zulip and Confluence searches found no directly relevant conflicting community record.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current build-scope source already uses AuditEvent.entity.securityLabel, binds it to a security label example value set, retains DICOM/RIM mappings including confidentialityCode/ParticipantObjectSensitivity, and has no stale AuditEvent.object.sensitivity or AuditEvent.object.confidentiality element to correct.
+
+Recommendation:
+Keep this no-change audit commit. Any future work on AuditEvent.entity.securityLabel wording or binding should be handled under the later security-label binding decisions such as FHIR-32471, not by reopening this DSTU1 rename request.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7566
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7709: duplicate - same 2015 request to rename AuditEvent.object.sensitivity, recorded as Duplicate.
+FHIR-32471: later-change - Published R5 decision changed AuditEvent.entity.securityLabel and similar elements to example security-label bindings, explaining why current source should not simply restore the full Resource.meta.security binding.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7566: Published/Persuasive with Modification request to rename AuditEvent.object.sensitivity to security-tags using Resource meta security-tag semantics. Learned: establishes the final DSTU1 intent being audited.
+- E2 Git 8e1a48066d70501f76de61f4511ec19b48da2df2: multi-issue Security update changed AuditEvent.object.sensitivity to AuditEvent.object.securityLabel and bound it to SecurityLabels. Learned: shows the original application path for this Jira.
+- E3 Source source/fhir.ini:224 and source/fhir.ini:2739: AuditEvent is active in the current resource list and old AuditEvent.object maps to AuditEvent.entity. Learned: confirms current build scope and the successor path to inspect.
+- E4 Source source/auditevent/structuredefinition-AuditEvent.xml:1128: current source defines AuditEvent.entity.securityLabel, 0..*, CodeableConcept, with SecurityLabelExamples binding and security-label description. Learned: current source no longer exposes the incorrect sensitivity element.
+- E5 Source source/datatypes/meta.xml:664 and source/terminologies/bindings.xml:1137: Resource meta security uses SecurityLabels, while AuditEvent comments say the value is copied from entity meta security tags. Learned: current wording preserves the security-tag relationship without needing a duplicate definition.
+- E6 Jira FHIR-32471: Published/Persuasive with Modification later decision to use example value sets for securityLabel elements. Learned: explains and supports the current AuditEvent example binding as a later authoritative refinement.
+- E7 Jira FHIR-7709: Duplicate issue with the same AuditEvent.object.sensitivity request. Learned: related duplicate does not require a separate source/audit decision here.
+- E8 Command community/search verification: Zulip SQL for FHIR-7566 and AuditEvent.object sensitivity/securityLabel plus Confluence refs/FTS found no relevant records; source rg found no current AuditEvent.object.sensitivity definition. Learned: no discovered community or source evidence conflicts with the no-change decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7566",
+    "url": "https://jira.hl7.org/browse/FHIR-7566",
+    "snapshot_path": "contexts/FHIR-7566/jira/FHIR-7566.md",
+    "ref": { "jira_key": "FHIR-7566" },
+    "summary": "Published/Persuasive with Modification DSTU1 request to replace AuditEvent.object.sensitivity with security-tag terminology and Resource meta security-tag semantics.",
+    "learned": "This establishes the final issue intent audited by the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "8e1a48066d70501f76de61f4511ec19b48da2df2",
+    "ref": { "commit": "8e1a48066d70501f76de61f4511ec19b48da2df2" },
+    "summary": "Historical multi-issue Security commit changed AuditEvent.object.sensitivity to AuditEvent.object.securityLabel and switched the binding to SecurityLabels.",
+    "learned": "The seed issue was applied before this reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:224; source/fhir.ini:2739",
+    "ref": { "path": "source/fhir.ini", "lines": "224,2739" },
+    "summary": "AuditEvent is an active resource and the old AuditEvent.object path maps to AuditEvent.entity.",
+    "learned": "The current build-scope successor of AuditEvent.object.securityLabel is AuditEvent.entity.securityLabel.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:1128",
+    "ref": { "path": "source/auditevent/structuredefinition-AuditEvent.xml", "line": 1128 },
+    "summary": "Current source defines AuditEvent.entity.securityLabel as the security labels for the identified entity with an example security-label value set.",
+    "learned": "The stale sensitivity/confidentiality element requested by the Jira is absent from current source.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/meta.xml:664; source/terminologies/bindings.xml:1137",
+    "ref": { "path": "source/datatypes/meta.xml", "line": 664 },
+    "summary": "Resource Meta.security is the current meta security-tag definition/binding, and AuditEvent documents its security label as copied from entity meta security tags.",
+    "learned": "Current wording maintains the Resource meta security-tag relationship required by the original resolution.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-32471",
+    "url": "https://jira.hl7.org/browse/FHIR-32471",
+    "ref": { "jira_key": "FHIR-32471" },
+    "summary": "Published/Persuasive with Modification R5 decision to use example security-label value sets for affected securityLabel elements.",
+    "learned": "This later decision explains the current AuditEvent example binding and prevents an over-literal DSTU1 restoration.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-7709",
+    "url": "https://jira.hl7.org/browse/FHIR-7709",
+    "ref": { "jira_key": "FHIR-7709" },
+    "summary": "Duplicate issue with the same AuditEvent.object.sensitivity rename request.",
+    "learned": "The duplicate supports the same conclusion but is not an independent issue decision.",
+    "supports": ["related_jiras"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community/source searches for FHIR-7566 and AuditEvent sensitivity/securityLabel",
+    "command": "bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-7566%' OR content LIKE '%AuditEvent.object.sensitivity%' OR content LIKE '%AuditEvent.object.securityLabel%'\"; bun run confluence:search refs jira FHIR-7566; bun run confluence:search fts 'AuditEvent object sensitivity confidentiality securityLabel'; rg 'AuditEvent\\.object\\.sensitivity|AuditEvent\\.entity\\.securityLabel' source",
+    "query": "FHIR-7566 AuditEvent.object.sensitivity AuditEvent.object.securityLabel AuditEvent entity.securityLabel",
+    "result_count": 1,
+    "summary": "No relevant Zulip or Confluence records were found; source search found the current AuditEvent.entity.securityLabel and no active AuditEvent.object.sensitivity definition.",
+    "learned": "No discovered community or source evidence conflicts with a no-change audit.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

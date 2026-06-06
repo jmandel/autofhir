@@ -1,0 +1,92 @@
+FHIR-3703: Audit FamilyHistory patient rename
+
+Issue request:
+FHIR-3703 was a Published/Persuasive PC change request from DSTU1 asking to rename FamilyHistory.subject to FamilyHistory.patient because Patient is the only valid target and the naming guideline reserves subject for elements with multiple possible target resource types.
+
+Initial application:
+The rename appears to have been applied in git commit ae105ca24408da7f82d376f16c13eae4e4705ad6, which changed FamilyHistory examples from <subject> to <patient>, changed the spreadsheet row from FamilyHistory.subject to FamilyHistory.patient, changed the search expression to FamilyHistory.patient, and recorded [#3703] on the element. Later source refactors carried that committee note forward into the current StructureDefinition.
+
+Additional context:
+The current build actively includes familymemberhistory as the FamilyMemberHistory resource, and fhir.ini classifies it in the patient compartment. The current StructureDefinition has FamilyMemberHistory.patient as a required Reference(Patient), the current search parameter code is patient with expression FamilyMemberHistory.patient, and exact stale-path searches found no FamilyHistory.subject or FamilyMemberHistory.subject definitions in the active source. Zulip and Confluence searches found no relevant discussion or later conflicting decision.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already implements the requested element rename and keeps the migrated FamilyMemberHistory resource consistent with the original Jira decision.
+
+Recommendation:
+Keep this empty audit commit as-is. No follow-up source work is needed for FHIR-3703 unless a future work group decision changes the patient-vs-subject naming policy.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3703
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3703: Published/Persuasive request approved 8-0-0 on 2014-11-13 to rename FamilyHistory.subject to FamilyHistory.patient. Learned: this establishes the final WG intent for the element name.
+- E2 Source source/fhir.ini:191 and source/fhir.ini:699: familymemberhistory is an active resource and is classified as a patient-compartment resource. Learned: the checked source is in current build scope.
+- E3 Source source/familymemberhistory/structuredefinition-FamilyMemberHistory.xml:201-215: the active element is FamilyMemberHistory.patient, required 1..1, Reference(Patient), with committee note [#3703]. Learned: the requested rename is present in the authoritative current StructureDefinition.
+- E4 Source source/familymemberhistory/bundle-FamilyMemberHistory-search-params.xml:65-76: the search parameter code is patient and expression is FamilyMemberHistory.patient. Learned: the parallel search surface also follows the renamed element.
+- E5 Git ae105ca24408da7f82d376f16c13eae4e4705ad6: changed .subject to .patient in spreadsheet and examples, including the FamilyHistory.patient row and [#3703] note. Learned: the historical application matches the Jira request.
+- E6 Command negative source/community searches: exact stale-path source search plus Zulip/Confluence key and concept searches found no remaining FamilyHistory.subject/FamiliyMemberHistory.subject definition and no conflicting community evidence. Learned: there is no discovered source or community reason to edit the current spec.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3703",
+    "url": "https://jira.hl7.org/browse/FHIR-3703",
+    "snapshot_path": "contexts/FHIR-3703/jira/FHIR-3703.md",
+    "ref": { "jira_key": "FHIR-3703" },
+    "summary": "Published/Persuasive PC issue approving the rename from FamilyHistory.subject to FamilyHistory.patient.",
+    "learned": "This is final WG intent that the element should be named patient because only Patient is allowed.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:191, source/fhir.ini:699",
+    "summary": "fhir.ini actively includes familymemberhistory=FamilyMemberHistory and classifies familymemberhistory=patient.",
+    "learned": "The current FamilyMemberHistory source is in build scope and belongs to the patient compartment.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/familymemberhistory/structuredefinition-FamilyMemberHistory.xml:201-215",
+    "summary": "The current StructureDefinition defines FamilyMemberHistory.patient as a required Reference(Patient) and carries committee note [#3703].",
+    "learned": "The authoritative current element definition already implements the requested rename.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/familymemberhistory/bundle-FamilyMemberHistory-search-params.xml:65-76",
+    "summary": "The FamilyMemberHistory search parameter is code patient with expression FamilyMemberHistory.patient.",
+    "learned": "The parallel search parameter surface is consistent with the renamed element.",
+    "supports": ["current_source", "consistency"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "ae105ca24408da7f82d376f16c13eae4e4705ad6",
+    "ref": { "commit": "ae105ca24408da7f82d376f16c13eae4e4705ad6" },
+    "summary": "2014-11-17 commit changed FamilyHistory examples from subject to patient, changed the spreadsheet row to FamilyHistory.patient, and recorded [#3703].",
+    "learned": "The historical source application directly matches the Jira rename request.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative source, Zulip, and Confluence searches for FHIR-3703 and FamilyHistory subject patient",
+    "command": "rg -n 'FamilyHistory\\.subject|FamilyMemberHistory\\.subject|<subject>|<code value=\"subject\"|<path value=\"FamilyMemberHistory\\.subject\"' source/familymemberhistory source/fhir.ini; bun run zulip:search fts '\"FHIR-3703\"' --limit 10; bun run zulip:search fts 'FamilyHistory subject patient' --limit 10; bun run confluence:search refs jira FHIR-3703; bun run confluence:search fts 'FamilyHistory subject patient' --limit 10",
+    "query": "FHIR-3703; FamilyHistory subject patient; stale FamilyHistory.subject paths",
+    "result_count": 0,
+    "summary": "No stale subject element/path definitions or relevant conflicting Zulip/Confluence records were found.",
+    "learned": "No discovered evidence changes the conclusion that the current source is already correct.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

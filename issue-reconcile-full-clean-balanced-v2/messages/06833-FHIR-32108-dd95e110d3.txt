@@ -1,0 +1,108 @@
+FHIR-32108: Audit fhir-single schema corrections
+
+Issue request:
+FHIR-32108 was a Published/Persuasive R4B technical correction reporting several generated fhir-single.xsd errors: missing ResourceType and ResourceType-List schema types, an invalid ClinicalUseIssue OtherTherapy therapy[x] XML name, and Element extending Element as a circular base reference.
+
+Initial application:
+Source-side corrections were already applied before this reconciliation. Commit 4690a19a2e, explicitly tagged with FHIR-32108, corrected the event-or-request resource type ValueSet name so schema generation could produce a valid XML type name. Earlier commit cbac492e57 made the same ValueSet-name correction and changed ClinicalUseIssue.contraindication.otherTherapy.therapy[x] to therapy because the element did not have multiple types. The resource was later renamed to ClinicalUseDefinition in 1c32449f00, carrying the corrected otherTherapy structure forward.
+
+Additional context:
+The Jira comments say the source errors were addressed in R4B and already fixed in R5, while the remaining Element-is-Element circular-reference item was a tooling issue. FHIR-I WGM minutes for May 2021 record FHIR-32108 as a technical correction, auto-approved. The linked Kindling PR HL7/kindling#64 changed the schema generator so R4/R4B Element is emitted as a root element instead of extending itself, and the linked HAPI PR hapifhir/org.hl7.fhir.core#759 updated downstream generated/supporting R4B/R5 code. Current source/fhir.ini has ClinicalUseDefinition active and ClinicalUseIssue retired/commented, and current source no longer contains the invalid therapy[x] element.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The authoritative current source already has EventOrRequestResourceTypes as an XML-name-safe ValueSet name, has ClinicalUseDefinition.otherTherapy as a BackboneElement/contentReference without therapy[x], and the live generated fhir-single.xsd now contains ResourceType, has no ResourceType-List or ClinicalUseIssue/therapy[x] residue, and emits Element extending Base rather than Element.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR core source follow-up is needed for the current build; any future regression in Element schema inheritance belongs in the schema-generation/tooling repositories rather than as a direct edit to checked-in FHIR source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32108
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-31847: later-change - renamed ClinicalUseIssue to ClinicalUseDefinition after the therapy[x] source correction, preserving the corrected OtherTherapy structure in the active resource.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32108: Published/Persuasive technical correction for fhir-single.xsd schema errors, with comments saying source errors were addressed in R4B commit 4690a19a2e and already fixed in R5 while the Element circular reference was tooling-side. Learned: the issue is final and distinguishes source fixes from tooling fixes.
+- E2 Source source/terminologies/valueset-event-or-request-resource-types.xml:17-18 and source/clinicalusedefinition/structuredefinition-ClinicalUseDefinition.xml:559-789: current source uses EventOrRequestResourceTypes plus title text, and active ClinicalUseDefinition.otherTherapy has valid XML element names. Learned: the current build inputs no longer contain the reported source-side schema defects.
+- E3 Git 4690a19a2e and cbac492e57: history corrected the invalid ValueSet name and the ClinicalUseIssue therapy[x] element name. Learned: the source-side parts were already applied before this reconciliation.
+- E4 GitHub HL7/kindling#64 and hapifhir/org.hl7.fhir.core#759: linked PRs were merged for schema-generation and downstream generated-code cleanup. Learned: the outstanding Element circular-reference concern was addressed in tooling/outside this source checkout.
+- E5 Confluence FHIR Infrastructure Minutes WGM 202105 page 113673765: FHIR-I minutes list FHIR-32108 as a technical correction, auto-approved. Learned: community/work-group evidence supports applying the correction without requiring new source discussion.
+- E6 Verification command: curl https://build.fhir.org/fhir-single.xsd plus targeted checks for ResourceType, ResourceType-List, therapy[x], ClinicalUseIssue, ClinicalUseDefinition.OtherTherapy, and Element inheritance. Learned: the current generated schema surface has ResourceType, lacks the invalid old names, and has Element extending Base.
+- E7 Community search command: exact Zulip SQL search for FHIR-32108 returned no results, and focused Jira search on fhir-single.xsd terms returned only FHIR-32108. Learned: no discovered later community or Jira evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32108",
+    "url": "https://jira.hl7.org/browse/FHIR-32108",
+    "snapshot_path": "contexts/FHIR-32108/jira/FHIR-32108.md",
+    "ref": { "jira_key": "FHIR-32108" },
+    "summary": "Published/Persuasive technical correction reporting fhir-single.xsd ResourceType, ResourceType-List, ClinicalUseIssue therapy[x], and Element circular-reference schema errors.",
+    "learned": "The final issue and comments establish that source errors were already addressed for R4B/R5 and the remaining circular-reference item was tooling-side.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/terminologies/valueset-event-or-request-resource-types.xml:17-18; source/clinicalusedefinition/structuredefinition-ClinicalUseDefinition.xml:559-789; source/fhir.ini:152,1034-1035",
+    "summary": "Current build-scope source uses an XML-name-safe EventOrRequestResourceTypes name, keeps ClinicalUseDefinition active, and has otherTherapy elements without therapy[x].",
+    "learned": "The current authoritative source inputs no longer contain the source-side defects described by the issue.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "4690a19a2e; cbac492e57; 1c32449f00",
+    "ref": { "commit_1": "4690a19a2e", "commit_2": "cbac492e57", "commit_3": "1c32449f00" },
+    "summary": "Git history fixed the invalid ValueSet name, removed the ClinicalUseIssue therapy[x] name, and later renamed ClinicalUseIssue to ClinicalUseDefinition.",
+    "learned": "The source-side issue was applied before this reconciliation and preserved through the resource rename.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "web",
+    "locator": "HL7/kindling#64; hapifhir/org.hl7.fhir.core#759",
+    "url": "https://github.com/HL7/kindling/pull/64",
+    "ref": { "kindling_pr": 64, "hapi_pr": 759 },
+    "summary": "The linked Kindling and HAPI PRs were merged for schema-generation and downstream generated-code cleanup.",
+    "learned": "The Element circular-reference concern belongs to tooling/downstream generated artifacts rather than requiring a current FHIR source edit.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes WGM 202105 page 113673765",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/113673765/FHIR+Infrastructure+Minutes+WGM+202105",
+    "snapshot_path": "/tmp/FHIR-32108-confluence-113673765.md",
+    "ref": { "confluence_page_id": 113673765 },
+    "summary": "FHIR-I minutes list FHIR-32108 as a technical correction, auto-approved.",
+    "learned": "The work-group record supports the Jira final disposition and does not broaden the required current source scope.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current generated fhir-single.xsd checks",
+    "command": "curl -fsSL https://build.fhir.org/fhir-single.xsd; check ResourceType, ResourceType-List, therapy[x], ClinicalUseIssue, ClinicalUseDefinition.OtherTherapy, and Element inheritance",
+    "summary": "The live generated schema contains ResourceType and ClinicalUseDefinition.OtherTherapy, lacks ResourceType-List, ClinicalUseIssue, and therapy[x], and has Element extending Base.",
+    "learned": "The current generated output matches the corrected source/tooling state.",
+    "supports": ["verification", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Focused Jira/Zulip searches for FHIR-32108 and fhir-single.xsd schema terms",
+    "command": "bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-32108%'\"; bun run jira:search fts '\"fhir-single.xsd\" ResourceType ClinicalUseIssue therapy Element circular' --limit 20",
+    "query": "FHIR-32108; fhir-single.xsd ResourceType ClinicalUseIssue therapy Element circular",
+    "result_count": 1,
+    "summary": "Exact Zulip search found no FHIR-32108 mentions; focused Jira search returned only FHIR-32108.",
+    "learned": "No discovered later community or Jira evidence changes the current no-change decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

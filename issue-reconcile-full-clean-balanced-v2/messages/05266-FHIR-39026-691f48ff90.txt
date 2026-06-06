@@ -1,0 +1,115 @@
+FHIR-39026: Audit SubscriptionTopic filter operators
+
+Issue request:
+FHIR-39026 is a Published/Persuasive with Modification R5 FHIR-I change request asking whether `=` and `eq` in `SubscriptionTopic.canFilterBy.modifier` mean different things and whether relying on a default `=` comparison should instead make the element mandatory. The accepted decision was that the distinction came from FHIR search semantics (`=` default matching versus the `eq` prefix/comparator) and that SubscriptionTopic canFilterBy should be changed to match SearchParameter's separate modifier and comparator definitions.
+
+Initial application:
+The issue-tagged source commit 07ab8970da2eb29b515d039788e861347d0cdfb8 separated `SubscriptionTopic.canFilterBy.comparator` from `SubscriptionTopic.canFilterBy.modifier`, bound the comparator to `ValueSet/search-comparator`, replaced the old Subscription-specific search modifier value set with the SearchParameter modifier value set, and updated SubscriptionTopic examples and notes. No prior AutoFHIR reconcile commit for FHIR-39026 was present on the combined branch.
+
+Additional context:
+The active current source has since moved the R5 `SubscriptionTopic.canFilterBy` elements under `SubscriptionTopic.trigger.canFilterBy`; `source/fhir.ini` records the old R5 paths as aliases to the new trigger paths. Later FHIR-50614 intentionally broadened the modifier binding to `ValueSet/search-modifier-all-codes` so resource type codes can be used with `:type`, but it preserved the FHIR-39026 split between comparator and modifier. FHIR-I minutes confirm the 9-0-0 vote for this disposition, and direct Zulip searches found no conflicting discussion.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change because the current authoritative SubscriptionTopic StructureDefinition already has `SubscriptionTopic.trigger.canFilterBy.comparator` bound to search comparator codes and `SubscriptionTopic.trigger.canFilterBy.modifier` bound to search modifier/resource type codes, matching the SearchParameter pattern and preserving the WG's intended distinction between `=` default matching and `eq` comparators.
+
+Recommendation:
+Keep this commit as a no-change audit. Do not make `canFilterBy.modifier` mandatory for this issue, and do not revert the later FHIR-50614 all-codes broadening; both would go beyond the FHIR-39026 disposition and current source context.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-39026
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-46492: later-change - moved SubscriptionTopic canFilterBy under trigger while fhir.ini retained aliases from the R5 element paths named by FHIR-39026.
+FHIR-50614: later-change - broadened the modifier value set to include resource type codes for :type without changing the comparator/modifier split; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-39026: Published/Persuasive with Modification R5 issue asking about `=` versus `eq` and defaulting for SubscriptionTopic.canFilterBy.modifier. Learned: the final WG request was clarification through alignment with SearchParameter modifier/comparator definitions, not a required cardinality change.
+- E2 Confluence FHIR-I WGM 2023-01 page 144983126: minutes record the exact rationale and 9-0-0 vote for FHIR-39026. Learned: meeting evidence confirms the accepted resolution text and scope.
+- E3 Git 07ab8970da2e: issue-tagged implementation separated comparator and modifier, removed the old Subscription-specific modifier value set, and updated examples/notes. Learned: the original application implemented the requested source split.
+- E4 Source source/fhir.ini:236 and source/fhir.ini:2572-2578: SubscriptionTopic is an active resource, and the old `SubscriptionTopic.canFilterBy.*` paths map to the current trigger paths. Learned: current trigger-path checks are build-scope evidence for the R5 issue path.
+- E5 Source source/subscriptiontopic/structuredefinition-SubscriptionTopic.xml:860-895 and source/searchparameter/structuredefinition-SearchParameter.xml:643-678: current SubscriptionTopic has a comparator element bound to search-comparator and a separate modifier element following the SearchParameter modifier pattern. Learned: the current source already conveys the intended distinction.
+- E6 Source source/subscriptiontopic/subscriptiontopic-notes.xml:683-704 and examples: the narrative says filters may specify comparator and modifier values matching SearchParameters, and examples use comparators separately from modifiers. Learned: human-facing guidance and examples are consistent with the StructureDefinition.
+- E7 Git 25f6cefe21d8 and ed9b5fbd0781: later changes moved canFilterBy under trigger and broadened modifier to search-modifier-all-codes. Learned: later source history refines the element path and value-set scope but does not reopen the `=` versus `eq` split.
+- E8 Command searches: Jira search for SubscriptionTopic canFilterBy comparator/modifier found FHIR-39026 and unrelated FHIR-30501, direct Zulip searches for FHIR-39026 and SubscriptionTopic.canFilterBy.modifier found no hits, and Confluence refs found the FHIR-I minutes. Learned: no discovered later community record conflicts with the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-39026",
+    "url": "https://jira.hl7.org/browse/FHIR-39026",
+    "snapshot_path": "contexts/FHIR-39026/jira/FHIR-39026.md",
+    "ref": { "jira_key": "FHIR-39026" },
+    "summary": "Published/Persuasive with Modification issue asking whether SubscriptionTopic.canFilterBy.modifier should distinguish `=` from `eq` and avoid assumed defaulting.",
+    "learned": "The final disposition establishes that the needed clarification is to align canFilterBy with SearchParameter's separate modifier and comparator definitions.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes WGM 202301 page 144983126",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/144983126/FHIR+Infrastructure+Minutes+WGM+202301+-+Henderson",
+    "snapshot_path": "contexts/FHIR-39026/confluence/144983126.md",
+    "ref": { "confluence_page_id": 144983126 },
+    "summary": "Minutes record the FHIR-39026 rationale that search `=` differs from equality and the 9-0-0 vote to match SubscriptionTopic canFilterBy to SearchParameter modifier/comparator definitions.",
+    "learned": "This confirms the Jira disposition and scope for the no-change audit.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "07ab8970da2eb29b515d039788e861347d0cdfb8",
+    "ref": { "commit": "07ab8970da2eb29b515d039788e861347d0cdfb8" },
+    "summary": "FHIR-39026 implementation commit separated SubscriptionTopic canFilterBy comparator and modifier, removed the old Subscription-specific modifier value set, and updated examples and notes.",
+    "learned": "The issue was substantively applied in source before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:236; source/fhir.ini:2572-2578",
+    "summary": "fhir.ini lists SubscriptionTopic as an active resource and maps old SubscriptionTopic.canFilterBy paths to current SubscriptionTopic.trigger.canFilterBy paths.",
+    "learned": "The current trigger-path source is the build-scope successor of the R5 path named in FHIR-39026.",
+    "supports": ["source_change_scope", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/subscriptiontopic/structuredefinition-SubscriptionTopic.xml:860-895; source/searchparameter/structuredefinition-SearchParameter.xml:643-678",
+    "summary": "SubscriptionTopic.trigger.canFilterBy has a comparator element bound to ValueSet/search-comparator and a separate modifier element following SearchParameter.modifier semantics.",
+    "learned": "The current authoritative source already expresses the requested SearchParameter-style split between comparators and modifiers.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/subscriptiontopic/subscriptiontopic-notes.xml:683-704; source/subscriptiontopic/subscriptiontopic-example.xml:35-51",
+    "summary": "SubscriptionTopic notes link comparator and modifier behavior to SearchParameters, and examples use comparator values separately from modifier values.",
+    "learned": "Narrative and examples are aligned with the StructureDefinition rather than preserving the old mixed modifier list.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "25f6cefe21d8fa411503d934b072a4f13c90c8a3; ed9b5fbd07810ee2691ef8c161d00b8c773f1c7d",
+    "ref": { "commit_1": "25f6cefe21d8fa411503d934b072a4f13c90c8a3", "commit_2": "ed9b5fbd07810ee2691ef8c161d00b8c773f1c7d" },
+    "summary": "Later commits moved SubscriptionTopic canFilterBy under trigger and broadened the modifier binding to search-modifier-all-codes for resource type modifiers.",
+    "learned": "Later history explains the current path and binding differences without undermining the FHIR-39026 comparator/modifier separation.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Jira, Zulip, and Confluence checks for FHIR-39026",
+    "command": "bun run jira:search fts 'SubscriptionTopic canFilterBy comparator modifier SearchParameter' --limit 15; bun run zulip:search fts '\"FHIR-39026\"' --limit 10; bun run zulip:search fts '\"SubscriptionTopic.canFilterBy.modifier\"' --limit 10; bun run confluence:search refs jira FHIR-39026",
+    "query": "SubscriptionTopic canFilterBy comparator modifier SearchParameter; FHIR-39026; SubscriptionTopic.canFilterBy.modifier",
+    "summary": "Jira search found FHIR-39026 and no tighter source-edit companion; Zulip had no direct FHIR-39026 or path hits; Confluence refs found the FHIR-I minutes pages.",
+    "learned": "No discovered community or Jira evidence conflicts with treating the current source as already correct.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

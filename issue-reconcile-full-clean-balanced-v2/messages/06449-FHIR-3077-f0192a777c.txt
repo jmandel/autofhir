@@ -1,0 +1,130 @@
+FHIR-3077: Audit CarePlan planned activity references
+
+Issue request:
+FHIR-3077 was Published with a Persuasive with Modification resolution for DSTU1. It asked that CarePlan.activity.detail describe planned activities/orders, not event resources, so Encounter and Procedure should be removed from that planned-activity reference set and order/request resources such as referral/procedure request, diagnostic order, medication prescription, nutrition order, and supply should be used instead.
+
+Initial application:
+No git commit in the current repository history directly mentions FHIR-3077, which is consistent with the issue being applied for the early DSTU1 era. Current source no longer has an active CarePlan.activity.detail element: source/fhir.ini maps the old name to CarePlan.activity.plannedActivityReference, and the active CarePlan resource source constrains plannedActivityReference to request/planning resources rather than Encounter or Procedure.
+
+Additional context:
+Later CarePlan decisions refined the same modeling boundary. FHIR-26064 split performed events from planned/requested activities, explicitly allowing Procedure and Encounter only as event references in CarePlan.activity.performedActivity while renaming activity.reference/detail to plannedActivityReference/plannedActivityDetail. FHIR-39101 then removed the inline plannedActivityDetail path and expanded plannedActivityReference to additional request resources. FHIR-34477 temporarily added SupplyRequest to plannedActivityReference, but a later core-source commit removed OO resources, including SupplyRequest, from the current core build.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scoped CarePlan definition already implements the FHIR-3077 distinction: plannedActivityReference lists request/planning targets and omits Encounter and Procedure, while performedActivity is the element whose narrative permits event resources such as Procedure and Encounter. The remaining old plannedActivityDetail definitions and related example/search-parameter fragments are commented out and not active source semantics.
+
+Recommendation:
+Keep this no-change audit commit. Do not re-add Encounter or Procedure to plannedActivityReference. If SupplyRequest support is reconsidered, handle that through the later SupplyRequest/core-incubator issue family rather than FHIR-3077.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3077
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-26064: later-change - split CarePlan planned activity references from performed event activity, confirming where Encounter and Procedure belong.
+FHIR-39101: later-change - removed the active inline plannedActivityDetail path and relied on plannedActivityReference for requested activities.
+FHIR-34477: later-change - added SupplyRequest support for plannedActivityReference before SupplyRequest was later removed from the current core build.
+FHIR-6349: supporting-decision - rejected allowing CarePlan activity references to any resource, reiterating that Encounter and Procedure are event resources handled elsewhere.
+FHIR-19511: background - added the separate CarePlan.encounter context element, which does not change the planned activity target set.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3077: Published/Persuasive with Modification request to remove Encounter and Procedure from CarePlan.activity.detail and use order/request resources for planned activities. Learned: this establishes the seed decision and target modeling boundary.
+- E2 Source source/fhir.ini:178,1601: CarePlan is an active resource and the old CarePlan.activity.detail name maps to CarePlan.activity.plannedActivityReference. Learned: the relevant current source is build-scoped and the old element name is historical.
+- E3 Source source/careplan/structuredefinition-CarePlan.xml:630-644,685-708,719-1187: performedActivity permits event resources, plannedActivityReference lists request/planning targets and omits Encounter/Procedure, and plannedActivityDetail is commented out. Learned: current source already reflects the requested distinction.
+- E4 Source source/careplan/valueset-care-plan-activity-kind.xml:27-55: the legacy inline activity-kind value set lists request-style resource types and does not include Encounter or Procedure. Learned: even the residual activity-kind terminology does not contradict FHIR-3077.
+- E5 Jira/Git FHIR-26064 and 4f406d0e4653ab33d32498195371ff7d6a298f8c: later Published issue and implementation commit renamed CarePlan activity elements and separated performed event resources from planned activity references. Learned: later WG decisions preserved the same event-vs-request boundary.
+- E6 Jira/Git FHIR-39101 and 0222d171b0: later Published issue and implementation commit removed/commented CarePlan.activity.plannedActivityDetail and kept requested activities on plannedActivityReference. Learned: the obsolete inline detail path should not drive a new source edit.
+- E7 Jira/Git FHIR-34477 and 3b38b80cf2: SupplyRequest was added for plannedActivityReference in R5, then removed from current core source when OO resources moved to an incubator. Learned: absence of SupplyRequest in current plannedActivityReference is a later build-scope decision, not a FHIR-3077 defect.
+- E8 Community search: corrected Zulip and Confluence searches for "FHIR-3077" plus CarePlan/Encounter/Procedure and for plannedActivityReference/SupplyRequest found no relevant hits. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+- E9 Verification command/query: rg checks found no active plannedActivityReference examples pointing to Procedure or Encounter and no prior combined-branch commit with Issue-Reconcile-Key: FHIR-3077. Learned: the audit is idempotent and no source-changing fix is required.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3077",
+    "url": "https://jira.hl7.org/browse/FHIR-3077",
+    "snapshot_path": "autofhir/runs/issue-reconcile-full-clean-balanced-v2/contexts/FHIR-3077/jira/FHIR-3077.md",
+    "ref": { "jira_key": "FHIR-3077" },
+    "summary": "Published/Persuasive with Modification issue asking to remove Encounter and Procedure from CarePlan.activity.detail and use order/request resources for planned activities.",
+    "learned": "This establishes the requested distinction between planned/request resources and actual event resources for the seed decision.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:178 and source/fhir.ini:1601",
+    "ref": { "path": "source/fhir.ini", "lines": "178,1601" },
+    "summary": "CarePlan is listed as an active resource and old CarePlan.activity.detail is mapped to CarePlan.activity.plannedActivityReference.",
+    "learned": "The current build-scoped artifact to evaluate is CarePlan.activity.plannedActivityReference, not an active activity.detail element.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/careplan/structuredefinition-CarePlan.xml:630-644,685-708,719-1187",
+    "ref": { "path": "source/careplan/structuredefinition-CarePlan.xml", "lines": "630-644,685-708,719-1187" },
+    "summary": "performedActivity is documented for event resources such as Encounter and Procedure; plannedActivityReference lists request/planning target profiles and omits Encounter and Procedure; plannedActivityDetail is commented out.",
+    "learned": "The current source already implements FHIR-3077's event-vs-request distinction.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/careplan/valueset-care-plan-activity-kind.xml:27-55",
+    "ref": { "path": "source/careplan/valueset-care-plan-activity-kind.xml", "lines": "27-55" },
+    "summary": "The residual activity-kind value set lists request-style resource types and excludes Encounter and Procedure.",
+    "learned": "Nearby terminology does not leave a contradictory planned-activity allowance for Encounter or Procedure.",
+    "supports": ["source_state", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "4f406d0e4653ab33d32498195371ff7d6a298f8c",
+    "ref": { "commit": "4f406d0e4653ab33d32498195371ff7d6a298f8c", "jira_key": "FHIR-26064" },
+    "summary": "J#26064 implementation renamed CarePlan.activity.outcome/reference/detail to performedActivity/plannedActivityReference/plannedActivityDetail and placed Encounter/Procedure examples under performedActivity.",
+    "learned": "Later source history confirms Encounter and Procedure belong to performed event activity, not planned activity references.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "0222d171b0",
+    "ref": { "commit": "0222d171b0", "jira_key": "FHIR-39101" },
+    "summary": "J#39101 implementation commented out CarePlan.activity.plannedActivityDetail and updated text to use plannedActivityReference for requested activity.",
+    "learned": "The obsolete inline detail path should not prompt a FHIR-3077 source edit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "3b38b80cf2",
+    "ref": { "commit": "3b38b80cf2", "jira_key": "FHIR-34477" },
+    "summary": "After FHIR-34477 added SupplyRequest, commit 3b38b80cf2 removed SupplyRequest from CarePlan and fhir.ini when OO resources moved to an incubator.",
+    "learned": "Missing SupplyRequest in current core is a later build-scope change, not an unapplied FHIR-3077 requirement.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-3077 CarePlan Encounter Procedure",
+    "command": "bun run zulip:search fts '\"FHIR-3077\" CarePlan detail Encounter Procedure' --limit 10; bun run confluence:search refs jira FHIR-3077; bun run confluence:search fts '\"FHIR-3077\" CarePlan detail Encounter Procedure' --limit 10; bun run zulip:search fts 'CarePlan plannedActivityReference SupplyRequest' --limit 10; bun run confluence:search fts 'CarePlan plannedActivityReference SupplyRequest' --limit 10",
+    "query": "FHIR-3077 CarePlan detail Encounter Procedure; CarePlan plannedActivityReference SupplyRequest",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Local source and idempotency checks",
+    "command": "rg '<plannedActivityReference>\\s*<reference value=\"(Procedure|Encounter)/' source/careplan --glob '*.xml' --multiline; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-3077' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "No plannedActivityReference examples to Procedure or Encounter and no existing combined-branch reconciliation commit were found.",
+    "learned": "The current source does not have the defect requested by FHIR-3077 and publishing an audit commit is not a duplicate.",
+    "supports": ["verification", "idempotency"]
+  }
+]
+</evidence-manifest>

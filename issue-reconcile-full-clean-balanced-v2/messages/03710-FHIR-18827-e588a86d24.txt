@@ -1,0 +1,123 @@
+FHIR-18827: Audit discontinued appointment status decision
+
+Issue request:
+FHIR-18827 was Published with a Not Persuasive with Modification resolution. It asked to add a `discontinued` code to `Appointment.status`, but the approved disposition kept post-start status tracking on Encounter and instead added an Encounter `discontinued` status with canonical status mapping changes.
+
+Initial application:
+The Jira-tagged implementation commit 6ac385ea8e added `discontinued` to the Encounter status code system and Encounter.status element text, and updated the status-code mapping matrix so Encounter `cancelled` maps to the failed canonical status while the new discontinued/abandoned state maps to the abandoned canonical status. No prior source change added `discontinued` to Appointment.status, which matches the non-persuasive portion of the decision.
+
+Additional context:
+The active build includes both Encounter and Appointment resources via `source/fhir.ini`. Current Appointment status still omits `discontinued` and its `fulfilled` definition says the encounter resource will track further status changes. Current Encounter status includes `discontinued`, and later FHIR-22726 added `discharged` plus corrected the discontinued definition typo without reversing the FHIR-18827 semantics. PA May 2019 minutes also record the work group conclusion that Appointment essentially ends when fulfilled/cancelled and subsequent status tracking belongs on Encounter.status.
+
+AutoFHIR reconciliation:
+This is an empty audit commit. The current source already implements the published issue outcome, so adding `discontinued` to Appointment.status would contradict the final resolution and no source change is needed.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up is needed in the FHIR core checkout unless PA reopens the Appointment/Encounter boundary decision in a later tracker.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-18827
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-18824: supporting-decision - appointment waitlist/fulfilled context helps explain why Appointment.status hands later status tracking to Encounter.
+FHIR-22726: later-change - added Encounter `discharged` and fixed the discontinued definition typo without changing the FHIR-18827 disposition.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-18827: Published/Not Persuasive with Modification; asked for Appointment.status `discontinued` but resolved to add Encounter.status `discontinued` and update canonical mappings. Learned: final WG intent is Encounter, not Appointment.
+- E2 Source source/fhir.ini:191,231: Encounter and Appointment are active resources in the current build. Learned: the inspected source files are build-scope authority.
+- E3 Source source/appointment/codesystem-appointmentstatus.xml:50-99: Appointment.status has no `discontinued`, and `fulfilled` says Encounter tracks further status changes. Learned: the current Appointment source matches the non-persuasive part of the decision.
+- E4 Source source/encounter/codesystem-encounter-status.xml:73-82 and source/encounter/structuredefinition-Encounter.xml:130-149: Encounter.status includes `discontinued` in the code system and required binding target. Learned: the current Encounter source contains the approved added code.
+- E5 Source source/status-codes.xml:1668-1684 with parsed matrix check: Encounter.status maps `cancelled` to canonical `failed` and `discontinued` to canonical `abandoned`. Learned: the canonical mapping portion of the resolution is represented.
+- E6 Git 6ac385ea8e: FHIR-18827 implementation added Encounter discontinued and status-code mapping updates. Learned: the issue was explicitly applied in source history.
+- E7 Git d80fcb1ea0: FHIR-22726 later added Encounter `discharged` and corrected the `Further` typo in the discontinued definition. Learned: later Encounter status work preserves and cleans up the FHIR-18827 result.
+- E8 Confluence 2019 May WGM Minutes page 51218798: PA minutes record the GF#18827 discussion, the conclusion that post-fulfillment status tracking belongs on Encounter.status, and a 6-0-2 non-persuasive vote. Learned: meeting evidence aligns with Jira and current source.
+- E9 Command community/source searches: quoted Zulip key search found no relevant FHIR-18827 discussion; Confluence broad search found PA minutes; Jira FTS with Appointment/Encounter/discontinued terms found only FHIR-18827. Learned: no discovered community or Jira evidence conflicts with the no-change decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-18827",
+    "url": "https://jira.hl7.org/browse/FHIR-18827",
+    "snapshot_path": "contexts/FHIR-18827/jira/FHIR-18827.md",
+    "ref": { "jira_key": "FHIR-18827" },
+    "summary": "Published/Not Persuasive with Modification issue asking to add discontinued to Appointment.status but resolving to add Encounter.status discontinued and remap canonical statuses.",
+    "learned": "This establishes final WG intent: do not add Appointment.status discontinued; use Encounter.status for post-start discontinuation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:191,231",
+    "summary": "Encounter and Appointment are listed as active resources in the current build configuration.",
+    "learned": "The inspected Appointment and Encounter source files are in build scope.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/appointment/codesystem-appointmentstatus.xml:50-99",
+    "summary": "Appointment.status includes proposed, pending, booked, arrived, fulfilled, cancelled, noshow, entered-in-error, checked-in, and waitlist, with fulfilled handing further status tracking to Encounter.",
+    "learned": "Appointment correctly lacks discontinued under the final non-persuasive disposition.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/encounter/codesystem-encounter-status.xml:73-82; source/encounter/structuredefinition-Encounter.xml:130-149",
+    "summary": "Encounter.status includes the discontinued code and binds Encounter.status to the encounter-status value set.",
+    "learned": "The approved Encounter status addition is present in authoritative source.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/status-codes.xml:1668-1684",
+    "summary": "The status-code matrix places Encounter.cancelled under canonical failed and Encounter.discontinued under canonical abandoned.",
+    "learned": "The canonical mapping portion of the Jira resolution is represented in current source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "6ac385ea8e5d79f2d56d5ff0c0f431d45374cddb",
+    "ref": { "commit": "6ac385ea8e5d79f2d56d5ff0c0f431d45374cddb" },
+    "summary": "Jira-tagged commit added Encounter discontinued and updated Encounter/status-code mapping source for FHIR-18827.",
+    "learned": "The issue was explicitly applied in source history, despite the misleading commit subject mentioning Appointment.status.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "d80fcb1ea0598fcaa22158a24d8db793657ccda7",
+    "ref": { "commit": "d80fcb1ea0598fcaa22158a24d8db793657ccda7" },
+    "summary": "Later FHIR-22726 commit added Encounter discharged and corrected the discontinued definition typo.",
+    "learned": "Later status work preserved the FHIR-18827 discontinued semantics while improving nearby Encounter text.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "2019 May WGM Minutes page 51218798",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/51218798/2019+May+WGM+Minutes",
+    "ref": { "confluence_page_id": 51218798 },
+    "summary": "PA minutes for GF#18827 record discussion of Appointment vs Encounter status tracking and a 6-0-2 non-persuasive vote.",
+    "learned": "Meeting evidence confirms that subsequent status tracking should be on Encounter.status, not by adding Appointment.status discontinued.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Community and issue searches for FHIR-18827 status terms",
+    "command": "bun run jira:search fts '\"Appointment.status\" discontinued encounter cancelled abandoned failed' --limit 20; bun run zulip:search fts '\"FHIR-18827\" \"Appointment.status\" discontinued \"Encounter.status\"' --limit 10; bun run confluence:search fts 'Appointment discontinued Encounter status' --limit 10",
+    "query": "FHIR-18827 Appointment.status discontinued Encounter.status",
+    "summary": "Jira FTS returned FHIR-18827 only, quoted Zulip search found no directly relevant hits, and Confluence search found PA minutes matching the Jira disposition.",
+    "learned": "No discovered related Jira or community evidence contradicts the no-change source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

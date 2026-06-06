@@ -1,0 +1,110 @@
+FHIR-37570: Fix CanonicalResource context-reference search parameter
+
+Issue request:
+FHIR-37570 was a Published/Persuasive CDS change request to add a standard `context-reference` Reference search parameter for `Library.useContext.valueReference`, with the accepted resolution saying to define it generally on CanonicalResource and reflect it through canonical resources.
+
+Initial application:
+The issue was initially applied by git commit 2804a4350a363475f42bfa15540df04a84a4cd68, merged through HL7/fhir#2288, which added `CanonicalResource-context-reference` to `source/canonicalresource/bundle-CanonicalResource-search-params.xml`. The contemporaneous committers Zulip thread confirmed that defining the parameter on the CanonicalResource interface was intended to inherit to implementing canonical resources rather than requiring a separate Library-local entry. However, that source entry used a malformed standards-status extension URL, omitted the build path extension, and used the untyped choice expression `{{name}}.useContext.value`; current generated evidence showed the other CanonicalResource context parameters in `search-parameters.json` but not `context-reference`, while the CanonicalResource page displayed an empty path for it.
+
+Additional context:
+`source/fhir.ini` keeps CanonicalResource as an active interface resource and Library as an active concrete resource, so this source bundle is in the current build path and is the right scope for the issue. Later Jira FHIR-53850 records a broader R6 work-group decision to improve propagation of CanonicalResource search parameters for all resources where underlying elements exist; that broader Resolved - change required issue is related context but is not decided in this commit.
+
+AutoFHIR reconciliation:
+This commit repairs the issue-added CanonicalResource search parameter by correcting the standards-status extension URL, adding the build path `{{name}}.useContext.valueReference`, and narrowing the expression to `({{name}}.useContext.value.ofType(Reference))`. It intentionally does not duplicate the parameter in `source/library/bundle-Library-search-params.xml` because the accepted application path is CanonicalResource interface inheritance.
+
+Recommendation:
+Keep this source fix as the FHIR-37570 reconciliation. Handle the broader FHIR-53850 propagation audit separately if and when that R6 change-required issue enters the applied/published source-edit scope.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37570
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-53850: later-change - broader R6 Resolved - change required issue about propagating CanonicalResource search parameters across all implementing resources; relevant background but not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37570: Published/Persuasive, voted 12-0-0, asked for a `context-reference` Reference search parameter for Library useContext references and resolution said to add it generally to CanonicalResource. Learned: this establishes the final source requirement.
+- E2 Source source/fhir.ini:129-135,170-266: CanonicalResource is an active interface resource and Library is an active concrete resource. Learned: the CanonicalResource search-parameter bundle is in current build scope and is the right source location for inherited canonical-resource search parameters.
+- E3 Git 2804a4350a363475f42bfa15540df04a84a4cd68: original FHIR-37570 implementation added `CanonicalResource-context-reference` but with a malformed standards-status URL, no build path, and an untyped choice expression. Learned: the current defect is directly tied to the original application.
+- E4 Zulip #committers > New useContext search: Bryn Rhodes asked whether CanonicalResource interface search parameters are propagated to all CanonicalResources, and Gino Canessa answered yes. Learned: this supports fixing the interface definition rather than adding a Library-only duplicate.
+- E5 Published spec command: current build `search-parameters.json` listed other CanonicalResource context parameters expanded to Library but no `CanonicalResource-context-reference`; `canonicalresource.html` showed `context-reference` with an empty path. Learned: the existing source entry was not producing the requested searchable generated artifact correctly.
+- E6 Jira FHIR-53850: later R6 Resolved - change required issue identifies broader CanonicalResource search-parameter propagation gaps. Learned: related broad propagation work exists, but it is not in this applied/published seed scope.
+- E7 Verification command: `git diff --check` and Python XML parse of `source/canonicalresource/bundle-CanonicalResource-search-params.xml` passed. Learned: the edited XML is well-formed and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37570",
+    "url": "https://jira.hl7.org/browse/FHIR-37570",
+    "snapshot_path": "contexts/FHIR-37570/jira/FHIR-37570.md",
+    "ref": { "jira_key": "FHIR-37570" },
+    "summary": "Published/Persuasive CDS change request to add a `context-reference` Reference search parameter for Library useContext references and apply it through CanonicalResource search parameters.",
+    "learned": "This is the final issue decision that requires a working CanonicalResource-level context-reference search parameter.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:129-135,170-266",
+    "ref": { "path": "source/fhir.ini", "lines": "129-135,170-266" },
+    "summary": "The build config lists CanonicalResource as an active interface resource and Library as an active concrete resource.",
+    "learned": "The CanonicalResource search-parameter source is in build scope and is the correct place to define inherited canonical-resource search parameters.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "2804a4350a363475f42bfa15540df04a84a4cd68",
+    "ref": { "commit": "2804a4350a363475f42bfa15540df04a84a4cd68" },
+    "summary": "Original FHIR-37570 implementation added `CanonicalResource-context-reference` to the CanonicalResource search-parameter bundle.",
+    "learned": "The malformed URL, missing build path, and untyped expression are direct defects in the original application of the issue.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "zulip",
+    "locator": "#committers > New useContext search",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/New%20useContext%20search",
+    "snapshot_path": "contexts/FHIR-37570/zulip/committers--New-useContext-search.md",
+    "ref": { "stream": "committers", "topic": "New useContext search" },
+    "summary": "Bryn Rhodes asked whether CanonicalResource interface search parameters propagate to all CanonicalResources, and Gino Canessa answered yes.",
+    "learned": "This supports fixing the CanonicalResource interface parameter instead of adding a Library-specific duplicate.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "build.fhir.org search-parameters.json and canonicalresource.html",
+    "url": "https://build.fhir.org/search-parameters.json",
+    "snapshot_path": "contexts/FHIR-37570/commands/FHIR-37570-verification.md",
+    "command": "curl -fsSL https://build.fhir.org/search-parameters.json | jq -r '.entry[].resource | select(.id|startswith(\"CanonicalResource-context\")) | [.id, (.base|join(\",\")), .code, .type, .expression] | @tsv'; curl -fsSL https://build.fhir.org/canonicalresource.html | sed -n '704,735p'",
+    "summary": "The current generated bundle listed other CanonicalResource context parameters expanded to Library but omitted context-reference; the CanonicalResource page showed context-reference with an empty path.",
+    "learned": "The existing source entry was visible in narrative but not generating the requested search-parameter artifact correctly.",
+    "supports": ["initial_application", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-53850",
+    "url": "https://jira.hl7.org/browse/FHIR-53850",
+    "snapshot_path": "contexts/FHIR-37570/jira/FHIR-53850.md",
+    "ref": { "jira_key": "FHIR-53850" },
+    "summary": "R6 Resolved - change required issue about broader missing CanonicalResource search-parameter definitions across implementing resources.",
+    "learned": "This is related background and possible future work, but its broader unresolved application scope should not be decided as part of this seed.",
+    "supports": ["additional_context", "related_not_decided"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local XML and whitespace validation",
+    "command": "git diff --check; python3 - <<'PY'\nimport xml.etree.ElementTree as ET\nET.parse('source/canonicalresource/bundle-CanonicalResource-search-params.xml')\nprint('xml-ok')\nPY",
+    "summary": "The edited XML parsed successfully and the diff had no whitespace errors.",
+    "learned": "The source edit is syntactically safe for the XML bundle.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

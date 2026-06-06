@@ -1,0 +1,95 @@
+FHIR-31479: Audit QuestionnaireResponse item-subject search path
+
+Issue request:
+FHIR-31479 was a Published/Persuasive FHIR-core technical correction for QuestionnaireResponse. It reported that the QuestionnaireResponse profiles page exposed an invalid FHIRPath expression for the item-subject search parameter because it used the nonexistent hasExtension(...) function to detect the questionnaireresponse-isSubject extension.
+
+Initial application:
+The Jira comments cite R5 commit da520ded49 and R4B commit f4f1c38ac9. Both commits changed the then-current individual QuestionnaireResponse-item-subject SearchParameter source from QuestionnaireResponse.item.where(hasExtension('http://hl7.org/fhir/StructureDefinition/questionnaireresponse-isSubject')).answer.value.ofType(Reference) to the valid extension('http://hl7.org/fhir/StructureDefinition/questionnaireresponse-isSubject').exists() form.
+
+Additional context:
+QuestionnaireResponse is an active resource in source/fhir.ini, and the current build input for the search parameter is source/questionnaireresponse/bundle-QuestionnaireResponse-search-params.xml after later source rework. The old individual SearchParameter file no longer exists in current source. Later FHIR-49784 recursively expanded QuestionnaireResponse item search paths, changing the expression to traverse nested items with repeat(item.combine(item.answer.item)) while preserving the corrected extension(...).exists() predicate. A Zulip thread from the issue reporter and Lloyd McKenzie confirms the original problem and that the intended correction was to replace the erroneous function before R4B.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current source has exactly the valid item-subject expression, and a core-source search finds no remaining hasExtension(...) occurrence for this QuestionnaireResponse search parameter.
+
+Recommendation:
+Keep this no-change audit commit as-is. No current FHIR-core source follow-up is needed for FHIR-31479; any implementation still seeing the old hasExtension form is consuming an older published/package artifact or local SearchParameter copy rather than the current build source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-31479
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-49784: later-change - recursively expanded QuestionnaireResponse item search paths in the same active source file while preserving the FHIR-31479 extension(...).exists() correction.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-31479: Published/Persuasive technical correction reporting the invalid QuestionnaireResponse item-subject FHIRPath expression. Learned: the final WG request was to remove the nonexistent hasExtension(...) call.
+- E2 Zulip #implementers > Invalid expression in QuestionnaireResponse SP: James Agnew reported the invalid profiles-page expression and Lloyd McKenzie agreed it was erroneous before the Jira was filed. Learned: community discussion matches the Jira request and shows no broader semantic change was intended.
+- E3 Git da520ded49 and f4f1c38ac9: R5 and R4B application commits changed hasExtension(...) to extension(...).exists() in the then-current SearchParameter source. Learned: the issue was previously applied in both cited branches.
+- E4 Source source/fhir.ini:220 and source/questionnaireresponse/bundle-QuestionnaireResponse-search-params.xml:251-264: QuestionnaireResponse is active and the current item-subject expression uses extension('http://hl7.org/fhir/StructureDefinition/questionnaireresponse-isSubject').exists(). Learned: the current build input already contains valid FHIRPath.
+- E5 Git 19c145d3be: FHIR-49784 later made QuestionnaireResponse search parameters recursive but kept the corrected extension predicate. Learned: later source history did not reintroduce the invalid function.
+- E6 Verification command/query: rg searches for hasExtension and the QuestionnaireResponse item-subject expression in current core source found no invalid hasExtension occurrence and one valid current expression. Learned: no source edit is needed for the current build.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-31479",
+    "url": "https://jira.hl7.org/browse/FHIR-31479",
+    "snapshot_path": "contexts/FHIR-31479/jira/FHIR-31479.md",
+    "ref": { "jira_key": "FHIR-31479" },
+    "summary": "Published/Persuasive technical correction reporting that QuestionnaireResponse.item.where(hasExtension(...)) was invalid FHIRPath on the QuestionnaireResponse profiles page.",
+    "learned": "This establishes the final requested correction: replace the nonexistent hasExtension function in the item-subject search parameter path.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Invalid expression in QuestionnaireResponse SP",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Invalid%20expression%20in%20QuestionnaireResponse%20SP",
+    "ref": { "stream": "implementers", "topic": "Invalid expression in QuestionnaireResponse SP" },
+    "summary": "The reporter identified the invalid hasExtension expression and Lloyd McKenzie confirmed it was erroneous before the Jira was filed.",
+    "learned": "The community record corroborates the Jira request and does not indicate a broader intended change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "da520ded49 and f4f1c38ac9",
+    "ref": { "commits": "da520ded49,f4f1c38ac9" },
+    "summary": "The cited R5 and R4B commits replaced hasExtension(...) with extension(...).exists() in the then-current QuestionnaireResponse item-subject SearchParameter source.",
+    "learned": "The Jira-requested source correction was previously applied in the relevant historical branches.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:220; source/questionnaireresponse/bundle-QuestionnaireResponse-search-params.xml:251-264",
+    "ref": { "paths": "source/fhir.ini,source/questionnaireresponse/bundle-QuestionnaireResponse-search-params.xml" },
+    "summary": "QuestionnaireResponse is active in fhir.ini and the current item-subject SearchParameter expression uses extension('http://hl7.org/fhir/StructureDefinition/questionnaireresponse-isSubject').exists().",
+    "learned": "The active current build input already carries the valid FHIRPath form required by FHIR-31479.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "19c145d3be",
+    "ref": { "commit": "19c145d3be" },
+    "summary": "FHIR-49784 later changed QuestionnaireResponse answer/item search paths to use recursive repeat(item.combine(item.answer.item)) traversal while retaining extension(...).exists().",
+    "learned": "Later source history refined traversal but did not reverse or break the FHIR-31479 correction.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current core source search for hasExtension and item-subject",
+    "command": "rg -n \"hasExtension|QuestionnaireResponse\\.item\\.where\\(hasExtension\" source || true; rg -n \"QuestionnaireResponse.*questionnaireresponse-isSubject\" source/questionnaireresponse",
+    "summary": "The invalid hasExtension token is absent from current core source, and the current QuestionnaireResponse item-subject expression appears once with extension(...).exists().",
+    "learned": "No current source change is necessary for the seed issue.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

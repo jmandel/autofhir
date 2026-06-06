@@ -1,0 +1,97 @@
+FHIR-34884: Audit Permission asserter Person removal
+
+Issue request:
+Published/Persuasive with Modification security issue FHIR-34884 requested that Permission.asserter stop allowing Person because Person is only for shared demographics and actors should instead be Patient, Practitioner, RelatedPerson, PractitionerRole, Organization, or CareTeam.
+
+Initial application:
+No commit explicitly mentions FHIR-34884. Git history shows commit 2c7d674ebe5bfdd04b2239cbb6d5990931b20aad changed source/permission/structuredefinition-Permission.xml on 2022-02-28 from Reference(Person) to a multi-target Reference that removed Person and added Practitioner, PractitionerRole, Organization, CareTeam, Patient, Device, and RelatedPerson. Later source iterations kept Person absent.
+
+Additional context:
+Later security work added HealthcareService and briefly Group/DeviceDefinition to Permission agent references under FHIR-49672/FHIR-49304, then FHIR-51482 removed a duplicate Group target. Current core source no longer contains source/permission or any active Permission entry in source/fhir.ini because commit 0e2a8a7f839d5e1a43787523daccf07d958362f3 removed the core Permission resource and changed the Security and Privacy module to link to the Data Access Policies IG Permission definition. A bounded check of the current HL7/data-access-policies source shows its Permission.asserter target list also excludes Person.
+
+AutoFHIR reconciliation:
+This is an empty audit commit. No core source change is needed: the original R5 source change removed Person, and the current core build no longer owns the Permission resource.
+
+Recommendation:
+Keep this audit commit as-is. If Permission is reviewed in the Data Access Policies IG, preserve the current exclusion of Person there; no FHIR core follow-up is needed for FHIR-34884.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34884
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-49672: later-change - added HealthcareService as a recognized agent target for Permission without reintroducing Person.
+FHIR-49304: background - unresolved broader workflow actor guidance says Person cannot ever be a participant and informed later agent-target updates.
+FHIR-51482: later-change - corrected a duplicate Group target in Permission.rule.activity.reference while leaving Person absent.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34884: Published/Persuasive with Modification request to remove Person from Permission.asserter and use CareTeam, Organization, Patient, Practitioner, RelatedPerson, and PractitionerRole. Learned: this is the final WG intent for the seed issue.
+- E2 Git 2c7d674ebe5bfdd04b2239cbb6d5990931b20aad: Feb 27 security updates changed Permission.asserter from Reference(Person) to a multi-target Reference excluding Person. Learned: the issue request was substantively applied even though the commit did not name the Jira key.
+- E3 Git 0e2a8a7f839d5e1a43787523daccf07d958362f3 and source/fhir.ini: the current build removed Permission from active core resources and deleted source/permission. Learned: there is no current core Permission.asserter source location to edit.
+- E4 GitHub HL7/data-access-policies input/resources/permission/StructureDefinition-Permission.xml: current external successor Permission.asserter targets Practitioner, PractitionerRole, Organization, CareTeam, Patient, RelatedPerson, and HealthcareService, not Person. Learned: the moved artifact also preserves the seed issue's actor constraint.
+- E5 Community search: quoted Zulip and Confluence searches for FHIR-34884 plus Permission/asserter/Person found no relevant records. Learned: no discovered community evidence conflicts with the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34884",
+    "url": "https://jira.hl7.org/browse/FHIR-34884",
+    "snapshot_path": "contexts/FHIR-34884/jira/FHIR-34884.md",
+    "ref": { "jira_key": "FHIR-34884" },
+    "summary": "Published/Persuasive with Modification issue requiring Permission.asserter to remove Person and allow actor resources such as Patient, Practitioner, RelatedPerson, PractitionerRole, Organization, and CareTeam.",
+    "learned": "This establishes the final seed issue intent and target source behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "2c7d674ebe5bfdd04b2239cbb6d5990931b20aad",
+    "ref": { "commit": "2c7d674ebe5bfdd04b2239cbb6d5990931b20aad", "path": "source/permission/structuredefinition-Permission.xml" },
+    "summary": "Commit 'Feb 27 security updates' changed Permission.asserter from Reference(Person) to a multi-target Reference excluding Person.",
+    "learned": "The seed request was substantively applied in source history even without an explicit Jira key in the commit message.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini and source/permission at current HEAD",
+    "command": "git ls-files 'source/permission/**'; awk 'tolower($0) ~ /permission/ {print NR \":\" $0}' source/fhir.ini",
+    "summary": "Current core source has no tracked source/permission files and no Permission entry in source/fhir.ini.",
+    "learned": "Permission.asserter is no longer part of the current core build, so a core source edit is not needed.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "0e2a8a7f839d5e1a43787523daccf07d958362f3",
+    "ref": { "commit": "0e2a8a7f839d5e1a43787523daccf07d958362f3" },
+    "summary": "Commit 'remove Permission' deleted source/permission/structuredefinition-Permission.xml, removed Permission from fhir.ini/resource lists, and changed core narrative links to the Data Access Policies IG.",
+    "learned": "The absence of a core Permission resource is intentional current source history, not a missed file search.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "web",
+    "locator": "HL7/data-access-policies input/resources/permission/StructureDefinition-Permission.xml",
+    "url": "https://github.com/HL7/data-access-policies/blob/master/input/resources/permission/StructureDefinition-Permission.xml",
+    "summary": "The current external Permission.asserter target list includes Practitioner, PractitionerRole, Organization, CareTeam, Patient, RelatedPerson, and HealthcareService, with no Person target.",
+    "learned": "The external successor artifact linked from core also preserves the seed issue's Person exclusion.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-34884 Permission asserter Person",
+    "command": "bun run zulip:search fts '\"FHIR-34884\" Permission asserter Person' --limit 10; bun run confluence:search fts '\"FHIR-34884\" Permission asserter Person' --limit 10; bun run confluence:search refs jira FHIR-34884 --limit 10",
+    "query": "\"FHIR-34884\" Permission asserter Person",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

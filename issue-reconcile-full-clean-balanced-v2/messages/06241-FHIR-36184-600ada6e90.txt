@@ -1,0 +1,100 @@
+FHIR-36184: Audit Questionnaire name invariant
+
+Issue request:
+FHIR-36184 was a Published/Persuasive technical correction for FHIR-core Questionnaire, raised against R4 and applied for R5, asking that invariant que-0 account for Questionnaire.name being absent by changing the FHIRPath to predicate the name.matches() call with name.exists().
+
+Initial application:
+No current git commit explicitly mentions FHIR-36184. The application appears to have been covered by the same name-expression fix recorded in FHIR-36127: cada1a356c changed the R4B Questionnaire que-0 expression, and 9ea5ca6fcc changed the R5/current Questionnaire cnl-0 expression from name.matches(...) to name.exists() implies name.matches(...). Lloyd McKenzie's FHIR-36184 Jira comment says this was already done.
+
+Additional context:
+Questionnaire is active in source/fhir.ini, so source/questionnaire/structuredefinition-Questionnaire.xml is in current build scope. The current source uses constraint key cnl-0 rather than que-0, and line 98 already has name.exists() implies name.matches('^[A-Z]([A-Za-z0-9_]){1,254}$'). The {1,254} quantifier is intentional later Jira history from FHIR-34147, which required machine-friendly names to have more than the leading character. The anchors and loss of xpath are later source cleanup/refactor context, not a reversal of the FHIR-36184 predicate. Zulip context confirms the underlying problem was FHIRPath empty-result semantics for optional elements, including Questionnaire.name.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change because the current authoritative Questionnaire StructureDefinition already satisfies the FHIR-36184 request by guarding the matches() expression with name.exists(). Editing the current regex back toward the literal issue suggestion would incorrectly undo later approved changes.
+
+Recommendation:
+Keep this empty no-change audit commit as-is. No core source follow-up is needed for FHIR-36184 unless a future work group decision reopens the broader canonical name regex semantics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36184
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-36127: same-change-family - the broader Published name-expression issue whose commits actually applied the name.exists() predicate to Questionnaire.
+FHIR-34147: later-change - explains why the current regex uses {1,254} rather than the {0,254} literal suggested in FHIR-36184.
+FHIR-38841: later-change - part of the later canonical/metadata cleanup history around the current cnl-0 form; already represented on the combined branch.
+FHIR-36006: background - the Bundle invariant issue cited by FHIR-36184 and discussed in the same FHIRPath empty-result thread.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36184: Published/Persuasive technical correction asking que-0 to account for absent Questionnaire.name; Lloyd commented "Was already done". Learned: the final request is specifically the name.exists() predicate, not a broader current regex rewrite.
+- E2 Source source/fhir.ini:169-220 and source/questionnaire/structuredefinition-Questionnaire.xml:94-100: Questionnaire is an active resource and current cnl-0 has name.exists() implies name.matches(...). Learned: the authoritative current build source already implements the requested optional-name guard.
+- E3 Git 9ea5ca6fcc and cada1a356c: FHIR-36127 commits changed Questionnaire's name invariant to use name.exists() implies in R5/current and R4B respectively. Learned: the FHIR-36184 application was covered by a same-family applied commit rather than a FHIR-36184-tagged commit.
+- E4 Jira/Git FHIR-34147 and 70ad673b9e: Published/Persuasive with Modification issue changed all such regular expressions to {1,254}. Learned: the current quantifier differs from FHIR-36184's suggested literal for an intentional later approved reason.
+- E5 Zulip #fhirpath > bdl-8 incorrect? and #fhirpath > FHIRPath constraints: discussions identify empty FHIRPath results on optional elements as errors and specifically mention Questionnaire.name needing an exists() check. Learned: community context supports the same predicate-based fix and reveals no conflicting Questionnaire-specific decision.
+- E6 Command community search: confluence refs/FTS for FHIR-36184 found no references, while Zulip direct key search found only the related FHIRPath thread. Learned: no discovered Confluence or additional Zulip evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36184",
+    "url": "https://jira.hl7.org/browse/FHIR-36184",
+    "snapshot_path": "autofhir/runs/issue-reconcile-full-clean-balanced-v2/contexts/FHIR-36184/jira/FHIR-36184.md",
+    "ref": { "jira_key": "FHIR-36184" },
+    "summary": "Published/Persuasive technical correction asking Questionnaire que-0 to handle absent name by using name.exists() implies name.matches(...).",
+    "learned": "This establishes the final request being reconciled and the Jira comment that the work had already been done.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-220; source/questionnaire/structuredefinition-Questionnaire.xml:94-100",
+    "summary": "Questionnaire is active in the current resource list and current cnl-0 uses name.exists() implies name.matches('^[A-Z]([A-Za-z0-9_]){1,254}$').",
+    "learned": "The in-scope source already contains the optional-name predicate requested by FHIR-36184.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "9ea5ca6fcc1a6df1deb7c86ded4b6a6be21e2f4e and cada1a356cf31cb210f1989babae383e28e294c7",
+    "ref": { "commit_r5": "9ea5ca6fcc1a6df1deb7c86ded4b6a6be21e2f4e", "commit_r4b": "cada1a356cf31cb210f1989babae383e28e294c7" },
+    "summary": "FHIR-36127 commits changed Questionnaire's name invariant from name.matches(...) to name.exists() implies name.matches(...).",
+    "learned": "The actual source application path for FHIR-36184 was the same-family FHIR-36127 fix.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-34147 and git 70ad673b9e1f81ff3c228e62b42f005a1538d9ad",
+    "url": "https://jira.hl7.org/browse/FHIR-34147",
+    "ref": { "jira_key": "FHIR-34147", "commit": "70ad673b9e1f81ff3c228e62b42f005a1538d9ad" },
+    "summary": "Published/Persuasive with Modification issue required machine-friendly name regexes to use {1,254} instead of {0,254}.",
+    "learned": "The current quantifier is intentional later Jira history and should not be changed for FHIR-36184.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#fhirpath > bdl-8 incorrect?; #fhirpath > FHIRPath constraints",
+    "url": "https://chat.fhir.org/#narrow/stream/fhirpath/topic/bdl-8%20incorrect%3F",
+    "ref": { "stream": "fhirpath", "topic": "bdl-8 incorrect?" },
+    "summary": "FHIRPath discussions identify optional-element expressions returning empty as constraint errors; the threads include the FHIR-36184 link and a specific Questionnaire.name example needing exists().",
+    "learned": "Community context supports the same guard-expression interpretation and did not reveal conflicting guidance.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community searches for FHIR-36184",
+    "command": "bun run zulip:search fts '\"FHIR-36184\"' --limit 10; bun run confluence:search refs jira FHIR-36184; bun run confluence:search fts '\"FHIR-36184\"' --limit 10",
+    "query": "FHIR-36184",
+    "result_count": 1,
+    "summary": "Zulip found the related FHIRPath thread; Confluence refs and FTS found no references.",
+    "learned": "No discovered community evidence changes the source/Jira no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

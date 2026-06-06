@@ -1,0 +1,119 @@
+FHIR-44690: Clarify OperationDefinition targetProfile resource use
+
+Issue request:
+FHIR-44690 is Applied/Persuasive for R6 and requested updating the opd-3 FHIRPath expression from http://hl7.org/fhir/ValueSet/resource-types to http://hl7.org/fhir/ValueSet/all-resource-types. The Jira comments also required fixing the OperationDefinition.parameter.targetProfile definition and clarifying how this behavior differs in OperationDefinition.
+
+Initial application:
+The issue was partially applied by git commit 5d68211faaefeb2476f0484dd6155adb5e01abbd, which changed only the opd-3 expression in source/operationdefinition/structuredefinition-OperationDefinition.xml. The current source already used all-resource-types in the constraint, but the targetProfile short/definition still described Reference/canonical use and the literal Resource type, leaving concrete resource parameter types and the OperationDefinition-specific profile behavior unclear.
+
+Additional context:
+FHIR-26411 established that OperationDefinition.parameter.targetProfile should also apply to inline resources, and FHIR-39345 updated opd-3 for that R5 decision but used the narrower resource-types ValueSet. The Feb 2024 Zulip thread that led to FHIR-44690 clarified that type Resource and concrete resource types such as Patient are all supposed to be valid with targetProfile, and that OperationDefinition intentionally differs from ElementDefinition by using targetProfile where ElementDefinition would use type.profile. FHIR-I minutes on 2024-04-08 approved the all-resource-types expression correction.
+
+AutoFHIR reconciliation:
+Updated the build-scoped OperationDefinition StructureDefinition source so OperationDefinition.parameter.targetProfile now says resource parameter types use targetProfile to identify allowed profiles for inline resource parameter values. The definition now explicitly calls out the OperationDefinition-specific behavior corresponding to ElementDefinition.type.profile rather than ElementDefinition.type.targetProfile. The already-correct opd-3 all-resource-types expression was left unchanged.
+
+Recommendation:
+Keep this source fix as-is for FHIR-44690. Any future attempt to harmonize OperationDefinition with ElementDefinition profile/targetProfile naming would be a separate work-group design change rather than part of this correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-44690
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-26411: supporting-decision - established that OperationDefinition.parameter.targetProfile applies to inline resources.
+FHIR-39345: same-change-family - updated opd-3 for inline resource use but used the narrower resource-types ValueSet later corrected by FHIR-44690.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-44690: Applied/Persuasive issue requested the opd-3 all-resource-types expression and comments required definition clarification. Learned: final WG intent includes both the expression correction and the stale definition gap.
+- E2 Source source/fhir.ini:238,1201: OperationDefinition is an active resource with prefix opd. Learned: source/operationdefinition/structuredefinition-OperationDefinition.xml is in current build scope.
+- E3 Source source/operationdefinition/structuredefinition-OperationDefinition.xml:713-880: opd-3 already used all-resource-types while targetProfile wording still omitted concrete resource-type/profile semantics. Learned: the remaining semantic gap was in authoritative source text, not generated output.
+- E4 Git 5d68211faaefeb2476f0484dd6155adb5e01abbd: prior application changed only the opd-3 expression. Learned: FHIR-44690 was partially applied before this reconciliation.
+- E5 Jira FHIR-26411 and FHIR-39345: published decisions allow targetProfile for inline resources and updated opd-3 accordingly. Learned: the current clarification preserves the historical R5/R6 decision family.
+- E6 Zulip #ig publishing requirements > Operation Definition Parameters table: Grahame clarified that Resource and concrete resource types are all supposed to be valid and that OperationDefinition intentionally differs from ElementDefinition. Learned: the wording needs to explain OperationDefinition-specific behavior, not just the ValueSet URL.
+- E7 Confluence FHIR-I Minutes 2024-04-08 page 227220068: motion approved FHIR-44690 as Persuasive with the all-resource-types expression. Learned: the formal meeting record supports the Jira disposition.
+- E8 Verification command: python XML parse and git diff --check succeeded for structuredefinition-OperationDefinition.xml. Learned: the edited XML is well-formed and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-44690",
+    "url": "https://jira.hl7.org/browse/FHIR-44690",
+    "snapshot_path": "contexts/FHIR-44690/jira/FHIR-44690.md",
+    "ref": { "jira_key": "FHIR-44690" },
+    "summary": "Applied/Persuasive R6 issue requested changing opd-3 from ValueSet/resource-types to ValueSet/all-resource-types and added comments that the definition also needed clarification.",
+    "learned": "This establishes final WG intent and shows that the definition gap is part of the issue scope.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:238,1201",
+    "summary": "OperationDefinition is an active resource entry and uses the opd prefix in the build configuration.",
+    "learned": "The edited StructureDefinition source is in current build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/operationdefinition/structuredefinition-OperationDefinition.xml:713-880",
+    "summary": "The current opd-3 expression already used all-resource-types, but OperationDefinition.parameter.targetProfile still described only Reference/canonical and literal Resource behavior.",
+    "learned": "The source needed a targeted definition/short clarification rather than another constraint expression change.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "5d68211faaefeb2476f0484dd6155adb5e01abbd",
+    "ref": { "commit": "5d68211faaefeb2476f0484dd6155adb5e01abbd" },
+    "summary": "Commit 'FHIR-44690 opd-3 is wrong' changed only the opd-3 expression to use ValueSet/all-resource-types.",
+    "learned": "FHIR-44690 was partially applied before reconciliation, leaving Jira's definition comments unresolved.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-26411 and FHIR-39345",
+    "url": "https://jira.hl7.org/browse/FHIR-39345",
+    "snapshot_path": "contexts/FHIR-44690/jira/FHIR-39345.md",
+    "ref": { "jira_key": "FHIR-39345" },
+    "summary": "FHIR-26411 allowed targetProfile to apply to inline resources, and FHIR-39345 updated opd-3 for that behavior using the older resource-types ValueSet.",
+    "learned": "The reconciliation should preserve inline resource targetProfile semantics while correcting the R6 ValueSet and prose.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#ig publishing requirements > Operation Definition Parameters table",
+    "url": "https://chat.fhir.org/#narrow/stream/ig%20publishing%20requirements/topic/Operation%20Definition%20Parameters%20table",
+    "snapshot_path": "contexts/FHIR-44690/zulip/ig-publishing-requirements--Operation-Definition-Parameters-table.md",
+    "ref": { "stream": "ig publishing requirements", "topic": "Operation Definition Parameters table" },
+    "summary": "The thread records the discovery of the wrong ValueSet and the clarification that concrete resource types with targetProfile are supposed to be valid in OperationDefinition.",
+    "learned": "The prose should explain the OperationDefinition-specific targetProfile behavior and not limit the rule to the literal Resource type.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2024-04-08 page 227220068",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/227220068/FHIR+Infrastructure+Minutes+CC+2024-04-08",
+    "snapshot_path": "contexts/FHIR-44690/confluence/227220068.md",
+    "ref": { "confluence_page_id": 227220068 },
+    "summary": "FHIR-I approved FHIR-44690 as Persuasive and recorded the change from resource-types to all-resource-types.",
+    "learned": "The meeting record supports applying the Jira disposition without broadening beyond the OperationDefinition targetProfile clarification.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML parse and whitespace check",
+    "command": "python - <<'PY' ... ET.parse('source/operationdefinition/structuredefinition-OperationDefinition.xml') ... PY; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/operationdefinition/structuredefinition-OperationDefinition.xml",
+    "summary": "The edited XML parsed successfully and git diff --check reported no whitespace errors.",
+    "learned": "The source edit is syntactically safe for the checked file.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

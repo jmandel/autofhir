@@ -1,0 +1,105 @@
+FHIR-19000: Audit Sequence window cardinality
+
+Issue request:
+FHIR-19000 was a Published/Persuasive Clinical Genomics change request for the STU3 Sequence artifact. It asked that when referenceSeq is present, referenceSeq.windowStart and referenceSeq.windowEnd should be relaxed from 1..1 to 0..1 because lab reports can identify a reference sequence without always knowing the reference window.
+
+Initial application:
+The Jira comment cites GH#7f860bf. Local history shows implementation commit 9c23a7fb0f8197559bfa229b4beab313a017d729, merged by 7f860bf8648888c27d85c440df358f8b2b47a40f, changed source/molecularsequence/molecularsequence-spreadsheet.xml so MolecularSequence.referenceSeq.windowStart and MolecularSequence.referenceSeq.windowEnd changed from 1..1 to 0..1. Current historical release artifacts confirm the later R4 and R4B MolecularSequence definitions have both elements at 0..1; the STU3/R3 Sequence history still shows 1..1 because it preserves the prior published release surface rather than current source to edit.
+
+Additional context:
+MolecularSequence is no longer an active current-build resource in source/fhir.ini; the current active genomics resource is MolecularDefinition. Later Published work, especially FHIR-37486 and PR #2030, reframed MolecularSequence's reference sequence model toward starting-sequence/IM-aligned concepts, and the current source has since been renamed to source/moleculardefinition. Current source has no active referenceSeq, windowStart, or windowEnd elements. The coordinate interval start/end elements that now represent sequence locations or extracted/relative sequence intervals in MolecularDefinition are already optional. A 2022 genomics Zulip thread confirms the old window concept remained important but was being reconsidered as interval/location or extracted-sequence modeling, not as a requirement to restore the old mandatory fields. No Confluence references were found.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The requested cardinality relaxation was applied to the then-current MolecularSequence source, the current build no longer contains the old referenceSeq.windowStart/windowEnd elements, and the active MolecularDefinition replacement does not reintroduce mandatory start/end coordinates.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR-core source follow-up is needed for FHIR-19000 unless the Clinical Genomics work group opens a new issue about the current MolecularDefinition location/interval semantics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19000
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-37486: later-change - Published R5 work renamed/reframed MolecularSequence relative reference elements toward starting-sequence terminology and helps explain why the old referenceSeq.windowStart/windowEnd paths are not current source.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19000: Published/Persuasive issue requesting referenceSeq.windowStart and referenceSeq.windowEnd cardinality 0..1. Learned: establishes the final WG request and target behavior.
+- E2 Git 9c23a7fb / 7f860bf: implementation and merge commits changed MolecularSequence.referenceSeq.windowStart/windowEnd from 1..1 to 0..1. Learned: the Jira-cited application happened in source history.
+- E3 Source source/fhir.ini and source/moleculardefinition/structuredefinition-MolecularDefinition.xml: molecularsequence is commented out, moleculardefinition is active, and current coordinate interval start/end elements are 0..1. Learned: the current build has no stale mandatory old window elements.
+- E4 Command history cardinality scan: release4 and release4b history show MolecularSequence.referenceSeq.windowStart/windowEnd as 0..1, while release3 preserves Sequence.windowStart/windowEnd at 1..1. Learned: the source change carried forward after STU3 and the remaining 1..1 evidence is historical release data, not an active current-build fix target.
+- E5 Jira/Git FHIR-37486 and PR #2030: later Published R5 work renamed MolecularSequence relative reference concepts to starting-sequence terms. Learned: later decisions refactored the model rather than reversing FHIR-19000's optional-window direction.
+- E6 Zulip/Confluence search: #genomics thread "MolecularSequence - rethink 'referenceSeq'" discussed windowStart/windowEnd importance and IM interval/extracted-sequence modeling; Confluence searches for FHIR-19000 and key terms found no references. Learned: community evidence supports later refactoring context and shows no conflicting decision requiring a source change.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19000",
+    "url": "https://jira.hl7.org/browse/FHIR-19000",
+    "snapshot_path": "contexts/FHIR-19000/jira/FHIR-19000.md",
+    "ref": { "jira_key": "FHIR-19000" },
+    "summary": "Published/Persuasive issue requesting Sequence referenceSeq.windowStart and referenceSeq.windowEnd cardinalities be relaxed from 1..1 to 0..1.",
+    "learned": "This is the final work-group request and establishes optional windows as the target behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "9c23a7fb0f8197559bfa229b4beab313a017d729 and 7f860bf8648888c27d85c440df358f8b2b47a40f",
+    "ref": { "commit": "9c23a7fb0f8197559bfa229b4beab313a017d729", "merge_commit": "7f860bf8648888c27d85c440df358f8b2b47a40f" },
+    "summary": "The Jira-cited implementation changed source/molecularsequence/molecularsequence-spreadsheet.xml so windowStart and windowEnd cardinalities moved from 1..1 to 0..1.",
+    "learned": "The requested source change was applied to the then-current MolecularSequence source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini; source/moleculardefinition/structuredefinition-MolecularDefinition.xml",
+    "ref": { "path": "source/moleculardefinition/structuredefinition-MolecularDefinition.xml" },
+    "summary": "source/fhir.ini comments out molecularsequence and activates moleculardefinition; current MolecularDefinition coordinate interval start/end elements are 0..1.",
+    "learned": "The active current build does not contain mandatory referenceSeq.windowStart/windowEnd elements requiring a fix.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Historical cardinality scan for Sequence/MolecularSequence windowStart/windowEnd",
+    "command": "for f in $(find tools/history -maxdepth 2 -name profiles-resources.xml | sort); do ...; done; rg -n '<path value=\"(Molecular)?Sequence\\.referenceSeq\\.window(Start|End)\"|referenceSeq|windowStart|windowEnd' source --glob '*.xml'",
+    "summary": "R4/R4B history has MolecularSequence referenceSeq windowStart/windowEnd at 0..1, STU3/R3 history preserves Sequence at 1..1, and current source has no old path references.",
+    "learned": "The remaining 1..1 occurrences are historical release artifacts, not active source drift.",
+    "supports": ["initial_application", "build_scope", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-37486 / HL7/fhir#2030",
+    "url": "https://jira.hl7.org/browse/FHIR-37486",
+    "ref": { "jira_key": "FHIR-37486", "pull_request": 2030 },
+    "summary": "Published/Persuasive-with-Modification R5 issue renamed MolecularSequence relative reference concepts to starting-sequence terms to align with the IM model.",
+    "learned": "Later final work refactored the model that had contained the FHIR-19000 elements and does not require restoring mandatory windows.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#genomics > MolecularSequence - rethink 'referenceSeq'",
+    "url": "https://chat.fhir.org/#narrow/stream/genomics/topic/MolecularSequence%20-%20rethink%20'referenceSeq'",
+    "ref": { "stream": "genomics", "topic": "MolecularSequence - rethink 'referenceSeq'" },
+    "summary": "A 2022 discussion considered removing or reframing referenceSeq windowStart/windowEnd; participants said some window concept remained important and discussed IM interval/extracted-sequence modeling.",
+    "learned": "Community evidence explains later refactoring context and reveals no conflicting requirement to change current MolecularDefinition cardinalities.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Confluence searches for FHIR-19000 and key terms",
+    "command": "bun run confluence:search refs jira FHIR-19000; bun run confluence:search fts '\"FHIR-19000\"' --limit 10; bun run confluence:search fts 'windowStart windowEnd referenceSeq Sequence' --limit 10",
+    "summary": "No Confluence references or high-signal full-text hits were found.",
+    "learned": "No discovered meeting record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

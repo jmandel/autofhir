@@ -1,0 +1,131 @@
+FHIR-29267: Audit Substance instance backbone removal
+
+Issue request:
+FHIR-29267 was Published/Persuasive for R5 and asked to remove the old Substance.instance backbone element, move instance.expiry to Substance.expiry, move instance.quantity to Substance.quantity, and rely on Substance.identifier for the former instance identifier.
+
+Initial application:
+The change was initially applied in ce7d94f0984ae009254c17c60df0d81252aafac0, which explicitly cited FHIR#29267 and removed the nested instance data from Substance examples while moving expiry and quantity out from the instance backbone. During the R4B correction work, FHIR-31526 temporarily reverted Substance toward the R4 shape for R4B compatibility, but beb040d0608727a093902f91d4e3d6675f0c33f6 restored the intended R5 source model with Substance.expiry and Substance.quantity as root elements.
+
+Additional context:
+The O&O 2020-10-26 HCP minutes record the same motion and vote as Jira: remove the Substance.instance backbone, add Substance.expiry and Substance.quantity, and pick up instance identifiers through Substance.identifier. Later FHIR-48405 changed the current R6 direction further by removing the R5 boolean Substance.instance flag and declaring Substance to be instance-only; that later change reinforces that no Substance.instance element should be reintroduced for this issue.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Substance is active in source/fhir.ini, current source/substance/structuredefinition-Substance.xml has root-level Substance.expiry and Substance.quantity and no Substance.instance element, and source/substance/bundle-Substance-search-params.xml points the expiry and quantity search parameters at the root paths. The remaining Substance.instance strings in source/fhir.ini are R5/R6 migration notes for old paths, not current element definitions.
+
+Recommendation:
+Keep this no-change audit commit. FHIR-29267 is already satisfied in current source; future work for FHIR-48405 or other Substance-definition policy changes should be handled under their own issue keys rather than changing this reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-29267
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-28547: supporting-decision - original Substance/SubstanceDefinition issue family that was split into narrower motions including FHIR-29267.
+FHIR-29265: same-change-family - companion Published issue from the same vote that added the R5 boolean Substance.instance flag.
+FHIR-31526: later-change - R4B-specific compatibility issue that reverted Substance changes for R4B but did not supersede the R5/R6 application of FHIR-29267.
+FHIR-48405: later-change - Applied R6 issue that removed the R5 boolean Substance.instance flag and made Substance instance-only.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-29267: Published/Persuasive issue asks to remove the Substance.instance backbone and move expiry and quantity to the Substance root. Learned: this is the final seed request to check.
+- E2 Confluence 97453794: O&O 2020-10-26 HCP minutes record the exact motion and 7-0-6 vote. Learned: the meeting record matches the Jira resolution and clarifies the intended element moves.
+- E3 Git ce7d94f0984a: initial FHIR#29267 application commit removed nested instance data in examples and moved expiry/quantity out of the instance backbone. Learned: the issue was explicitly applied before reconciliation.
+- E4 Git beb040d06087: post-FHIR-31526 restoration changed Substance.instance.expiry and Substance.instance.quantity back to Substance.expiry and Substance.quantity. Learned: the R4B revert did not leave the current branch in the old backbone shape.
+- E5 Source source/fhir.ini:225 and source/substance/structuredefinition-Substance.xml:227: Substance is an active resource, and the active StructureDefinition has Substance.expiry and Substance.quantity at root level. Learned: the authoritative current build source satisfies the requested structure.
+- E6 Source source/substance/bundle-Substance-search-params.xml:65 and :103: expiry and quantity search parameters use Substance.expiry and Substance.quantity. Learned: parallel search parameter source is consistent with the moved elements.
+- E7 Jira/Git FHIR-48405 and c7b1723155a5: later Applied issue removed the R5 boolean Substance.instance flag and updated Substance narrative to instance-only. Learned: later source history reinforces no current Substance.instance element should be restored.
+- E8 Zulip #implementers > Substance.instance ?: 2024 thread led to FHIR-48405 after discussion of R4 backbone versus R5 boolean semantics. Learned: community discussion supports treating FHIR-48405 as later context, not a reason to change FHIR-29267 now.
+- E9 Verification command/query: rg over source/substance and source/fhir.ini found current Substance.expiry/Substance.quantity source plus only R5/R6 migration-map references to old Substance.instance paths. Learned: no substantive current Substance.instance backbone remains in active Substance source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-29267",
+    "url": "https://jira.hl7.org/browse/FHIR-29267",
+    "snapshot_path": "contexts/FHIR-29267/jira/FHIR-29267.md",
+    "ref": { "jira_key": "FHIR-29267" },
+    "summary": "Published/Persuasive R5 issue requiring removal of the Substance.instance backbone and relocation of expiry and quantity to Substance.",
+    "learned": "This establishes the seed request and final workflow status.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "OO 2020-10-26 HCP minutes page 97453794",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/97453794/2020-10-26+HCP",
+    "snapshot_path": "contexts/FHIR-29267/confluence/97453794.md",
+    "ref": { "confluence_page_id": 97453794 },
+    "summary": "Minutes record the motion to remove the Substance.instance backbone, add Substance.expiry and Substance.quantity, and use Substance.identifier for instance identifiers, with a 7-0-6 vote.",
+    "learned": "This independently confirms the voted scope captured in Jira.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "ce7d94f0984ae009254c17c60df0d81252aafac0",
+    "ref": { "commit": "ce7d94f0984ae009254c17c60df0d81252aafac0" },
+    "summary": "Commit subject explicitly cites FHIR#29267 and moves Substance instance attributes out of the instance backbone in Substance examples/spreadsheet source.",
+    "learned": "The issue had an explicit source application before this reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "beb040d0608727a093902f91d4e3d6675f0c33f6",
+    "ref": { "commit": "beb040d0608727a093902f91d4e3d6675f0c33f6" },
+    "summary": "Post-R4B restoration changed Substance.instance.expiry and Substance.instance.quantity back to root Substance.expiry and Substance.quantity in the active source path.",
+    "learned": "The R4B compatibility revert did not leave current source in the pre-FHIR-29267 shape.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:225; source/substance/structuredefinition-Substance.xml:227-257",
+    "summary": "Substance is active in fhir.ini, and the current StructureDefinition contains Substance.expiry and Substance.quantity as root elements with no Substance.instance element.",
+    "learned": "The authoritative current build source satisfies the requested structural change.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/substance/bundle-Substance-search-params.xml:65-115",
+    "summary": "The Substance expiry and quantity search parameters use Substance.expiry and Substance.quantity expressions.",
+    "learned": "Parallel search parameter source is consistent with the moved elements.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-48405",
+    "url": "https://jira.hl7.org/browse/FHIR-48405",
+    "snapshot_path": "contexts/FHIR-29267/jira/FHIR-48405.md",
+    "ref": { "jira_key": "FHIR-48405" },
+    "summary": "Later Applied issue makes Substance instance-only and removes the R5 boolean Substance.instance flag.",
+    "learned": "Later decisions reinforce that current source should not reintroduce a Substance.instance element for this seed.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#implementers > Substance.instance ?",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Substance.instance%20%3F",
+    "snapshot_path": "contexts/FHIR-29267/zulip/implementers--Substance.instance.md",
+    "ref": { "stream": "implementers", "topic": "Substance.instance ?" },
+    "summary": "A 2024 implementers thread discussed R4 backbone versus R5 boolean Substance.instance semantics and linked to FHIR-48405.",
+    "learned": "The later community trail explains the subsequent removal of the boolean flag without undermining FHIR-29267's already-applied backbone removal.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Current Substance.instance source search",
+    "command": "rg -n 'Substance\\.instance|<instance>|</instance>|<instance value=|Substance-expiry|Substance-quantity|Substance\\.quantity|Substance\\.expiry' source/substance source/fhir.ini",
+    "summary": "Search found current root Substance.expiry/Substance.quantity definitions and only migration-map references to old Substance.instance paths in fhir.ini.",
+    "learned": "There is no remaining active Substance.instance backbone source to fix for this issue.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,122 @@
+FHIR-13003: Clarify Condition diagnosis encounter guidance
+
+Issue request:
+FHIR-13003 is a Published/Persuasive Patient Care change request raised and applied for DSTU2. It followed the removal of the HL7 v2 DG1-6 Diagnosis Type mapping from Condition.clinicalStatus and asked for Condition documentation explaining how to represent diagnosis type through Encounter context, specifically Encounter.diagnosis.role for uses such as admission diagnosis and Encounter.diagnosis.rank for primary diagnosis ranking.
+
+Initial application:
+The predecessor mapping change appears in commit 8da21fd1e4, which removed DG1-6 from the then-authoritative Condition.clinicalStatus v2 mapping. The FHIR-13003 application itself appears in commit bd3f8a7ba5, which added a Condition note pointing implementers to Encounter.diagnosis.role and Encounter.diagnosis.rank. Later source refactors preserved that narrative, and the already-published FHIR-19285 reconciliation commit 88d048feea updated the stale role/rank links to current Encounter.diagnosis.use and Account.diagnosis.sequence.
+
+Additional context:
+Later Encounter and Account decisions changed the current model that the 2017 note must describe. FHIR-16148 redesigned Encounter.reason and Encounter.diagnosis: admitting diagnosis is now represented as an Encounter.reason value with an Encounter.reason.use code, diagnoses addressed during the encounter use Encounter.diagnosis, and billing-related rank is documented on Account. FHIR-19285 moved ranked billing diagnosis data to Account.diagnosis.sequence, FHIR-23764 confirmed DG1-6 maps to Encounter.diagnosis.use, and FHIR-20484/FHIR-38784/FHIR-38807 already audit the later Encounter diagnosis-use cardinality and wording changes. FHIR-50827 is a later Triaged issue about broader diagnosis-role/value-set gaps, so it is context but not a final source-edit decision for this seed.
+
+AutoFHIR reconciliation:
+This commit updates the active Condition narrative note to include the current location for an admitting diagnosis: Encounter.reason.value with Encounter.reason.use. It leaves the already-correct current guidance for diagnoses addressed during an encounter, via Encounter.diagnosis.use, and billing-related numeric rank, via Account.diagnosis.sequence. Condition, Encounter, and Account are active resources in source/fhir.ini, so this Condition narrative is current build-scope source and the added sentence prevents the old FHIR-13003 admission-diagnosis example from being lost after the Encounter.reason redesign.
+
+Recommendation:
+Keep this source fix. It completes FHIR-13003 for the current model without reopening the broader PA diagnosis-use/value-set work; any remaining questions about discharge diagnosis, comorbidities, pre/post-op diagnosis, or reusable THO value sets should continue under FHIR-50827 and related PA/THO tickets.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13003
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-12988: same-change-family - removed DG1-6 Diagnosis Type from the Condition.clinicalStatus v2 mapping, creating the need for the follow-up Condition note.
+FHIR-16148: later-change - redesigned Encounter.reason and Encounter.diagnosis, including Encounter.reason.use for admitting diagnosis and Account guidance for billing rank.
+FHIR-19285: later-change - moved ranked billing diagnoses from Encounter to Account and already corrected stale Condition note links from Encounter.diagnosis.role/rank to current targets.
+FHIR-23764: same-change-family - confirmed the remaining current HL7 v2 DG1-6 Diagnosis Type mapping on Encounter.diagnosis.use.
+FHIR-20484: background - diagnosis-use cardinality and terminology issue already audited on the combined branch and superseded in part by later Encounter changes.
+FHIR-50827: background - later Triaged issue records broader unresolved diagnosis-role/value-set repair work, outside this seed's final decision scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13003: Published/Persuasive issue requested a Condition note explaining diagnosis type after Condition.clinicalStatus no longer mapped to DG1-6. Learned: the seed requires Condition-facing guidance for Encounter-context diagnosis use and rank.
+- E2 Source source/fhir.ini:181,191,263: Condition, Encounter, and Account are active resources. Learned: the edited Condition note and referenced Encounter/Account definitions are in current build scope.
+- E3 Source source/condition/condition-notes.xml:85-94: Condition now points admitting diagnosis to Encounter.reason.value plus Encounter.reason.use, diagnosis use to Encounter.diagnosis.use, and billing rank to Account.diagnosis.sequence. Learned: the current Condition note preserves the original admission/primary examples using the current model.
+- E4 Source source/encounter/structuredefinition-Encounter.xml:787-823 and source/encounter/codesystem-encounter-reason-use.xml:53-56: Encounter.reason.value explicitly supports coded admission diagnosis and Encounter.reason.use includes Admitting Diagnosis. Learned: the new Condition sentence targets authoritative current Encounter source.
+- E5 Source source/encounter/structuredefinition-Encounter.xml:861-940 and source/account/structuredefinition-Account.xml:474-500: Encounter.diagnosis describes addressed conditions and maps diagnosis.use to DG1-6; Account.diagnosis.sequence supplies billing-related ranking. Learned: the existing related guidance remains correct and should be retained.
+- E6 Git 8da21fd1e4, bd3f8a7ba5, 084c723e14, 88d048feea, d5b1c28a1e: history removed DG1-6 from Condition.clinicalStatus, added the original FHIR-13003 note, reworked Encounter reason/diagnosis, corrected stale Condition role/rank links, and retained DG1-6 on Encounter.diagnosis.use. Learned: the source change is a bounded update to keep the original note accurate after later model changes.
+- E7 Jira/community context: FHIR-16148 and FHIR-19285 are final later decisions supporting Encounter.reason and Account targets; FHIR-50827 is Triaged and records broader unresolved diagnosis-role/value-set work. Zulip #fhir/documents > Discharge report diagnosis highlighted the stale Condition role link, while Confluence searches found no direct FHIR-13003 references and did find PA pages for the later Encounter diagnosis work. Learned: no final community evidence conflicts with this narrow Condition clarification, and broader terminology work should not be decided here.
+- E8 Verification command/query: XML parsed the edited Condition note and referenced Encounter/Account sources; rg confirmed the new links and no remaining Encounter.diagnosis.role/rank links in condition-notes.xml; CRLF-aware diff whitespace check passed. Learned: the edited narrative is well-formed and the targeted stale guidance is corrected.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13003",
+    "url": "https://jira.hl7.org/browse/FHIR-13003",
+    "snapshot_path": "contexts/FHIR-13003/jira/FHIR-13003.md",
+    "ref": { "jira_key": "FHIR-13003" },
+    "summary": "Published/Persuasive Patient Care issue requesting a Condition note on modeling diagnosis type after removing the DG1-6 mapping from Condition.clinicalStatus.",
+    "learned": "This establishes the seed request for Condition-facing guidance that points to Encounter context for diagnosis use and rank.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:181,191,263",
+    "ref": { "path": "source/fhir.ini", "lines": "181,191,263" },
+    "summary": "Condition, Encounter, and Account are active entries under [resources].",
+    "learned": "The edited Condition narrative and referenced Encounter/Account definitions are in current build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/condition/condition-notes.xml:85-94",
+    "ref": { "path": "source/condition/condition-notes.xml", "lines": "85-94" },
+    "summary": "Condition now directs admitting diagnosis to Encounter.reason.value with Encounter.reason.use, diagnosis use to Encounter.diagnosis.use, and billing rank to Account.diagnosis.sequence.",
+    "learned": "The FHIR-13003 note now reflects the current model while preserving the original admission and primary-diagnosis examples.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/encounter/structuredefinition-Encounter.xml:787-823; source/encounter/codesystem-encounter-reason-use.xml:53-56",
+    "ref": { "paths": "source/encounter/structuredefinition-Encounter.xml; source/encounter/codesystem-encounter-reason-use.xml" },
+    "summary": "Encounter.reason.value says admissions can use a coded admission diagnosis, and Encounter Reason Use includes the AD Admitting Diagnosis code.",
+    "learned": "The new Condition sentence points to the authoritative current Encounter location for admitting diagnosis.",
+    "supports": ["additional_context", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/encounter/structuredefinition-Encounter.xml:861-940; source/account/structuredefinition-Account.xml:474-500",
+    "ref": { "paths": "source/encounter/structuredefinition-Encounter.xml; source/account/structuredefinition-Account.xml" },
+    "summary": "Encounter.diagnosis describes addressed conditions and maps diagnosis.use to DG1-6, while Account.diagnosis.sequence provides billing-related ranking.",
+    "learned": "The existing current guidance for diagnosis use and billing rank is correct and should remain alongside the added admission-diagnosis sentence.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "8da21fd1e4; bd3f8a7ba5; 084c723e14; 88d048feea; d5b1c28a1e",
+    "ref": { "commit": "bd3f8a7ba5aba2347a6542d772cdc96897766a9c" },
+    "summary": "History removed DG1-6 from Condition.clinicalStatus, added the original FHIR-13003 note, reworked Encounter reason/diagnosis, corrected stale Condition role/rank links, and retained DG1-6 on Encounter.diagnosis.use.",
+    "learned": "The reconciliation is a narrow update to keep the original note accurate after later Encounter and Account model changes.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-16148, FHIR-19285, and FHIR-50827",
+    "url": "https://jira.hl7.org/browse/FHIR-16148",
+    "snapshot_path": "contexts/FHIR-16148/jira/FHIR-16148.md",
+    "ref": { "jira_key": "FHIR-16148" },
+    "summary": "FHIR-16148 and FHIR-19285 are final later decisions supporting the current Encounter.reason and Account targets; FHIR-50827 is a later Triaged issue about broader diagnosis-role/value-set gaps.",
+    "learned": "Final later decisions justify this narrow source change, while the broader open terminology work should not be decided as part of FHIR-13003.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local XML/link and community verification",
+    "command": "python3 - <<'PY' ... parse source/condition/condition-notes.xml, source/encounter/structuredefinition-Encounter.xml, source/encounter/codesystem-encounter-reason-use.xml, source/account/structuredefinition-Account.xml ... PY; rg -n 'Encounter\\.reason\\.value|Encounter\\.reason\\.use|Encounter\\.diagnosis\\.use|Account\\.diagnosis\\.sequence|Encounter\\.diagnosis\\.(role|rank)' source/condition/condition-notes.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/condition/condition-notes.xml; bun run zulip:search fts '\"Condition\" \"diagnosis type\" \"Encounter.diagnosis\"' --limit 10; bun run confluence:search refs jira FHIR-13003",
+    "query": "FHIR-13003 Condition diagnosis type Encounter.diagnosis",
+    "summary": "XML parsing and whitespace checks passed; rg showed the updated current links and no stale role/rank link in the Condition note; community searches found no direct FHIR-13003 Confluence refs and no final conflicting discussion.",
+    "learned": "The edited narrative is syntactically safe and no discovered final community evidence changes the narrow reconciliation.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

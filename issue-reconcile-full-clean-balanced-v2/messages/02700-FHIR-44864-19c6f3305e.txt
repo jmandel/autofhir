@@ -1,0 +1,109 @@
+FHIR-44864: Audit validate profile target constraint
+
+Issue request:
+FHIR-44864 is an Applied/Persuasive FHIR-I change request for R6 asking that the Resource.$validate input parameter named profile, currently type canonical, be constrained to canonical(StructureDefinition) so unrelated canonical resources such as ActivityDefinition are not valid targets.
+
+Initial application:
+The issue was applied in upstream commit 85f4e0aaf0, which updated source/resource/operationdefinition-Resource-validate.xml and added targetProfile=http://hl7.org/fhir/StructureDefinition/StructureDefinition to the profile parameter. The current source still has exactly one profile input parameter with type canonical and that targetProfile. Later validate-operation cleanup for FHIR-50936 removed a duplicate profile parameter but retained the constrained canonical on the remaining parameter.
+
+Additional context:
+source/fhir.ini lists Resource as an active abstract infrastructure resource, and source/resource/list-Resource-operations.xml references OperationDefinition/Resource-validate, so the checked OperationDefinition is build-scope source. FHIR-I minutes from 2024-03-04 independently record the decision to constrain the validate profile parameter to canonical(StructureDefinition). FHIR-44865 was discussed in the same meeting for the neighboring graph parameter and is already represented on the combined branch, but it does not change the profile parameter decision.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Both the worker source and the current combined branch already constrain Resource.$validate.profile to StructureDefinition, and no later source or community evidence found during this reconciliation contradicts that applied result.
+
+Recommendation:
+Keep this audit commit as-is. No further core FHIR source work is needed for FHIR-44864 unless a future work-group decision changes the allowed canonical target for Resource.$validate.profile.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-44864
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-44865: same-change-family - discussed in the same FHIR-I minutes for the neighboring Resource.$validate graph parameter; already represented on the combined branch and does not alter the profile constraint.
+FHIR-50936: later-change - later validate-operation cleanup removed a duplicate profile parameter while preserving the constrained canonical(StructureDefinition) on the remaining parameter.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-44864: Applied/Persuasive R6 issue requesting that Resource.$validate.profile be constrained to StructureDefinition. Learned: establishes the final source requirement for the profile parameter.
+- E2 Source source/resource/operationdefinition-Resource-validate.xml:92: the profile input parameter is canonical with targetProfile StructureDefinition. Learned: current authoritative operation source already satisfies the request.
+- E3 Source source/fhir.ini:129 and source/resource/list-Resource-operations.xml:9: Resource is active infrastructure and Resource-validate is listed as a Resource operation. Learned: the checked OperationDefinition is in current build scope.
+- E4 Git 85f4e0aaf0 and 142aabe68e: history shows FHIR-44864 added the StructureDefinition targetProfile, and later FHIR-50936 cleanup retained one constrained profile parameter. Learned: initial application occurred and later refactoring did not reverse it.
+- E5 Confluence 225707095: FHIR-I 2024-03-04 minutes record constraining the validate profile parameter to canonical(StructureDefinition). Learned: meeting evidence matches Jira and source history.
+- E6 Command community search: quoted Zulip search for FHIR-44864 and validate/profile/StructureDefinition found no relevant hits; Confluence search found the 2024-03-04 minutes. Learned: no discovered community evidence contradicts the Jira/source conclusion.
+- E7 Verification command/query: git grep checked both the worker source and combined branch for the targetProfile, and Ruby XML/XPath verified exactly one profile parameter constrained to StructureDefinition. Learned: the published branch target state already has the required constraint.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-44864",
+    "url": "https://jira.hl7.org/browse/FHIR-44864",
+    "snapshot_path": "contexts/FHIR-44864/jira/FHIR-44864.md",
+    "ref": { "jira_key": "FHIR-44864" },
+    "summary": "Applied/Persuasive FHIR-I change request asking that Resource.$validate.profile be constrained to canonical(StructureDefinition).",
+    "learned": "This establishes the final R6 requirement and rules out unconstrained canonical targets such as ActivityDefinition.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/resource/operationdefinition-Resource-validate.xml:92",
+    "ref": { "path": "source/resource/operationdefinition-Resource-validate.xml", "line": 92 },
+    "summary": "The Resource.$validate profile input parameter is type canonical and has targetProfile http://hl7.org/fhir/StructureDefinition/StructureDefinition.",
+    "learned": "The authoritative operation source already implements the requested StructureDefinition constraint.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:129; source/resource/list-Resource-operations.xml:9",
+    "ref": { "path": "source/resource/list-Resource-operations.xml", "line": 9 },
+    "summary": "Resource is an active infrastructure resource and Resource-validate is referenced in the Resource operations list.",
+    "learned": "The checked OperationDefinition feeds the current FHIR build and is not stale generated output.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "85f4e0aaf0; 142aabe68e",
+    "ref": { "commits": "85f4e0aaf0,142aabe68e" },
+    "summary": "85f4e0aaf0 added the StructureDefinition targetProfile for FHIR-44864; 142aabe68e later removed a duplicate profile parameter while leaving the constrained one.",
+    "learned": "Source history explains both the original application and why the current single profile parameter remains correct.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2024-03-04 page 225707095",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/225707095/FHIR+Infrastructure+Minutes+CC+2024-03-04",
+    "snapshot_path": "contexts/FHIR-44864/confluence/225707095.md",
+    "ref": { "confluence_page_id": 225707095 },
+    "summary": "FHIR-I minutes record that the validate profile parameter should be constrained to canonical(StructureDefinition).",
+    "learned": "Meeting evidence independently confirms the Jira disposition and supports no additional source change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-44864 validate profile StructureDefinition",
+    "command": "bun run zulip:search fts '\"FHIR-44864\" validate profile StructureDefinition' --limit 10; bun run confluence:search fts '\"FHIR-44864\" validate profile StructureDefinition' --limit 10; bun run confluence:search refs jira FHIR-44864",
+    "query": "FHIR-44864 validate profile StructureDefinition",
+    "result_count": 1,
+    "summary": "No directly relevant Zulip hits were found; Confluence search found the FHIR-I minutes page confirming the decision.",
+    "learned": "No discovered community evidence contradicts the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local and combined branch source verification",
+    "command": "git grep -n -A2 -B6 '<targetProfile value=\"http://hl7.org/fhir/StructureDefinition/StructureDefinition\"' -- source/resource/operationdefinition-Resource-validate.xml; git -C /home/jmandel/work/fhir grep -n -A2 -B6 '<targetProfile value=\"http://hl7.org/fhir/StructureDefinition/StructureDefinition\"' robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/resource/operationdefinition-Resource-validate.xml; ruby -r rexml/document -e '...verify one profile parameter constrained to StructureDefinition...'",
+    "summary": "Both the worker source and current combined branch contain the StructureDefinition targetProfile, and XML/XPath verification found exactly one constrained profile parameter.",
+    "learned": "The branch to be published already has the correct target state for FHIR-44864.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

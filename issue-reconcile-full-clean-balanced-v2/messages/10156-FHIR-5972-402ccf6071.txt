@@ -1,0 +1,96 @@
+FHIR-5972: Audit flag character encoding fix
+
+Issue request:
+FHIR-5972 was a Published/Persuasive FHIR-core change request from DSTU1 reporting mojibake/strange characters in the Flag column of generated structure views on a Windows local build.
+
+Initial application:
+The Jira comments identify the cause as a local Java code-page/encoding problem and say it was fixed in SVN revision 5447. The corresponding git-svn commit is e9a5c6012a8360d509be847ff3c7a77e6da955f7, "#3063 - code generation schemas fixes #5972 - character set issues", with git-svn-id build@5447; it changed several old Java generator/publisher writers from platform-default encoding to UTF-8. Those old Java publisher files are no longer present in the current FHIR source tree.
+
+Additional context:
+The current build is Gradle-based and invokes org.hl7.fhir:kindling rather than the old checked-in publisher sources; git history shows the switch to the Gradle build with Kindling dependency removed the old Publisher.java in 2021. The active build configuration sets -Dfile.encoding=UTF8, the shared generated-page header declares text/html; charset=utf-8, and source/formats.html still contains the intended flag glyphs such as Sigma in UTF-8. A later same-symptom FHIR-ips Jira, FHIR-16150, records that the issue was no longer present in its current build and is outside this FHIR-core reconciliation scope. No Zulip or Confluence evidence was found that changes the Jira/source/history conclusion.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical source fix was already applied, and the current build no longer carries the vulnerable checked-in Java publisher code; the current active source and templates already preserve and declare UTF-8 for pages that display the flag glyphs.
+
+Recommendation:
+Keep this audit commit as-is. Revisit only if a future local build produces mojibake in generated structure-table flags despite the current Gradle/Kindling UTF-8 configuration, in which case the fix would belong in the active Kindling publisher/tooling rather than the removed DSTU1-era Java files.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5972
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-16150: background - Same mojibake symptom in the FHIR-ips flag column; its Jira comment says the issue was no longer present in that current build, and it is outside this FHIR-core branch scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5972: Published/Persuasive issue reporting strange characters in the structure-view Flag column on a Windows local build, with a comment that SVN revision 5447 fixed a Java code-page problem. Learned: this establishes the final request and historical fix locator.
+- E2 Git e9a5c6012a8360d509be847ff3c7a77e6da955f7: git-svn-id build@5447 commit "#3063 - code generation schemas fixes #5972 - character set issues" changed old Java generator/publisher writers to UTF-8. Learned: the Jira-noted fix was applied in source history.
+- E3 Git 9f549566d1346cad7db6d2afca6080d7cebdfbbe: switch to Gradle build with Kindling dependency removed the old checked-in Publisher.java. Learned: the DSTU1-era code path affected by FHIR-5972 is not the current build path.
+- E4 Source build.gradle.kts:46 and gradle.properties:6: current build depends on org.hl7.fhir:kindling and sets org.gradle.jvmargs=-Xmx12800M -Dfile.encoding=UTF8. Learned: current active build configuration is UTF-8-oriented and externalizes publisher implementation to Kindling.
+- E5 Source tools/templates/newheader.html:3 and source/formats.html:78: generated pages declare text/html; charset=utf-8 and the flag legend/source contains the intended Sigma glyph in UTF-8. Learned: current source already conveys the flag glyphs with explicit UTF-8 page metadata.
+- E6 Command community/Jira search: Jira found FHIR-5972 and same-symptom FHIR-16150; Zulip and Confluence searches for Flag column/strange characters found no relevant hits or conflicts. Learned: no discovered community evidence contradicts the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5972",
+    "url": "https://jira.hl7.org/browse/FHIR-5972",
+    "snapshot_path": "contexts/FHIR-5972/jira/FHIR-5972.md",
+    "ref": { "jira_key": "FHIR-5972" },
+    "summary": "Published/Persuasive FHIR-core issue reporting strange characters in the structure-view Flag column on a Windows local build; comments identify a Java code-page issue and say SVN revision 5447 fixed it.",
+    "learned": "This establishes the final issue request and the historical implementation reference to verify.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e9a5c6012a8360d509be847ff3c7a77e6da955f7",
+    "ref": { "commit": "e9a5c6012a8360d509be847ff3c7a77e6da955f7" },
+    "summary": "git-svn-id build@5447 commit changed multiple old Java generator/publisher OutputStreamWriter uses to UTF-8 under the message '#3063 - code generation schemas fixes #5972 - character set issues'.",
+    "learned": "The Jira-noted SVN revision was applied in source history as an encoding fix.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "9f549566d1346cad7db6d2afca6080d7cebdfbbe",
+    "ref": { "commit": "9f549566d1346cad7db6d2afca6080d7cebdfbbe" },
+    "summary": "The 2021 commit 'switching over to gradle build with kindling dependency' added build.gradle.kts and removed the old checked-in tools/java Publisher.java.",
+    "learned": "The code path fixed for FHIR-5972 is no longer present in the current FHIR checkout.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "build.gradle.kts:46-48; gradle.properties:6",
+    "ref": { "path": "build.gradle.kts" },
+    "summary": "Current build depends on org.hl7.fhir:kindling:${property(\"kindlingVersion\")} and sets org.gradle.jvmargs=-Xmx12800M -Dfile.encoding=UTF8.",
+    "learned": "The active build source is the Kindling publisher dependency with UTF-8 JVM settings, not the removed DSTU1-era Java publisher files.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "tools/templates/newheader.html:3; source/formats.html:78,85,143",
+    "ref": { "path": "tools/templates/newheader.html" },
+    "summary": "Shared page header declares text/html; charset=utf-8, while source/formats.html contains the intended Flag-column Sigma glyph in UTF-8.",
+    "learned": "The current source already carries explicit UTF-8 page metadata for pages that display the flag glyphs.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-5972 and flag-column mojibake",
+    "command": "bun run jira:search fts '\"weird-looking flags\" OR \"strange characters\" OR \"Flag column\"' --limit 10; bun run zulip:search fts '\"Flag column\" \"strange characters\"' --limit 10; bun run confluence:search refs jira FHIR-5972; bun run confluence:search fts '\"Flag column\" \"strange characters\"' --limit 10",
+    "query": "weird-looking flags / strange characters / Flag column",
+    "result_count": 2,
+    "summary": "Jira found FHIR-5972 and same-symptom FHIR-16150; Zulip and Confluence found no relevant hits or references.",
+    "learned": "No discovered community record changes the conclusion that FHIR-5972 was already applied and now needs only a core audit record.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

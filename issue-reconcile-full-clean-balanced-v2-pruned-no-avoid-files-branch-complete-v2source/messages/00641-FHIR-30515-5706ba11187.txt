@@ -1,0 +1,107 @@
+FHIR-30515: Align $translate dependsOn value types
+
+Issue request:
+FHIR-30515 was Published/Persuasive for R5 and asked ConceptMap/$translate to expose the ConceptMap target.dependsOn information in each output match, alongside the related match.product corrections from FHIR-28284. The final resolution added match.dependsOn with property/value sub-parts, required the value to support the same polymorphic choices used for ConceptMap dependsOn/product values, and noted that OperationDefinition needed allowed-type support.
+
+Initial application:
+Commit 3a8665b9c2 added match.dependsOn and changed match.product for the original R5 ConceptMap work, and later ConceptMap2-to-ConceptMap and OperationDefinition refactors converted the value choices to allowedType. The source therefore already exposed match.dependsOn, but later model changes left the match.dependsOn.value allowedType list stale while match.product.value and dependency.value had been updated.
+
+Additional context:
+ConceptMap is active in source/fhir.ini and source/conceptmap/list-ConceptMap-operations.xml includes OperationDefinition/ConceptMap-translate, so the operation definition is in current build scope. FHIR-40504 split mapping properties from source/target additional attributes and made the current ConceptMap additional-attribute value set code, Coding, string, boolean, Quantity; the already-published FHIR-33032 reconciliation added id. In current source, ConceptMap.group.element.target.product inherits the dependsOn backbone by contentReference, and match.product.value already matched that active model, but match.dependsOn.value still listed integer, dateTime, decimal, and uri and omitted Quantity.
+
+AutoFHIR reconciliation:
+Updated source/conceptmap/operationdefinition-ConceptMap-translate.xml so match.dependsOn.value allows code, Coding, string, boolean, Quantity, and id, matching ConceptMap.group.element.target.dependsOn.value[x], ConceptMap.group.element.target.product, dependency.value, and match.product.value.
+
+Recommendation:
+Keep this source fix. It completes the already-applied FHIR-30515 output parameter by aligning the active $translate dependsOn response surface with the current ConceptMap additional-attribute model and does not reopen related ConceptMap policy decisions already represented by FHIR-40504 and FHIR-33032 commits.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-30515
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-28284: same-change-family - introduced the choice-typed ConceptMap dependsOn/product model that FHIR-30515 needed to expose in $translate output.
+FHIR-40504: later-change - split ConceptMap mapping properties from additional attributes and changed the active dependsOn/product value type surface that $translate must mirror.
+FHIR-33032: later-change - added id to ConceptMap dependsOn/product values; already represented on the combined branch and included in the target allowedType list.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-30515: Published/Persuasive issue requiring match.dependsOn output and match.product value-shape corrections for ConceptMap/$translate. Learned: this establishes the final WG request for the operation response.
+- E2 Source source/fhir.ini:170,228 and source/conceptmap/list-ConceptMap-operations.xml:7: ConceptMap is active and lists OperationDefinition/ConceptMap-translate. Learned: the edited OperationDefinition is in current build scope.
+- E3 Source source/conceptmap/operationdefinition-ConceptMap-translate.xml:306-331: match.dependsOn.value now allows code, Coding, string, boolean, Quantity, and id. Learned: the $translate output now exposes dependsOn values with the current permitted type set.
+- E4 Source source/conceptmap/structuredefinition-ConceptMap.xml:1113-1135: ConceptMap.group.element.target.dependsOn.value[x] uses code, Coding, string, boolean, Quantity, and id, with product inheriting by contentReference. Learned: this is the authoritative ConceptMap type set that match.dependsOn must mirror.
+- E5 Git 3a8665b9c2, 0de5092965, 6467204012, cfbb2d718b: history shows initial FHIR-30515 application, later FHIR-40504 additional-attribute refactor, OperationDefinition allowedType migration, and FHIR-33032 id restoration. Learned: the current mismatch was a leftover from later refactoring, not a new policy decision.
+- E6 Zulip/Confluence: #terminology ConceptMap/$translate with product and VOC 2021-08-25 minutes discuss the missing product/dependsOn outputs and the allowed-type extension approach. Learned: community evidence supports exposing named output parts and reveals no contrary later decision.
+- E7 Verification command: XML parse, diff whitespace check, and a Ruby comparison of OperationDefinition allowedType lists to ConceptMap.group.element.target.dependsOn.value[x] passed. Learned: the edited XML is well-formed and the operation output type lists match the active ConceptMap model.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-30515",
+    "url": "https://jira.hl7.org/browse/FHIR-30515",
+    "snapshot_path": "contexts/FHIR-30515/jira/FHIR-30515.md",
+    "ref": { "jira_key": "FHIR-30515" },
+    "summary": "Published/Persuasive R5 change request requiring ConceptMap/$translate to include match.dependsOn and align match.product value handling with FHIR-28284.",
+    "learned": "The final WG decision requires the operation response to expose dependsOn values with the ConceptMap dependsOn/product choice-type surface.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,228; source/conceptmap/list-ConceptMap-operations.xml:7",
+    "ref": { "paths": "source/fhir.ini; source/conceptmap/list-ConceptMap-operations.xml" },
+    "summary": "ConceptMap is an active resource and its operations list includes OperationDefinition/ConceptMap-translate.",
+    "learned": "The edited OperationDefinition is part of the current FHIR build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/conceptmap/operationdefinition-ConceptMap-translate.xml:306-331",
+    "ref": { "path": "source/conceptmap/operationdefinition-ConceptMap-translate.xml" },
+    "summary": "match.dependsOn.value now allows code, Coding, string, boolean, Quantity, and id.",
+    "learned": "The $translate response surface now exposes dependsOn values using the current ConceptMap additional-attribute value types.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/conceptmap/structuredefinition-ConceptMap.xml:1113-1135",
+    "ref": { "path": "source/conceptmap/structuredefinition-ConceptMap.xml" },
+    "summary": "ConceptMap.group.element.target.dependsOn.value[x] allows code, Coding, string, boolean, Quantity, and id; product inherits this backbone by contentReference.",
+    "learned": "This is the authoritative type surface that the $translate match.dependsOn and match.product outputs need to mirror.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "3a8665b9c2; 0de5092965; 6467204012; cfbb2d718b",
+    "ref": { "commits": "3a8665b9c2b5a4af6baca0596216e94e7c03eb37; 0de50929651b993c121ffcb923cee673f52b1838; 646720401223f784271c0f6c478484a47094dc06; cfbb2d718b69fa4ab8ceef6e2b4eb5df3f18f8ae" },
+    "summary": "History shows the initial match.dependsOn addition, the FHIR-40504 additional-attribute refactor, the allowedType migration, and the FHIR-33032 id restoration.",
+    "learned": "The remaining mismatch was caused by later refactoring leaving match.dependsOn.value behind while adjacent surfaces were updated.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#terminology > ConceptMap/$translate with product; VOC FHIR Tracker Issues 2021-08-25 minutes",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/ConceptMap%2F%24translate%20with%20product",
+    "ref": { "stream": "terminology", "topic": "ConceptMap/$translate with product", "confluence_page_id": 77366824 },
+    "summary": "The Zulip thread raised missing product and dependsOn output parts, and the VOC minutes record the allowed-type extension path and re-vote for FHIR-30515.",
+    "learned": "Community evidence supports exposing named output parts and does not change the Jira/source conclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Source verification",
+    "command": "xmllint --noout source/conceptmap/operationdefinition-ConceptMap-translate.xml source/conceptmap/structuredefinition-ConceptMap.xml source/conceptmap/codesystem-conceptmap-attribute-type.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/conceptmap/operationdefinition-ConceptMap-translate.xml; ruby -r rexml/document -e 'compare OperationDefinition match.product/match.dependsOn allowedType lists to ConceptMap.group.element.target.dependsOn.value[x]'",
+    "summary": "XML parsing and whitespace checks passed; the comparison reported model=code,Coding,string,boolean,Quantity,id and matching match.product and match.dependsOn lists.",
+    "learned": "The source edit is syntactically valid and satisfies the exact type-alignment requirement.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

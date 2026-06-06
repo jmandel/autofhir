@@ -1,0 +1,117 @@
+FHIR-23764: Map Encounter diagnosis condition to DG1-3
+
+Issue request:
+FHIR-23764 is Published/Persuasive for FHIR-core Encounter mappings. It asked Patient Administration to update the HL7 v2 mapping table so DG1-3 (Diagnosis Code) maps to Encounter.diagnosis.condition, DG1-6 (Diagnosis Type) maps to Encounter.diagnosis.use, and DG1-15 (Diagnosis Priority) maps to Encounter.diagnosis.rank.
+
+Initial application:
+The Jira-tagged source commit cce27af6a4 added the DG1-6 mapping to Encounter.diagnosis.use and the then-valid DG1-15 mapping to Encounter.diagnosis.rank, but it left Encounter.diagnosis.condition with an older generic Encounter.indication/Condition-or-Procedure v2 mapping instead of the requested DG1-3 mapping.
+
+Additional context:
+Encounter is an active current resource in source/fhir.ini, so source/encounter/structuredefinition-Encounter.xml is in build scope. Later Encounter/Account decisions changed the current model: FHIR-16148 made Encounter.diagnosis.condition a CodeableReference to Condition and directed billing diagnoses with ranking to Account, and FHIR-19285 added Account.diagnosis.sequence for ranked billing diagnoses. The current fhir.ini migration table records Encounter.diagnosis.rank as moved to Account.diagnosis.sequence, so restoring Encounter.diagnosis.rank or its v2 mapping would be wrong for the current build.
+
+AutoFHIR reconciliation:
+This commit replaces the stale v2 mapping on Encounter.diagnosis.condition with DG1-3 (Diagnosis Code). The existing DG1-6 mapping on Encounter.diagnosis.use is retained, and no DG1-15 mapping is restored on Encounter because that element no longer exists in the current source.
+
+Recommendation:
+Keep this commit as-is for FHIR-23764. It completes the remaining current Encounter mapping correction while respecting the later PA decisions that moved ranked billing diagnosis information to Account; broader Account v2 mapping coverage, if desired, should be handled as a separate Account mapping decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-23764
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-16148: later-change - Restructured Encounter.reason and Encounter.diagnosis and states that billing diagnoses can be documented on Account where ranking is supported.
+FHIR-19285: later-change - Moved ranked billing diagnosis and procedure information from Encounter to Account, creating the current successor for Encounter.diagnosis.rank.
+FHIR-38807: same-change-family - Recorded that outstanding Encounter reason/diagnosis Jira changes needed to be applied for R5, explaining the later source refactor context.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-23764: Published/Persuasive PA issue requested DG1-3, DG1-6, and DG1-15 Encounter v2 mappings. Learned: this establishes the final requested mapping change.
+- E2 Confluence PA 2020 Feb WGM Minutes page 76153672: records "FHIR-23764 - Encounter v2 mappings Update the mappings as provided" with a 6-0-7 vote. Learned: PA meeting evidence confirms the Jira disposition.
+- E3 Git cce27af6a4: FHIR-23764 source commit added DG1-6 and DG1-15 mappings. Learned: initial application was partial because DG1-3 was not added to Encounter.diagnosis.condition.
+- E4 Source source/encounter/structuredefinition-Encounter.xml:905 and :934: current source maps Encounter.diagnosis.condition to DG1-3 and Encounter.diagnosis.use to DG1-6. Learned: the remaining current Encounter mappings now match the applicable Jira request.
+- E5 Jira FHIR-16148 and FHIR-19285 plus source/fhir.ini:1722: later decisions moved billing diagnosis ranking out of Encounter, with Encounter.diagnosis.rank redirected to Account.diagnosis.sequence. Learned: DG1-15 must not be restored on current Encounter.
+- E6 Source source/fhir.ini:191: Encounter is active in the current build. Learned: the edited StructureDefinition is authoritative current source.
+- E7 Community search: quoted Zulip search for "FHIR-23764" Encounter DG1 mapping found no hits; Confluence refs found the PA WGM minutes and quoted Confluence FTS found no additional conflicting hits. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E8 Verification command: git diff --check with CRLF-aware whitespace settings and Python ElementTree parse of source/encounter/structuredefinition-Encounter.xml succeeded. Learned: the edited XML is well-formed and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-23764",
+    "url": "https://jira.hl7.org/browse/FHIR-23764",
+    "snapshot_path": "autofhir/runs/issue-reconcile-full-clean-balanced-v2/contexts/FHIR-23764/jira/FHIR-23764.md",
+    "ref": { "jira_key": "FHIR-23764" },
+    "summary": "Published/Persuasive PA issue requesting HL7 v2 DG1 mappings for Encounter.diagnosis.condition, Encounter.diagnosis.use, and Encounter.diagnosis.rank.",
+    "learned": "This is the final work-group request that drives the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "PA 2020 Feb WGM Minutes page 76153672",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/76153672/2020+Feb+WGM+Minutes",
+    "ref": { "confluence_page_id": 76153672 },
+    "summary": "Minutes record FHIR-23764 as 'Encounter v2 mappings' with 'Update the mappings as provided' and a 6-0-7 vote.",
+    "learned": "The PA minutes corroborate the Jira vote and requested action.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "cce27af6a4",
+    "ref": { "commit": "cce27af6a46604f1a8f558489954a4bfc1738821" },
+    "summary": "The Jira-tagged FHIR-23764 commit added DG1-6 and DG1-15 mappings to Encounter but did not add DG1-3 to Encounter.diagnosis.condition.",
+    "learned": "The original application was incomplete for the condition mapping.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/encounter/structuredefinition-Encounter.xml:905,934",
+    "summary": "Encounter.diagnosis.condition now maps to DG1-3 (Diagnosis Code), while Encounter.diagnosis.use already maps to DG1-6 (Diagnosis Type).",
+    "learned": "The current Encounter source now carries the applicable v2 mappings from FHIR-23764.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-16148 and FHIR-19285",
+    "url": "https://jira.hl7.org/browse/FHIR-19285",
+    "ref": { "jira_key": "FHIR-19285" },
+    "summary": "Later PA decisions reworked Encounter diagnosis and moved ranked billing diagnosis data from Encounter to Account.",
+    "learned": "Encounter.diagnosis.rank is no longer a current Encounter element, so the old DG1-15 mapping should not be restored there.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:191,1722",
+    "summary": "fhir.ini lists encounter=Encounter as active and records Encounter.diagnosis.rank as moved to Account.diagnosis.sequence.",
+    "learned": "The edited Encounter source is in build scope, and the removed rank element has a current migration target outside Encounter.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-23764 Encounter DG1 mapping",
+    "command": "bun run zulip:search fts '\"FHIR-23764\" Encounter DG1 mapping' --limit 10; bun run confluence:search refs jira FHIR-23764; bun run confluence:search fts '\"FHIR-23764\" Encounter DG1' --limit 10",
+    "query": "\"FHIR-23764\" Encounter DG1 mapping",
+    "summary": "Zulip found no hits; Confluence refs found the PA WGM minutes; quoted Confluence FTS found no additional conflicting hits.",
+    "learned": "No discovered community record conflicts with the Jira/source reconciliation.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local XML and whitespace verification",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/encounter/structuredefinition-Encounter.xml; python3 -c 'import xml.etree.ElementTree as ET; ET.parse(\"source/encounter/structuredefinition-Encounter.xml\")'",
+    "summary": "Whitespace check passed and the edited Encounter StructureDefinition parsed as XML.",
+    "learned": "The source edit is syntactically safe.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

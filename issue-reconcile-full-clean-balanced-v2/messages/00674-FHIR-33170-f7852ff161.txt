@@ -1,0 +1,107 @@
+FHIR-33170: Audit summary ancestor tooling handoff
+
+Issue request:
+FHIR-33170 is Applied/Persuasive with Modification. It asked that when a BackboneElement descendant is marked _summary, the BackboneElement ancestors also be marked _summary; the approved resolution was to change tooling so ancestors are marked automatically and tooling errors if a summary BackboneElement has no summary children.
+
+Initial application:
+The Security examples were partially applied in core source by commit 2c7d674ebe5bfdd04b2239cbb6d5990931b20aad, which added isSummary=true to Provenance.agent, Provenance.entity, AuditEvent.agent, AuditEvent.source, and AuditEvent.entity. That commit did not implement the approved tooling behavior, and the FHIR source checkout does not contain Kindling source; it consumes org.hl7.fhir:kindling as an external Gradle dependency.
+
+Additional context:
+FHIR-I minutes on 2021-11-29 record the formal 17-0-0 decision that if a descendant is _summary, the backbone element needs to be _summary and the change belongs to FHIR-Tooling-Core. Zulip follow-up in 2022-2023 records that only Provenance/AuditEvent had been fixed manually and the problem persisted, specifically CareTeam.participant. Current source and build checks still show active build-scope examples such as CareTeam.participant and Goal.target lacking isSummary while their descendants have it, and HL7/kindling#173 is open/reopened for the approved tooling work.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no core source change. A broad manual sweep of active resource StructureDefinitions would paper over current examples but would not implement the approved automatic ancestor propagation or validation rule, and it would overlap unresolved follow-up issues such as FHIR-34180. The remaining actionable change is in the external Kindling tooling repository.
+
+Recommendation:
+Keep this audit commit as an external-repo decision for core. Complete HL7/kindling#173 so the publisher propagates summary flags to BackboneElement ancestors and validates the inverse rule; only consider manual core source cleanup as a separate editor/work-group decision if tooling cannot land in time.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-33170
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-34180: same-change-family - Patient Care follow-up lists CareTeam.participant and Goal.target and is still Waiting for Input pending the FHIR-33170 tooling fix.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-33170: Applied/Persuasive with Modification, vote 17-0-0, resolution directs tooling to propagate _summary to BackboneElement ancestors and validate summary parents. Learned: final WG intent is tooling-wide, not just a local Security resource edit.
+- E2 Confluence FHIR-I Minutes 2021-11-29 page 81010491: records “Yes, if the descendant is _summary, then the back-bone element need to be _summary” and “Change to FHIR-Tooling-Core.” Learned: FHIR-I confirmed the cross-cutting tooling scope.
+- E3 Git 2c7d674ebe5bfdd04b2239cbb6d5990931b20aad: Feb 2022 Security update manually added isSummary to the Provenance and AuditEvent backbone parents named by the seed. Learned: initial application fixed seed artifacts manually but did not implement tooling.
+- E4 Source/build check: source/fhir.ini lists Provenance, AuditEvent, CareTeam, and Goal as active resources; current source has Provenance/AuditEvent parents summary=true but CareTeam.participant and Goal.target summary=false with summary descendants. Learned: the general rule still has current build-scope misses.
+- E5 Zulip #committers “sub elements are _summary but the parent element isn't”: 2022-2023 thread says the tooling fix was not visible, John Moehrke only fixed Provenance/AuditEvent, and CareTeam.participant still fails. Learned: community follow-up confirms partial application and persistent tooling gap.
+- E6 GitHub HL7/kindling#173: open/reopened issue “Tooling automate summary ancestor handling” copies the FHIR-33170 resolution. Learned: the remaining approved implementation is tracked outside the core source checkout.
+- E7 Jira FHIR-34180: Waiting for Input Patient Care issue for Condition/CareTeam/Goal, explicitly waiting to confirm FHIR-33170 tooling. Learned: related resource-specific examples are not final independent source-edit decisions for this default run.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-33170",
+    "url": "https://jira.hl7.org/browse/FHIR-33170",
+    "snapshot_path": "contexts/FHIR-33170/jira/FHIR-33170.md",
+    "ref": { "jira_key": "FHIR-33170" },
+    "summary": "Applied/Persuasive with Modification issue requiring BackboneElement ancestors to be summary when descendants are summary and asking tooling to enforce the rule.",
+    "learned": "This establishes the final approved request and that the intended implementation is tooling-wide.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2021-11-29 page 81010491",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/81010491/FHIR+Infrastructure+Minutes+CC+20211129",
+    "ref": { "confluence_page_id": 81010491 },
+    "summary": "Minutes record the 17-0-0 FHIR-I decision that a BackboneElement needs _summary when a descendant is _summary and classify the change as FHIR-Tooling-Core.",
+    "learned": "This confirms the cross-cutting tooling scope and prevents treating this only as local Security resource cleanup.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "2c7d674ebe5bfdd04b2239cbb6d5990931b20aad",
+    "ref": { "commit": "2c7d674ebe5bfdd04b2239cbb6d5990931b20aad" },
+    "summary": "The Feb 2022 Security update added isSummary=true to the Provenance and AuditEvent backbone parents named in the seed.",
+    "learned": "Initial application manually fixed the seed artifacts but did not implement the approved tooling behavior.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current source summary scan and fhir.ini build-scope check",
+    "command": "python3 summary scan over source/*/structuredefinition-*.xml plus source/fhir.ini [resources]; curl -fsSL https://build.fhir.org/careteam.profile.json",
+    "summary": "Provenance.agent/entity and AuditEvent.agent/source/entity are summary=true; CareTeam.participant and Goal.target are active build-scope backbones with summary=false while descendants are summary=true, and the current build shows CareTeam.participant false.",
+    "learned": "The named Security artifacts are fixed, but the approved general rule remains unimplemented in current build-scope content.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#committers > sub elements are _summary but the parent element isn't",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/sub%20elements%20are%20_summary%20but%20the%20parent%20element%20isn't",
+    "summary": "The 2022-2023 thread says the tooling fix was not visible, John Moehrke only fixed Provenance/AuditEvent, and CareTeam.participant still lacked summary.",
+    "learned": "Community follow-up confirms the applied Jira was only partially applied in core source and still needs tooling.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "web",
+    "locator": "HL7/kindling#173",
+    "url": "https://github.com/HL7/kindling/issues/173",
+    "ref": { "issue": 173, "repository": "HL7/kindling" },
+    "summary": "Open/reopened Kindling issue titled 'Tooling automate summary ancestor handling' copies the FHIR-33170 resolution.",
+    "learned": "The remaining actionable implementation is in an external repository consumed by the core build.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-34180",
+    "url": "https://jira.hl7.org/browse/FHIR-34180",
+    "ref": { "jira_key": "FHIR-34180" },
+    "summary": "Waiting for Input Patient Care issue listing CareTeam.participant and Goal.target and saying it waits until the FHIR-33170 tooling fix can be confirmed.",
+    "learned": "This related issue is background only and should not be independently decided in this default applied/published run.",
+    "supports": ["related_jiras", "source_change_scope"]
+  }
+]
+</evidence-manifest>

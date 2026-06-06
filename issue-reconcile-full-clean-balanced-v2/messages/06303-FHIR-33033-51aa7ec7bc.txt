@@ -1,0 +1,116 @@
+FHIR-33033: Align BDP storage ModelInfo
+
+Issue request:
+FHIR-33033 was a Published/Persuasive with Modification OO change request for R5. It asked to change BiologicallyDerivedProduct.storage.temperature from a single decimal value to a range and to remove the .scale attribute because biologically derived product storage requirements are specified as lower/upper temperature ranges.
+
+Initial application:
+The primary BiologicallyDerivedProduct source appears to have been applied before this reconciliation as part of the broader BDP resource replacement committed in a261b7c6662ea3b212f0c8e20c83c3ada67cbee1 for FHIR-33068. That patch removed the old BiologicallyDerivedProduct.storage backbone with storage.temperature decimal and storage.scale, added BiologicallyDerivedProduct.storageTempRequirements as Range, and updated the example to use low/high temperature bounds. Current release notes also record that .storage.temperature was renamed .storageTempRequirements and is now a Range. No separate git commit explicitly mentioning FHIR-33033 was found.
+
+Additional context:
+BiologicallyDerivedProduct is active in the current build through source/fhir.ini. The FHIR ModelInfo sidecar is also an active publication surface: the Library examples page links source/library/library-fhir-model-definition-content.xml as the FHIR model information file used by CQL tooling, and publish.ini copies that content file. That sidecar still exposed the removed BDP storage backbone, decimal temperature, and BiologicallyDerivedProductStorageScale model/helper even though the authoritative StructureDefinition and examples already use storageTempRequirements as Range. FHIR-33068 is same-change-family context for the broader BDP table that included storageTempRequirements and is already represented on the combined branch. OO minutes and targeted Zulip searches did not reveal a conflicting decision.
+
+AutoFHIR reconciliation:
+Updated the active FHIR ModelInfo sidecar so BiologicallyDerivedProduct exposes storageTempRequirements as FHIR.Range instead of the removed storage list. Removed the stale BiologicallyDerivedProduct.Storage class, BiologicallyDerivedProductStorageScale model type, conversion metadata, and FHIRHelpers ToString overload, then refreshed the embedded Library payloads so they match their sidecar content files. The authoritative BiologicallyDerivedProduct StructureDefinition and examples were left unchanged because they already express the accepted range-based storage requirement.
+
+Recommendation:
+Keep this commit. It completes the FHIR-33033 storage change across the active CQL ModelInfo publication surface without taking over unrelated BiologicallyDerivedProduct model drift. Any remaining BDP ModelInfo mismatches should be reconciled under their own Jira evidence trail; the product-storage-scale OID registry rows were not removed because no current source value set/code system uses them and assigned OIDs may remain as historical registry data.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-33033
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-33068: same-change-family - broader Published BDP additional-information replacement included storageTempRequirements as Range and appears to be the source-history path that initially applied the FHIR-33033 storage change; already represented on the combined branch by d9918258cfd4cf6b552b726e7c0aba535576c368.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-33033: Published/Persuasive with Modification request to change BDP storage temperature from decimal to range and remove .scale. Learned: establishes the final accepted storage modeling target.
+- E2 Source source/fhir.ini:295; source/biologicallyderivedproduct/structuredefinition-BiologicallyDerivedProduct.xml:361-370; source/biologicallyderivedproduct/biologicallyderivedproduct-example.xml:29-40; source/biologicallyderivedproduct/BiologicallyDerivedProduct-release-notes.xml:7: BDP is active, the StructureDefinition defines storageTempRequirements as Range, examples use low/high Range bounds, and release notes document the rename. Learned: the authoritative resource source already has the accepted range element.
+- E3 Git a261b7c6662ea3b212f0c8e20c83c3ada67cbee1: BDP resource replacement removed storage.temperature/storage.scale and added storageTempRequirements Range while updating the example. Learned: the initial application path is present even though it was committed under FHIR-33068 rather than explicitly under FHIR-33033.
+- E4 Source source/library/library-examples-header.xml:40-42; publish.ini:206: the FHIR ModelInfo sidecar is linked as Library example content and copied by publication configuration. Learned: the edited ModelInfo files are current build/publication surfaces, not out-of-scope debris.
+- E5 Source source/library/library-fhir-model-definition-content.xml:6170; source/library/library-fhir-helpers-content.cql:186-194; source/library/library-fhir-model-definition.xml:278; source/library/library-fhir-helpers.xml:345: ModelInfo now exposes storageTempRequirements as FHIR.Range, no longer carries the old BDP storage/storage-scale type/conversion/helper, and the embedded Library payloads match their sidecars. Learned: the stale active model surface for this issue was corrected.
+- E6 Jira FHIR-33068 and Confluence OO HCP minutes 2021-07-26 page 120750786: same BDP discussion family included storageTempRequirements as Range, and minutes record FHIR-33033 was voted persuasive. Learned: related formal/community evidence supports the range-based storage modeling and does not broaden this commit beyond the storage issue.
+- E7 Command community searches: Jira search found FHIR-33033 and same-family FHIR-33068, Confluence refs found OO HCP minutes, and targeted Zulip searches for FHIR-33033/storage temperature BDP terms found no direct conflicting hits. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E8 Verification command/query: XML parsing, embedded payload equality, stale-term grep for BiologicallyDerivedProductStorageScale and FHIR.BiologicallyDerivedProduct.Storage, and CRLF-aware diff checks passed. Learned: the edited sidecars are syntactically coherent and the targeted stale model terms were removed from active library source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-33033",
+    "url": "https://jira.hl7.org/browse/FHIR-33033",
+    "snapshot_path": "contexts/FHIR-33033/jira/FHIR-33033.md",
+    "ref": { "jira_key": "FHIR-33033" },
+    "summary": "Published/Persuasive with Modification R5 issue requesting BiologicallyDerivedProduct storage temperature be represented as a range and the .scale attribute be removed.",
+    "learned": "This establishes the accepted storage modeling target for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:295; source/biologicallyderivedproduct/structuredefinition-BiologicallyDerivedProduct.xml:361-370; source/biologicallyderivedproduct/biologicallyderivedproduct-example.xml:29-40; source/biologicallyderivedproduct/BiologicallyDerivedProduct-release-notes.xml:7",
+    "ref": { "path": "source/biologicallyderivedproduct/structuredefinition-BiologicallyDerivedProduct.xml", "start_line": 361, "end_line": 370 },
+    "summary": "BiologicallyDerivedProduct is active and its authoritative source defines storageTempRequirements as Range, with examples using low/high Range bounds and release notes documenting the storage.temperature rename.",
+    "learned": "The primary resource source already reflects the accepted FHIR-33033 change.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "a261b7c6662ea3b212f0c8e20c83c3ada67cbee1",
+    "ref": { "commit": "a261b7c6662ea3b212f0c8e20c83c3ada67cbee1" },
+    "summary": "The BDP resource replacement committed for FHIR-33068 removed storage.temperature/storage.scale, added storageTempRequirements as Range, and updated the example with low/high bounds.",
+    "learned": "FHIR-33033 was historically applied through the same BDP change family even though no commit explicitly named the seed issue.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/library/library-examples-header.xml:40-42; publish.ini:206",
+    "ref": { "path": "publish.ini", "start_line": 206, "end_line": 206 },
+    "summary": "The Library examples page links the FHIR ModelInfo sidecar and publish.ini copies source/library/library-fhir-model-definition-content.xml into the publication output.",
+    "learned": "The edited ModelInfo sidecar is a current build/publication surface.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:6170; source/library/library-fhir-helpers-content.cql:186-194; source/library/library-fhir-model-definition.xml:278; source/library/library-fhir-helpers.xml:345",
+    "ref": { "path": "source/library/library-fhir-model-definition-content.xml", "start_line": 6170, "end_line": 6170 },
+    "summary": "ModelInfo now exposes BiologicallyDerivedProduct.storageTempRequirements as FHIR.Range and no longer carries the obsolete BiologicallyDerivedProduct.Storage or BiologicallyDerivedProductStorageScale helper/conversion; embedded Library payloads were refreshed.",
+    "learned": "The active stale model surface for FHIR-33033 has been corrected.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "OO HCP minutes 2021-07-26 page 120750786",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/120750786/2021-07-26+HCP",
+    "ref": { "confluence_page_id": 120750786 },
+    "summary": "OO HCP minutes list FHIR-33033 in the BiologicallyDerivedProduct discussion and record that it was voted persuasive and added to the next block vote.",
+    "learned": "Meeting evidence is consistent with the Jira disposition and range-based storage change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and related issue searches for FHIR-33033 BDP storage temperature",
+    "command": "bun run jira:search fts '\"FHIR-33033\" OR \"storage temperature\" biologically derived product range scale' --limit 20; bun run confluence:search refs jira FHIR-33033; bun run zulip:search fts '\"FHIR-33033\" \"BiologicallyDerivedProduct\"' --limit 10; bun run zulip:search fts '\"storage temperature\" \"biologically derived product\"' --limit 10",
+    "query": "FHIR-33033 storage temperature biologically derived product range scale",
+    "summary": "Jira search found the seed and same-family BDP context, Confluence found OO HCP minutes, and targeted Zulip searches found no directly relevant conflicting hits.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "ModelInfo validation commands",
+    "command": "python3 XML parse and embedded payload equality checks; rg -n 'BiologicallyDerivedProductStorageScale|FHIR\\.BiologicallyDerivedProduct\\.Storage|<ns4:element name=\"storage\"' source/library || true; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "XML parsing, embedded payload equality, targeted stale-term grep, and CRLF-aware diff checks passed.",
+    "learned": "The edited ModelInfo sidecars are coherent and the targeted old storage model terms no longer remain in active library source.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

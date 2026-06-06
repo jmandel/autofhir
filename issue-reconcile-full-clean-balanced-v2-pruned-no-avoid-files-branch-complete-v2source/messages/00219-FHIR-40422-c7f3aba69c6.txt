@@ -1,0 +1,135 @@
+FHIR-40422: Complete group-level Measure subject support
+
+Issue request:
+FHIR-40422 was Applied/Persuasive for R5. It asked to allow a measure subject to be specified per group by relaxing Measure.library to 0..*, adding Measure.group.subject, Measure.group.library, Measure.group.rateAggregation, adding matching MeasureReport.group.subject, constraining library/subject/rateAggregation to appear either at the root or on all groups exclusively, adding overview guidance, updating $evaluate-measure, $collect-data, and $care-gaps to accept multiple subjects with individual-vs-population mode rules, and ensuring the composite-measure reuse context stayed aligned.
+
+Initial application:
+The explicit application commit c35d5cc2cf2596d936c47abfbe37c538a8abaa85 added Measure.group.subject, Measure.group.library, Measure.group.rateAggregation, and MeasureReport.group.subject, and the current Measure.library cardinality is already 0..*. That commit did not add the requested exclusivity invariants, did not update the operation subject cardinalities, and left quality-reporting guidance saying Measures should reference only one Library.
+
+Additional context:
+Measure and MeasureReport are active resources in source/fhir.ini, and the Measure operation list actively includes $evaluate, the retired/deprecated $evaluate-measure, $collect-data, and $care-gaps. FHIR-37571 later introduced $evaluate as the current replacement for $evaluate-measure, so the same subject-multiplicity rule needs to be reflected there as well as on the deprecated operation. FHIR-49945 later listed FHIR-40422 as still needing application during Measure review, supporting that the structural additions alone were incomplete. No Zulip or Confluence evidence was found that narrows or reverses the Jira decision.
+
+AutoFHIR reconciliation:
+This commit completes the missing source application. It adds Measure constraints requiring library, subject, and rateAggregation to be specified either at the measure level or on every group, but not both; updates Measure overview and quality-reporting guidance so multiple/group-level libraries and group-level declarations are described consistently; and changes the subject/subjectGroup input cardinalities and documentation for $evaluate, $evaluate-measure, $collect-data, and $care-gaps to support multiple subject inputs with the Jira-specified individual/population mode rules.
+
+Recommendation:
+Keep this commit as-is. It fixes the remaining conformance and guidance gaps in active core Measure source while preserving later R6 changes, including the $evaluate replacement operation. FHIR-40256's broader composite-measure example remains background and should be handled separately if more detailed example content is desired.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-40422
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-37571: later-change - introduced the current $evaluate operation as the replacement for $evaluate-measure, so FHIR-40422 subject multiplicity also needed to be mirrored there.
+FHIR-40256: same-change-family - referenced by FHIR-40422 for composite-measure reuse context; current quality-reporting composite guidance is background, not a separate decision here.
+FHIR-49945: supporting-decision - later Measure review listed FHIR-40422 as still needing application, supporting completion of the missed source surfaces.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-40422: Applied/Persuasive, voted 16-0-0, requesting group-level Measure subject/library/rateAggregation, MeasureReport.group.subject, exclusivity invariants, overview guidance, and multi-subject operation updates. Learned: this is final WG intent for the reconciliation.
+- E2 Git c35d5cc2cf2596d936c47abfbe37c538a8abaa85: J#40422 added Measure.group.subject/library/rateAggregation and MeasureReport.group.subject only. Learned: initial application covered structural additions but omitted invariants, operation cardinalities, and guidance cleanup.
+- E3 Source source/fhir.ini:268-269 and source/measure/list-Measure-operations.xml:9,14,29,34: Measure/MeasureReport and the relevant Measure operations are active current-build inputs. Learned: the edited files are in build scope.
+- E4 Source source/measure/structuredefinition-Measure.xml:106-123: added mea-9, mea-10, and mea-11 root/group exclusivity constraints for library, subject, and rateAggregation. Learned: the missing conformance rules are now represented in the StructureDefinition source.
+- E5 Source source/measure/operationdefinition-Measure-evaluate.xml:97-121, source/measure/operationdefinition-Measure-evaluate-measure.xml:116-145, source/measure/operationdefinition-Measure-collect-data.xml:90-103, source/measure/operationdefinition-Measure-care-gaps.xml:123-136: subject and subjectGroup parameters now allow multiple inputs and document individual/population constraints. Learned: the operation surface now matches the Jira's multi-subject rule.
+- E6 Source source/measure/measure-introduction.xml:74-78 and source/clinicalreasoning-quality-reporting.html:142-144: overview and quality-reporting logic guidance now describe measure-level vs group-level declarations and multiple/group libraries. Learned: stale single-library guidance no longer contradicts Measure.library 0..* and group.library.
+- E7 Git ce63c110e17b8e3ec749c6c575927fdc2d519c2e: FHIR-37571 deprecated $evaluate-measure and created $evaluate with matching semantics. Learned: FHIR-40422 reconciliation must include $evaluate in addition to the operation names in the original R5 issue.
+- E8 Jira FHIR-49945: Applied/Persuasive with Modification Measure review that listed FHIR-40422 as still needing application. Learned: later review corroborates that some FHIR-40422 work was still outstanding after the initial structural commit.
+- E9 Community search: Zulip searches for FHIR-40422 and Measure.group.subject plus Confluence refs/searches found no relevant hits. Learned: no discovered community record changes the Jira/source conclusion.
+- E10 Verification command/query: git diff --check, XML parse of edited XML files, and a script checking current Measure examples against the new root/group exclusivity rules succeeded. Learned: the edited XML is well-formed and current Measure examples are not invalidated by the new constraints.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-40422",
+    "url": "https://jira.hl7.org/browse/FHIR-40422",
+    "snapshot_path": "contexts/FHIR-40422/jira/FHIR-40422.md",
+    "ref": { "jira_key": "FHIR-40422" },
+    "summary": "Applied/Persuasive R5 issue requesting group-level Measure subject support, related Measure/MeasureReport elements, invariants, guidance, and multi-subject operation parameters.",
+    "learned": "This is the final WG decision that defines the required current source behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "c35d5cc2cf2596d936c47abfbe37c538a8abaa85",
+    "ref": { "commit": "c35d5cc2cf2596d936c47abfbe37c538a8abaa85" },
+    "summary": "The explicit J#40422 commit added group-level Measure elements and MeasureReport.group.subject but touched only Measure and MeasureReport StructureDefinition XML files.",
+    "learned": "The initial application did not include the requested invariants, operation updates, or guidance cleanup.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:268-269; source/measure/list-Measure-operations.xml:9,14,29,34",
+    "summary": "Measure and MeasureReport are active resources, and the relevant Measure operations are listed in the Measure operations list.",
+    "learned": "The edited resource and operation source files are current-build inputs.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/measure/structuredefinition-Measure.xml:106-123",
+    "summary": "Added mea-9, mea-10, and mea-11 constraints for root-vs-all-groups exclusivity of library, subject, and rateAggregation.",
+    "learned": "The missing invariant portion of FHIR-40422 is now represented in authoritative Measure source.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/measure/operationdefinition-Measure-evaluate.xml:97-121; source/measure/operationdefinition-Measure-evaluate-measure.xml:116-145; source/measure/operationdefinition-Measure-collect-data.xml:90-103; source/measure/operationdefinition-Measure-care-gaps.xml:123-136",
+    "summary": "Updated subject/subjectGroup cardinalities and documentation to allow multiple subject inputs with individual/population mode restrictions.",
+    "learned": "The operation definitions now support the multi-subject behavior requested by the issue.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/measure/measure-introduction.xml:74-78; source/clinicalreasoning-quality-reporting.html:142-144",
+    "summary": "Updated overview and quality-reporting logic guidance for measure-level vs group-level declarations and multiple/group libraries.",
+    "learned": "Narrative no longer contradicts Measure.library 0..* or group.library.",
+    "supports": ["reconciliation", "absence_of_conflict"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "ce63c110e17b8e3ec749c6c575927fdc2d519c2e",
+    "ref": { "commit": "ce63c110e17b8e3ec749c6c575927fdc2d519c2e" },
+    "summary": "FHIR-37571 deprecated $evaluate-measure and created $evaluate with equivalent Measure operation behavior.",
+    "learned": "Current reconciliation must include $evaluate even though FHIR-40422 named the older $evaluate-measure operation.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-49945",
+    "url": "https://jira.hl7.org/browse/FHIR-49945",
+    "ref": { "jira_key": "FHIR-49945" },
+    "summary": "Applied Measure review issue that listed FHIR-40422 as still needing application.",
+    "learned": "Later review supports that the original application was incomplete.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-40422 and Measure.group.subject",
+    "command": "bun run zulip:search fts '\"FHIR-40422\"' --limit 10; bun run zulip:search fts '\"Measure.group.subject\"' --limit 10; bun run confluence:search refs jira FHIR-40422; bun run confluence:search fts '\"Measure.group.subject\" OR \"FHIR-40422\"' --limit 10",
+    "query": "FHIR-40422 Measure.group.subject",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community evidence narrows or reverses the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E10",
+    "kind": "command",
+    "locator": "Targeted validation checks",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; python XML parse for edited XML; python Measure-example exclusivity check",
+    "summary": "Whitespace check, XML parse of edited XML files, and current Measure example checks succeeded.",
+    "learned": "The patch is syntactically safe for the edited XML and does not invalidate current Measure examples under the new constraints.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

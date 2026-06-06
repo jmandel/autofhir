@@ -1,0 +1,112 @@
+FHIR-31753: Add CodeSystem content concept invariant
+
+Issue request:
+FHIR-31753 was a Published/Persuasive with Modification Vocab change request for R5. It asked to remove the ShareableCodeSystem profile requirement that CodeSystem.concept be present for every shareable code system, while adding a base CodeSystem invariant requiring at least one concept when CodeSystem.content is example, fragment, or complete.
+
+Initial application:
+The issue was partially applied before this reconciliation. PR #2068 was implemented by commit 93fadfaa, which removed the old CodeSystem.concept min=1 constraint from source/codesystem/structuredefinition-profile-shareablecodesystem.xml and added an scs-2 invariant to that profile. The same commit did not modify source/codesystem/structuredefinition-CodeSystem.xml, so the approved base CodeSystem invariant was not present in current source.
+
+Additional context:
+The May 2022 Vocab WGM minutes confirm the intended distinction: not-present code systems cannot have concepts, supplements may identify property types, and example, fragment, and complete code systems are expected to have concepts. Later FHIR-37959 removed ShareableCodeSystem and related terminology-resource profiles from core and moved ongoing profile maintenance to CRMI, but that later profile migration does not supersede the base CodeSystem rule requested by FHIR-31753. The active current build still includes CodeSystem via source/fhir.ini, so the base StructureDefinition is in scope.
+
+AutoFHIR reconciliation:
+Added csd-9 to source/codesystem/structuredefinition-CodeSystem.xml with the expression `content in ( 'example' | 'fragment' | 'complete' ) implies concept.exists()`, and attached the condition to CodeSystem.content and CodeSystem.concept. This completes the base invariant that was approved but missed when the earlier application only constrained ShareableCodeSystem.
+
+Recommendation:
+Keep this source fix. Future work on ShareableCodeSystem profile constraints should remain in CRMI per FHIR-37959, but the base CodeSystem invariant belongs in core and now matches the FHIR-31753 resolution.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-31753
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-34326: same-change-family - Approved and applied in the same May 2022 Vocab/PR #2068 ShareableCodeSystem profile work; it confirms the content/concept discussion but its own constraints were already audited separately.
+FHIR-37959: later-change - Later R6 decision removed Shareable/Publishable/Computable/Executable terminology-resource profiles from core and moved profile maintenance to CRMI; it explains why the profile is no longer edited here.
+FHIR-49798: background - Later no-change issue about ShareableCodeSystem validation failures in R4B confirms related profile validation concerns but does not alter the base CodeSystem invariant.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-31753: Published/Persuasive with Modification issue requested removal of the ShareableCodeSystem concept cardinality and creation of a base CodeSystem content/concept invariant. Learned: establishes the final WG-approved source requirement.
+- E2 Confluence 90351050: May 2022 Vocab WGM Monday Q3 minutes record the FHIR-31753 discussion and 37-0-0 approval, clarifying that example, fragment, and complete content should have concepts while not-present should not. Learned: confirms the invariant belongs to the approved resolution and scopes supplement/not-present behavior.
+- E3 Git 93fadfaa: PR #2068 updated ShareableCodeSystem by removing CodeSystem.concept min=1 and adding scs-2, but did not touch base CodeSystem. Learned: the earlier application was partial and left the base invariant absent.
+- E4 Source source/fhir.ini:170,270 and source/codesystem/structuredefinition-CodeSystem.xml:120,682,872: CodeSystem is an active resource in the current build and now carries csd-9 on the base resource plus conditions on content and concept. Learned: the edit is in build scope and applied to the authoritative base StructureDefinition.
+- E5 Jira FHIR-37959 and source/shareable/shareable-spreadsheet-introduction.xml:22: later R6 work moved ShareableCodeSystem profile maintenance to CRMI while core points implementers to CRMI profiles. Learned: profile reintroduction would be wrong, but the base CodeSystem rule remains core-owned.
+- E6 Verification command: XML parse, CRLF-aware diff check, and a scan of 522 current CodeSystem XML resources for content/concept violations. Learned: the edited XML is well formed, whitespace-clean, and the only raw-source violation is the generated fhir-types template marked "filled in by the build".
+- E7 Community search command: quoted Zulip searches for FHIR-31753 and ShareableCodeSystem/content/concept found no directly relevant contradictory discussion beyond unrelated implementation threads. Learned: no discovered Zulip evidence changes the Jira/minutes/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-31753",
+    "url": "https://jira.hl7.org/browse/FHIR-31753",
+    "snapshot_path": "contexts/FHIR-31753/jira/FHIR-31753.md",
+    "ref": { "jira_key": "FHIR-31753" },
+    "summary": "Published/Persuasive with Modification R5 Vocab issue requesting removal of ShareableCodeSystem's unconditional CodeSystem.concept cardinality and creation of a base CodeSystem invariant for example, fragment, and complete content.",
+    "learned": "This establishes the final WG-approved requirement that the content/concept rule belongs in base CodeSystem, not only in ShareableCodeSystem.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "May 2022 - HL7 WGM - Monday Q3 Minutes page 90351050",
+    "url": "https://confluence.hl7.org/spaces/VOC/pages/90351050/May+2022+-+HL7+WGM+-+Monday+Q3+Minutes",
+    "snapshot_path": "contexts/FHIR-34326/confluence/90351050.md",
+    "ref": { "confluence_page_id": 90351050 },
+    "summary": "Minutes record the FHIR-31753 discussion and 37-0-0 approval, including the distinction between not-present, supplement, and example/fragment/complete content.",
+    "learned": "The meeting evidence confirms both the approved invariant and its intended content-mode scope.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "93fadfaa2a89cdc46a2a2633431ebbc34f06fe74",
+    "ref": { "commit": "93fadfaa2a89cdc46a2a2633431ebbc34f06fe74" },
+    "summary": "PR #2068 changed source/codesystem/structuredefinition-profile-shareablecodesystem.xml by removing CodeSystem.concept min=1 and adding the scs-2 content/concept invariant, but did not change source/codesystem/structuredefinition-CodeSystem.xml.",
+    "learned": "The prior application completed the profile part of FHIR-31753 but missed the base CodeSystem invariant.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,270; source/codesystem/structuredefinition-CodeSystem.xml:120,682,872",
+    "ref": { "path": "source/codesystem/structuredefinition-CodeSystem.xml" },
+    "summary": "CodeSystem is active in the current build, and the base StructureDefinition now defines csd-9 with conditions on CodeSystem.content and CodeSystem.concept.",
+    "learned": "The source change is in current core build scope and implements the missing authoritative rule.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-37959",
+    "url": "https://jira.hl7.org/browse/FHIR-37959",
+    "snapshot_path": "contexts/FHIR-37959/jira/FHIR-37959.md",
+    "ref": { "jira_key": "FHIR-37959" },
+    "summary": "Applied/Persuasive R6 issue removed Shareable/Publishable/Computable/Executable terminology-resource profiles from core and moved ongoing maintenance to CRMI.",
+    "learned": "This explains why the current reconciliation should not restore ShareableCodeSystem in core, while leaving the base CodeSystem invariant as core-owned.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Targeted source validation for FHIR-31753",
+    "command": "python3 XML parse of source/codesystem/structuredefinition-CodeSystem.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/codesystem/structuredefinition-CodeSystem.xml; Python scan of source/**/*.xml CodeSystem resources for content in example|fragment|complete without concept",
+    "summary": "The edited StructureDefinition parsed successfully, diff whitespace checks passed, and the only raw-source content/concept violation among 522 CodeSystem XML resources was source/terminologies/codesystem-fhir-types.xml, a generated template marked 'filled in by the build'.",
+    "learned": "The source edit is syntactically clean and does not reveal authored CodeSystem resources that contradict the new invariant.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip search for FHIR-31753 and ShareableCodeSystem content/concept",
+    "command": "bun run zulip:search fts '\"FHIR-31753\"' --limit 10; bun run zulip:search fts '\"ShareableCodeSystem\" concept content' --limit 10",
+    "query": "FHIR-31753 ShareableCodeSystem concept content",
+    "result_count": 3,
+    "summary": "No FHIR-31753 Zulip hits were found; broader ShareableCodeSystem/content/concept hits were unrelated implementation discussions.",
+    "learned": "No discovered Zulip record contradicts the Jira, Confluence minutes, and source-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

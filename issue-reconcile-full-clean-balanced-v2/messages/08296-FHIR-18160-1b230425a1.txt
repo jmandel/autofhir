@@ -1,0 +1,85 @@
+FHIR-18160: Audit value set usage de-duplication
+
+Issue request:
+FHIR-18160 was a Published/Persuasive FHIR-core STU3 ballot correction for Patient-related value-set rendering. It reported duplicate entries in the "This value set is used in the following places:" list for Administrative Gender, and the same duplicate-list problem on the Data Absent Reason value-set page, with the requested resolution to strike the duplicate entry.
+
+Initial application:
+The Jira comment records GH#fe9a1115e5, and git commit fe9a1115e502ff7535af9bfb0084eba02dd8c569 changed the old PageProcessor.generateValueSetUsage implementation from direct StringBuilder appends to a List plus addItem de-duplication before rendering usage list items. That was a renderer-level application, not a terminology-source content change.
+
+Additional context:
+The current source checkout no longer contains the old PageProcessor Java renderer path, and the affected value-set usage lists are generated from active current resource and terminology inputs. source/fhir.ini keeps Patient, Person, Observation, and related resource sources in the active build, while current StructureDefinition sources show the expected distinct bindings: Person.gender and Patient.gender for Administrative Gender, Patient.contact.gender as a separate element, and Observation.dataAbsentReason plus Observation.component.dataAbsentReason as distinct Data Absent Reason usages. Corrected Zulip and Confluence searches found no direct FHIR-18160 community record or conflicting later decision.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change because the historical duplicate rendering defect is already absent in the current build surface. A current build.fhir.org check of the two affected value-set pages found zero duplicate usage-list items: Administrative Gender has 13 usage items with one Person.gender and one Patient.gender row, and Data Absent Reason has 27 usage items with zero duplicate rows.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed unless a future publisher regression reintroduces duplicate rendered usage items.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-18160
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-18160: Published/Persuasive FHIR-core issue asked to remove duplicate "This value set is used in the following places" entries for Administrative Gender and Data Absent Reason. Learned: this establishes the final requested correction and scope.
+- E2 Git fe9a1115e502: historical application changed PageProcessor.generateValueSetUsage to collect usage rows through addItem de-duplication. Learned: the issue was applied as a renderer fix, not as a source terminology edit.
+- E3 Source source/fhir.ini:191,208,211,255 and source/patient/structuredefinition-Patient.xml:255,717; source/person/structuredefinition-Person.xml:190; source/observation/structuredefinition-Observation.xml:756,1456. Learned: the relevant resources and bindings are active and represent distinct current usages, so no duplicate source entry needs removal.
+- E4 Verification command: fetched build.fhir.org valueset-administrative-gender.html and valueset-data-absent-reason.html, parsed the usage lists, and found duplicate count 0 for both pages. Learned: the current rendered build surface already satisfies the issue.
+- E5 Community search: corrected Zulip and Confluence searches for FHIR-18160 and duplicate value-set usage terms found no direct relevant or conflicting community evidence. Learned: no discovered later discussion changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-18160",
+    "url": "https://jira.hl7.org/browse/FHIR-18160",
+    "snapshot_path": "contexts/FHIR-18160/jira/FHIR-18160.md",
+    "ref": { "jira_key": "FHIR-18160" },
+    "summary": "Published/Persuasive STU3 FHIR-core issue reporting duplicate Administrative Gender usage rows and the same problem on the Data Absent Reason value-set page.",
+    "learned": "The final requested correction was to remove duplicate generated value-set usage list entries.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "fe9a1115e502ff7535af9bfb0084eba02dd8c569",
+    "ref": { "commit": "fe9a1115e502ff7535af9bfb0084eba02dd8c569" },
+    "summary": "Commit 'GF#18160 - fix rendering of value set usages' changed PageProcessor.generateValueSetUsage to de-duplicate generated list items via addItem.",
+    "learned": "The issue was historically applied as a generated-renderer fix rather than by deleting terminology or resource source bindings.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini and affected StructureDefinition sources",
+    "ref": { "paths": "source/fhir.ini; source/patient/structuredefinition-Patient.xml; source/person/structuredefinition-Person.xml; source/observation/structuredefinition-Observation.xml" },
+    "summary": "Active build entries include Patient, Person, and Observation; current bindings show distinct Administrative Gender and Data Absent Reason usages rather than duplicate source rows.",
+    "learned": "The authoritative current source does not contain a duplicate usage entry requiring a core source edit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current build duplicate usage-list check",
+    "command": "Fetch https://build.fhir.org/valueset-administrative-gender.html and https://build.fhir.org/valueset-data-absent-reason.html, parse the 'This value set is used in the following places' lists, and count exact duplicate list items.",
+    "summary": "Administrative Gender had 13 usage items and Data Absent Reason had 27 usage items; both had duplicate count 0.",
+    "learned": "The current rendered build already has de-duplicated usage lists for both affected pages.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-18160 and duplicate value-set usage terms",
+    "command": "bun run zulip:search fts '\"FHIR-18160\"' --limit 10; bun run zulip:search fts 'administrative gender data absent reason duplicate entry value set usage' --limit 10; bun run confluence:search refs jira FHIR-18160; bun run confluence:search fts '\"FHIR-18160\"' --limit 10",
+    "query": "FHIR-18160; administrative gender data absent reason duplicate entry value set usage",
+    "result_count": 0,
+    "summary": "No direct Zulip hits, no Confluence Jira references, and no Confluence FHIR-18160 hits were found; broad terms produced no relevant conflicting record.",
+    "learned": "No discovered community evidence changes the Jira/history/current-source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

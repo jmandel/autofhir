@@ -1,0 +1,132 @@
+FHIR-12356: Audit Claim/EOB supporting payload application
+
+Issue request:
+FHIR-12356 was a Published/Persuasive with Modification FM change request for DSTU2. It asked for a payload/supporting-information capability on Claim.information and ExplanationOfBenefit.information, including direct string, Attachment, or Reference payload content and item-level links to the supporting information. The final resolution chose to add Attachment|Reference(Any) to information.value[x] and add information.reason 0..1 Coding with example codes in Claim and EOB.
+
+Initial application:
+The historical application commit aaa1e5693e explicitly listed tracker 12356 and changed the then-current Claim and ExplanationOfBenefit spreadsheet source. It expanded Claim.information.value[x] and ExplanationOfBenefit.information.value[x] from string|Quantity to string|Quantity|Attachment|Reference(Any), and also added the adjacent information.reason elements that were later audited separately for FHIR-12357.
+
+Additional context:
+Claim and ExplanationOfBenefit are active resources in source/fhir.ini. Later FHIR-19460 renamed Claim.information and ExplanationOfBenefit.information to supportingInfo, with fhir.ini retaining version maps from the old information names and item informationLinkId fields. Current Claim and ExplanationOfBenefit source defines supportingInfo.value[x] and item.informationSequence links. Later Applied issue FHIR-51518 intentionally broadened supportingInfo.value[x] to the open type code *, which includes Attachment and Reference and supersedes the older short datatype list. FHIR-37513 later resolved no-change on the Claim-family sequence-link pattern, supporting the current informationSequence naming rather than a new source edit.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active StructureDefinition source already preserves the FHIR-12356 payload capability: Claim.supportingInfo.value[x] and ExplanationOfBenefit.supportingInfo.value[x] allow any FHIR datatype, and the item-level positiveInt informationSequence links remain present for associating supporting information with service lines.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-12356 unless FM opens a new issue to narrow the open supportingInfo.value[x] datatype set or rename the retained Claim-family sequence-link fields.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12356
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12357: same-change-family - The same historical application added information.reason elements; already represented on the combined branch by 347431106968495d4c61af2d6762372b24765227.
+FHIR-19460: later-change - Renamed Claim/EOB information to supportingInfo and retained historical name mappings; already represented on the combined branch by 0cd7ae125f6ef341fdfa66d83a6aab7cbf746fe2.
+FHIR-51518: later-change - Broadened supportingInfo.value[x] to the open type code *, explaining why current source is broader than Attachment|Reference(Any); already represented on the combined branch by ed8c7090c6e429bef383ec372557840c7e61d246.
+FHIR-37513: supporting-decision - Later Resolved - No Change decision retained the Claim-family sequence pattern, supporting no edit to item.informationSequence naming.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12356: Published/Persuasive with Modification FM issue requested direct supporting payloads for Claim/EOB information and resolved to add Attachment|Reference(Any) to information.value[x]. Learned: establishes the final seed request and affected resources.
+- E2 Source source/fhir.ini:170,241,244: Claim and ExplanationOfBenefit are active resources in the current build. Learned: the inspected StructureDefinition XML files are authoritative build-scoped source.
+- E3 Source source/claim/structuredefinition-Claim.xml:873 and :1373: Claim.supportingInfo.value[x] has type code * and Claim.item.informationSequence is a 0..* positiveInt link. Learned: Claim currently supports direct payload data and line-item association for supporting information.
+- E4 Source source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:993, :1416, :2589: EOB supportingInfo.value[x] has type code *, and item/addItem informationSequence links are present. Learned: EOB currently supports the same payload and linking capability.
+- E5 Git aaa1e5693e: historical tracker 12356 commit expanded Claim/EOB information.value[x] from string|Quantity to string|Quantity|Attachment|Reference(Any). Learned: the final FHIR-12356 resolution was initially applied in source history.
+- E6 Jira/Git FHIR-19460 and source/fhir.ini:2683,2715,2687,2719: later rename maps information to supportingInfo and informationLinkId to informationSequence. Learned: the current paths differ from the DSTU2 wording because of intentional later migration, not a missed seed change.
+- E7 Jira/Git FHIR-51518 and e717e47f35: Applied R6 issue changed Claim and EOB supportingInfo.value[x] to the open type code *. Learned: the current wildcard datatype is a later approved broadening that still includes Attachment and Reference.
+- E8 Jira FHIR-37513: Resolved - No Change issue discussed replacing Claim-family sequence links with Element.id and retained the sequence pattern. Learned: no source edit is justified solely to rename or replace informationSequence links.
+- E9 Command community searches: corrected Zulip and Confluence searches for FHIR-12356 plus Claim/EOB payload terms found no relevant discussion or minutes. Learned: no discovered community record conflicts with the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12356",
+    "url": "https://jira.hl7.org/browse/FHIR-12356",
+    "snapshot_path": "contexts/FHIR-12356/jira/FHIR-12356.md",
+    "ref": { "jira_key": "FHIR-12356" },
+    "summary": "Published/Persuasive with Modification FM issue requesting direct supporting payloads for Claim and ExplanationOfBenefit information, resolved by adding Attachment|Reference(Any) to information.value[x].",
+    "learned": "This establishes the final seed request, affected resources, and datatype capability that current source must preserve.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,241,244",
+    "ref": { "path": "source/fhir.ini", "lines": "170,241,244" },
+    "summary": "The build configuration lists claim=Claim and explanationofbenefit=ExplanationOfBenefit as active resources.",
+    "learned": "The inspected Claim and ExplanationOfBenefit StructureDefinition XML files are in current build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/claim/structuredefinition-Claim.xml:873-883; source/claim/structuredefinition-Claim.xml:1373-1382",
+    "ref": { "path": "source/claim/structuredefinition-Claim.xml", "lines": "873-883,1373-1382" },
+    "summary": "Claim.supportingInfo.value[x] uses type code * and Claim.item.informationSequence is a 0..* positiveInt link to supporting information.",
+    "learned": "Current Claim source already permits direct supporting payloads, including Attachment and Reference, and keeps the line-item association mechanism.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:993-1003; :1416-1425; :2589-2598",
+    "ref": { "path": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml", "lines": "993-1003,1416-1425,2589-2598" },
+    "summary": "ExplanationOfBenefit.supportingInfo.value[x] uses type code * and EOB item/addItem informationSequence links are 0..* positiveInt.",
+    "learned": "Current EOB source already preserves the supporting payload and item association capability requested by the seed.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "aaa1e5693e365bca976f7aa2115c85a0f2293a38",
+    "ref": { "commit": "aaa1e5693e365bca976f7aa2115c85a0f2293a38" },
+    "summary": "The 2016 tracker 12356 application commit expanded Claim/EOB information.value[x] from string|Quantity to string|Quantity|Attachment|Reference(Any).",
+    "learned": "The seed resolution was historically applied to both requested resources before later source and naming refactors.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-19460 / afb5ec66f68641293bb7950b6e0eeb118fa1444a / source/fhir.ini mappings",
+    "url": "https://jira.hl7.org/browse/FHIR-19460",
+    "ref": { "jira_key": "FHIR-19460", "commit": "afb5ec66f68641293bb7950b6e0eeb118fa1444a", "audit_commit": "0cd7ae125f6ef341fdfa66d83a6aab7cbf746fe2" },
+    "summary": "Published rename changed Claim/EOB information to supportingInfo, with current fhir.ini maps for information and informationLinkId names.",
+    "learned": "The current supportingInfo and informationSequence paths are intentional later names and migration mappings, not evidence of a missing seed edit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-51518 / e717e47f354a9fc761a0e88e4dc0509328188105",
+    "url": "https://jira.hl7.org/browse/FHIR-51518",
+    "ref": { "jira_key": "FHIR-51518", "commit": "e717e47f354a9fc761a0e88e4dc0509328188105", "audit_commit": "ed8c7090c6e429bef383ec372557840c7e61d246" },
+    "summary": "Applied R6 issue broadened supportingInfo.value[x] on Claim, ClaimResponse, and EOB to the open type code *.",
+    "learned": "The current wildcard type is an approved later broadening that includes Attachment and Reference and supersedes the older short list.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-37513",
+    "url": "https://jira.hl7.org/browse/FHIR-37513",
+    "ref": { "jira_key": "FHIR-37513" },
+    "summary": "Resolved - No Change/Not Persuasive issue considered replacing Claim-family sequence links, including Claim.item.informationSequence, with Element.id.",
+    "learned": "A later FM decision supports retaining the sequence-link pattern rather than editing informationSequence for this reconciliation.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Negative community searches for FHIR-12356 Claim/EOB payload terms",
+    "command": "bun run zulip:search fts '\"FHIR-12356\" Claim EOB information payload' --limit 10; bun run zulip:search fts 'Claim EOB information payload Attachment Reference supporting' --limit 10; bun run confluence:search refs jira FHIR-12356; bun run confluence:search fts '\"FHIR-12356\" Claim EOB information payload' --limit 10; bun run confluence:search fts 'Claim EOB information payload Attachment Reference supporting' --limit 10",
+    "query": "FHIR-12356 Claim EOB information payload Attachment Reference supporting",
+    "result_count": 0,
+    "summary": "No relevant Zulip or Confluence discussions or minutes were found for the seed or key payload terms.",
+    "learned": "No discovered community evidence changes the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

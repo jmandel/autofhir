@@ -1,0 +1,107 @@
+FHIR-19471: Stamp versions on source-owned conformance examples
+
+Issue request:
+FHIR-19471 was Published/Persuasive for FHIR-core conformance resources. It requested that FHIR-defined conformance artifacts such as StructureDefinitions, ValueSets, and OperationDefinitions expose their release in the version element so canonical references and downstream expectations work consistently; the resolution directed tooling to stamp FHIR-managed artifacts for R4 and later publications while excluding UTG-defined and other externally maintained artifacts.
+
+Initial application:
+The Jira comment points to upstream commit e3380a32e009716cc82a1036faa0d5f91e5e37da, which added version stamping and validation to the historical Java publisher/tooling for generated StructureDefinitions, ValueSets, CodeSystems, ConceptMaps, SearchParameters, OperationDefinitions, and base CapabilityStatements. Current built definitions are already stamped: the build.fhir.org definitions package scan found no FHIR-canonical conformance resources missing version.
+
+Additional context:
+The current source tree no longer contains the historical Java publisher code, so remaining publication-version gaps must be reconciled in source-owned XML inputs or left to external publisher behavior. A current build scan found a small bounded set of source-owned FHIR-core conformance example artifacts in the examples package with FHIR canonical URLs but no root version. DeviceDefinition examples were not edited because their version element is not the canonical conformance-resource release field for this issue. The SDC Questionnaire example under http://hl7.org/fhir/us/sdc was not edited because the Jira resolution explicitly excluded externally maintained artifacts. The old generated StructureDefinition/example-composition package artifact is also not edited here because current source has already removed source/structuredefinition/structuredefinition-example-composition.xml under a later profile cleanup.
+
+AutoFHIR reconciliation:
+This commit adds the current publication version, 6.0.0-ballot4, to the root version element of the source-owned FHIR-core conformance examples that were missing it: CapabilityStatement, CompartmentDefinition, EventDefinition, MessageDefinition, NamingSystem, Questionnaire, Requirements, SearchParameter, StructureDefinition, and TerminologyCapabilities examples. These files are active source examples for current resources and feed the examples package, so adding the root version directly fixes the current published conformance surface without changing external artifacts or unrelated example-specific version fields.
+
+Recommendation:
+Keep this source-changing commit. It closes the bounded current-source gap left after the original tooling application while preserving the exclusion for externally maintained artifacts. Future publication tooling should continue stamping generated definitions automatically; if publisher behavior changes, re-scan the definitions and examples packages for FHIR canonical resources without root version.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19471
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19471: Published/Persuasive issue requesting release/version stamping for FHIR-defined conformance resources, with resolution to apply it to R4 and later FHIR-managed artifacts but not UTG or external artifacts. Learned: this establishes the target behavior and the external-artifact exclusion.
+- E2 Git e3380a32e009716cc82a1036faa0d5f91e5e37da: historical upstream implementation added version stamping and validation to the old publisher/tooling. Learned: the issue was originally applied through publication tooling, not only manual source edits.
+- E3 Published package scan https://build.fhir.org/definitions.json.zip: 3030 FHIR canonical conformance resources found and none lacked version. Learned: current generated definitions already satisfy the issue.
+- E4 Published package scan https://build.fhir.org/examples-json.zip: examples package scan found a bounded set of source-owned FHIR-core conformance examples without root version. Learned: current examples were the remaining build-surface gap that needed source edits.
+- E5 Source source/capabilitystatement/capabilitystatement-knowledge-repository.xml and peer edited example XML files: the edited files carry FHIR-core canonical urls and are referenced by active resource example lists/module pages. Learned: these are current source inputs, not stale generated output.
+- E6 Community search: quoted Zulip and Confluence searches for FHIR-19471 and conformance version terms found no relevant or conflicting community records. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E7 Verification command: XML parsing of all 22 edited files confirmed root version=6.0.0-ballot4, and git diff --check passed. Learned: the edit is syntactically well formed and free of whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19471",
+    "url": "https://jira.hl7.org/browse/FHIR-19471",
+    "snapshot_path": "contexts/FHIR-19471/jira/FHIR-19471.md",
+    "ref": { "jira_key": "FHIR-19471" },
+    "summary": "Published/Persuasive issue asking for FHIR-defined conformance resources to expose their release in version, with tooling stamping for R4 and later FHIR-managed artifacts and external artifacts excluded.",
+    "learned": "This establishes both the required version-stamping behavior and the explicit exclusion for UTG or other externally maintained artifacts.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e3380a32e009716cc82a1036faa0d5f91e5e37da",
+    "ref": { "commit": "e3380a32e009716cc82a1036faa0d5f91e5e37da" },
+    "summary": "Historical GF#19471 commit added version stamping and validation to the old Java publication tooling for generated conformance resources.",
+    "learned": "The original application was through publisher/tooling behavior, explaining why generated definitions are already stamped today.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/definitions.json.zip",
+    "url": "https://build.fhir.org/definitions.json.zip",
+    "command": "curl -fsSL https://build.fhir.org/definitions.json.zip; scan JSON resources with url starting http://hl7.org/fhir for missing version",
+    "summary": "The definitions package scan found 3030 FHIR-canonical conformance resources and zero missing version values.",
+    "learned": "Current generated definitions already satisfy FHIR-19471, so the remaining problem was not in the definitions package.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/examples-json.zip",
+    "url": "https://build.fhir.org/examples-json.zip",
+    "command": "curl -fsSL https://build.fhir.org/examples-json.zip; scan JSON examples with FHIR canonical urls for missing root version",
+    "summary": "The examples package scan found source-owned FHIR-core conformance examples without root version, while most FHIR canonical examples were already versioned as 6.0.0-ballot4.",
+    "learned": "This identifies a bounded current-build gap appropriate for source-owned example XML edits.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/capabilitystatement/capabilitystatement-knowledge-repository.xml and 21 peer source example XML files",
+    "ref": { "path": "source/capabilitystatement/capabilitystatement-knowledge-repository.xml", "line": 77 },
+    "summary": "The edited source-owned example conformance artifacts carry FHIR-core canonical urls and are included by active resource example pages/lists.",
+    "learned": "These files are current build inputs where adding the root publication version changes the published conformance surface.",
+    "supports": ["build_scope", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-19471 conformance versioning",
+    "command": "bun run zulip:search fts '\"FHIR-19471\" conformance version' --limit 10; bun run zulip:search fts '\"Expose version\" \"Conformance resources\"' --limit 10; bun run confluence:search fts '\"FHIR-19471\" version conformance resources' --limit 10; bun run confluence:search refs jira FHIR-19471",
+    "query": "FHIR-19471 conformance version; Expose version Conformance resources",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence records were found.",
+    "learned": "No discovered community record changes the Jira/source/package conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Post-edit XML and whitespace checks",
+    "command": "python3 - <<'PY' ... parse all 22 edited XML files and assert root version=6.0.0-ballot4 ... PY; git diff --check",
+    "summary": "All edited XML files parsed and exposed root version=6.0.0-ballot4; git diff --check passed.",
+    "learned": "The source edit is syntactically valid and limited to the intended version fields.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

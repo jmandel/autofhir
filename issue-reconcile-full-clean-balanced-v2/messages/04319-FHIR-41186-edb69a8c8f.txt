@@ -1,0 +1,130 @@
+FHIR-41186: Audit DocumentReference related context support
+
+Issue request:
+FHIR-41186 was an Applied OO change request raised against R5 because DocumentReference.context.related in R4 allowed links to arbitrary contextual resources, while R5 subject and basedOn did not cover those use cases. The issue was resolved as Persuasive with Modification with an 8-0-0 vote on 2024-05-20; the resolution text said to modify .context to allow Reference(Any).
+
+Initial application:
+No current git commit message explicitly mentions FHIR-41186. History shows FHIR-32585 commit 1211a3b963 removed the earlier DocumentReference.related Reference(Any) before R5. After FHIR-41186 was resolved, commit d63adb6a17, "DocumentReference updates June 20204", restored a DocumentReference.related element as Reference(Resource) and added the related search parameter, matching the implementer's Jira comment that related was brought back instead of changing .context.
+
+Additional context:
+The current build includes DocumentReference as an active resource. Current source keeps DocumentReference.context limited to Appointment, Encounter, and EpisodeOfCare because it supports encounter-like context and associated constraints, while DocumentReference.related.target is now Reference(Resource). Later Applied R6 issues FHIR-53824 and FHIR-53550, already represented on the combined branch, retained the arbitrary-resource target but made related a coded backbone and added guidance so related does not duplicate subject, context, or lifecycle relatesTo.
+
+AutoFHIR reconciliation:
+No source change was made. The current source already provides the requested arbitrary-resource linkage through DocumentReference.related.target Reference(Resource), has the search parameter wired to DocumentReference.related.target, and has implementation guidance explaining appropriate use. Changing .context itself to Reference(Any) now would conflict with the implementer's Jira note and later R6 decisions.
+
+Recommendation:
+Keep this audit commit as-is. If OO wants Account or another specific resource added to DocumentReference.context, or wants .context itself widened despite the later related-backbone decision, that should be handled by a new tracker because the current issue has been applied through the related element.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-41186
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32585: background - removed the earlier open-ended related element before R5, creating the gap FHIR-41186 addressed.
+FHIR-53824: later-change - reshaped the restored related Reference(Any) into a coded backbone with target Reference(Any), preserving the arbitrary target while adding semantics.
+FHIR-53550: supporting-decision - asked whether related should exist and was resolved by the FHIR-53824 backbone design.
+FHIR-54171: background - was retracted after the reporter agreed FHIR-53824 addressed underdefinition and migration concerns.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-41186: Applied/Persuasive with Modification request to restore arbitrary contextual references for DocumentReference after R5 removed context.related. Learned: this is the final seed issue and establishes the need for an Any-capable DocumentReference reference path.
+- E2 Confluence OO 2024-05-20 WGM page 239247287: minutes record the 8-0-0 motion assigning FHIR-41186 and saying to change .context to Reference(Any). Learned: the meeting record confirms the vote and formal target language.
+- E3 Zulip #implementers > Attaching an image to observation: May 2024 discussion points an Observation-linking use case to FHIR-41186 and describes interest in bringing back open-ended context.related. Learned: community discussion supports the same missing arbitrary-resource linkage use case.
+- E4 Source source/fhir.ini:190 and source/documentreference/structuredefinition-DocumentReference.xml:480-600: DocumentReference is active; context remains encounter-like, and related.target is Reference(Resource). Learned: the current build has an Any-capable target without widening context.
+- E5 Source source/documentreference/bundle-DocumentReference-search-params.xml:679-690 and source/documentreference/documentreference-notes.xml:8-9: the related search parameter points at DocumentReference.related.target and implementation notes distinguish related from relatesTo, subject, and context. Learned: the restored element is wired and documented.
+- E6 Git d63adb6a17: June 2024 DocumentReference update restored DocumentReference.related as Reference(Resource) and added its search parameter after FHIR-41186 was resolved. Learned: this is the apparent application commit even though it does not mention the Jira key.
+- E7 Git 3800384a0c: FHIR-53824/FHIR-53550 later changed related from direct Reference(Resource) to a coded backbone with target Reference(Resource) and added guidance. Learned: later final decisions refined, rather than reversed, the FHIR-41186 solution.
+- E8 Git 1211a3b963 and Jira FHIR-32585: Published R5 change removed the earlier DocumentReference.related Reference(Any). Learned: this explains why R5 no longer had the R4 open-ended path and why FHIR-41186 was needed.
+- E9 Command checks: fixed-string search of the combined branch found no existing FHIR-41186 reconcile commit, while FHIR-53824 and FHIR-53550 were already represented. Learned: this audit commit is not a duplicate, and related later issues should not be republished.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-41186",
+    "url": "https://jira.hl7.org/browse/FHIR-41186",
+    "snapshot_path": "contexts/FHIR-41186/jira/FHIR-41186.md",
+    "ref": { "jira_key": "FHIR-41186" },
+    "summary": "Applied/Persuasive with Modification issue asking to restore arbitrary contextual references for DocumentReference after R5 removed context.related.",
+    "learned": "This establishes the final seed request and the need for an Any-capable DocumentReference reference path.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "OO 2024-05-20 WGM page 239247287",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/239247287/2024-05-20_24+WGM",
+    "ref": { "confluence_page_id": 239247287 },
+    "summary": "OO minutes record the 8-0-0 FHIR-41186 motion assigning the issue and saying to change .context to Reference(Any).",
+    "learned": "The meeting record confirms the vote and formal disposition language behind the Jira status.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "zulip",
+    "locator": "#implementers > Attaching an image to observation",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Attaching%20an%20image%20to%20observation",
+    "ref": { "stream": "implementers", "topic": "Attaching an image to observation" },
+    "summary": "May 2024 messages discuss R5 loss of DocumentReference.context.related for Observation references and point participants to FHIR-41186.",
+    "learned": "The community thread supports the same arbitrary-resource linkage use case and does not conflict with the current related-element solution.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:190; source/documentreference/structuredefinition-DocumentReference.xml:480-600",
+    "ref": { "path": "source/documentreference/structuredefinition-DocumentReference.xml", "start_line": 480, "end_line": 600 },
+    "summary": "DocumentReference is active; context is still limited to Appointment, Encounter, and EpisodeOfCare, and related.target is Reference(Resource).",
+    "learned": "The current build has the Any-capable target while preserving context's narrower encounter-like semantics.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/documentreference/bundle-DocumentReference-search-params.xml:679-690; source/documentreference/documentreference-notes.xml:8-9",
+    "ref": { "path": "source/documentreference/bundle-DocumentReference-search-params.xml", "start_line": 679, "end_line": 690 },
+    "summary": "The related search parameter indexes DocumentReference.related.target, and implementation notes distinguish related from lifecycle relatesTo and from subject/context.",
+    "learned": "The restored arbitrary reference path is wired into search and documented to avoid duplicating other relationship elements.",
+    "supports": ["reconciliation", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "d63adb6a17",
+    "ref": { "commit": "d63adb6a17972d47bde74e7377febe531b104a9a" },
+    "summary": "June 2024 DocumentReference update restored DocumentReference.related as Reference(Resource) and added the related search parameter.",
+    "learned": "This is the apparent source application of FHIR-41186 even though the commit message lacks the Jira key.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "3800384a0c",
+    "ref": { "commit": "3800384a0c47165145ee8b96d9eb58e1cfd238c4" },
+    "summary": "FHIR-53824/FHIR-53550 later converted related from direct Reference(Resource) to a coded backbone with target Reference(Resource) and added guidance.",
+    "learned": "Later final decisions preserved the arbitrary-resource target while adding semantics, so no FHIR-41186 source fix remains.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "git",
+    "locator": "1211a3b963 and FHIR-32585",
+    "url": "https://jira.hl7.org/browse/FHIR-32585",
+    "ref": { "commit": "1211a3b9633fdc9a2ee41142cd049bdc3f898e4f", "jira_key": "FHIR-32585" },
+    "summary": "Published R5 change removed the earlier DocumentReference.related Reference(Any) because open-ended related was considered unacceptable.",
+    "learned": "This explains the R5 gap that FHIR-41186 subsequently addressed.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Combined branch fixed-string issue-key checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-41186' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; same check for FHIR-53824 and FHIR-53550",
+    "summary": "No existing FHIR-41186 reconcile commit was found; FHIR-53824 and FHIR-53550 already had reconcile commits on the combined branch.",
+    "learned": "This commit is not a duplicate, and the related later issues should not be republished here.",
+    "supports": ["confidence", "recommendation"]
+  }
+]
+</evidence-manifest>

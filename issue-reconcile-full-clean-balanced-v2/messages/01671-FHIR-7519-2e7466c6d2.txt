@@ -1,0 +1,112 @@
+FHIR-7519: Audit Immunization protocol cardinality history
+
+Issue request:
+FHIR-7519 was a Published PHER change request from the 2015May/DSTU-era Immunization model. It asked to allow vaccination protocol dose sequence to be recorded without doseTarget or doseStatus. The final Not Persuasive with Modification resolution kept target disease meaningful/required, said doseStatus should likewise be declared, and renamed doseTarget to targetedDisease/targetDisease.
+
+Initial application:
+The old gForge-era source history shows the request was applied to the spreadsheet model rather than the modern generated XML: commit 4e6d62c693 changed Immunization.vaccinationProtocol.doseTarget cardinality to 1..*, and commit e43671d5b7 renamed doseTarget to targetDisease. The then-current example also carried targetDisease and doseStatus in vaccinationProtocol.
+
+Additional context:
+Later PHER decisions intentionally changed the model. FHIR-8406 removed the old Immunization.vaccinationProtocol backbone and moved evaluation concepts out of Immunization. FHIR-14536 and FHIR-18868 reintroduced a smaller Immunization.protocolApplied backbone for provider intent/dose metadata. FHIR-19487 then explicitly made Immunization.protocolApplied.targetDisease optional after implementer feedback that dose number is often available without target disease. Current active source reflects that later decision: Immunization is in source/fhir.ini, protocolApplied.targetDisease is 0..*, doseNumber is present, and active Immunization source no longer contains doseStatus or doseStatusReason.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. Reinstating the 2015 required targetDisease/doseStatus rule would conflict with later Published decisions and with the current Immunization design.
+
+Recommendation:
+Keep this no-change audit commit as-is. Future Immunization work should treat FHIR-19487 and the protocolApplied redesign as superseding the 2015 FHIR-7519 cardinality intent for the current build, rather than restoring the DSTU-era required targetDisease/doseStatus constraints.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7519
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7518: same-change-family - companion 2015 issue kept vaccinationProtocol repeatable and changed doseTarget to 1..* for multi-disease vaccines.
+FHIR-8406: later-change - split/removal of the old vaccinationProtocol backbone moved evaluation concepts out of Immunization.
+FHIR-14536: later-change - reintroduced protocolApplied/doseNumber for jurisdictions that need dose sequence on Immunization.
+FHIR-18868: later-change - clarified protocolApplied as provider intent and added optional seriesDoses.
+FHIR-19487: superseded-by - explicitly lowered protocolApplied.targetDisease minimum cardinality to 0.
+FHIR-13608: background - earlier no-change discussion explained doseStatus in the evaluation context rather than as a simple Immunization administration field.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7519: Published / Not Persuasive with Modification, with PHER vote requiring doseTarget/targetDisease and doseStatus in the old vaccinationProtocol context. Learned: establishes the seed issue request and original 2015 decision.
+- E2 Git 4e6d62c693 and e43671d5b7: old spreadsheet commits changed doseTarget cardinality to 1..* and renamed it to targetDisease. Learned: the original decision was historically applied.
+- E3 Jira FHIR-8406, FHIR-14536, FHIR-18868, FHIR-19487: later Published decisions removed old vaccinationProtocol, reintroduced protocolApplied, and made targetDisease optional. Learned: current source must follow these later decisions rather than the 2015 cardinality.
+- E4 Source source/fhir.ini:197 and source/immunization/structuredefinition-Immunization.xml:1081-1164: Immunization is active; protocolApplied.targetDisease is 0..* and doseNumber is present. Learned: current build-scope source reflects the later model.
+- E5 Command rg -n 'doseStatus|doseStatusReason|doseTarget' source/immunization: no matches. Learned: the active Immunization resource no longer carries the old doseStatus/doseTarget elements.
+- E6 Zulip #implementers > Immunization, October 2018 targetDisease discussion: Grahame, Craig, and Lloyd discussed the burden of requiring targetDisease and led to GF#19487 / PR 149. Learned: community discussion supports the later optional-cardinality decision.
+- E7 Command bun run confluence:search refs jira FHIR-7519 and fts 'Immunization doseTarget targetDisease doseStatus': no directly relevant Confluence hits. Learned: no discovered meeting evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7519",
+    "url": "https://jira.hl7.org/browse/FHIR-7519",
+    "snapshot_path": "contexts/FHIR-7519/jira/FHIR-7519.md",
+    "ref": { "jira_key": "FHIR-7519" },
+    "summary": "Published PHER issue asking to allow dose sequence without doseTarget or doseStatus, resolved by keeping target disease meaningful/required, declaring doseStatus, and renaming doseTarget to targetDisease.",
+    "learned": "This establishes the original 2015 decision that must be reconciled against later Immunization model changes.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "4e6d62c693 and e43671d5b7",
+    "ref": { "commits": "4e6d62c693,e43671d5b7" },
+    "summary": "Historical commits changed vaccinationProtocol.doseTarget cardinality to 1..* and renamed doseTarget to targetDisease in the old spreadsheet source.",
+    "learned": "FHIR-7519 was not simply missed; it was applied to the then-current Immunization source model.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-8406, FHIR-14536, FHIR-18868, FHIR-19487",
+    "url": "https://jira.hl7.org/browse/FHIR-19487",
+    "ref": { "jira_key": "FHIR-19487" },
+    "summary": "Later Published Immunization issues removed the old vaccinationProtocol, restored a smaller protocolApplied backbone, and explicitly made protocolApplied.targetDisease optional.",
+    "learned": "These later final decisions supersede the 2015 requirement for current-build cardinality.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:197; source/immunization/structuredefinition-Immunization.xml:1081-1164",
+    "summary": "Immunization is an active resource; current protocolApplied has targetDisease 0..* and doseNumber 0..1.",
+    "learned": "The active current source matches the later optional targetDisease design and still supports dose number.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Active Immunization doseStatus/doseTarget search",
+    "command": "rg -n 'doseStatus|doseStatusReason|doseTarget' source/immunization || true",
+    "result_count": 0,
+    "summary": "No doseStatus, doseStatusReason, or old doseTarget elements remain in active Immunization source files.",
+    "learned": "There is no active Immunization source location where the old doseStatus/doseTarget rule needs repair.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Immunization (October 2018 targetDisease discussion)",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Immunization",
+    "summary": "Participants discussed the burden of requiring targetDisease when dose sequence is present; Grahame filed GF#19487 and Craig applied PR 149 to make the lower cardinality 0.",
+    "learned": "Community discussion corroborates the later Jira decision that targetDisease should be optional in current protocolApplied.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative Confluence search for FHIR-7519 and Immunization doseTarget terms",
+    "command": "bun run confluence:search refs jira FHIR-7519; bun run confluence:search fts 'Immunization doseTarget targetDisease doseStatus' --limit 10",
+    "query": "FHIR-7519 Immunization doseTarget targetDisease doseStatus",
+    "result_count": 0,
+    "summary": "No directly relevant Confluence references or full-text hits were found.",
+    "learned": "No discovered meeting record changes the Jira, git, and source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

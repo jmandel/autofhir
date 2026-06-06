@@ -1,0 +1,110 @@
+FHIR-29554: Audit Substance instance-definition clarification
+
+Issue request:
+FHIR-29554 was a Published/Persuasive with Modification OO change request for R5. It asked to clarify whether a Substance represented an actual instance or a definition/kind by removing the old Substance.instance backbone, moving expiry and quantity to the resource root, and adding a required Substance.instance boolean where true meant instance and false meant definition.
+
+Initial application:
+The issue family appears to have been applied in R5 after the R4B revert. Commit beb040d0608727a093902f91d4e3d6675f0c33f6 restored the intended R5 Substance shape by adding top-level Substance.expiry and Substance.quantity, changing Substance.code to CodeableReference(SubstanceDefinition), and adding the boolean Substance.instance element. The Jira comments also record that the changes were present in a May 2021 R5 snapshot, accidentally reverted with R4B work, and then fixed again.
+
+Additional context:
+Later BR&R issue FHIR-48405 superseded the boolean-flag approach by deciding that Substance is only for instances and definitions must use SubstanceDefinition. Its source commits, including c7b1723155a5f4c24466742a1fd1b8beedad5ac2 and the existing combined-branch reconciliation commit 1266a70e30373662bcaf36d0e1d4daf8a59f7c1f, removed Substance.instance and stale remnants while preserving top-level expiry, quantity, and the SubstanceDefinition reference. FHIR-43166 was later marked duplicate of FHIR-48405 and supports the same direction.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current active Substance and SubstanceDefinition source already gives an unambiguous answer: Substance is for instances, SubstanceDefinition is for definitions, Substance.code can reference SubstanceDefinition, and the old Substance.instance flag is absent. Reintroducing the FHIR-29554 boolean would contradict the later applied FHIR-48405 decision.
+
+Recommendation:
+Keep this no-change audit. Future work should not restore Substance.instance unless BR&R/OO explicitly reverses the later instance-only Substance decision; any further cleanup should be handled under the later FHIR-48405/duplicate trail rather than under this R5 clarification.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-29554
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-28547: same-change-family - Parent Substance instance/definition issue split into motions; FHIR-29554 carried the boolean/removal/expiry/quantity motion.
+FHIR-31526: later-change - R4B revert context explains why the R5 Substance work was temporarily lost and later restored.
+FHIR-39082: same-change-family - Follow-up cleanup removed an obsolete Substance.identifier comment that mentioned the old Substance.instance.identifier.
+FHIR-43166: duplicate - Later Substance vs. SubstanceDefinition concern was marked duplicate of FHIR-48405.
+FHIR-48405: supersedes - Later Applied issue removed Substance.instance entirely and made Substance instance-only.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-29554: Published/Persuasive with Modification, voted 2020-10-26, requested removing the Substance.instance backbone, adding root expiry and quantity, and adding a required boolean instance flag. Learned: this is the seed decision being audited.
+- E2 Confluence 2020-10-19 HCP page 92001774 and Zulip #Orders and Observation WG > Substance resource as an instance: contemporaneous discussion split FHIR-28547 into motions and debated the boolean flag versus kind/instance ambiguity. Learned: FHIR-29554 was the approved boolean/backbone-removal part of a larger instance-definition discussion.
+- E3 Git beb040d0608727a093902f91d4e3d6675f0c33f6: restored the intended R5 Substance shape after R4B revert fallout by adding top-level expiry/quantity, CodeableReference(SubstanceDefinition), and Substance.instance boolean. Learned: the seed was previously applied before later supersession.
+- E4 Jira FHIR-48405 and git c7b1723155a5f4c24466742a1fd1b8beedad5ac2: later Applied/Persuasive BR&R decision removed Substance.instance and made Substance instance-only, with definitions moved to SubstanceDefinition. Learned: the boolean requested by FHIR-29554 should not be restored in the current build.
+- E5 Source source/fhir.ini:225,294 and source/substance/structuredefinition-Substance.xml:176,227,242: Substance and SubstanceDefinition are active resources; Substance.code references SubstanceDefinition and root expiry/quantity remain present. Learned: the applied, build-scope source preserves the still-current parts of the seed.
+- E6 Source source/substance/substance-introduction.xml:11 and source/substancedefinition/substancedefinition-introduction.xml:18: current narrative says Substance is used for instances and SubstanceDefinition is definitional. Learned: the current spec unambiguously resolves the instance-vs-definition question without the old flag.
+- E7 Verification command: rg searches for Substance.instance definitions, Substance examples containing instance, and old "can be used to represent either" narrative found no current matches. Learned: no source hunk is needed for the seed audit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-29554",
+    "url": "https://jira.hl7.org/browse/FHIR-29554",
+    "snapshot_path": "contexts/FHIR-29554/jira/FHIR-29554.md",
+    "ref": { "jira_key": "FHIR-29554" },
+    "summary": "Published/Persuasive with Modification issue requesting removal of the Substance.instance backbone, root expiry and quantity, and a required boolean instance flag.",
+    "learned": "This establishes the seed request and the R5 decision that was later superseded in part.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "command",
+    "locator": "Community evidence for the 2020 Substance instance-definition discussion",
+    "command": "bun run zulip:search snapshot 'Orders and Observation WG' 'Substance resource as an instance'; bun run confluence:search snapshot 92001774",
+    "summary": "The Zulip thread and 2020-10-19 HCP minutes record the boolean flag debate and the split FHIR-28547 motions that became FHIR-29554.",
+    "learned": "The seed belonged to a broader effort to distinguish Substance instances from kinds/definitions.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "beb040d0608727a093902f91d4e3d6675f0c33f6",
+    "ref": { "commit": "beb040d0608727a093902f91d4e3d6675f0c33f6" },
+    "summary": "The 2021 R5 restoration commit added Substance.expiry, Substance.quantity, Substance.code CodeableReference(SubstanceDefinition), and the boolean Substance.instance element.",
+    "learned": "The seed had an initial source application before the later instance-only redesign.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-48405",
+    "url": "https://jira.hl7.org/browse/FHIR-48405",
+    "ref": { "jira_key": "FHIR-48405" },
+    "summary": "Applied/Persuasive BR&R issue requiring Substance to be instance-only, removing Substance.instance and using SubstanceDefinition for definitions.",
+    "learned": "This later final decision supersedes the FHIR-29554 boolean flag and makes reintroducing it incorrect.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/substance/structuredefinition-Substance.xml",
+    "ref": { "path": "source/substance/structuredefinition-Substance.xml:176,227,242" },
+    "summary": "Current Substance.code is a CodeableReference to SubstanceDefinition and root Substance.expiry and Substance.quantity are present, while Substance.instance is absent.",
+    "learned": "The current build-scope source retains the still-current FHIR-29554 changes and omits only the later-superseded boolean.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/substance/substance-introduction.xml and source/substancedefinition/substancedefinition-introduction.xml",
+    "ref": { "path": "source/substance/substance-introduction.xml:11; source/substancedefinition/substancedefinition-introduction.xml:18" },
+    "summary": "The narratives state that Substance is used for instances and SubstanceDefinition is the definitional resource.",
+    "learned": "The current specification answers the seed's instance-vs-definition clarification without adding redundant or contradictory prose.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Precise stale Substance.instance searches",
+    "command": "rg -n --multiline '<Substance[\\s\\S]*?<instance value=|id=\"Substance\\.instance\"|path value=\"Substance\\.instance\"' source -g '*.xml'; rg -n 'can be used to represent either a kind|can act as either a concise definition|definitional use of Substance|Substance\\.instance\\.identifier|Substance\\.instance ' source -g '*.{xml,html}'",
+    "result_count": 0,
+    "summary": "No active Substance.instance definitions, Substance examples containing instance, or obsolete either-kind-or-instance narrative were found.",
+    "learned": "There is no remaining source correction needed for FHIR-29554 in the current build.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

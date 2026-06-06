@@ -1,0 +1,109 @@
+FHIR-24908: Audit DICOM terminology import
+
+Issue request:
+FHIR-24908 was a Published/Persuasive R5 technical correction asking FHIR core to stop duplicating DICOM-managed code systems and value sets in AuditEvent and ImagingStudy, and instead use the DICOM-published terminology available to the terminology server.
+
+Initial application:
+The issue was pre-applied in commit 26f1439636ec3a00a96ffe742b9f5cba1ac1a8ba, merged by af4f14dcdcd7dd3e7d3da15864963ab2a00e8010 as PR #951. That change replaced local AuditEvent and ImagingStudy DICOM value-set content with DICOM URI imports and deleted the hand-maintained local value-set files named in the Jira comment.
+
+Additional context:
+The original Zulip thread records that tx.fhir.org could load DICOM value sets directly from DICOM, that the DICOM value-set URLs were unfortunately HTML-shaped but usable, and that John Moehrke successfully pre-applied the core update. Security minutes tracked the issue as waiting on DICOM and then moving toward using DICOM terminology rather than self-crafted code systems. Current source/fhir.ini keeps AuditEvent and ImagingStudy in active build scope; the current successor XML binds AuditEvent values through value sets that import DICOM CIDs 400, 401, 403, 404, and 402, and ImagingStudy modality uses DICOM CID 33 directly. Later ImagingStudy decisions, including FHIR-17279 and the FHIR-47481 no-change ballot resolution, support preserving the current core-level DICOM binding choices rather than making stricter baseline bindings here. The only remaining reference to a removed old local value set is in source/genomicstudy/imagingstudy.svg, a generated-looking orphan outside fhir.ini resource scope, while the active ImagingStudy source has no such stale reference.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active FHIR core sources already implement the published FHIR-24908 decision, and editing the orphan SVG-only leftover would not be an authoritative current-spec fix.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce local DICOM vocabulary copies in core; any future stricter DICOM conformance should follow II/THO or IG-specific work rather than this Security R5 correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-24908
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17279: later-change - confirms ImagingStudy modality should reference DICOM CID 33, matching the current source checked for this audit.
+FHIR-47481: supporting-decision - later R6 no-change decision rejected stricter baseline DICOM terminology bindings as too restrictive for core.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-24908: Published/Persuasive technical correction for AuditEvent and ImagingStudy with comments listing DICOM URI updates, deleted local value-set files, and pre-applied commit af4f14d. Learned: the final WG request was to eliminate duplicate DICOM-owned value sets from core and use DICOM terminology.
+- E2 Git 26f1439636 / af4f14d: the direct implementation commit and merge removed source/auditevent/valueset-dicm-402-roleid.xml, source/auditevent/valueset-dicm-403-alerttype.xml, source/auditevent/valueset-dicm-404-objectidtype.xml, source/auditevent/valueset-dicm-405-mediatype.xml, source/imagingstudy/valueset-bodysite-laterality.xml, and source/imagingstudy/valueset-dicom-cid244.xml while updating the corresponding terminology sources. Learned: the historical application matches the Jira file list.
+- E3 Source source/fhir.ini:196,224 and source/auditevent/*/source/imagingstudy/* XML: AuditEvent and ImagingStudy are active resources; AuditEvent imports DICOM CIDs 400, 401, 403, 404, and 402 through current value sets; ImagingStudy modality binds to DICOM CID 33 at structuredefinition-ImagingStudy.xml:267 and :736. Learned: active current source already uses DICOM-published value sets where the issue required.
+- E4 Zulip #terminology > DICOM valuesets and codesystems: discussion says tx.fhir.org loads DICOM value sets from David Clunie's source, John should update core to call those value sets without defining them, and the Aug 2020 prototype/pre-apply worked. Learned: community evidence supports the chosen DICOM-URI implementation and shows no conflicting source requirement.
+- E5 Confluence 2020-08-03 FHIR-Security Meeting Agenda page 90899154: minutes tracked FHIR-24908 as waiting on DICOM with movement to use DICOM terminology and not self-crafted code systems. Learned: Security WG context aligns with the Jira/source application.
+- E6 Jira FHIR-47481: Resolved - No Change / Not Persuasive R6 ImagingStudy ballot issue states stricter DICOM baseline bindings are too restrictive for core and should be IG-specific. Learned: later WG context argues against broadening this reconciliation into new stricter DICOM binding edits.
+- E7 Verification commands: searches for removed local value-set IDs found no active source references; the only hit was source/genomicstudy/imagingstudy.svg, and fhir.ini has no active GenomicStudy resource entry. Learned: no authoritative current build source still depends on the removed local DICOM value sets.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-24908",
+    "url": "https://jira.hl7.org/browse/FHIR-24908",
+    "snapshot_path": "contexts/FHIR-24908/jira/FHIR-24908.md",
+    "ref": { "jira_key": "FHIR-24908" },
+    "summary": "Published/Persuasive R5 technical correction requesting FHIR core to eliminate duplicate DICOM-owned value sets and use DICOM terminology for AuditEvent and ImagingStudy.",
+    "learned": "This establishes the final request and names both the pre-applied commit and affected source files.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "26f1439636ec3a00a96ffe742b9f5cba1ac1a8ba and af4f14dcdcd7dd3e7d3da15864963ab2a00e8010",
+    "ref": { "commit": "26f1439636ec3a00a96ffe742b9f5cba1ac1a8ba", "merge_commit": "af4f14dcdcd7dd3e7d3da15864963ab2a00e8010" },
+    "summary": "The direct implementation and merge commit switched core to DICOM-authored value sets and removed the old hand-coded local DICOM value-set files.",
+    "learned": "The historical source application matches the Jira file list and intent.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:196,224; source/auditevent/valueset-audit-event-type-example.xml:50-51; source/auditevent/valueset-audit-event-sub-type-example.xml:50-55; source/auditevent/valueset-audit-entity-type.xml:46-47; source/terminologies/valueset-participation-role-type.xml:40-41; source/imagingstudy/structuredefinition-ImagingStudy.xml:267,736",
+    "summary": "AuditEvent and ImagingStudy are active resources, and current source imports or binds to the relevant DICOM CID value-set URLs.",
+    "learned": "The current authoritative source already implements the DICOM terminology import required by FHIR-24908.",
+    "supports": ["source_current_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "zulip",
+    "locator": "#terminology > DICOM valuesets and codesystems",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/DICOM%20valuesets%20and%20codesystems",
+    "ref": { "stream": "terminology", "topic": "DICOM valuesets and codesystems" },
+    "summary": "Participants confirmed DICOM value sets could be loaded by tx.fhir.org; John Moehrke reported the DICOM URL prototype worked and that the core CR was pre-applied.",
+    "learned": "The community trail supports using DICOM URLs rather than local value-set copies and shows no conflicting requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "2020-08-03 FHIR-Security Meeting Agenda page 90899154",
+    "url": "https://confluence.hl7.org/spaces/SEC/pages/90899154/2020-08-03+FHIR-Security+Meeting+Agenda",
+    "ref": { "confluence_page_id": 90899154 },
+    "summary": "Security minutes tracked FHIR-24908 as waiting on DICOM, with movement toward using DICOM codes and not self-crafted code systems.",
+    "learned": "WG meeting context aligns with the Jira and source-history application.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-47481",
+    "url": "https://jira.hl7.org/browse/FHIR-47481",
+    "ref": { "jira_key": "FHIR-47481" },
+    "summary": "Resolved - No Change / Not Persuasive R6 ImagingStudy issue rejecting stricter baseline DICOM terminology bindings as too restrictive for core.",
+    "learned": "Later WG context supports avoiding extra DICOM-binding edits beyond the already-applied FHIR-24908 change.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Removed local value-set search and build-scope check",
+    "command": "rg -n 'audit-eventid|audit-eventtypecode|dicm-402|dicm-403|dicm-404|dicm-405|dicom-cid244|bodysite-laterality' source; rg -n '^genomicstudy=|genomicstudy' source/fhir.ini",
+    "query": "removed local DICOM value-set IDs and GenomicStudy build scope",
+    "result_count": 1,
+    "summary": "No active source references to the removed local DICOM value-set IDs were found; the only remaining hit is source/genomicstudy/imagingstudy.svg, and fhir.ini has no active GenomicStudy resource entry.",
+    "learned": "There is no current authoritative build-scope source that still needs a FHIR-24908 correction.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

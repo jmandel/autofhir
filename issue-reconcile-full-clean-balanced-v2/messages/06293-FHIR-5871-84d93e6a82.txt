@@ -1,0 +1,94 @@
+FHIR-5871: Align primitive time seconds wording
+
+Issue request:
+FHIR-5871 was Published/Persuasive with Modification for FHIR-core datatypes. It reported that the time and dateTime datatype descriptions implied seconds were optional while the regexes required seconds, and the accepted resolution was to update the descriptions in SVN revision 4536.
+
+Initial application:
+The historical application commit af82109a5f changed source/datatypes.html for both dateTime and time to say seconds must be provided due to schema type constraints, may be zero-filled, and may be ignored. The current datatype narrative still carries that rule, and source/datatypes/primitives.xml already carried the matching dateTime primitive description.
+
+Additional context:
+The current primitive time StructureDefinition source in source/datatypes/primitives.xml still only said "A time during the day, with no date specified" even though its regex requires hh:mm:ss. That spreadsheet source feeds the generated primitive StructureDefinitions exposed from datatypes-profiles.html and the time.profile artifacts, so it is in current build scope. FHIR-16948 later clarified who may ignore seconds; that related wording is handled separately.
+
+AutoFHIR reconciliation:
+Updated the active primitive time source description to state the hh:mm:ss format and the FHIR-5871 required-seconds rule, aligning generated primitive profile wording with the normative datatype table and the regex.
+
+Recommendation:
+Keep this source fix. It fills the remaining build-scope primitive-profile gap for the published FHIR-5871 decision without changing the datatype regex or broadening the later receiver-discretion clarification.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5871
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-16948: later-change - clarified the same seconds sentence by adding that ignoring seconds is at receiver discretion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5871: Published/Persuasive with Modification; resolution says to update the description in SVN revision 4536. Learned: the final WG decision was to keep seconds required by regex/schema and fix misleading descriptions.
+- E2 Git af82109a5f: #5871/SVN r4536 changed source/datatypes.html for dateTime and time from optional-sounding seconds wording to required-seconds wording. Learned: the issue was initially applied to the narrative datatype table.
+- E3 Source source/datatypes.html:176 and source/datatypes.html:326: current dateTime and time narrative text both state seconds must be provided and may be zero-filled/ignored. Learned: the main datatype page already reflects the FHIR-5871 rule.
+- E4 Source source/datatypes/primitives.xml:193-208: active primitive spreadsheet source had dateTime required-seconds text but the time primitive description still lacked the hh:mm:ss/required-seconds wording. Learned: generated time StructureDefinition descriptions were the remaining build-scope gap.
+- E5 Command curl https://build.fhir.org/time.profile.json and datatypes.html: current CI build showed datatypes.html has the rule while time.profile.json still said only "A time during the day, with no date specified". Learned: the stale primitive source affected a published/generated conformance surface.
+- E6 Command Jira/Zulip/Confluence search for FHIR-5871 and seconds/dateTime regex terms: found FHIR-16948 as a later same-text clarification, Zulip implementer quotes of the current rule, and no Confluence references. Learned: no conflicting community or minutes evidence reverses the source fix.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5871",
+    "url": "https://jira.hl7.org/browse/FHIR-5871",
+    "snapshot_path": "contexts/FHIR-5871/jira/FHIR-5871.md",
+    "ref": { "jira_key": "FHIR-5871" },
+    "summary": "Published/Persuasive with Modification issue requiring the time/dateTime descriptions to stop implying seconds are optional when regex/schema require them.",
+    "learned": "The final decision was to update descriptions, not to relax the regexes.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "af82109a5f",
+    "ref": { "commit": "af82109a5f79d3a57704a6e9099eec3bb3c38e99" },
+    "summary": "Historical #5871/SVN r4536 commit changed dateTime and time wording in source/datatypes.html to say seconds must be provided.",
+    "learned": "FHIR-5871 was initially applied to the narrative datatype table.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes.html:176, source/datatypes.html:326",
+    "summary": "The current datatype narrative table has required-seconds wording for both dateTime and time.",
+    "learned": "The main datatype page remains correct for FHIR-5871.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:193-208",
+    "summary": "The active primitive spreadsheet source had required-seconds wording for dateTime but not for time, whose regex requires hh:mm:ss.",
+    "learned": "The generated time primitive profile needed the same required-seconds clarification.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "CI build check for datatypes.html and time.profile.json",
+    "command": "curl -fsSL https://build.fhir.org/datatypes.html; curl -fsSL https://build.fhir.org/time.profile.json | jq -r '.description, (.snapshot.element[] | select(.id==\"time\") | .definition)'",
+    "summary": "The CI datatype table had the required-seconds rule, while time.profile.json still used the shorter primitive description.",
+    "learned": "The primitive source gap affected a current generated conformance artifact.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community and Jira search for FHIR-5871/dateTime regex seconds",
+    "command": "bun run jira:search fts '\"Seconds must be provided\"' --limit 20; bun run zulip:search fts '\"FHIR-5871\" OR \"Seconds must be provided\" OR \"dateTime regex seconds\"' --limit 10; bun run confluence:search refs jira FHIR-5871; bun run confluence:search fts '\"FHIR-5871\" \"dateTime\" seconds regex' --limit 10",
+    "query": "FHIR-5871 / Seconds must be provided / dateTime regex seconds",
+    "result_count": 6,
+    "summary": "Search found FHIR-16948 as a later clarification and several Zulip implementer quotes of the current rule, with no Confluence references or conflicting minutes.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["additional_context", "confidence"]
+  }
+]
+</evidence-manifest>

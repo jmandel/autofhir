@@ -1,0 +1,114 @@
+FHIR-8712: Correct ValueSet URLs used as coding systems
+
+Issue request:
+FHIR-8712 was a Published/Persuasive FHIR-core change request from DSTU1 reporting examples whose Coding.system values used ValueSet URLs rather than the CodeSystem URLs that supplied the codes, with the validator failing to catch those invalid systems.
+
+Initial application:
+The Jira record says the original DSTU1 problem was applied in svn revision 7074. The originally cited ImmunizationRecommendation example is no longer in current core source, but current active source had the same semantic error in later examples and example terminology: Group family/household examples used http://hl7.org/fhir/ValueSet/group-code as Coding.system; Consent notSecLabel used http://terminology.hl7.org/ValueSet/v3-InformationSensitivityPolicy as Coding.system; and the Measure stratifier age-range example and companion CQL used the old OHIE ValueSet URI as a code system.
+
+Additional context:
+Consent, Group, Library, and Measure are active in source/fhir.ini, and the Group examples are explicitly listed in list-Group-examples.xml. The correct Group Code CodeSystem URL is http://hl7.org/fhir/group-code in current source; FHIR-55163 may later move Group terminology to THO but says to keep the existing URL and is not Applied/Published. UP-709 implemented the production THO Time Period Ranges CodeSystem at http://terminology.hl7.org/CodeSystem/time-period-ranges, superseding the stale OHIE ValueSet URI for the Measure age-range codes. A remaining ValueSet-as-system pattern in source/us/valueset-omb-ethnicity.xml was left untouched because the US Core profile entry is commented out in fhir.ini and is not current-build source.
+
+AutoFHIR reconciliation:
+This commit replaces the invalid ValueSet systems with the applicable CodeSystem systems in the current active source: Group examples now use http://hl7.org/fhir/group-code, the Consent securityLabel example now uses http://terminology.hl7.org/CodeSystem/v3-ActCode for HIV, and the Measure age-range ValueSet plus HIV Indicators CQL now use http://terminology.hl7.org/CodeSystem/time-period-ranges consistently.
+
+Recommendation:
+Keep this source fix. If the disabled legacy US profile source is ever reactivated, separately review source/us/valueset-omb-ethnicity.xml; do not fold that out-of-build cleanup into this current FHIR-8712 reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8712
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+UP-709: supporting-decision - implemented the THO Time Period Ranges CodeSystem used to replace the stale OHIE ValueSet URI in Measure age-range examples.
+FHIR-51028: background - already represented on the combined branch; its Measure stratifier audit mentions UP-709 but does not cover this ValueSet-as-system cleanup.
+FHIR-55163: background - later Resolved-change-required Group terminology migration decision; it says to keep the existing Group Code URL and is not a current Applied/Published source-edit decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8712: Published/Persuasive issue reporting examples with system values set to ValueSet URLs instead of the systems used by those ValueSets. Learned: current source should not publish examples that use ValueSet canonicals as Coding.system values.
+- E2 Source source/fhir.ini:1120,1162,1174,1178 and source/group/list-Group-examples.xml:31-53: Consent, Group, Library, and Measure are active resources/artifacts, and the family/household Group examples are listed for the build. Learned: the edited files are current-build source.
+- E3 Source source/group/codesystem-group-code.xml:14 and source/group/valueset-group-code.xml:34-37: Group Code's CodeSystem URL is http://hl7.org/fhir/group-code and its ValueSet URL is http://hl7.org/fhir/ValueSet/group-code. Learned: the Group examples were using the ValueSet URL where Coding.system must use the CodeSystem URL.
+- E4 Source source/consent/consent-example-notSecLabel.xml:59-61 and source/consent examples using v3-ActCode: the HIV security label was the lone Consent securityLabel system using a ValueSet URL while neighboring Consent examples use http://terminology.hl7.org/CodeSystem/v3-ActCode. Learned: HIV should be coded from v3-ActCode, not the InformationSensitivityPolicy ValueSet canonical.
+- E5 Web THO CodeSystem-time-period-ranges.json and ValueSet-time-period-ranges.json: THO publishes Time Period Ranges as CodeSystem http://terminology.hl7.org/CodeSystem/time-period-ranges with ValueSet http://terminology.hl7.org/ValueSet/time-period-ranges. Learned: Measure age-range codes now have a proper CodeSystem canonical to use instead of the old OHIE ValueSet URI.
+- E6 Git 0dd012bbd56a3ca3ed29682ac040c009e2b42be6, 5e99732fcd14f8a9af3ccb8d0e69e9a6cde2a76f, 309339455c3f8a51f01eca2fdd938d74774a70af, and 464fe3741d52edd1d8e39e91e641b195191ae8f3: later commits introduced the current Group, Consent, Measure, and CQL stale systems. Learned: these are post-DSTU1 regressions of the same class rather than the original immunization example.
+- E7 Command community/source search: quoted Jira/Zulip/Confluence searches for FHIR-8712 found no conflicting community discussion; searches found FHIR-51028 already audited on the combined branch and UP-709 as implemented terminology support. Learned: no related final Core decision blocks this focused source fix.
+- E8 Verification command/query: CRLF-aware git diff --check, XML well-formedness checks, and source searches found no remaining active ValueSet-as-system patterns outside disabled source/us. Learned: the edited source is syntactically safe and the targeted current-build pattern is resolved.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8712",
+    "url": "https://jira.hl7.org/browse/FHIR-8712",
+    "snapshot_path": "contexts/FHIR-8712/jira/FHIR-8712.md",
+    "ref": { "jira_key": "FHIR-8712" },
+    "summary": "Published/Persuasive issue reporting examples whose Coding.system values incorrectly used ValueSet URLs rather than CodeSystem URLs.",
+    "learned": "Current source should not publish examples that use ValueSet canonicals as Coding.system values.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1120,1162,1174,1178; source/group/list-Group-examples.xml:31-53",
+    "summary": "Consent, Group, Library, and Measure are active in fhir.ini, and the family/household Group examples are listed in the Group examples List.",
+    "learned": "The edited source files are in current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/group/codesystem-group-code.xml:14; source/group/valueset-group-code.xml:34-37; source/group/group-example-family.xml:20; source/group/group-example-household.xml:20",
+    "summary": "The Group Code CodeSystem URL is http://hl7.org/fhir/group-code while the ValueSet URL is http://hl7.org/fhir/ValueSet/group-code; the examples now use the CodeSystem URL.",
+    "learned": "This corrects the Group examples' Coding.system values to the system that actually defines family and household.",
+    "supports": ["source_change", "verification"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/consent/consent-example-notSecLabel.xml:59-61 and source/consent/* examples using v3-ActCode",
+    "summary": "The Consent notSecLabel securityLabel for HIV now uses http://terminology.hl7.org/CodeSystem/v3-ActCode, consistent with neighboring Consent examples and security-label usage.",
+    "learned": "The HIV code is carried as a v3 ActCode coding, not as the InformationSensitivityPolicy ValueSet canonical.",
+    "supports": ["source_change", "verification"]
+  },
+  {
+    "id": "E5",
+    "kind": "web",
+    "locator": "THO CodeSystem-time-period-ranges.json and ValueSet-time-period-ranges.json",
+    "url": "https://terminology.hl7.org/CodeSystem-time-period-ranges.json",
+    "summary": "THO publishes Time Period Ranges as CodeSystem http://terminology.hl7.org/CodeSystem/time-period-ranges with companion ValueSet http://terminology.hl7.org/ValueSet/time-period-ranges.",
+    "learned": "The Measure age-range example and HIV Indicators CQL have a proper current CodeSystem canonical to use instead of the old OHIE ValueSet URI.",
+    "supports": ["additional_context", "source_change"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "0dd012bbd56a3ca3ed29682ac040c009e2b42be6; 5e99732fcd14f8a9af3ccb8d0e69e9a6cde2a76f; 309339455c3f8a51f01eca2fdd938d74774a70af; 464fe3741d52edd1d8e39e91e641b195191ae8f3",
+    "ref": { "commit": "0dd012bbd56a3ca3ed29682ac040c009e2b42be6" },
+    "summary": "Later commits introduced the current Group family/household examples, Consent notSecLabel example, Measure age-range example, and HIV Indicators CQL with stale ValueSet-as-system URIs.",
+    "learned": "The current fixes address post-DSTU1 regressions of the same problem class rather than the original ImmunizationRecommendation example.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and related Jira search for FHIR-8712 and ValueSet system terms",
+    "command": "bun run jira:search fts '\"invalid system URLs\" validator examples' --limit 10; bun run zulip:search fts '\"FHIR-8712\"' --limit 10; bun run confluence:search fts '\"FHIR-8712\"' --limit 10; bun run jira:search fts '\"iso-8601-derived-periods\"' --limit 10",
+    "query": "FHIR-8712 invalid system URLs iso-8601-derived-periods",
+    "summary": "Searches found the seed issue, no conflicting Zulip/Confluence hits, existing FHIR-51028 audit coverage, and UP-709 terminology support for time-period-ranges.",
+    "learned": "No related final Core decision blocks this focused source fix.",
+    "supports": ["absence_of_conflict", "additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Post-edit validation and searches",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; xmllint --noout edited XML files; rg '<system value=\"[^\"]*ValueSet[^\"]*\"|\"system\"\\s*:\\s*\"[^\"]*ValueSet[^\"]*\"' source",
+    "summary": "CRLF-aware whitespace checks and XML well-formedness checks passed; remaining ValueSet-as-system search hit is limited to disabled legacy source/us content.",
+    "learned": "The edited source is syntactically safe and the targeted active-build pattern is resolved.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

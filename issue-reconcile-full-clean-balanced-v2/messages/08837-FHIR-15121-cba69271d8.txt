@@ -1,0 +1,97 @@
+FHIR-15121: Correct missing-meaning invariant XPath
+
+Issue request:
+FHIR-15121 was a Published/Persuasive FHIR-core StructureDefinition grouper for defaults and meaningWhenMissing. The final decision removed defaultValue[x] from FHIR resources while retaining it for logical models, required invariant enforcement, clarified that missing means no value including extension-only elements, prevented profiles from changing missing-element interpretation, discouraged trivial meaningWhenMissing guidance, and requested Missing Elements/search examples updates.
+
+Initial application:
+The Jira comments record application as SVN revision 14226. In this Git history that is git-svn commit 7ac081b0b845064c90c4a9038178aa64a80e5790, which cites GF#15121 and updates the ElementDefinition missing-elements/defaultValue narrative plus the conformance-rule link. Later source history, including 652ee3df4866d4910bf9d0573677f5a5183cea45, carries the explicit search wording that extension-only elements with no value count as :missing.
+
+Additional context:
+FHIR-I WGM minutes page 40743490 records the same motion and execution details. Current source/fhir.ini actively includes ElementDefinition as a datatype and StructureDefinition as a resource, so source/datatypes/elementdefinition.xml, source/elementdefinition.html, source/search.html, and source/structuredefinition/structuredefinition-StructureDefinition.xml are build-scope source. Related default/missing issues FHIR-3527 and FHIR-16992 are already represented on the combined branch and helped confirm the broader policy, but they were not republished here.
+
+AutoFHIR reconciliation:
+This commit fixes the one current source defect found during reconciliation. The ElementDefinition invariant row says "default value and meaningWhenMissing are mutually exclusive" and its FHIRPath is defaultValue.empty() or meaningWhenMissing.empty(), but the XPath cell still tested fixed[x] instead of defaultValue[x]. The XPath now tests defaultValue[x], aligning all forms of the invariant. No broader narrative or meaningWhenMissing cleanup was made because the current build-scope source already conveys missing-as-no-value, search :missing behavior, profile immutability of missing meaning, and logical-model-only defaultValue use; individual trivial meaningWhenMissing entries are at most authoring-review candidates, not a necessary bulk source fix for this seed.
+
+Recommendation:
+Keep this source fix. Future work group review could separately audit individual meaningWhenMissing entries that merely restate unknownness, but the core FHIR-15121 policy and invariant now align in the current source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15121
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-3527: same-change-family - older Published default/missing methodology issue that introduced defaultValue and meaningWhenMissing; already represented on the combined branch by a no-change audit.
+FHIR-16992: same-change-family - Published cleanup issue requesting the non-FHIR defaultValue constraint; already represented on the combined branch by a no-change audit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15121: Published/Persuasive grouper requiring defaultValue removal for FHIR resources, logical-model retention, invariant enforcement, and missing-as-no-value/search clarifications. Learned: establishes the seed policy and current source checks.
+- E2 Confluence 40743490: FHIR-I WGM minutes record the FHIR-15121 motion and execution details for removing defaultValue[x], retaining meaningWhenMissing, profile limits, and missing-as-no-value. Learned: meeting evidence matches the Jira resolution.
+- E3 Git 7ac081b0 and 652ee3df: GF#15121 residual edits changed ElementDefinition missing-elements/defaultValue guidance; a later search rewrite made extension-only no-value elements count as :missing. Learned: the issue was broadly applied before this reconciliation.
+- E4 Source source/fhir.ini:61,258; source/elementdefinition.html:511-541; source/search.html:1850-1880; source/structuredefinition/structuredefinition-StructureDefinition.xml:177-206. Learned: build-scope current source already encodes the main FHIR-15121 rules.
+- E5 Source source/datatypes/elementdefinition.xml:4726-4733. Learned: the active ElementDefinition invariant had correct human/FHIRPath text but wrong XPath, checking fixed[x] instead of defaultValue[x].
+- E6 Command/source verification: rg and XML parse showed the corrected XPath in source/datatypes/elementdefinition.xml, no remaining fixed[x]/meaningWhenMissing XPath in that source file, and well-formed SpreadsheetML. Learned: the source fix is narrow and syntactically valid.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15121",
+    "url": "https://jira.hl7.org/browse/FHIR-15121",
+    "snapshot_path": "contexts/FHIR-15121/jira/FHIR-15121.md",
+    "ref": { "jira_key": "FHIR-15121" },
+    "summary": "Published/Persuasive grouper for defaultValue[x], meaningWhenMissing, profile limits, and missing-as-no-value/search behavior.",
+    "learned": "This establishes the final work group policy reconciled against current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes WGM 201801 page 40743490",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/40743490/FHIR+Infrastructure+Minutes+WGM+201801",
+    "snapshot_path": "contexts/FHIR-3527/confluence/40743490.md",
+    "ref": { "confluence_page_id": 40743490 },
+    "summary": "Minutes record the motion to remove defaultValue[x], retain meaningWhenMissing, prevent profiles from changing missing meaning, and define missing as no value including extension-only elements.",
+    "learned": "The meeting record confirms the Jira policy and helps interpret the current source without broadening the fix.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "7ac081b0b845064c90c4a9038178aa64a80e5790; 652ee3df4866d4910bf9d0573677f5a5183cea45",
+    "ref": { "commits": "7ac081b0b845064c90c4a9038178aa64a80e5790; 652ee3df4866d4910bf9d0573677f5a5183cea45" },
+    "summary": "GF#15121 residual edits updated ElementDefinition missing/defaultValue guidance, and a later search rewrite included the extension-only :missing rule.",
+    "learned": "Most of the seed was already applied in source history before this reconciliation.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:61,258; source/elementdefinition.html:511-541; source/search.html:1850-1880; source/structuredefinition/structuredefinition-StructureDefinition.xml:177-206",
+    "ref": { "paths": "source/fhir.ini; source/elementdefinition.html; source/search.html; source/structuredefinition/structuredefinition-StructureDefinition.xml" },
+    "summary": "Active build-scope source defines ElementDefinition and StructureDefinition, states missing includes extension-only no-value elements, defines search :missing accordingly, and enforces no default values in FHIR StructureDefinitions or constraints.",
+    "learned": "The current source already carries the main FHIR-15121 semantics.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:4726-4733",
+    "ref": { "path": "source/datatypes/elementdefinition.xml", "start_line": 4726, "end_line": 4733 },
+    "summary": "The ElementDefinition invariant human text and FHIRPath say defaultValue and meaningWhenMissing are mutually exclusive, but the XPath cell tested fixed[x].",
+    "learned": "This was the remaining current source defect requiring a narrow fix.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Post-edit source validation",
+    "command": "git diff --check; rg -n \"default value and meaningWhenMissing|starts-with\\(local-name\\(\\.\\), 'defaultValue'\\).*meaningWhenMissing|starts-with\\(local-name\\(\\.\\), 'fixed'\\).*meaningWhenMissing\" source/datatypes/elementdefinition.xml; python3 -c 'import xml.etree.ElementTree as ET; ET.parse(\"source/datatypes/elementdefinition.xml\")'",
+    "summary": "Whitespace checks passed, the source invariant now uses defaultValue[x] in XPath with no remaining fixed[x]/meaningWhenMissing XPath in that file, and the SpreadsheetML parses as XML.",
+    "learned": "The reconciliation edit is narrow and syntactically valid.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

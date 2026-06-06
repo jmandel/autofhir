@@ -1,0 +1,98 @@
+FHIR-15901: Audit inherited narrative link handling
+
+Issue request:
+FHIR-15901 was a Published/Persuasive STU3 FHIR-core change request for FHIR-I. It asked the IG Publisher to detect relative hyperlinks inherited in descriptions, comments, and similar narrative elements and rewrite them, for example by adding {{site.data.fhir.path}}, so derived IGs would not produce broken links.
+
+Initial application:
+The Jira comments say "already fixed" and no current or historical source commit explicitly mentions FHIR-15901. The local history does show the requested mechanism and related tooling work: commit 1c9659e5d6d32dee144d638e833580eac52524b9 changed generated conformance narrative from ../ to {{site.data.fhir.path}}, and the current CapabilityStatement narrative XSLT retains that setting. A later 2018 IG Publisher link-handling commit touched renderer link context, but it was not issue-tagged and is only supporting evidence that this was tooling behavior rather than profile-page prose.
+
+Additional context:
+The current FHIR checkout has no tracked Java IG Publisher sources, so any remaining implementation behavior is outside current core source. The source tree intentionally still uses relative links in many XML narrative fragments; a current check found 327 XML files with 2147 relative .html hrefs. That pattern confirms the issue was not asking to rewrite all core source links. FHIR-I minutes for 2018-08-06 record FHIR-15901 as Persuasive in the block vote, and community searches found no substantive later discussion changing the conclusion.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current core source does not contain a spec text defect for FHIR-15901, and changing relative links in source narratives would be overbroad and inconsistent with existing build practice. The durable record is that the applied issue was reported already fixed as IG Publisher/tooling behavior.
+
+Recommendation:
+Keep this audit commit as-is. If broken inherited links are observed in a current IG, investigate the current IG Publisher repository/tooling with a focused reproducer; do not bulk-edit FHIR core narrative links without a separate work-group decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15901
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15901: Published/Persuasive STU3 FHIR-core change request with 2018-08-06 FHIR-I vote and comments saying "already fixed". Learned: this is final WG disposition and shows the issue was considered applied before reconciliation.
+- E2 Confluence FHIR Infrastructure Minutes CC 20180806: block vote lists FHIR-15901 as Persuasive. Learned: the WG approval context matches the Jira metadata.
+- E3 Source source/capabilitystatement/capabilitystatementNarrative.xslt:5 and git 1c9659e5d6d32dee144d638e833580eac52524b9: current generated narrative still uses {{site.data.fhir.path}}, introduced historically in conformance narrative generation. Learned: the requested link-prefix mechanism exists in current source for generated conformance narrative.
+- E4 Command relative-link scan: rg counted 327 XML source files and 2147 relative .html href matches. Learned: relative source links remain normal input and should not be bulk-rewritten as a source fix.
+- E5 Command current tooling scope: git ls-files '*.java' returned count=0 in the current FHIR checkout. Learned: IG Publisher Java behavior is no longer part of current core source, so this reconciliation should not edit non-existent tooling here.
+- E6 Community searches: Jira FTS found only FHIR-15901; Zulip FTS found only the tracker bot notification; Confluence refs found no direct references beyond the FHIR-I minutes found by full-text search. Learned: no discovered later community evidence conflicts with the no-change audit conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15901",
+    "url": "https://jira.hl7.org/browse/FHIR-15901",
+    "snapshot_path": "contexts/FHIR-15901/jira/FHIR-15901.md",
+    "ref": { "jira_key": "FHIR-15901" },
+    "summary": "Published/Persuasive STU3 FHIR-core issue asking IG Publisher to rewrite relative hyperlinks inherited in descriptions, comments, and similar narrative elements for derived IGs.",
+    "learned": "The issue has final disposition and Jira comments report that the requested tooling behavior was already fixed.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20180806 page 40743520",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/40743520/FHIR+Infrastructure+Minutes+CC+20180806",
+    "snapshot_path": "contexts/FHIR-15901/confluence/40743520.md",
+    "ref": { "confluence_page_id": 40743520 },
+    "summary": "FHIR-I minutes list FHIR-15901 in the 2018-08-06 Persuasive block vote.",
+    "learned": "This corroborates the WG approval recorded in Jira.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/capabilitystatement/capabilitystatementNarrative.xslt:5; git 1c9659e5d6d32dee144d638e833580eac52524b9",
+    "ref": { "path": "source/capabilitystatement/capabilitystatementNarrative.xslt", "line": 5, "commit": "1c9659e5d6d32dee144d638e833580eac52524b9" },
+    "summary": "The current generated CapabilityStatement narrative XSLT uses {{site.data.fhir.path}}, and the historical commit introduced the same mechanism for conformance narrative generation.",
+    "learned": "The specific link-prefix mechanism named in the Jira request is present in current source for generated conformance narrative.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current XML relative-link scan",
+    "command": "rg -n 'href=\"[^\"]+\\.html|href=\'[^\']+\\.html' source --glob '*.xml' --count | awk -F: '{files++; total += $2} END {print files \" files\", total \" matches\"}'",
+    "result_count": 2147,
+    "summary": "The scan found 327 XML source files with 2147 relative .html href matches.",
+    "learned": "Relative source links remain normal current input, so bulk-rewriting source links would not be an appropriate reconciliation fix.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current tracked Java publisher sources",
+    "command": "git ls-files '*.java' | wc -l",
+    "result_count": 0,
+    "summary": "The current FHIR checkout has no tracked Java source files for the old IG Publisher implementation.",
+    "learned": "Any remaining IG Publisher behavior is outside the current core source tree, supporting an audit/no-change decision here.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-15901 and derived IG hyperlink terms",
+    "command": "bun run jira:search fts 'hyperlinks descriptions comments derived IGs' --limit 20; bun run zulip:search fts 'hyperlinks descriptions comments derived IGs' --limit 20; bun run confluence:search refs jira FHIR-15901; bun run confluence:search fts 'hyperlinks descriptions comments derived IGs' --limit 20",
+    "query": "hyperlinks descriptions comments derived IGs",
+    "summary": "Jira FTS found only FHIR-15901, Zulip found only the tracker bot notification, Confluence refs found no direct Jira refs, and Confluence FTS found the FHIR-I minutes.",
+    "learned": "No discovered later community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

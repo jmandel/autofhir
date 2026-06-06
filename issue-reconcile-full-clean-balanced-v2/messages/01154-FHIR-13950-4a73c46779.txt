@@ -1,0 +1,98 @@
+FHIR-13950: Audit formatCode terminology handoff
+
+Issue request:
+FHIR-13950 was a Published/Persuasive STU3 DocumentReference request to stop carrying IHE and HL7 formatCode values as an undifferentiated local FHIR value set. It asked for the values to be represented by CodeSystem resources, with the existing formatCode ValueSet composed from those systems, and noted that HL7-authored codes should not appear as if they were assigned by IHE.
+
+Initial application:
+The request was applied in svn revision 13175, preserved in git commit f86337b9ba, which was explicitly labeled GF#13950 and GF#14003. That commit replaced the long local list in source/documentreference/valueset-formatcodes.xml with an external IHE include and corrected the IHE ValueSet OID, while registering the terminology source in source/fhir.ini.
+
+Additional context:
+Later formatCode work moved the remaining mixed vocabulary management out of FHIR core. FHIR-14104 and the linked terminology discussion established an HL7-managed document format CodeSystem, and commit 6f1b3314e9 removed the old core-local formatcodes ValueSet while changing DocumentReference.content.profile.value[x] to bind to the THO ValueSet http://terminology.hl7.org/ValueSet/v3-HL7FormatCodes. Current THO content composes active IHE format codes with the HL7 Document Format Codes CodeSystem, so the semantic result requested by FHIR-13950 is present outside the core source checkout. FHIR-17298 shows that later remaining formatCode expansion questions are being handled as THO/UTG work, not as a core-local value-set restoration.
+
+AutoFHIR reconciliation:
+No source files were changed. The active core build includes DocumentReference, and the current DocumentReference binding points to the THO format-code ValueSet. Recreating source/documentreference/valueset-formatcodes.xml or adding another core CodeSystem would reverse the later THO handoff and duplicate externally managed terminology.
+
+Recommendation:
+Keep this audit commit as-is. Future changes to the composition or expansion of DocumentReference format codes should be pursued in THO/IHE/UTG unless a separate Jira explicitly asks FHIR core to change which ValueSet the resource binds to.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13950
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-14003: same-change-family - corrected the IHE FormatCodes ValueSet OID in the same svn/git application commit.
+FHIR-14104: later-change - established the later HL7-managed document format CodeSystem and drove the mixed IHE/HL7 value-set composition now handled in THO.
+FHIR-17298: background - later unresolved/applied-for-R6 formatCode expansion work points to a THO/UTG tracker rather than a core-local source change.
+FHIR-28467: later-change - shows other core artifacts now reference the same THO format-code ValueSet family instead of copying IHE code systems locally.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13950: Published/Persuasive issue asking for CodeSystems behind the DocumentReference formatCode ValueSet. Learned: the accepted request is about separating IHE and HL7 code-system ownership while composing the value set.
+- E2 Git f86337b9ba: GF#13950 & GF#14003 application commit replaced the local DocumentReference formatcodes list with an external IHE include and fixed the OID. Learned: the seed was explicitly applied in source history.
+- E3 Source source/documentreference/structuredefinition-DocumentReference.xml:1238 and source/fhir.ini:190: DocumentReference is active and content.profile.value[x] binds to http://terminology.hl7.org/ValueSet/v3-HL7FormatCodes. Learned: current built core delegates the formatCode binding to THO.
+- E4 THO ValueSet-v3-HL7FormatCodes.json: the active ValueSet composes IHE format codes and http://terminology.hl7.org/CodeSystem/v3-HL7DocumentFormatCodes. Learned: the current terminology surface satisfies the requested composed value-set model.
+- E5 Zulip #terminology > CDA format code vocabulary: discussion around GF#14104 identified the HL7 document format CodeSystem and IHE coordination path. Learned: later community evidence supports the THO/IHE handoff rather than restoring core-local terminology.
+- E6 Command search for quoted FHIR-13950 in Zulip and Confluence: no directly relevant community records were found. Learned: no discovered community evidence conflicts with the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13950",
+    "url": "https://jira.hl7.org/browse/FHIR-13950",
+    "snapshot_path": "contexts/FHIR-13950/jira/FHIR-13950.md",
+    "ref": { "jira_key": "FHIR-13950" },
+    "summary": "Published/Persuasive STU3 DocumentReference request to define formatCode values in CodeSystems and compose the existing ValueSet from them.",
+    "learned": "This establishes the final accepted intent for separating IHE and HL7 format-code ownership.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "f86337b9ba",
+    "ref": { "commit": "f86337b9ba9648f17f0ea826df8ec607466b9c2d" },
+    "summary": "GF#13950 and GF#14003 application commit changed source/documentreference/valueset-formatcodes.xml to use the external IHE terminology include and corrected the ValueSet OID.",
+    "learned": "The seed was explicitly applied in historical source before later terminology refactoring.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/documentreference/structuredefinition-DocumentReference.xml:1238; source/fhir.ini:190",
+    "summary": "DocumentReference is active in fhir.ini and DocumentReference.content.profile.value[x] binds to http://terminology.hl7.org/ValueSet/v3-HL7FormatCodes.",
+    "learned": "Current built core uses the THO format-code ValueSet instead of a stale core-local ValueSet.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "THO ValueSet-v3-HL7FormatCodes.json",
+    "url": "https://terminology.hl7.org/ValueSet-v3-HL7FormatCodes.json",
+    "summary": "The THO ValueSet includes active IHE format codes and all codes from http://terminology.hl7.org/CodeSystem/v3-HL7DocumentFormatCodes.",
+    "learned": "The requested composed value-set model is now represented in external terminology managed outside FHIR core.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#terminology > CDA format code vocabulary",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/CDA%20format%20code%20vocabulary",
+    "summary": "The 2019-2022 thread around GF#14104 identified the HL7 document format CodeSystem and coordinated with the IHE format-code publication.",
+    "learned": "Community discussion supports the later THO/IHE terminology ownership model.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-13950",
+    "command": "bun run zulip:search fts '\"FHIR-13950\" formatCode DocumentReference' --limit 10; bun run confluence:search fts '\"FHIR-13950\" formatCode DocumentReference' --limit 10",
+    "query": "\"FHIR-13950\" formatCode DocumentReference",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits for the seed key were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

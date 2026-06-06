@@ -1,0 +1,107 @@
+FHIR-15554: Audit Patient deceased search expression
+
+Issue request:
+FHIR-15554 was a Published/Persuasive STU3 Patient Administration change request. It reported that the Patient deceased search parameter expression was `Patient.deceased.exists()`, which incorrectly matched `deceasedBoolean=false`, and requested an expression that only treats `deceasedBoolean=true` or a present death date as deceased.
+
+Initial application:
+The issue appears to have been applied in historical commit e4f95ecc3e, whose message says `GF#1554 patient deceased search expression` and whose patch changed the Patient spreadsheet search parameter expression from `Patient.deceased.exists()` to `Patient.deceased.exists() and Patient.deceased != false`. The 2021 new-build-core source refactor commit 33b409a4b6 carried that corrected expression into `source/patient/bundle-Patient-search-params.xml`.
+
+Additional context:
+`source/fhir.ini` lists Patient as an active resource, so the Patient search parameter bundle is in current build scope. Later related issue FHIR-37591 challenged the same expression for `:missing` behavior, but PA resolved it Not Persuasive because a fully compatible fix would require deprecating the normative existing search parameter and creating a new one; the linked Zulip thread reached the same conclusion that prior-version override was not available. FHIR-15807 is a duplicate of this same STU3 complaint, and FHIR-23068 concerned the now-removed XPath form rather than a needed FHIRPath change.
+
+AutoFHIR reconciliation:
+No source change was made. The current build-scoped Patient search parameter already says `Patient.deceased.exists() and Patient.deceased != false`, which preserves the FHIR-15554 correction by excluding `deceasedBoolean=false` while still matching a present death date.
+
+Recommendation:
+Keep this audit commit as-is. Do not add a redundant source change for FHIR-15554; revisit only if PA chooses to introduce a new search parameter for the distinct `:missing` use case from FHIR-37591.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15554
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-15807: duplicate - repeated the same complaint that `Patient.deceased.exists()` matched false boolean values.
+FHIR-23068: background - later questioned the XPath extraction for the same search parameter; XPath search parameter definitions have since been removed.
+FHIR-37591: later-change - later considered changing the expression for `:missing`, but PA resolved No Change because the compatible fix would be disruptive.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15554: Published/Persuasive issue requested correcting the Patient deceased search parameter expression so `deceasedBoolean=false` is not treated as deceased. Learned: establishes the final seed issue request.
+- E2 Source source/fhir.ini:169-211: Patient is listed as an active resource. Learned: the Patient search parameter source is in current build scope.
+- E3 Source source/patient/bundle-Patient-search-params.xml:179-190: `Patient-deceased` currently uses `Patient.deceased.exists() and Patient.deceased != false`. Learned: the current source already contains the requested semantic correction.
+- E4 Git e4f95ecc3e: historical `GF#1554 patient deceased search expression` patch changed the Patient spreadsheet expression from `Patient.deceased.exists()` to the current corrected expression. Learned: the original application path matches the seed request.
+- E5 Git 33b409a4b6: new-build-core refactor introduced `bundle-Patient-search-params.xml` while preserving the corrected expression. Learned: the current source location inherited the applied fix.
+- E6 Jira FHIR-37591: Resolved No Change/Not Persuasive issue challenged the expression for `:missing` semantics. Learned: later WG review did not supersede FHIR-15554 with a new expression.
+- E7 Zulip/Confluence: `#implementers > Patient deceased search parameter values` and PA 2023-10-18 minutes record the later compatibility discussion and Not Persuasive result. Learned: community evidence supports leaving the normative parameter unchanged.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15554",
+    "url": "https://jira.hl7.org/browse/FHIR-15554",
+    "snapshot_path": "contexts/FHIR-15554/jira/FHIR-15554.md",
+    "ref": { "jira_key": "FHIR-15554" },
+    "summary": "Published/Persuasive STU3 Patient issue requesting a corrected deceased search parameter expression so false boolean values are not treated as deceased.",
+    "learned": "This is the final seed decision and establishes the target source behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-211",
+    "ref": { "path": "source/fhir.ini", "start_line": 169, "end_line": 211 },
+    "summary": "The active resources list includes `patient=Patient`.",
+    "learned": "Patient resource search parameter inputs are in current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/patient/bundle-Patient-search-params.xml:179-190",
+    "ref": { "path": "source/patient/bundle-Patient-search-params.xml", "start_line": 179, "end_line": 190 },
+    "summary": "The current `Patient-deceased` SearchParameter expression is `Patient.deceased.exists() and Patient.deceased != false`.",
+    "learned": "The current source excludes `deceasedBoolean=false` and satisfies the FHIR-15554 correction.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "e4f95ecc3e",
+    "ref": { "commit": "e4f95ecc3e6d9b2f6799e06acae8b8ba57fc4a05" },
+    "summary": "Historical commit message `GF#1554 patient deceased search expression` changed the Patient spreadsheet from `Patient.deceased.exists()` to the corrected expression.",
+    "learned": "The issue was applied before the current source refactor.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "33b409a4b6",
+    "ref": { "commit": "33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "The new-build-core refactor introduced `source/patient/bundle-Patient-search-params.xml` with the corrected Patient deceased expression preserved.",
+    "learned": "The current source location inherited the prior FHIR-15554 fix.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-37591",
+    "url": "https://jira.hl7.org/browse/FHIR-37591",
+    "ref": { "jira_key": "FHIR-37591" },
+    "summary": "Resolved No Change/Not Persuasive later issue about `Patient.deceased` and `:missing` semantics.",
+    "learned": "Later WG review did not require changing the FHIR-15554 expression in the current specification.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence checks for Patient deceased search parameter",
+    "command": "bun run zulip:search snapshot implementers 'Patient deceased search parameter values'; bun run confluence:search snapshot 197330682; bun run confluence:search refs jira FHIR-15554",
+    "summary": "The later Zulip thread and PA minutes support the FHIR-37591 no-change outcome, and no Confluence references to FHIR-15554 were found.",
+    "learned": "Community evidence found no conflict with leaving the current corrected expression unchanged.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

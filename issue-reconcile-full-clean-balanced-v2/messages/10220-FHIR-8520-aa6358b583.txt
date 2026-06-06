@@ -1,0 +1,101 @@
+FHIR-8520: Audit duplicate profile id checks
+
+Issue request:
+FHIR-8520 was a Published/Persuasive FHIR-core change request from DSTU1 asking the build to fail when two profiles use the same id, instead of silently letting one profile overwrite another.
+
+Initial application:
+The Jira comment records svn revision 6157. In the git-svn history, commit 389772eae769faca08a64c0a2e1f5bc3067d95b1 applied that revision as "#8520 - check uniqueness on value set, code system and profile urls", adding duplicate pack/profile/resource-url checks to the then in-repository Java build tooling.
+
+Additional context:
+The old in-repository Java publisher code that received the 2015 fix was removed by 9f549566d1346cad7db6d2afca6080d7cebdfbbe when the FHIR build switched to the external kindling Gradle dependency. The current build.gradle.kts and gradle.properties use org.hl7.fhir:kindling:1.25.5-SNAPSHOT, and the active profile package entries remain build-scoped through source/fhir.ini. The current kindling SourceParser and OldSpreadsheetParser still raise errors for duplicate pack ids and duplicate profile names, and javap against the cached kindling jar confirmed those duplicate-check constants are present in the dependency used by this checkout.
+
+AutoFHIR reconciliation:
+No source change was made. The current build path already implements the requested fail-fast duplicate profile/pack id behavior, and the source location that originally changed for FHIR-8520 is no longer maintained in this repository.
+
+Recommendation:
+Keep this no-change audit commit as-is. If duplicate profile id behavior regresses, the follow-up should target the kindling publisher dependency or its version pin, not retired in-repository Java tooling.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8520
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8520: Published/Persuasive DSTU1 issue asks for an error on duplicate profile ids instead of overwrite. Learned: this is the final WG intent for the reconciliation.
+- E2 Git 389772eae769faca08a64c0a2e1f5bc3067d95b1: git-svn revision 6157 applied #8520 by adding uniqueness checks for profile/value set/code system URLs and pack ids. Learned: the issue was historically implemented.
+- E3 Git 9f549566d1346cad7db6d2afca6080d7cebdfbbe: current repository removed the old Java publisher and switched to a Gradle kindling dependency. Learned: remaining behavior is now governed by kindling, not by the deleted source files.
+- E4 Source build.gradle.kts:46-48,132-139 and gradle.properties:1-3: the current build runs org.hl7.fhir.tools.publisher.Publisher from org.hl7.fhir:kindling:1.25.5-SNAPSHOT. Learned: the kindling dependency is in current build scope.
+- E5 Source source/fhir.ini:449-472: active [profiles] entries identify the current profile packages fed to the build. Learned: duplicate profile package handling remains relevant to active build inputs.
+- E6 Source /home/jmandel/work/kindling/src/main/java/org/hl7/fhir/definitions/parsers/SourceParser.java:346-352,981-994 and /home/jmandel/work/kindling/src/main/java/org/hl7/fhir/definitions/parsers/spreadsheets/OldSpreadsheetParser.java:1594-1602: current kindling throws Duplicate Pack id and Duplicate Profile Name errors. Learned: the requested duplicate detection exists in the current publisher source.
+- E7 Verification command/query: dependencyInsight confirmed org.hl7.fhir:kindling:1.25.5-SNAPSHOT and javap confirmed Duplicate Pack id/Duplicate Profile Name constants in the cached jar; quoted Jira/Zulip/Confluence searches found no conflicting related decisions. Learned: current dependency and community evidence support no source change.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8520",
+    "url": "https://jira.hl7.org/browse/FHIR-8520",
+    "snapshot_path": "contexts/FHIR-8520/jira/FHIR-8520.md",
+    "ref": { "jira_key": "FHIR-8520" },
+    "summary": "Published/Persuasive FHIR-core issue asking the build to fail on duplicate profile ids instead of silently overwriting one profile with another.",
+    "learned": "This establishes the final issue request and the expected build behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "389772eae769faca08a64c0a2e1f5bc3067d95b1",
+    "ref": { "commit": "389772eae769faca08a64c0a2e1f5bc3067d95b1" },
+    "summary": "Historical git-svn commit for svn revision 6157 applied #8520 with uniqueness checks in the old Java publisher tooling.",
+    "learned": "The Jira request was applied before this reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "9f549566d1346cad7db6d2afca6080d7cebdfbbe",
+    "ref": { "commit": "9f549566d1346cad7db6d2afca6080d7cebdfbbe" },
+    "summary": "The current repository removed the old in-repo Java publisher and switched to a Gradle build with the kindling dependency.",
+    "learned": "The remaining duplicate-id behavior belongs to the active kindling publisher path rather than deleted in-repo source.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "build.gradle.kts:46-48,132-139; gradle.properties:1-3",
+    "summary": "The current build declares org.hl7.fhir:kindling:1.25.5-SNAPSHOT and runs org.hl7.fhir.tools.publisher.Publisher from that dependency.",
+    "learned": "Kindling is current build-scope evidence for publisher behavior.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:449-472",
+    "summary": "Active [profiles] entries configure current profile packages that feed the FHIR build.",
+    "learned": "Profile package duplicate handling remains relevant to active current-spec inputs.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "/home/jmandel/work/kindling/src/main/java/org/hl7/fhir/definitions/parsers/SourceParser.java:346-352,981-994; /home/jmandel/work/kindling/src/main/java/org/hl7/fhir/definitions/parsers/spreadsheets/OldSpreadsheetParser.java:1594-1602",
+    "summary": "Current kindling source throws Duplicate Pack id and Duplicate Profile Name exceptions when duplicate package/profile identifiers are encountered.",
+    "learned": "The requested fail-fast behavior exists in the current publisher implementation.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Dependency and community verification",
+    "command": "./gradlew --quiet dependencyInsight --dependency kindling --configuration runtimeClasspath; javap -classpath ~/.gradle/.../kindling-1.25.5-SNAPSHOT.jar -v org.hl7.fhir.definitions.parsers.SourceParser org.hl7.fhir.definitions.parsers.spreadsheets.OldSpreadsheetParser; bun run zulip:search fts '\"FHIR-8520\" \"duplicate profile\"'; bun run confluence:search refs jira FHIR-8520; bun run jira:search fts '\"duplicate profile\" \"overwrite\"'",
+    "result_count": 1,
+    "summary": "Gradle resolved kindling 1.25.5-SNAPSHOT; javap found Duplicate Pack id and Duplicate Profile Name constants in the cached jar; community searches found no conflicting Zulip/Confluence evidence and Jira search returned only FHIR-8520.",
+    "learned": "The checked dependency contains the relevant checks and no later conflicting decision was discovered.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

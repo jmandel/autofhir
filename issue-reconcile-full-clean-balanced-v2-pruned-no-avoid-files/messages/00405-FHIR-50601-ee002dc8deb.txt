@@ -1,0 +1,97 @@
+FHIR-50601: Make DiagnosticReport recommendation a Reference
+
+Issue request:
+FHIR-50601 was Applied/Persuasive with Modification for R6 after the reporter noted that DiagnosticReport.recommendation was a CodeableReference with no value set for its codeable side. The OO decision was to change the element from CodeableReference to Reference and constrain the reference targets to request-like follow-up resources.
+
+Initial application:
+FHIR-45290 originally added DiagnosticReport.recomendation as CodeableReference(Any). The FHIR-50601 implementation commit 8668f53 narrowed the targetProfile list from Resource to specific follow-up resources, but it left the datatype as CodeableReference. FHIR-54163 later fixed the element spelling to DiagnosticReport.recommendation.
+
+Additional context:
+OO WGM minutes for 2025-05-12/15 record the FHIR-50601 motion as "change the datatype to reference". Later commit e073fb45 removed ImmunizationRecommendation from the active core resource list and from DiagnosticReport references, so this reconciliation does not restore that now-out-of-build target. The active DiagnosticReport source is in scope through source/fhir.ini.
+
+AutoFHIR reconciliation:
+Changed DiagnosticReport.recommendation from CodeableReference to Reference in the authoritative StructureDefinition source and updated the checked-in DiagnosticReport SVG so the resource diagram no longer shows the stale CodeableReference type.
+
+Recommendation:
+Keep this commit. It completes the explicit FHIR-50601 datatype decision while preserving the current targetProfile list after later resource-scope changes. Any broader expansion of recommendation targets, such as adding other request-pattern resources not present in the final Jira-applied list, should be handled as separate OO work.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-50601
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-45290: same-change-family - introduced DiagnosticReport.recommendation as CodeableReference(Any), creating the datatype/binding context refined by FHIR-50601.
+FHIR-54163: later-change - renamed the element from DiagnosticReport.recomendation to DiagnosticReport.recommendation after FHIR-50601 was applied.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-50601: Applied/Persuasive with Modification; asked to resolve the missing CodeableReference vocabulary by changing DiagnosticReport.recommendation to Reference with named target resources. Learned: establishes final source-edit intent for the seed issue.
+- E2 Source source/diagnosticreport/structuredefinition-DiagnosticReport.xml:812: current active DiagnosticReport.recommendation still used CodeableReference before this commit. Learned: the datatype portion of FHIR-50601 remained unapplied.
+- E3 Git 8668f53: FHIR-50601 implementation commit changed targetProfile values but kept CodeableReference. Learned: prior application was partial rather than absent.
+- E4 Confluence OO 2025-05_12-15_WGM page 345083413: minutes record the motion to change the datatype to reference. Learned: meeting evidence confirms the Jira resolution wording.
+- E5 Git e073fb45 and source/fhir.ini: ImmunizationRecommendation was removed from active core resources and from DiagnosticReport references. Learned: the historical target should not be restored in current core source.
+- E6 Verification command/query: git diff --check and XML parsing of the edited StructureDefinition/SVG succeeded. Learned: the source and diagram edits are syntactically safe.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-50601",
+    "url": "https://jira.hl7.org/browse/FHIR-50601",
+    "snapshot_path": "contexts/FHIR-50601/jira/FHIR-50601.md",
+    "ref": { "jira_key": "FHIR-50601" },
+    "summary": "Applied/Persuasive with Modification issue requiring DiagnosticReport.recommendation to use Reference rather than CodeableReference after the codeable side lacked a value set.",
+    "learned": "This is the final seed issue decision that the current source must satisfy.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/diagnosticreport/structuredefinition-DiagnosticReport.xml:812",
+    "ref": { "path": "source/diagnosticreport/structuredefinition-DiagnosticReport.xml", "line": 812 },
+    "summary": "The active DiagnosticReport StructureDefinition contained DiagnosticReport.recommendation with CodeableReference before this reconciliation.",
+    "learned": "The datatype change required by FHIR-50601 had not been fully applied.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "8668f53ceed4f0713137246b13b6f08bb9163b5d",
+    "ref": { "commit": "8668f53ceed4f0713137246b13b6f08bb9163b5d" },
+    "summary": "The FHIR-50601 implementation commit narrowed DiagnosticReport.recommendation targetProfile values but left the datatype as CodeableReference.",
+    "learned": "Prior application was partial and explains why a current source fix is needed.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "confluence",
+    "locator": "OO 2025-05_12-15_WGM page 345083413",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/345083413/2025-05_12-15_WGM",
+    "snapshot_path": "contexts/FHIR-50601/confluence/345083413.md",
+    "ref": { "confluence_page_id": 345083413 },
+    "summary": "OO minutes for FHIR-50601 record the motion as changing DiagnosticReport.recommendation's datatype to Reference.",
+    "learned": "This independently confirms the Jira resolution's datatype decision.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "e073fb45ec6f5a738a9f674baf63406bfe90fb78 and source/fhir.ini",
+    "ref": { "commit": "e073fb45ec6f5a738a9f674baf63406bfe90fb78", "path": "source/fhir.ini" },
+    "summary": "A later core commit removed ImmunizationRecommendation from active resources and from DiagnosticReport references.",
+    "learned": "The current reconciliation should not restore that target even though it appeared in the original FHIR-50601 list.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Validation of edited XML and whitespace",
+    "command": "git diff --check && python3 - <<'PY' ... ElementTree.parse(...) ... PY",
+    "summary": "Whitespace checking and XML parsing succeeded for source/diagnosticreport/structuredefinition-DiagnosticReport.xml and source/diagnosticreport/diagnosticreport.svg.",
+    "learned": "The committed source and diagram files remain syntactically valid.",
+    "supports": ["confidence"]
+  }
+]
+</evidence-manifest>

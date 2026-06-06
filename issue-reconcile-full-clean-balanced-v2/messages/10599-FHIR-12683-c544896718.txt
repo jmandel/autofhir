@@ -1,0 +1,96 @@
+FHIR-12683: Audit internal terminology OID rendering
+
+Issue request:
+FHIR-12683 was a Published/Persuasive DSTU2 correction for the terminology systems page. The reporter observed that the Internal FHIR tab showed OIDs such as ".1.113883.4.642.1.316" instead of the full "2.16.840.1.113883.4.642.1.316", indicating that the leading OID arc was being dropped by the build.
+
+Initial application:
+The issue was applied in historical git-svn commit e11eb8a3c8c7c90861e9471775193fdbb23d1323, matching the Jira comment for svn revision 11447. That commit changed the old Java PageProcessor internal system list renderer from outputting oid.substring(8) to outputting the full OID value returned by CodeSystemUtilities.getOID(cs).
+
+Additional context:
+The old tools/java PageProcessor source no longer exists in the current checkout, and no current source contains the old CodeSystemUtilities.getOID/substring(8) rendering pattern. The current source/terminologies-systems.html internal code-system section has URI, Title, and Description columns only, with <%internalsystemlist%> supplying rows; the current CI-rendered page similarly has no internal OID column and does not contain truncated ".1.113883.4.642" FHIR OIDs. Jira search found only FHIR-12683 for this wording, and Zulip/Confluence searches found no related or conflicting discussion.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical tooling defect was already corrected, the obsolete affected tooling is absent from the current build source, and the current terminology systems page does not expose the stale truncated internal OID behavior.
+
+Recommendation:
+Keep this audit commit as-is. No current FHIR source edit is needed unless the internal terminology systems table is later redesigned to reintroduce an OID column, in which case that renderer should preserve the full OID including the 2.16.840 prefix.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12683
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12683: Published/Persuasive DSTU2 correction reporting dropped leading arcs on Internal FHIR tab OIDs; Jira comments cite svn revision 11447. Learned: the final request was a build/rendering correction for full OID display.
+- E2 Git e11eb8a3c8c7c90861e9471775193fdbb23d1323: #12683 - fix OIDs changed PageProcessor from oid.substring(8) to oid. Learned: the historical application directly fixed the truncation mechanism.
+- E3 Source source/terminologies-systems.html:160-166: the current internal code systems table has URI, Title, and Description columns followed by <%internalsystemlist%>. Learned: the current source no longer defines an internal OID column on this page.
+- E4 Command rg 'CodeSystemUtilities.getOID|substring(8)|oid.substring' current checkout: only <%internalsystemlist%> was found, with no old Java OID truncation pattern. Learned: the obsolete rendering bug is not present in current source.
+- E5 Published-spec https://build.fhir.org/terminologies-systems.html: current rendered page has the Internal Code systems table without an OID column and grep found no truncated .1.113883.4.642 OIDs. Learned: the current build surface does not exhibit the reported defect.
+- E6 Command community searches for FHIR-12683/OIDs/tabs/terminologies: Jira returned only FHIR-12683; Zulip and Confluence returned no hits or references. Learned: no related or conflicting community evidence was discovered.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12683",
+    "url": "https://jira.hl7.org/browse/FHIR-12683",
+    "snapshot_path": "contexts/FHIR-12683/jira/FHIR-12683.md",
+    "ref": { "jira_key": "FHIR-12683" },
+    "summary": "Published/Persuasive DSTU2 correction reporting that Internal FHIR tab OIDs were missing the leading 2.16.840 arc.",
+    "learned": "The issue is a final applied/published request to correct OID rendering on the terminology systems page.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e11eb8a3c8c7c90861e9471775193fdbb23d1323",
+    "ref": { "commit": "e11eb8a3c8c7c90861e9471775193fdbb23d1323" },
+    "summary": "Historical #12683 commit changed PageProcessor from oid.substring(8) to the full oid value.",
+    "learned": "The original defect was applied as a tooling fix that directly removed the truncation.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/terminologies-systems.html:160-166",
+    "ref": { "path": "source/terminologies-systems.html", "line_start": 160, "line_end": 166 },
+    "summary": "The current internal code systems table declares URI, Title, and Description columns before <%internalsystemlist%>.",
+    "learned": "The current source no longer includes an internal OID column on the terminology systems page.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current checkout source/tooling OID rendering search",
+    "command": "rg -n 'internalsystemlist|CodeSystemUtilities\\.getOID|substring\\(8\\)|oid\\.substring' <worker-worktree>",
+    "summary": "Only source/terminologies-systems.html:<%internalsystemlist%> was found; the old Java OID rendering code was absent.",
+    "learned": "The obsolete truncation logic is not present in the current checkout.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/terminologies-systems.html",
+    "url": "https://build.fhir.org/terminologies-systems.html",
+    "command": "curl -fsSL https://build.fhir.org/terminologies-systems.html; grep -nE '(^|[^0-9])\\.1\\.113883\\.4\\.642'",
+    "summary": "The current CI-rendered page has the Internal Code systems table without an OID column and no truncated .1.113883.4.642 OIDs.",
+    "learned": "The current publication surface does not show the defect reported by FHIR-12683.",
+    "supports": ["verification", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Jira, Zulip, and Confluence search for FHIR-12683 OID tab evidence",
+    "command": "bun run jira:search fts '\"FHIR-12683\" OR \"Start of OIDs missing from tabs\" OR \"fix OIDs\"' --limit 10; bun run zulip:search fts '\"FHIR-12683\" OIDs tabs terminologies' --limit 10; bun run confluence:search refs jira FHIR-12683; bun run confluence:search fts '\"FHIR-12683\" OIDs tabs terminologies' --limit 10",
+    "query": "FHIR-12683 OIDs tabs terminologies",
+    "result_count": 1,
+    "summary": "Jira returned only FHIR-12683; Zulip and Confluence returned no directly relevant hits or references.",
+    "learned": "No related or conflicting community evidence changes the source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

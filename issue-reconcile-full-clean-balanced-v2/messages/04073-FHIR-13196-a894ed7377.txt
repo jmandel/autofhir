@@ -1,0 +1,115 @@
+FHIR-13196: Align ActivityDefinition mapping targets
+
+Issue request:
+FHIR-13196 was Published/Persuasive with Modification for STU3. It asked to clarify the unclear boundary between ProcedureRequest and ReferralRequest, with the accepted direction to merge the resources because no clear boundary was identified and to retain/support categorization and transfer-of-care feedback.
+
+Initial application:
+The issue was substantially applied in the historical source: git 463cb5b344 removed ReferralRequest as an active resource and merged its content into ProcedureRequest with an STU note, git 6dc6ae273f added temporary mapping support, and git 06bd9f6ffe later renamed the merged resource to ServiceRequest under the same change family. Current fhir.ini keeps ServiceRequest, Appointment, and ActivityDefinition active and records ProcedureRequest/ReferralRequest as retired or merged.
+
+Additional context:
+FHIR-13867 finalized the post-merge name ServiceRequest and explains why wording should use the service-oriented name. FHIR-13195 is the Appointment companion issue and current Appointment.basedOn already references ServiceRequest. Current ServiceRequest already carries referral/transfer-of-care aliases and ServiceRequest.category guidance, but the active ActivityDefinition mapping notes and companion .fhirmap snippets still declared retired ReferralRequest or ProcedureRequest targets in snippets for current request resources.
+
+AutoFHIR reconciliation:
+This commit updates the active ActivityDefinition mapping narrative and companion mapping snippets so each `input tgt` declaration uses the current target StructureDefinition named by that snippet, including ServiceRequest rather than retired ReferralRequest/ProcedureRequest. It leaves ServiceRequest and Appointment semantics unchanged because the merge and Appointment.basedOn behavior are already present in current source.
+
+Recommendation:
+Keep this source fix. It removes stale retired-resource names from active ActivityDefinition mapping examples while preserving the accepted ServiceRequest merge; future audits of FHIR-13867 can cite this as supporting evidence rather than needing a separate core edit for the same stale snippets.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13196
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-13867: same-change-family - finalized the rename of the merged ProcedureRequest/ReferralRequest resource to ServiceRequest.
+FHIR-13195: supporting-decision - companion Appointment issue whose resolution changed incomingReferral to basedOn in light of the ServiceRequest merge.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13196: Published/Persuasive with Modification; merge ProcedureRequest and ReferralRequest because no clear boundary was identified. Learned: this establishes the accepted merge direction.
+- E2 Git 463cb5b344, 6dc6ae273f, 06bd9f6ffe: historical commits merged ReferralRequest into ProcedureRequest, added mapping support, then renamed ProcedureRequest to ServiceRequest. Learned: the issue family was applied, but later source checks must use ServiceRequest as the current resource.
+- E3 Source source/fhir.ini:214,231,273,1476,1482: ServiceRequest, Appointment, and ActivityDefinition are active resources; ProcedureRequest and ReferralRequest are recorded as merged/retired. Learned: the edited ActivityDefinition source is in build scope and retired names should not appear as current targets.
+- E4 Source source/servicerequest/structuredefinition-ServiceRequest.xml:89-91,373-378 and source/servicerequest/servicerequest-introduction.xml:31-38: ServiceRequest includes referral/transfer-of-care aliases, category, and referral usage narrative. Learned: the core merged resource already conveys the seed decision.
+- E5 Source source/activitydefinition/activitydefinition-notes.xml and source/activitydefinition/activitydefinition-map-*.fhirmap: active mapping snippets had current target StructureDefinition URLs paired with retired ReferralRequest/ProcedureRequest input target declarations. Learned: these stale active snippets were the remaining source defect fixed here.
+- E6 Jira FHIR-13867: Published/Persuasive request to change ProcedureRequest to ServiceRequest and update descriptions/comments accordingly. Learned: later final intent supports replacing retired ProcedureRequest mentions in current source snippets.
+- E7 Community search: direct Zulip/Confluence searches found no FHIR-13196-specific conflicting discussion; broader Zulip #implementers > R4 ServiceRequest confirmed ServiceRequest replaced both STU3 resources and category can distinguish local referral/order needs. Learned: community evidence does not contradict the source fix.
+- E8 Verification command: `git diff --check`; `rg -n 'ProcedureRequest|ReferralRequest' source/activitydefinition`; target-declaration comparison scripts for .fhirmap files and notes. Learned: the edited active ActivityDefinition snippets no longer use retired request names and all target declarations match their snippet targets.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13196",
+    "url": "https://jira.hl7.org/browse/FHIR-13196",
+    "snapshot_path": "contexts/FHIR-13196/jira/FHIR-13196.md",
+    "ref": { "jira_key": "FHIR-13196" },
+    "summary": "Published/Persuasive with Modification issue asking to clarify or merge ProcedureRequest and ReferralRequest due to unclear boundaries.",
+    "learned": "The final decision was to merge the resources and seek implementation feedback on category and transfer-of-care representation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "463cb5b344; 6dc6ae273f; 06bd9f6ffe",
+    "ref": { "commits": "463cb5b344,6dc6ae273f,06bd9f6ffe" },
+    "summary": "Historical commits merged ReferralRequest into ProcedureRequest, added mapping support, and renamed the merged resource to ServiceRequest.",
+    "learned": "The main merge was already applied, but current source should refer to ServiceRequest rather than retired request resource names.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:214,231,273,1476,1482",
+    "summary": "fhir.ini lists ServiceRequest, Appointment, and ActivityDefinition as active resources and records ProcedureRequest/ReferralRequest as merged or retired.",
+    "learned": "ActivityDefinition is in build scope, while the old request resources should not be used as current targets.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:89-91,373-378; source/servicerequest/servicerequest-introduction.xml:31-38",
+    "summary": "Current ServiceRequest carries referral/transfer-of-care aliases, category, and narrative covering referral use of ServiceRequest.",
+    "learned": "The merged resource semantics requested by FHIR-13196 are already present in the authoritative ServiceRequest source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/activitydefinition/activitydefinition-notes.xml; source/activitydefinition/activitydefinition-map-*.fhirmap",
+    "summary": "Active ActivityDefinition mapping snippets declared retired ReferralRequest/ProcedureRequest target inputs despite current target StructureDefinition URLs.",
+    "learned": "These stale snippets were a current-spec defect left by the merge/rename family and were corrected by this commit.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-13867",
+    "url": "https://jira.hl7.org/browse/FHIR-13867",
+    "snapshot_path": "contexts/FHIR-13867/jira/FHIR-13867.md",
+    "ref": { "jira_key": "FHIR-13867" },
+    "summary": "Published/Persuasive issue requiring ProcedureRequest to be renamed to ServiceRequest and descriptions/comments updated accordingly.",
+    "learned": "This later final issue supports using ServiceRequest consistently after the FHIR-13196 merge.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-13196 and ServiceRequest merge terms",
+    "command": "bun run zulip:search fts '\"FHIR-13196\" ProcedureRequest ReferralRequest ServiceRequest' --limit 20; bun run confluence:search refs jira FHIR-13196; bun run zulip:search snapshot implementers 'R4 ServiceRequest'",
+    "query": "FHIR-13196 ProcedureRequest ReferralRequest ServiceRequest; R4 ServiceRequest",
+    "summary": "No direct conflicting FHIR-13196 community references were found; the broader R4 ServiceRequest Zulip thread confirms ServiceRequest replaced both STU3 resources and category can support local distinctions.",
+    "learned": "Community evidence does not change the Jira/source conclusion and supports the current ServiceRequest interpretation.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted source validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg -n 'ProcedureRequest|ReferralRequest' source/activitydefinition; target-declaration comparison scripts for activitydefinition-map-*.fhirmap and activitydefinition-notes.xml",
+    "summary": "Whitespace checks passed; ActivityDefinition no longer contains retired ProcedureRequest/ReferralRequest names; all mapping target declarations match their snippet targets.",
+    "learned": "The reconciliation fixed the stale active snippets without introducing whitespace issues.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,97 @@
+FHIR-32665: Audit QuestionnaireResponse answer value cardinality
+
+Issue request:
+FHIR-32665 was a Published FHIR-core QuestionnaireAnswers change request asking whether a QuestionnaireResponse child question can have an answer under item.answer.item when the parent item.answer has no value. The final Persuasive resolution was to make QuestionnaireResponse.item.answer.value[x] 1..1 instead of 0..1; if there is no parent answer, omit item.answer, so no extra prose clarification is needed.
+
+Initial application:
+The Jira comment points to HL7/fhir#1337. Commit 35ff6ea60f17c3279bb14071bfb3a9b73a89aa34 changed source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml from <min value="0"/> to <min value="1"/> for QuestionnaireResponse.item.answer.value[x], and merge commit 0a821bba35de3393a12e90941568eaa9cd01471b brought PR #1337 into the main history with the message "Fix FHIR-32665/26292".
+
+Additional context:
+QuestionnaireResponse is active in source/fhir.ini, so the inspected StructureDefinition source is in current build scope. The current source still has QuestionnaireResponse.item.answer.value[x] at min 1 and max 1, and item.answer.item remains available only as child items within a particular answer. The originating Zulip discussion explains the rationale: child questions under a question are per-answer details and are meaningless without a parent answer; a later Zulip thread cites FHIR-32665 when confirming that having children with no answer is invalid. FHIR SDC minutes for 2021-07-22 record approval of FHIR-32665 as Persuasive. A separate existing combined-branch audit for FHIR-6906 treats FHIR-32665 as supporting context in the broader questionnaire answer-nesting family, but it does not duplicate this seed decision.
+
+AutoFHIR reconciliation:
+This commit makes no source change. The current active QuestionnaireResponse source already implements the Jira resolution by requiring item.answer.value[x] whenever an item.answer exists, which resolves the ambiguity about item.answer.item child answers without adding redundant prose.
+
+Recommendation:
+Keep this no-change audit. Future changes to allow child question answers without a parent answer should come through a new SDC/FHIR-I decision because they would reverse the explicit FHIR-32665 cardinality decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32665
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-6906: background - existing no-change audit on the combined branch covers older questionnaire answer-nesting history and cites FHIR-32665 as a later supporting decision.
+FHIR-26292: background - unrelated workflow extension issue was implemented in the same PR #1337, so it explains the mixed merge commit but is not part of this QuestionnaireResponse decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32665: Published/Persuasive; make QuestionnaireResponse.item.answer.value[x] 1..1 and omit item.answer if there is no answer. Learned: establishes the final source requirement for this seed.
+- E2 Source source/fhir.ini:220 and source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:492-499,554-559: QuestionnaireResponse is an active resource; answer.value[x] is 1..1 and answer.item is nested under a particular answer. Learned: current build-scope source already satisfies the resolution.
+- E3 Git 35ff6ea60f and 0a821bba35: PR #1337 changed answer.value[x] min from 0 to 1 and merged with "Fix FHIR-32665/26292". Learned: initial application is traceable in git history.
+- E4 Confluence FHIR SDC Minutes CC 20210722 page 120750303: minutes list FHIR-32665 as Persuasive. Learned: meeting evidence aligns with the Jira final disposition.
+- E5 Zulip #questionnaire > Meaning of item.required on questions and groups; #questionnaire > Nesting in QuestionnaireResponse: the original discussion led to FHIR-32665, and the later thread confirms no-answer-with-children is invalid by citing the issue. Learned: community rationale supports the existing cardinality rule.
+- E6 Command searches: exact FHIR-32665 Zulip and Confluence searches found the above supporting evidence and no contrary direct community record. Learned: no discovered community evidence changes the source/Jira conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32665",
+    "url": "https://jira.hl7.org/browse/FHIR-32665",
+    "snapshot_path": "contexts/FHIR-32665/jira/FHIR-32665.md",
+    "ref": { "jira_key": "FHIR-32665" },
+    "summary": "Published/Persuasive change request requiring QuestionnaireResponse.item.answer.value[x] to be 1..1 and omitting item.answer when there is no answer.",
+    "learned": "This is the final WG decision and establishes the target cardinality for the current source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:220; source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:492-499,554-559",
+    "summary": "QuestionnaireResponse is active in fhir.ini; item.answer.value[x] is min 1/max 1 and item.answer.item remains nested beneath a specific answer.",
+    "learned": "The current build-scope source already implements the FHIR-32665 resolution.",
+    "supports": ["build_scope", "current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "35ff6ea60f17c3279bb14071bfb3a9b73a89aa34; 0a821bba35de3393a12e90941568eaa9cd01471b",
+    "summary": "Commit 35ff6ea60f changed QuestionnaireResponse.item.answer.value[x] from min 0 to min 1, and merge commit 0a821bba35 merged PR #1337 with the message Fix FHIR-32665/26292.",
+    "learned": "The issue was applied directly to the authoritative QuestionnaireResponse StructureDefinition source.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E4",
+    "kind": "confluence",
+    "locator": "FHIR SDC Minutes CC 20210722 page 120750303",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/120750303/FHIR+SDC+Minutes+CC+20210722",
+    "ref": { "confluence_page_id": 120750303 },
+    "summary": "The SDC minutes list FHIR-32665 as Persuasive in the tracker items section.",
+    "learned": "Meeting evidence confirms the approved disposition recorded in Jira.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#questionnaire > Meaning of item.required on questions and groups; #questionnaire > Nesting in QuestionnaireResponse",
+    "url": "https://chat.fhir.org/#narrow/stream/questionnaire/topic/Nesting%20in%20QuestionnaireResponse",
+    "ref": { "stream": "questionnaire", "topic": "Nesting in QuestionnaireResponse" },
+    "summary": "The 2021 thread records the reasoning that child questions under a question need a parent answer, and the 2023 thread cites FHIR-32665 to confirm no-answer-with-children is invalid.",
+    "learned": "Community discussion supports interpreting the current 1..1 cardinality as intentional rather than accidental.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "FHIR-32665 community and source searches",
+    "command": "bun run zulip:search fts '\"FHIR-32665\"' --limit 10; bun run confluence:search refs jira FHIR-32665; awk element checks for QuestionnaireResponse.item.answer.value[x]",
+    "query": "FHIR-32665; QuestionnaireResponse.item.answer.value[x]",
+    "result_count": 3,
+    "summary": "Searches found the relevant Zulip and Confluence supporting records and confirmed the active source element has min value 1.",
+    "learned": "No discovered direct community or source evidence conflicts with the no-change decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

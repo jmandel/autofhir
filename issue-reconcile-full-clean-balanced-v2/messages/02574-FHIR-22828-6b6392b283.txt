@@ -1,0 +1,86 @@
+FHIR-22828: Audit medication image characteristic support
+
+Issue request:
+FHIR-22828 was Published with resolution Persuasive with Modification for R5. It requested a way to represent reference images of dispensed medication pills; the final resolution was to add Attachment as a type for drugCharacteristic.value, clarify the definitions, and add an image code to the drugCharacteristic.type value set.
+
+Initial application:
+The issue was applied by commit f5adcd0ed5 (GF #22828), which added the image concept to medicationknowledge-characteristic and changed the MedicationKnowledge drugCharacteristic spreadsheet so value[x] allowed Attachment. Later source refactoring preserved that application in source/medicationknowledge/structuredefinition-MedicationKnowledge.xml, where MedicationKnowledge.definitional.drugCharacteristic.value[x] includes Attachment and describes image use.
+
+Additional context:
+Current core build scope no longer includes MedicationKnowledge as an active resource: source/fhir.ini has Medication in [resources] but no medicationknowledge entry, and commit 5a4307d78b removed MedicationKnowledge from active build configuration. The current Medication resource is active but has no drugCharacteristic element, and the active medicationknowledge characteristic value set points at the THO CodeSystem that still includes the image code.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Editing the retained MedicationKnowledge source would not affect the current build, and adding a new image characteristic to active Medication would exceed the R5 issue resolution and conflict with the later R6 build-scope change.
+
+Recommendation:
+Keep this no-change audit for FHIR-22828. If Pharmacy wants medication image support in an active R6 core or external formulary/knowledge artifact, that should be handled as a new R6 work-group decision in the appropriate active resource or IG rather than as a replay of this R5 MedicationKnowledge change.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22828
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-53486: later-change - R6 medication module page work reorganized active normative and additional resources, reinforcing that the current module surface is not the old MedicationKnowledge resource.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22828: Published/Persuasive with Modification issue asking for medication pill image support via drugCharacteristic Attachment and an image type code. Learned: this establishes the final R5 application target.
+- E2 Git f5adcd0ed5: GF #22828 added the image concept and updated MedicationKnowledge drugCharacteristic.value[x] to allow Attachment. Learned: the issue was applied to MedicationKnowledge, not to active Medication.
+- E3 Source source/medicationknowledge/structuredefinition-MedicationKnowledge.xml:913 and source/medicationknowledge/valueset-medicationknowledge-characteristic.xml:31 plus THO CodeSystem medicationknowledge-characteristic. Learned: the retained definition carries Attachment support and the external terminology still includes image.
+- E4 Source source/fhir.ini:170 and git 5a4307d78b: Medication is active, MedicationKnowledge is absent from [resources], and the removal commit deleted the MedicationKnowledge build configuration. Learned: MedicationKnowledge edits are out of current core build scope.
+- E5 Command searches for FHIR-22828/Medication image drugCharacteristic in Zulip and Confluence and rg drugCharacteristic in source/medication. Learned: no directly conflicting community evidence was found, and current Medication has no drugCharacteristic element to update.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22828",
+    "url": "https://jira.hl7.org/browse/FHIR-22828",
+    "snapshot_path": "contexts/FHIR-22828/jira/FHIR-22828.md",
+    "ref": { "jira_key": "FHIR-22828" },
+    "summary": "Published/Persuasive with Modification issue requesting medication pill image support by allowing Attachment on drugCharacteristic.value and adding image to drugCharacteristic.type.",
+    "learned": "The final WG decision targeted drugCharacteristic/MedicationKnowledge-style support rather than a standalone Medication.image element.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "f5adcd0ed5",
+    "ref": { "commit": "f5adcd0ed5d86e23eb03c9b6aa1f519d32118024" },
+    "summary": "GF #22828 added the image concept to medicationknowledge-characteristic and updated the MedicationKnowledge spreadsheet so drugCharacteristic.value[x] allowed Attachment.",
+    "learned": "This confirms the historical application of FHIR-22828 and its MedicationKnowledge target.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationknowledge/structuredefinition-MedicationKnowledge.xml:913; source/medicationknowledge/valueset-medicationknowledge-characteristic.xml:31; THO CodeSystem-medicationknowledge-characteristic.json",
+    "url": "https://terminology.hl7.org/CodeSystem-medicationknowledge-characteristic.json",
+    "summary": "The retained MedicationKnowledge definition includes Attachment for definitional.drugCharacteristic.value[x], and the characteristic value set includes the THO code system whose concepts include image.",
+    "learned": "The R5 application survives in retained source/terminology even though the resource is no longer active in the current build.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-308 and git 5a4307d78b",
+    "ref": { "commit": "5a4307d78b0209f61bbc68d582c1e190b3aaee5c" },
+    "summary": "Current fhir.ini lists Medication in [resources] but not MedicationKnowledge; commit 5a4307d78b removed MedicationKnowledge from active build configuration.",
+    "learned": "MedicationKnowledge is outside current core build scope, so changing its retained source would not be a current-spec fix.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative source/community checks for FHIR-22828 and Medication image drugCharacteristic",
+    "command": "rg -n 'drugCharacteristic|image|Attachment' source/medication; bun run zulip:search fts '\"FHIR-22828\" Medication image pill drugCharacteristic' --limit 10; bun run confluence:search fts '\"FHIR-22828\" Medication image pill drugCharacteristic' --limit 10",
+    "query": "FHIR-22828 Medication image pill drugCharacteristic",
+    "result_count": 0,
+    "summary": "No current Medication drugCharacteristic element or directly relevant Zulip/Confluence discussion was found.",
+    "learned": "No discovered evidence supports broadening the historical R5 MedicationKnowledge change into a new active Medication change.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

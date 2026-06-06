@@ -1,0 +1,121 @@
+FHIR-3758: Prevent reactions on not-done Immunization
+
+Issue request:
+FHIR-3758 is a Published/Persuasive DSTU1 FHIR-core Immunization issue. It asked to add two invariant constraints to the then-current refusedIndicator model: when an immunization was administered, explanation.refusalReason had to be absent; when an immunization was not administered, reaction and explanation.reason had to be absent.
+
+Initial application:
+The original source application was commit 64fbbf28ef27948a7944954073c8df878bac2bc9, whose subject explicitly included #3758. That commit added the two old spreadsheet invariants against Immunization.wasNotGiven, while also applying the tightly related FHIR-3762/FHIR-5351 not-given rename. Jira comments later noted that the base Immunization schematron carried those invariants.
+
+Additional context:
+Later Immunization source history replaced the DSTU1 wasNotGiven/reasonNotGiven representation with the current status = not-done plus statusReason model. FHIR-3762 is already represented on the combined branch as a no-change audit for the rename, and FHIR-54325 is already represented as the current statusReason invariant allowing statusReason only for not-done or entered-in-error. FHIR-14377 and FHIR-14374, plus the later workflow Zulip discussion, show that current Immunization.reason/statusReason semantics are more nuanced than the DSTU1 explanation.reason rule: a resource can have a reason for the immunization and a statusReason explaining why it was not done. The old no-reason clause is therefore not safe to reinstate as a current invariant without a new work-group decision. The old no-reaction clause still maps cleanly because Immunization.reaction is defined as a reaction associated in time to an immunization that occurred.
+
+AutoFHIR reconciliation:
+This commit adds imm-3 to the active Immunization StructureDefinition, requiring reaction to be absent when status is not-done, and adds matching pass/fail invariant test bundles. It intentionally leaves Immunization.reason unrestricted for not-done records because later Event-pattern and Immunization statusReason context supersedes the original DSTU1 explanation.reason constraint.
+
+Recommendation:
+Keep this source fix. If the work group wants to forbid Immunization.reason when status is not-done, handle that as a new current-version decision because the later reason/statusReason evidence supports more than one valid interpretation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3758
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-3762: same-change-family - Published not-given rename issue applied in the same 2015 commit and already audited on the combined branch; it referred invariant work to FHIR-3758.
+FHIR-54325: later-change - Applied R6 issue already fixed on the combined branch; it refines statusReason wording and the imm-1 statusReason invariant for not-done or entered-in-error.
+FHIR-14377: later-change - Published Immunization reason/statusReason issue establishing the current split between reasons for immunization and status reasons for not-done.
+FHIR-14374: supporting-decision - Published issue resolved by FHIR-14377 and records that Immunization.reason may represent why an immunization occurred or was intended to occur.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3758: Published/Persuasive issue requested two Immunization invariants for administered vs. not-administered cases. Learned: this establishes the final seed request and the original no-reaction requirement.
+- E2 Git 64fbbf28ef27948a7944954073c8df878bac2bc9: 2015 commit subject names #3758 and its spreadsheet patch adds the two old wasNotGiven invariants. Learned: the issue was initially applied to the DSTU-era source model.
+- E3 Source source/fhir.ini:170-197 and source/immunization/structuredefinition-Immunization.xml:88-107: Immunization is active in the current build and now has imm-1, imm-2, and new imm-3 constraints. Learned: the fix is in active authoritative conformance source.
+- E4 Source source/immunization/invariant-tests/imm-3.f1.fail.json and imm-3.p1.pass.json: added invalid and valid examples for the new reaction/not-done rule. Learned: the source change has concrete regression cases matching the invariant.
+- E5 Jira FHIR-54325: Applied/Persuasive with Modification issue required statusReason to be allowed only for not-done or entered-in-error. Learned: the current source already covers the administered/statusReason equivalent of the old refusalReason invariant.
+- E6 Jira FHIR-14377 and FHIR-14374: Published Immunization reason/statusReason decisions split reasons for immunization from status reasons for not-done. Learned: the old no-explanation.reason clause should not be mechanically reapplied to current Immunization.reason.
+- E7 Zulip #workflow > supportingInfo on an event: Lloyd McKenzie said a not-done Immunization could have both a reason for the immunization and a reason it was not done, while statusReason remains reasonable for not-done. Learned: community rationale supports leaving current Immunization.reason unrestricted here.
+- E8 Verification command/query: git diff whitespace check plus Python XML/JSON parsing succeeded for the changed StructureDefinition and new invariant test bundles. Learned: the edited source and test artifacts are syntactically valid.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3758",
+    "url": "https://jira.hl7.org/browse/FHIR-3758",
+    "snapshot_path": "contexts/FHIR-3758/jira/FHIR-3758.md",
+    "ref": { "jira_key": "FHIR-3758" },
+    "summary": "Published/Persuasive DSTU1 Immunization issue requesting invariants for administered and not-administered cases.",
+    "learned": "This establishes the seed issue's final request and the original no-reaction rule for non-administered immunizations.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "64fbbf28ef27948a7944954073c8df878bac2bc9",
+    "ref": { "commit": "64fbbf28ef27948a7944954073c8df878bac2bc9" },
+    "summary": "2015 commit explicitly names #3758 and adds the old Immunization.wasNotGiven invariants in the spreadsheet source.",
+    "learned": "FHIR-3758 was initially applied to the DSTU-era Immunization model before later refactors changed the element names.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-197; source/immunization/structuredefinition-Immunization.xml:88-107",
+    "ref": { "path": "source/immunization/structuredefinition-Immunization.xml", "lines": "88-107" },
+    "summary": "Immunization is active in the build and the StructureDefinition now includes imm-3 forbidding reaction when status is not-done.",
+    "learned": "The reconciliation edits active authoritative conformance source, not generated output or retired files.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/immunization/invariant-tests/imm-3.f1.fail.json; source/immunization/invariant-tests/imm-3.p1.pass.json",
+    "ref": { "path": "source/immunization/invariant-tests/imm-3.f1.fail.json" },
+    "summary": "New invariant test bundles cover a not-done Immunization with reaction as invalid and not-done/completed cases without violating the new rule as valid.",
+    "learned": "The new invariant has concrete source-level regression examples.",
+    "supports": ["reconciliation", "verification"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-54325",
+    "url": "https://jira.hl7.org/browse/FHIR-54325",
+    "snapshot_path": "contexts/FHIR-54325/jira/FHIR-54325.md",
+    "ref": { "jira_key": "FHIR-54325" },
+    "summary": "Applied/Persuasive with Modification issue requiring Immunization.statusReason to be limited to not-done or entered-in-error.",
+    "learned": "The current source already covers the administered/statusReason equivalent of the old refusalReason invariant.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-14377 and FHIR-14374",
+    "url": "https://jira.hl7.org/browse/FHIR-14377",
+    "snapshot_path": "contexts/FHIR-14377/jira/FHIR-14377.md",
+    "ref": { "jira_key": "FHIR-14377" },
+    "summary": "Published Immunization reason/statusReason decisions aligned Immunization with the Event pattern and split reasons for immunization from reasons for not-done status.",
+    "learned": "The old no-explanation.reason clause should not be mechanically reapplied to current Immunization.reason.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#workflow > supportingInfo on an event",
+    "url": "https://chat.fhir.org/#narrow/stream/workflow/topic/supportingInfo.20on.20an.20event",
+    "summary": "A 2022 workflow discussion records that a not-done Immunization can have both a reason for the immunization and a reason it was not done.",
+    "learned": "Community rationale supports leaving Immunization.reason unrestricted while fixing only the surviving reaction constraint.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Whitespace and XML/JSON syntax validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; python3 - <<'PY' ... parse structuredefinition-Immunization.xml and imm-3 JSON bundles ... PY",
+    "summary": "Whitespace check and XML/JSON parsing completed successfully for the edited files.",
+    "learned": "The source and invariant-test files are syntactically valid after the reconciliation edit.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

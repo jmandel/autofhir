@@ -1,0 +1,109 @@
+FHIR-17717: Audit vital signs effective precision constraint
+
+Issue request:
+FHIR-17717 was a Published/Persuasive OO STU3 change request for the Vital Signs profile. It asked that the vs-1 invariant apply only when Observation.effective[x] is dateTime and has an actual value, that the XPath be corrected, and that Period/nullFlavor-style primitive-extension cases not be incorrectly rejected.
+
+Initial application:
+The Jira comment identifies commit 98752dd6c14e0ad544430fd0d7457f25282173d0 as the initial pre-application. That commit updated the old observation-vitalsigns spreadsheet so the human text said the rule applies when effective[x] is dateTime and has a value, and replaced the broken XPath with f:effectiveDateTime[matches(@value, '^\d{4}-\d{2}-\d{2}')]. The old spreadsheet source was later replaced by structuredefinition-profile-vitalsigns.xml.
+
+Additional context:
+Observation is an active resource in source/fhir.ini, so source/observation/structuredefinition-profile-vitalsigns.xml is current build-scope source. The current profile uses vsp-1 with human text "if Observation.effective[x] (as dateTime) has a value then that value shall be precise at least to the day" and expression "(effective as dateTime).toString().length() >= 8". Later source history removed XPath usage, disambiguated the vital signs constraint keys, fixed the root-context expression, removed Period from Observation.effective[x] via FHIR-21297, and clarified "at least" via FHIR-26964. Later related Jira issues FHIR-29654 and FHIR-34463 re-raised the invariant concern, including the primitive hasValue discussion, but OO ultimately resolved them Not Persuasive/No Change after concluding the current vsp-1 rule works with dateTime as the only allowed datatype.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Changing the expression now would not be a bounded application of FHIR-17717; it would reopen a later OO no-change decision in FHIR-29654/FHIR-34463. The active source already carries the approved human rule, the old XPath surface no longer exists, and the remaining apparent expression concern has been superseded by later work-group disposition.
+
+Recommendation:
+Keep this audit commit as-is. If implementers still need primitive-extension-only effectiveDateTime values to pass vsp-1, that should be taken back to OO as a new or reopened tracker because the current source reflects later explicit no-change decisions rather than an unapplied FHIR-17717 omission.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17717
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-21297: later-change - removed Period from the Vital Signs effective[x] choices, narrowing the part of FHIR-17717 that originally required a dateTime/Period conditional.
+FHIR-26964: same-change-family - clarified the vsp-1 human text to say precise at least to the day; already represented on the combined branch.
+FHIR-29654: later-change - re-raised the invariant including a hasValue proposal, but was resolved Not Persuasive/No Change in light of FHIR-34463.
+FHIR-34463: supporting-decision - later OO no-change decision saying the current vsp-1 constraint works now that Period is no longer allowed.
+FHIR-47136: same-change-family - included later vital-sign profile cleanup and the root-context expression fix for vsp-1; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17717: Published/Persuasive issue asked to scope vs-1 to dateTime values, fix XPath syntax, and permit nullFlavor/primitive-extension effectiveDateTime cases. Learned: this is the seed request and original target behavior.
+- E2 Source source/observation/structuredefinition-profile-vitalsigns.xml:88-168 and source/fhir.ini:169,208: active Observation build source defines vsp-1, limits effective[x] to dateTime, and carries the current human/expression rule. Learned: the active current spec no longer has the old Period branch or XPath surface.
+- E3 Git 98752dd6c14e: initial Jira-tagged pre-application changed the old spreadsheet text and XPath for FHIR-17717. Learned: the seed was applied historically before the source was refactored.
+- E4 Git af25d09edb, 3602472e30, 32a93609e2, af5373801d, 88a1f3d6: later history removed Period, clarified "at least", fixed vsp-1's expression context, renamed constraints, and removed XPath usage. Learned: current wording is the result of later tracked maintenance, not a forgotten old spreadsheet.
+- E5 Jira FHIR-29654 and FHIR-34463: later OO decisions resolved the closely related invariant rewrite requests as Not Persuasive/No Change. Learned: a source edit to add a different vsp-1 expression would conflict with later final decisions.
+- E6 Zulip snapshots #implementers > Vital signs effectiveTime, #conformance > missing data and invariants in profiles, and #inferno > Single Patient API Observation Tests: community discussions identified the R4 Period/hasValue concern and linked it to FHIR-26964/FHIR-29654. Learned: the concern was known and flowed into later Jira decisions rather than remaining undiscovered.
+- E7 Community search command: direct FHIR-17717 Zulip and Confluence searches found no direct conflicting records. Learned: no community evidence was found that overrides the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17717",
+    "url": "https://jira.hl7.org/browse/FHIR-17717",
+    "snapshot_path": "contexts/FHIR-17717/jira/FHIR-17717.md",
+    "ref": { "jira_key": "FHIR-17717" },
+    "summary": "Published/Persuasive OO issue requiring the Vital Signs vs-1 rule to apply only when effective[x] is dateTime with a value, with corrected XPath.",
+    "learned": "This establishes the seed request and why both Period and primitive-extension-only cases had to be considered.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-vitalsigns.xml:88-168; source/fhir.ini:169,208",
+    "ref": { "path": "source/observation/structuredefinition-profile-vitalsigns.xml" },
+    "summary": "The active Observation resource source defines vsp-1 with the current dateTime precision human text and expression, and effective[x] is now dateTime-only.",
+    "learned": "The current build-scope source no longer includes the old Period branch or XPath surface from the STU3 spreadsheet.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "98752dd6c14e0ad544430fd0d7457f25282173d0",
+    "ref": { "commit": "98752dd6c14e0ad544430fd0d7457f25282173d0" },
+    "summary": "Jira-commented pre-application updated the old vital-signs spreadsheet text and XPath for FHIR-17717.",
+    "learned": "The seed was historically applied before later source refactors replaced the spreadsheet source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "88a1f3d6bd, 32a93609e2, af5373801d, af25d09edb, 3602472e30",
+    "summary": "Later commits removed XPath usage, fixed the vsp-1 expression context, disambiguated constraint keys, removed Period, and clarified the human text.",
+    "learned": "The current vsp-1 source reflects later tracked maintenance and related Jira decisions.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-29654 and FHIR-34463",
+    "url": "https://jira.hl7.org/browse/FHIR-34463",
+    "ref": { "jira_key": "FHIR-34463" },
+    "summary": "Later OO issues about rewriting the same invariant, including the hasValue discussion, were resolved Not Persuasive/No Change after Period was removed.",
+    "learned": "A new expression change would conflict with later final work-group disposition rather than merely completing FHIR-17717.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Vital signs effectiveTime; #conformance > missing data and invariants in profiles; #inferno > Single Patient API Observation Tests",
+    "summary": "Community threads identified the R4 effectivePeriod and primitive-extension concerns and pointed them to FHIR-26964/FHIR-29654.",
+    "learned": "The remaining concern was known and later processed through Jira, supporting reliance on the later Jira no-change decisions.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative direct community search for FHIR-17717",
+    "command": "bun run zulip:search fts '\"FHIR-17717\" \"vital signs\" \"vs-1\"' --limit 10; bun run confluence:search refs jira FHIR-17717; bun run confluence:search fts '\"FHIR-17717\" \"vital signs\" \"vs-1\"' --limit 10",
+    "query": "FHIR-17717 vital signs vs-1",
+    "result_count": 0,
+    "summary": "No direct FHIR-17717 Zulip or Confluence records were found, and no Confluence references to the seed were indexed.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,93 @@
+FHIR-17927: Enforce Claim related reference requirement
+
+Issue request:
+FHIR-17927 is a Published/Persuasive Financial Management change request for FHIR-core Claim, raised and applied for STU3, asking that each Claim.related entry provide either related.claim or related.reference.
+
+Initial application:
+Historical commit afb5ec66f6 mentioned tracker 17927 in a broad Claim/ClaimResponse spreadsheet update, but inspection of the old Claim spreadsheet and the current StructureDefinition history did not find a carried-forward invariant for Claim.related. The current source/claim/structuredefinition-Claim.xml Claim.related backbone came from the 2021 source rework without this constraint.
+
+Additional context:
+Claim is an active core resource in source/fhir.ini. Current source defines Claim.related.claim, Claim.related.relationship, and Claim.related.reference as optional children, which allowed a related entry containing only relationship. Jira searches found no later FHIR-core decision reversing this Claim constraint, and Zulip/Confluence searches found no directly relevant conflicting community discussion.
+
+AutoFHIR reconciliation:
+Added an error invariant on Claim.related, clm-2, requiring claim.exists() or reference.exists(). This keeps relationship optional but prevents a related entry that lacks both the Claim reference and alternate case/file identifier required by the published Jira decision.
+
+Recommendation:
+Keep this source-changing commit. The edit is limited to the active authoritative Claim StructureDefinition and restores the published constraint without changing unrelated Claim semantics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17927
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17927: Published/Persuasive FM issue asking that Claim.related provide related.claim or related.reference. Learned: establishes the final source requirement.
+- E2 Source source/fhir.ini:241 and source/fhir.ini:1338: Claim is an active approved core resource. Learned: source/claim/structuredefinition-Claim.xml is in current build scope.
+- E3 Source source/claim/structuredefinition-Claim.xml:411: Claim.related had optional claim, relationship, and reference children but no invariant before this change. Learned: current source did not enforce the published decision.
+- E4 Git afb5ec66f6 and 33b409a4b6: the old broad Claim update mentioned 17927, while the 2021 StructureDefinition source rework introduced Claim.related without the invariant. Learned: the requested constraint was not preserved in current source.
+- E5 Community search: Zulip and Confluence searches for FHIR-17927 and Claim related claim/reference found no directly relevant conflicting discussion. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E6 Verification command: XML parse and git show --check passed for source/claim/structuredefinition-Claim.xml. Learned: the edited source remains well-formed and whitespace-clean.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17927",
+    "url": "https://jira.hl7.org/browse/FHIR-17927",
+    "snapshot_path": "contexts/FHIR-17927/jira/FHIR-17927.md",
+    "ref": { "jira_key": "FHIR-17927" },
+    "summary": "Published/Persuasive Financial Management change request asking that Claim.related provide related.claim or related.reference.",
+    "learned": "This is final WG intent and establishes the required Claim.related invariant.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:241 and source/fhir.ini:1338",
+    "summary": "fhir.ini lists claim=Claim and marks Claim=approved.",
+    "learned": "Claim is active in the current core build, so its StructureDefinition source is in scope for reconciliation.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/claim/structuredefinition-Claim.xml:411",
+    "summary": "Before this commit, Claim.related had optional claim, relationship, and reference children but no constraint requiring claim or reference.",
+    "learned": "The current source allowed a Claim.related entry containing only relationship, contrary to FHIR-17927.",
+    "supports": ["current_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "afb5ec66f6; 33b409a4b6",
+    "ref": { "commit": "afb5ec66f68641293bb7950b6e0eeb118fa1444a" },
+    "summary": "A broad 2018 Claim spreadsheet commit mentioned tracker 17927, but the 2021 StructureDefinition source rework introduced Claim.related without the invariant.",
+    "learned": "The issue appears historically acknowledged but not preserved in the current authoritative source.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-17927 plus Claim related claim/reference terms",
+    "command": "bun run zulip:search fts '\"FHIR-17927\"' --limit 10; bun run zulip:search fts 'Claim related claim reference' --limit 10; bun run confluence:search refs jira FHIR-17927; bun run confluence:search fts '\"FHIR-17927\"' --limit 10",
+    "query": "FHIR-17927; Claim related claim reference",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting community evidence was found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Targeted source validation",
+    "command": "python3 - <<'PY' ... ET.parse('source/claim/structuredefinition-Claim.xml') ... PY; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol show --check --pretty=format:",
+    "summary": "The edited Claim StructureDefinition parsed as XML and whitespace checks reported no errors.",
+    "learned": "The source-changing commit is mechanically clean for the edited file.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

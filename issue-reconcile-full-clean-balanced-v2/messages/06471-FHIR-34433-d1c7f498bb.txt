@@ -1,0 +1,87 @@
+FHIR-34433: Audit R4B ConceptMap generation fix
+
+Issue request:
+FHIR-34433 was a Published/Persuasive technical correction for R4B ConceptMaps. It reported that R4B-shipped ConceptMap instances contained the R5-only ConceptMap.group.element.target.relationship element, even though R4B ConceptMap uses target.equivalence.
+
+Initial application:
+No HL7/fhir source commit or source comment mentions FHIR-34433 directly. The Jira comment links HL7/kindling#69, merged 2022-04-07, whose description says R4B generation must use R4 ConceptMaps and other resources rather than R5 resources for generated instances. The R4B branch now has ConceptMap target.equivalence in the StructureDefinition and no ConceptMap XML sources with relationship elements.
+
+Additional context:
+The current core build is not R4B. source/fhir.ini actively includes ConceptMap, and the current ConceptMap StructureDefinition defines ConceptMap.group.element.target.relationship as a required element. Current ConceptMap XML sources consistently use relationship rather than equivalence, which is correct for the current FHIR version. The fhir.ini migration notes also map the old ConceptMap.group.element.target.equivalence element to relationship.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Removing relationship from current ConceptMap sources would regress the current build; the R4B-specific problem was a generation/tooling issue handled in Kindling and reflected by the R4B branch using equivalence.
+
+Recommendation:
+Keep this audit commit as-is. No current HL7/fhir source follow-up is needed for FHIR-34433; any future recurrence would belong in R4B publication tooling or the R4B branch rather than in the current ConceptMap source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34433
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-35783: same-change-family - the companion Published R4B issue for conceptmaps.xml also requested relationship-to-equivalence generation correction and was covered by the same Kindling PR.
+FHIR-35784: same-change-family - the companion Published R4B issue for valuesets.xml contained ConceptMaps and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34433: Published/Persuasive R4B technical correction reporting R5 ConceptMap.relationship in R4B ConceptMaps. Learned: the issue is final and scoped to R4B-generated ConceptMap artifacts.
+- E2 GitHub HL7/kindling#69: merged R4B fixes, explicitly saying R4B generation must use R4 ConceptMaps/resources instead of R5. Learned: the recorded application was tooling-side generation correction, not a current ConceptMap source removal.
+- E3 Source source/fhir.ini:227 and source/conceptmap/structuredefinition-ConceptMap.xml:978: ConceptMap is active in the current build and relationship is the current ConceptMap target element. Learned: current-source relationship usage is intentional and in build scope.
+- E4 Git branch check origin/R4B vs HEAD: origin/R4B ConceptMap XML has zero relationship elements and 283 equivalence elements; HEAD has 431 relationship elements and zero equivalence elements. Learned: R4B/current version-specific serialization is already separated.
+- E5 Community search: quoted Jira-key and ConceptMap relationship/R4B searches found no directly relevant Zulip or Confluence records. Learned: no discovered community evidence conflicts with the Jira/tooling/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34433",
+    "url": "https://jira.hl7.org/browse/FHIR-34433",
+    "snapshot_path": "contexts/FHIR-34433/jira/FHIR-34433.md",
+    "ref": { "jira_key": "FHIR-34433" },
+    "summary": "Published/Persuasive R4B technical correction reporting that R4B ConceptMaps were shipped with the R5-only target.relationship element.",
+    "learned": "This establishes the final request and that the problem was R4B generated output, not current-version ConceptMap semantics.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "web",
+    "locator": "HL7/kindling#69",
+    "url": "https://github.com/HL7/kindling/pull/69",
+    "ref": { "owner": "HL7", "repo": "kindling", "pull": 69 },
+    "summary": "Merged R4B-fixes PR says generated R4B instances should use R4 ConceptMaps and resources rather than R5 resources, citing FHIR-34433.",
+    "learned": "The historical application was a Kindling generation fix that version-converts generated resources for R4B.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:227; source/conceptmap/structuredefinition-ConceptMap.xml:978",
+    "summary": "ConceptMap is an active current-build resource and its current StructureDefinition defines ConceptMap.group.element.target.relationship.",
+    "learned": "The current build correctly includes relationship for ConceptMap, so source removal would be wrong.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "R4B/current ConceptMap relationship-equivalence counts",
+    "command": "git grep '<relationship value=' origin/R4B -- 'source/**/*.xml' | grep -i conceptmap | wc -l; git grep '<equivalence value=' origin/R4B -- 'source/**/*.xml' | grep -i conceptmap | wc -l; git grep '<relationship value=' HEAD -- 'source/**/*.xml' | grep -i conceptmap | wc -l; git grep '<equivalence value=' HEAD -- 'source/**/*.xml' | grep -i conceptmap | wc -l",
+    "summary": "origin/R4B has 0 ConceptMap relationship elements and 283 equivalence elements; HEAD has 431 relationship elements and 0 equivalence elements.",
+    "learned": "R4B and current ConceptMap serialization are already version-correct in the checked source branches.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-34433 and ConceptMap relationship/R4B",
+    "command": "bun run zulip:search fts '\"FHIR-34433\" ConceptMap relationship R4B' --limit 10; bun run confluence:search fts '\"FHIR-34433\" ConceptMap relationship R4B' --limit 10",
+    "query": "FHIR-34433 ConceptMap relationship R4B",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence records were found.",
+    "learned": "No discovered community record changes the Jira, Kindling PR, and source-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

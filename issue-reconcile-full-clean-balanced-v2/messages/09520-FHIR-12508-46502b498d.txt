@@ -1,0 +1,94 @@
+FHIR-12508: Audit resource example wording generator
+
+Issue request:
+FHIR-12508 is Published/Persuasive and asked to change generated Sequence example narrative from saying an example conforms to the "profile Sequence" to saying it conforms to the "resource Sequence", because Sequence was a resource rather than a profile.
+
+Initial application:
+The Jira record says the issue was applied with a short GH#1caaa7803c reference, but that abbreviated hash is not present in this checkout or GitHub's current HL7/fhir commit API. Current source no longer contains a literal Sequence example page; it contains a shared resource-example template that delegates the conformance sentence to a publisher macro. Current CI and published example pages still show the "profile <Resource>" wording, so no durable core-source application is visible.
+
+Additional context:
+Zulip discussion expanded the finding from Sequence to all resource examples, and Grahame Grieve directed the task to FHIR publishing because individual committees do not control that generated language. The FHIR checkout's Gradle build depends on the external org.hl7.fhir:kindling publisher, and the current kindling source expands <%example.profile.link%> by hard-coding "profile " before the StructureDefinition name. Sequence itself is listed only under [removed-resources] in current source/fhir.ini, so the remaining live problem is the shared generated wording for current resource examples such as Patient and Observation.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no FHIR source change. Editing the FHIR template to remove the macro would be an overbroad workaround that would lose conformance context without fixing the generator. The source of the current incorrect wording is in the external HL7/kindling PageProcessor.genExampleProfileLink implementation, so this is recorded as external-repo.
+
+Recommendation:
+Keep this audit commit as-is for the core repository. Follow up in HL7/kindling by changing the example profile-link generator to render resource examples as "resource <Name>" when the linked StructureDefinition is the base resource, preserving "profile" only for true constrained-profile examples; then update the FHIR build dependency and rebuild generated pages.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12508
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12508: Published/Persuasive, vote 8-0-0, requested changing "profile Sequence" to "resource Sequence" in example narrative. Learned: this is final WG intent for the generated wording problem.
+- E2 Zulip #implementers > Typo for  sequence example and Change description content for every resources' examples: reporter identified the same wording, another participant noted it affects every resource example, and Grahame directed it to FHIR publishing. Learned: the issue is generated publisher language, not resource committee source text.
+- E3 Source tools/templates/template-example.html:19 and build.gradle.kts:46-48,132-138: the FHIR source template uses <%example.profile.link%>, while the build runs org.hl7.fhir.tools.publisher.Publisher from org.hl7.fhir:kindling:1.25.5-SNAPSHOT. Learned: the current FHIR checkout delegates the sentence content to external publisher code.
+- E4 External source HL7/kindling PageProcessor.java:1197-1198,2639-2642 and Publisher.java:5462-5463: the macro is expanded by genExampleProfileLink and hard-codes "profile " before the StructureDefinition name while Publisher applies template-example.html to resource-instance pages. Learned: the needed code fix is in HL7/kindling, not this FHIR source checkout.
+- E5 Published/CI spec https://build.fhir.org/patient-example.html and https://build.fhir.org/observation-example.html: current CI pages still say examples conform to the "profile Patient" and "profile Observation". Learned: the underlying wording problem still exists on current generated pages, but its source is external tooling.
+- E6 Verification commands: idempotency log found no existing FHIR-12508 reconcile commit; source search found no literal "This example conforms to" except the template macro; community search found no Confluence record. Learned: publishing this one external-repo audit commit is non-duplicative and no conflicting community evidence was found.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12508",
+    "url": "https://jira.hl7.org/browse/FHIR-12508",
+    "snapshot_path": "contexts/FHIR-12508/jira/FHIR-12508.md",
+    "ref": { "jira_key": "FHIR-12508" },
+    "summary": "Published/Persuasive issue requesting Sequence example narrative say resource Sequence instead of profile Sequence.",
+    "learned": "This establishes final intent to correct generated example wording.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Typo for  sequence example; #implementers > Change description content for every resources' examples",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Change%20description%20content%20for%20every%20resources'%20examples",
+    "ref": { "stream": "implementers", "topic": "Change description content for every resources' examples" },
+    "summary": "Zulip participants identified the wording as affecting all resource examples, and Grahame Grieve said it belongs to FHIR publishing.",
+    "learned": "This confirms the fix belongs in generated publishing language rather than resource-specific source.",
+    "supports": ["additional_context", "external_repo"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "tools/templates/template-example.html:19; build.gradle.kts:46-48,132-138",
+    "summary": "The FHIR source template calls <%example.profile.link%>, and the build depends on org.hl7.fhir:kindling and runs org.hl7.fhir.tools.publisher.Publisher.",
+    "learned": "The current checkout supplies the template but not the macro implementation that emits the wrong word.",
+    "supports": ["build_scope", "external_repo"]
+  },
+  {
+    "id": "E4",
+    "kind": "web",
+    "locator": "HL7/kindling PageProcessor.java and Publisher.java at b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8",
+    "url": "https://github.com/HL7/kindling/blob/b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8/src/main/java/org/hl7/fhir/tools/publisher/PageProcessor.java#L2639-L2642",
+    "ref": { "repo": "HL7/kindling", "commit": "b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8" },
+    "summary": "Kindling expands example.profile.link through genExampleProfileLink, which hard-codes 'profile ' before the StructureDefinition name.",
+    "learned": "The source of the generated wording is external publisher code, so the core repository should not receive a workaround edit.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "build.fhir.org patient-example.html and observation-example.html",
+    "url": "https://build.fhir.org/patient-example.html",
+    "summary": "Current CI pages still render 'This example conforms to the profile Patient' and similarly for Observation.",
+    "learned": "The wording problem persists in generated output even though the necessary implementation point is external tooling.",
+    "supports": ["current_state", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Idempotency, source, and community negative checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-12508' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg 'example.profile.link|This example conforms'; bun run confluence:search refs jira FHIR-12508",
+    "summary": "No prior reconcile commit or conflicting Confluence record was found; source contains only the template macro for this sentence.",
+    "learned": "The audit commit is non-duplicative and the source investigation did not find a direct core-source fix point.",
+    "supports": ["confidence", "absence_of_conflict"]
+  }
+]
+</evidence-manifest>

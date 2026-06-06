@@ -1,0 +1,115 @@
+FHIR-27822: Audit PlanDefinition participant type expansion
+
+Issue request:
+FHIR-27822 was Published/Persuasive for R5. It reported that required PlanDefinition.action.participant.type lacked non-clinical participant choices such as List and Organization, and the accepted resolution was to expand participant typing to resources that implement the Participant pattern.
+
+Initial application:
+No commit explicitly mentioning FHIR-27822 was found. The same R5-era source path was nevertheless changed shortly after the Jira decision: c68fb1d080 (J#20825) introduced the PlanDefinition actor model and changed PlanDefinition.action.participant.type from required to optional, and f83e1f04c1 (J#24618) expanded the action-participant-type code system to the current Participant-pattern resource code set including Organization and Group. Later participant commits added canonical/reference choices without restoring the original required-code limitation.
+
+Additional context:
+The seed Jira comments clarify that List was not suitable because List does not implement the Participant pattern, and that Group was the likely way to express collections. Current fhir.ini keeps PlanDefinition and the Participant/ParticipantContactable/ParticipantLiving logical patterns in the build. The current PlanDefinition.action.participant model has optional type, typeCanonical, and typeReference choices; typeReference includes Organization plus later-approved non-clinical participant targets such as Medication, Specimen, Substance, and BiologicallyDerivedProduct, while action-participant-type contains exactly the current source resources whose root interface mapping is Participant, ParticipantContactable, or ParticipantLiving.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The authoritative current source already implements the WG decision in a broader and safer way than simply adding List to the required code list: the code list covers the Participant-pattern resources, List remains excluded, and the current reference/canonical choices handle expanded participant use cases.
+
+Recommendation:
+Keep this no-change audit commit. Reopen only if a future WG decision changes whether List itself should become a Participant-pattern resource; otherwise adding List or duplicative explanatory prose to PlanDefinition would contradict the recorded Jira discussion or create maintenance drift.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27822
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-20825: same-change-family - R5 PlanDefinition actor modeling changed action.participant.type from required to optional and added actor/function structure used by the current source.
+FHIR-20826: same-change-family - Added definitional participant targets, supporting the current typeCanonical/typeReference participant model.
+FHIR-38969: later-change - Later PlanDefinition participant review rejected ResearchSubject as a participant but added Medication, Specimen, Substance, and BiologicallyDerivedProduct to typeReference, confirming that expanded participant use cases are handled through reference/canonical targets rather than by adding non-participant codes such as List.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27822: Published/Persuasive; requested fixing required PlanDefinition.action.participant.type for non-clinical participants and resolved to use Participant-pattern resources. Learned: this is the final seed decision and explains why List is not automatically added.
+- E2 Source source/fhir.ini:155 and source/fhir.ini:270: active logical patterns include participant/participantcontactable/participantliving and active resources include PlanDefinition. Learned: the checked PlanDefinition and Participant pattern inputs are in current build scope.
+- E3 Source source/plandefinition/structuredefinition-PlanDefinition.xml:1951: PlanDefinition.action.participant.type is 0..1 and bound required to action-participant-type; adjacent typeCanonical/typeReference choices cover definitional/reference participants. Learned: current source no longer has the original required-code-only limitation.
+- E4 Source source/plandefinition/codesystem-action-participant-type.xml:41: complete code system includes CareTeam, Device, Group, HealthcareService, Location, Organization, Patient, Practitioner, PractitionerRole, and RelatedPerson. Learned: Organization and Group are represented, while List is excluded consistently with the Jira discussion.
+- E5 Git c68fb1d080 and f83e1f04c1: R5-era commits made PlanDefinition participant type optional and expanded the participant type code system to the Participant-pattern set. Learned: the issue appears to have been applied implicitly through neighboring participant-model work even though no commit mentions FHIR-27822.
+- E6 Git e2afb511cc and 3d162e48cb: later commits added and refined PlanDefinition typeReference participants for research/PQ use cases. Learned: later decisions support preserving the current broader choice-based model.
+- E7 Command comparison of Participant-pattern root interface mappings against action-participant-type codes. Learned: current codes match CareTeam, Device, Group, HealthcareService, Location, Organization, Patient, Practitioner, PractitionerRole, and RelatedPerson.
+- E8 Community search: Zulip and Confluence searches for FHIR-27822, PlanDefinition.action.participant.type, and participant List/Organization found no directly relevant conflicting discussion. Learned: no discovered community evidence changes the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27822",
+    "url": "https://jira.hl7.org/browse/FHIR-27822",
+    "snapshot_path": "contexts/FHIR-27822/jira/FHIR-27822.md",
+    "ref": { "jira_key": "FHIR-27822" },
+    "summary": "Published/Persuasive issue requesting PlanDefinition.action.participant.type support for non-clinical participants, resolved to use resources implementing the Participant pattern.",
+    "learned": "The final WG decision is to align with Participant-pattern resources and the comments explain that List itself is not a Participant.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:155 and source/fhir.ini:270",
+    "summary": "fhir.ini lists participant/participantcontactable/participantliving as logical patterns and PlanDefinition as an active resource.",
+    "learned": "The checked source files and pattern inputs are in current build scope.",
+    "supports": ["build_scope", "source_check"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/plandefinition/structuredefinition-PlanDefinition.xml:1951",
+    "summary": "PlanDefinition.action.participant.type is optional and is followed by typeCanonical and typeReference participant choices.",
+    "learned": "The current source no longer imposes the original required-code-only participant restriction.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/plandefinition/codesystem-action-participant-type.xml:41",
+    "summary": "The action participant code system includes CareTeam, Device, Group, HealthcareService, Location, Organization, Patient, Practitioner, PractitionerRole, and RelatedPerson.",
+    "learned": "The code list includes Organization and the Participant-pattern set; List is absent consistently with the Jira comments.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "c68fb1d080; f83e1f04c1",
+    "ref": { "commit_1": "c68fb1d08070f51c51c40c7cb61c0f8973d3a638", "commit_2": "f83e1f04c1753f4aa338b3f6ab28750a3d91e672" },
+    "summary": "R5-era participant-model commits made PlanDefinition.action.participant.type optional and expanded the action participant type code system.",
+    "learned": "FHIR-27822 appears to have been applied implicitly through adjacent PlanDefinition participant work.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "e2afb511cc; 3d162e48cb",
+    "ref": { "commit_1": "e2afb511cc83e582c08d79849531d71f5c96e1eb", "commit_2": "3d162e48cbb977db978dfa6498b9a0c1c38b930b" },
+    "summary": "Later PlanDefinition participant commits added and refined Medication, Specimen, Substance/BiologicallyDerivedProduct, and SubstanceDefinition reference targets.",
+    "learned": "Later decisions preserve a choice-based participant model rather than adding non-participant codes such as List.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Participant mapping/code comparison",
+    "command": "for f in source/*/structuredefinition-*.xml; do ... map value=Participant...; done; sed -n 's/.*<code value=.../p' source/plandefinition/codesystem-action-participant-type.xml",
+    "summary": "The root Participant-pattern resources found in source are CareTeam, Device, Group, HealthcareService, Location, Organization, Patient, Practitioner, PractitionerRole, and RelatedPerson; these match the action-participant-type codes.",
+    "learned": "The current code list is aligned with current Participant-pattern source inputs.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-27822 and PlanDefinition participant type",
+    "command": "bun run zulip:search fts '\"FHIR-27822\" PlanDefinition participant' --limit 10; bun run zulip:search fts '\"PlanDefinition.action.participant.type\"' --limit 10; bun run confluence:search refs jira FHIR-27822; bun run confluence:search fts '\"FHIR-27822\" PlanDefinition participant' --limit 10",
+    "query": "FHIR-27822 PlanDefinition participant; PlanDefinition.action.participant.type",
+    "result_count": 1,
+    "summary": "No directly relevant FHIR-27822 Zulip or Confluence records were found; the only exact-path Zulip hit was an older tracker bot announcement for a different issue.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

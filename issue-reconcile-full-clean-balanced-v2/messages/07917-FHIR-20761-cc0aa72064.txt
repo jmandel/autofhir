@@ -1,0 +1,96 @@
+FHIR-20761: Audit example system validation tooling
+
+Issue request:
+FHIR-20761 was Published/Persuasive with Modification for FHIR-core. It asked that Identifier.system and Coding.system values in core and HL7-published IG examples either use example roots such as example.org or acme.com, or resolve to a defined CodeSystem or NamingSystem; the final resolution changed the requested error to a warning in the core build and the HL7-rooted IG Publisher.
+
+Initial application:
+No FHIR source commit explicitly references FHIR-20761. The current checkout does not contain the Java publisher implementation that would enforce this rule; the active Gradle build runs org.hl7.fhir.tools.publisher.Publisher from the external Kindling dependency, with validator behavior supplied by external org.hl7.fhir.core artifacts.
+
+Additional context:
+FHIR-I minutes from 2020-01-27 show the work group assigning this to Grahame as an IG Publisher data-gathering/tooling change, not as a directive to rewrite all current examples. Current source still intentionally contains active examples under acme.com/example.org roots, while the external validator/publisher code contains the URL-resolution, NamingSystem, example/acme, and unknown-code-system logic that governs this behavior.
+
+AutoFHIR reconciliation:
+This commit makes no FHIR source change. The requested behavior belongs in the external publisher/validator tooling consumed by this repository, and changing core examples or local build configuration here would either be broader than the Jira resolution or would not implement the HL7 IG Publisher rule.
+
+Recommendation:
+Keep this audit commit as an external-repo decision for the core source checkout. If reviewers want to verify or refine the exact warning severity and acme.com exemption, do that in the Kindling / org.hl7.fhir.core validator or IG Publisher source and then consume the updated dependency from this repository.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20761
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20761: Published/Persuasive with Modification; resolution says unresolved non-example code-system URLs should become warnings in the core build and HL7 IG Publisher. Learned: the final target is publisher/validator tooling behavior, not a mandatory cleanup of every example instance.
+- E2 Confluence 75170111: FHIR-I minutes for 2020-01-27 record discussion of FHIR-20761 and assignment to Grahame to start gathering data using IG Publisher. Learned: work-group discussion confirms the tooling/data-gathering scope.
+- E3 Source gradle.properties:2 and build.gradle.kts:47,137-150: the current FHIR checkout runs org.hl7.fhir.tools.publisher.Publisher from the external Kindling dependency. Learned: the enforcing code is not in this source tree, so a local source hunk would not implement the rule.
+- E4 External source hapifhir/org.hl7.fhir.core c08f4da: BaseWorkerContext, ValidationEngine, and InstanceValidator include NamingSystem, example/acme URL, and unknown-code-system handling. Learned: current enforcement evidence lives in the external validator/publisher dependency chain.
+- E5 Source source/fhir.ini:187,198,205,224,226 plus source/valueset/valueset-example.xml:40 and source/list/list-example-simple-empty.xml:14: active core examples/resources still use acme.com example systems. Learned: rewriting example systems is not the intended reconciliation.
+- E6 Community/search commands: Jira sanitized search found only FHIR-20761; Zulip had no direct FHIR-20761 hits; Confluence found the 2020-01-27 minutes and no broader conflicting phrase hits. Learned: no discovered later community record changes the tooling-scope conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20761",
+    "url": "https://jira.hl7.org/browse/FHIR-20761",
+    "snapshot_path": "contexts/FHIR-20761/jira/FHIR-20761.md",
+    "ref": { "jira_key": "FHIR-20761" },
+    "summary": "Published/Persuasive with Modification request to warn when core or HL7-published IG examples use non-resolved code system URLs outside example.org/acme.com.",
+    "learned": "This establishes the final request as publisher/validator warning behavior rather than a required source cleanup of all examples.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2020-01-27 page 75170111",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/75170111/FHIR+Infrastructure+Minutes+CC+20200127",
+    "snapshot_path": "contexts/FHIR-20761/confluence/75170111.md",
+    "ref": { "confluence_page_id": 75170111 },
+    "summary": "Minutes record FHIR-20761 discussion and assignment to Grahame to start gathering data using IG Publisher.",
+    "learned": "This confirms the issue was handled as IG Publisher/core-build tooling work, not as an immediate edit to specific example files.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "gradle.properties:2; build.gradle.kts:47,137-150; ivy.xml:15",
+    "summary": "The current FHIR checkout pins Kindling as an external dependency and runs org.hl7.fhir.tools.publisher.Publisher from that dependency; legacy ivy also references external org.hl7.fhir.validation.",
+    "learned": "The current build delegates the requested validation behavior to external tooling, so there is no authoritative in-tree source file to edit for the rule.",
+    "supports": ["initial_application", "external_repo"]
+  },
+  {
+    "id": "E4",
+    "kind": "web",
+    "locator": "hapifhir/org.hl7.fhir.core@c08f4da08fde0e69a2e386fe70a88373507a2c1a",
+    "url": "https://github.com/hapifhir/org.hl7.fhir.core/tree/c08f4da08fde0e69a2e386fe70a88373507a2c1a",
+    "ref": { "commit": "c08f4da08fde0e69a2e386fe70a88373507a2c1a" },
+    "summary": "External validator source contains NamingSystem loading, example/acme URL handling, and unknown-code-system validation logic in BaseWorkerContext, ValidationEngine, and InstanceValidator.",
+    "learned": "The implementation evidence and any needed severity/exemption refinement belong in the external validator/publisher dependency chain.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:187,198,205,224,226; source/valueset/valueset-example.xml:40; source/list/list-example-simple-empty.xml:14",
+    "summary": "Active core resource/example sources include acme.com systems in built resources such as ValueSet and List.",
+    "learned": "The resolution permits example roots and supports leaving these examples alone rather than converting them to real terminology systems.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative/bounded community search for FHIR-20761 and example system terms",
+    "command": "bun run jira:search fts 'Identifier Coding example org acme com CodeSystem NamingSystem' --limit 20; bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-20761%'\"; bun run confluence:search refs jira FHIR-20761; bun run confluence:search fts 'Identifier Coding example org acme com CodeSystem NamingSystem' --limit 10",
+    "query": "FHIR-20761; Identifier Coding example org acme com CodeSystem NamingSystem",
+    "result_count": 1,
+    "summary": "Jira search found only FHIR-20761; Zulip had no direct key hits; Confluence found the 2020 FHIR-I minutes and no broader conflicting phrase hits.",
+    "learned": "No discovered later community evidence changes the conclusion that this is external tooling work for the core source checkout.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

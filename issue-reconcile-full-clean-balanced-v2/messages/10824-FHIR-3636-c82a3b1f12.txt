@@ -1,0 +1,103 @@
+FHIR-3636: Add missing patient search parameters
+
+Issue request:
+FHIR-3636 was Published/Persuasive for DSTU1. It asked that every resource in the Patient compartment have a patient search parameter so callers can use a consistent parameter name even when the underlying patient link element has a resource-specific name.
+
+Initial application:
+The Jira comments record editor approval on the 2014-10-29 MnM call and application in SVN revision 3288, with all then-current cases considered obvious. No Git commit in the converted repository mentions FHIR-3636, but the current source already contains patient search parameters and the clinical-patient common registry entry for the rest of the active non-root Patient-compartment resources.
+
+Additional context:
+The current Patient compartment matrix still lists active Group membership through member and active Schedule membership through actor, and both reference elements can target Patient. Before this reconciliation, Group and Schedule were the only active non-root resources with a Patient-compartment entry but no patient search parameter. The Patient resource itself remains a compartment root handled by the compartment identity/{def} rule rather than by a self-referential patient search parameter. Later unresolved Jira issues FHIR-56547 and FHIR-57217 discuss broader or indirect Patient-compartment membership problems, but they are not final decisions and do not contradict adding direct Patient-targeted parameters for Group.member.entity and Schedule.actor.
+
+AutoFHIR reconciliation:
+This commit adds Group-patient and Schedule-patient reference SearchParameters filtered to Patient targets, and adds Group and Schedule to the clinical-patient common SearchParameter base list. The edited search-parameter bundles and common registry file are active current build inputs for the active Group, Schedule, and SearchParameter resources.
+
+Recommendation:
+Keep this source fix. It completes the directly checkable FHIR-3636 consistency gap for the current active Patient compartment while leaving broader indirect Group-to-Patient compartment questions to their pending Jira trackers.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3636
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-3079: supporting-decision - cited by the seed as the companion element-naming discussion; it explains why element names can remain resource-specific while search parameters use a common patient name.
+FHIR-56547: background - unresolved later AppointmentResponse concern about Patient-compartment membership; it is not a final source-edit decision for this reconciliation.
+FHIR-57217: background - unresolved later concern about indirect Patient-compartment membership through Group; this commit only adds direct Patient-targeted search parameters.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3636: Published/Persuasive issue requiring patient search parameters for Patient-compartment resources, with comments recording MnM approval and SVN revision 3288 application. Learned: this is final WG intent for the consistent patient search parameter rule.
+- E2 Source source/compartments.xml:472-476 and source/compartments.xml:753-758: the active Patient compartment matrix includes Group through member and Schedule through actor. Learned: these active non-root resources are in the current Patient compartment.
+- E3 Source source/group/structuredefinition-Group.xml:793,806 and source/schedule/structuredefinition-Schedule.xml:218,226: Group.member.entity and Schedule.actor can target Patient. Learned: direct Patient-targeted search expressions are well defined for the missing resources.
+- E4 Source source/group/bundle-Group-search-params.xml:224-237 and source/schedule/bundle-Schedule-search-params.xml:46-59: this commit adds Group-patient and Schedule-patient SearchParameters filtered to Patient. Learned: the source now exposes the required consistent patient search parameter name for both resources.
+- E5 Source source/searchparameter/common-search-parameters.xml:305,343,366 and source/fhir.ini:193,228,248: the clinical-patient common registry now includes Group and Schedule, and Group/Schedule/SearchParameter are active resources. Learned: the registry and active build scope are aligned with the new resource-level parameters.
+- E6 Command community searches for FHIR-3636 and patient search parameter terms: no Confluence or Zulip references were found; Jira term searches found only unresolved broader later issues as possible background. Learned: no discovered community record changes the Jira/source conclusion.
+- E7 Verification command: XML parse, active Patient-compartment/patient-search consistency check, clinical-patient registry consistency check, and CRLF-aware git diff --check passed. Learned: the edited XML is valid and the scoped consistency rule now passes for all active non-root Patient-compartment resources.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3636",
+    "url": "https://jira.hl7.org/browse/FHIR-3636",
+    "snapshot_path": "contexts/FHIR-3636/jira/FHIR-3636.md",
+    "ref": { "jira_key": "FHIR-3636" },
+    "summary": "Published/Persuasive issue requiring patient search parameters for resources in the Patient compartment, with comments recording MnM approval and SVN revision 3288 application.",
+    "learned": "This is final WG intent for the consistent patient search parameter rule.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/compartments.xml:472-476; source/compartments.xml:753-758",
+    "summary": "The current Patient compartment matrix includes Group through member and Schedule through actor.",
+    "learned": "Group and Schedule are active non-root resources in the current Patient compartment that must be considered for FHIR-3636.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/group/structuredefinition-Group.xml:793,806; source/schedule/structuredefinition-Schedule.xml:218,226",
+    "summary": "Group.member.entity and Schedule.actor can target Patient.",
+    "learned": "Patient-filtered reference search expressions are well defined for the missing parameters.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/group/bundle-Group-search-params.xml:224-237; source/schedule/bundle-Schedule-search-params.xml:46-59",
+    "summary": "Added Group-patient and Schedule-patient SearchParameters filtered to Patient targets.",
+    "learned": "The current source now exposes the requested consistent patient parameter for both resources.",
+    "supports": ["reconciliation", "source_changes"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/searchparameter/common-search-parameters.xml:305,343,366; source/fhir.ini:193,228,248",
+    "summary": "The clinical-patient common SearchParameter base list includes Group and Schedule, and the relevant resources are active in fhir.ini.",
+    "learned": "The registry and build scope are aligned with the new resource-level parameters.",
+    "supports": ["build_scope", "source_changes"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-3636 and patient search parameter terms",
+    "command": "bun run confluence:search refs jira FHIR-3636 --limit 20; bun run zulip:search fts '\"FHIR-3636\" \"patient\" \"search parameter\"' --limit 10; bun run jira:search fts '\"patient search parameter\" \"patient compartment\"' --limit 20",
+    "query": "FHIR-3636 patient search parameter patient compartment",
+    "summary": "No Confluence or Zulip references were found; Jira term searches found only unresolved broader later issues as background.",
+    "learned": "No discovered community record contradicts the Jira/source conclusion for this direct consistency fix.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Scoped XML and patient-search validation",
+    "command": "python3 XML parse and active Patient-compartment/patient-search registry check; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/group/bundle-Group-search-params.xml source/schedule/bundle-Schedule-search-params.xml source/searchparameter/common-search-parameters.xml",
+    "summary": "Edited XML parsed, every active non-root Patient-compartment resource has a patient search parameter, the clinical-patient registry matches resource bundles, and diff --check passed.",
+    "learned": "The source correction is syntactically valid and satisfies the scoped consistency check.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,97 @@
+FHIR-27165: Restore MedicationRequest combo-date search parameter
+
+Issue request:
+FHIR-27165 is Published with resolution Persuasive. The Pharmacy WG approved fixing the MedicationRequest date search parameter so that it searches both MedicationRequest.dosageInstruction.timing.event and timing.repeat.boundsPeriod, matching the original implementer discussion that a single parameter should cover a specific administration time or a period.
+
+Initial application:
+The issue was applied in git commit a9dffd224e0795a95e525dd761215701cecf804b, which changed the old MedicationRequest date search parameter to combo-date and changed its source path from only dosageInstruction.timing.event to dosageInstruction.timing.event plus dosageInstruction.timing.repeat.boundsPeriod. The later search-parameter bundle source preserved that R5 expression when the build source was reworked.
+
+Additional context:
+MedicationRequest is active in source/fhir.ini, and source/compartments.xml still names combo-date as MedicationRequest's compartment date search parameter. Later R6 dosage changes introduced MedicationRequest.effectiveTiming[x] and the DosageDetails datatype, where component Dosage instances now carry timing. During that refactor, commit bc7ac9db4e24a9da9eb639008e70d1dc76b74886 XML-commented out the combo-date entry rather than updating it, leaving the current active source without the search parameter even though the compartment definition still references it.
+
+AutoFHIR reconciliation:
+Restored the MedicationRequest-combo-date SearchParameter entry and updated its build path and expression to the current R6 structure: MedicationRequest.effectiveTiming.ofType(Period), MedicationRequest.dosageInstruction.step.component.timing.event, and MedicationRequest.dosageInstruction.step.component.timing.repeat.bounds.ofType(Period). This preserves the FHIR-27165 event-or-boundsPeriod rule while accounting for the later DosageDetails/effectiveTiming refactor.
+
+Recommendation:
+Keep this commit as-is. If Pharmacy later changes the R6 dosage model again, review MedicationRequest-combo-date at the same time; otherwise this is the smallest current-source correction that keeps the published FHIR-27165 behavior and the compartment search-parameter reference consistent.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27165
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-52888: later-change - renamed effectiveDosePeriod to effectiveTiming[x] with Duration, Range, and Period options, which determines the current overall-period path used by this fix.
+FHIR-39017: later-change - restored dosageInstruction as a first-level MedicationRequest element after the temporary dose backbone, explaining why the R5 search parameter expression had to be rechecked against later model changes.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27165: Published/Persuasive Pharmacy issue requiring the MedicationRequest date search parameter to include timing.repeat.boundsPeriod as well as timing.event. Learned: establishes the final WG intent for the seed issue.
+- E2 Zulip #implementers Search parameters for MedicationRequest.Timing: Melva Peters proposed timing-period and timing-event; Lloyd McKenzie recommended a single parameter; James Agnew supplied the union-expression pattern. Learned: confirms the original intended semantics of one date search parameter covering events and periods.
+- E3 Git a9dffd224e0795a95e525dd761215701cecf804b: changed the MedicationRequest spreadsheet search parameter from date/event-only to combo-date with event plus boundsPeriod. Learned: confirms the issue was initially applied for R5.
+- E4 Source source/fhir.ini:203, source/compartments.xml:568-573, source/medicationrequest/bundle-MedicationRequest-search-params.xml:61-80, source/medicationrequest/structuredefinition-MedicationRequest.xml:849-876, and source/datatypes/dosagedetails.xml:1035-1039. Learned: MedicationRequest and its search bundle are in build scope; combo-date is still referenced; the current model uses effectiveTiming[x] plus DosageDetails.step.component Dosage timing.
+- E5 Jira/Git FHIR-52888 and bc7ac9db4e24a9da9eb639008e70d1dc76b74886: FHIR-52888 approved effectiveTiming[x], and the later dosage draft commit commented out combo-date while changing dosageInstruction to DosageDetails. Learned: the current omission came from a later model refactor, not a reversal of FHIR-27165.
+- E6 Verification command: XML parsing, CRLF-aware git diff --check, and direct inspection of the active combo-date entry succeeded. Learned: the edited bundle is well-formed and the search parameter is no longer hidden in an XML comment.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27165",
+    "url": "https://jira.hl7.org/browse/FHIR-27165",
+    "snapshot_path": "contexts/FHIR-27165/jira/FHIR-27165.md",
+    "ref": { "jira_key": "FHIR-27165" },
+    "summary": "Published/Persuasive Pharmacy issue requesting the MedicationRequest date search parameter include timing.repeat.boundsPeriod as well as timing.event.",
+    "learned": "This is final WG intent and establishes the target behavior for the current source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Search parameters for MedicationRequest.Timing",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Search%20parameters%20for%20MedicationRequest.Timing",
+    "ref": { "stream": "implementers", "topic": "Search parameters for MedicationRequest.Timing" },
+    "summary": "The 2017 discussion proposed timing-period and timing-event MedicationRequest searches, then converged on a single combined parameter using a union expression.",
+    "learned": "The issue's linked discussion supports one date search parameter covering both exact event dates and period bounds.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "a9dffd224e0795a95e525dd761215701cecf804b",
+    "ref": { "commit": "a9dffd224e0795a95e525dd761215701cecf804b" },
+    "summary": "Historical implementation commit changed the MedicationRequest search parameter from date/event-only to combo-date with timing.event and timing.repeat.boundsPeriod.",
+    "learned": "FHIR-27165 was initially applied in R5 source before later source refactors.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:203; source/compartments.xml:568-573; source/medicationrequest/bundle-MedicationRequest-search-params.xml:61-80; source/medicationrequest/structuredefinition-MedicationRequest.xml:849-876; source/datatypes/dosagedetails.xml:1035-1039",
+    "summary": "MedicationRequest is active, its compartment row still references combo-date, the restored search parameter is in the resource search bundle, effectiveTiming[x] is the current overall timing element, and DosageDetails.step.component is Dosage.",
+    "learned": "The edited search parameter bundle is build-scope source and the updated expression follows the current R6 MedicationRequest/DosageDetails model.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-52888 and git bc7ac9db4e24a9da9eb639008e70d1dc76b74886",
+    "url": "https://jira.hl7.org/browse/FHIR-52888",
+    "snapshot_path": "contexts/FHIR-52888/jira/FHIR-52888.md",
+    "ref": { "jira_key": "FHIR-52888", "commit": "bc7ac9db4e24a9da9eb639008e70d1dc76b74886" },
+    "summary": "FHIR-52888 approved replacing effectiveDosePeriod with effectiveTiming[x], and a later dosage draft commit changed dosageInstruction to DosageDetails while XML-commenting out combo-date.",
+    "learned": "Later R6 model changes require updating the search parameter paths, but they do not reverse the FHIR-27165 requirement for a date search parameter covering periods.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Validation of FHIR-27165 source edit",
+    "command": "python3 XML parse source/medicationrequest/bundle-MedicationRequest-search-params.xml source/medicationrequest/structuredefinition-MedicationRequest.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/medicationrequest/bundle-MedicationRequest-search-params.xml; sed -n '55,85p' source/medicationrequest/bundle-MedicationRequest-search-params.xml",
+    "summary": "The edited XML parsed, whitespace checking succeeded, and the combo-date SearchParameter is active rather than XML-commented.",
+    "learned": "The source edit is structurally valid and restores the intended active search parameter.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

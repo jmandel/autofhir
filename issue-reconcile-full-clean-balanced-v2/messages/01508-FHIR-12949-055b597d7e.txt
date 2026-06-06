@@ -1,0 +1,98 @@
+FHIR-12949: Audit DocumentReference summary settings
+
+Issue request:
+FHIR-12949 was Published/Persuasive with Modification for DSTU2. It asked for DocumentReference _summary to be a minimal UI-list subset rather than returning document content, with the final accepted set covering status, docStatus, type, class, subject, author, description, context.period, content.format, content.attachment.contentType, content.attachment.language, identifier, masterIdentifier, indexed, and securityLabel/confidentiality.
+
+Initial application:
+The issue appears to have been applied by git-svn commit 94e532a611046fcdc40df2d7d28457eeb7dad3a6, the San Diego WGM block-vote commit that explicitly lists GF#12949 for DocumentReference. That commit changed the then-authoritative source/documentreference/documentreference-spreadsheet.xml and its sheet text, leaving summary markers on the accepted metadata fields and removing summary from several non-list fields such as context.encounter, facilityType, practiceSetting, sourcePatientInfo, and context.related. Because the old source represented Attachment use by marking the attachment wrapper, the applied source kept DocumentReference.content and content.attachment as summary wrappers so that selected Attachment metadata could appear without returning Attachment.data.
+
+Additional context:
+The current build uses source/documentreference/structuredefinition-DocumentReference.xml through the active source/fhir.ini DocumentReference resource entry. Later resource evolution explains differences from the DSTU2 literal names: class is now category, indexed is now date, context.period is now period, content.format is now content.profile.value[x], and masterIdentifier has been folded into identifier. The current ElementDefinition summary rule says datatype properties are generally included in summary form but explicitly excludes Attachment.data; the Attachment datatype marks contentType and language as summary. Current DocumentReference also has additional R6-era summary metadata from later resource evolution, such as version, modality, bodyStructure, context, and relatesTo. A later R6 issue, FHIR-54538, asks to add practiceSetting to summary, but it is only Resolved - change required/Ready_to_Apply and was not in this default applied/published reconciliation scope.
+
+AutoFHIR reconciliation:
+This audit made no source changes. Current source already carries the FHIR-12949 outcome forward on the still-current equivalents of the accepted fields, and the content.attachment summary wrapper is necessary in the current source model to expose Attachment metadata while Attachment.data remains excluded from _summary. Removing the wrapper or reapplying the DSTU2 literal list would either lose the accepted contentType/language/profile metadata or overwrite later current-version resource decisions.
+
+Recommendation:
+Keep this no-change audit commit as-is. Do not make a FHIR-12949 edit to remove DocumentReference.content.attachment from the current differential; any desire to narrow Attachment summary metadata beyond the global Attachment.data exclusion or to add practiceSetting should be handled by a current-version work-group issue such as FHIR-54538 when it is applied.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12949
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13855: same-change-family - Composition _summary was later audited against the DocumentReference FHIR-12949 rationale.
+FHIR-54538: later-change - R6 Ready_to_Apply issue asks to add DocumentReference.practiceSetting to summary, but it is not Applied/Published and was not changed here.
+FHIR-19250: later-change - later DocumentReference/DiagnosticReport and Media-boundary work contributed to current DocumentReference evolution, explaining why newer media metadata exists outside the DSTU2 list.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12949: Published/Persuasive with Modification issue defining the accepted minimal DocumentReference _summary metadata set. Learned: establishes the seed issue request and its final WG disposition.
+- E2 Git 94e532a611046fcdc40df2d7d28457eeb7dad3a6: San Diego WGM block-vote commit explicitly includes GF#12949 and updates DocumentReference spreadsheet summary markers. Learned: shows the issue was applied to the then-authoritative source and explains the wrapper representation for content metadata.
+- E3 Source source/fhir.ini:190 and source/documentreference/structuredefinition-DocumentReference.xml:149,248,294,356,406,450,712,749,785,1071,1096,1143,1162,1199,1231: DocumentReference is active in the current build and current summary flags include the accepted fields or their evolved equivalents. Learned: current source carries forward the applied issue.
+- E4 Source source/datatypes/elementdefinition.xml:2553 and source/datatypes/attachment.xml:848-880,900-907: current summary semantics include datatype properties except Attachment.data, while Attachment.contentType and Attachment.language are summary. Learned: content.attachment can be a summary wrapper without returning the document content itself.
+- E5 Jira FHIR-54538: Resolved - change required/Ready_to_Apply R6 issue requests adding DocumentReference.practiceSetting to summary. Learned: this later non-Applied issue is relevant context but not a source change to make for this default seed.
+- E6 Community search command: direct Zulip and Confluence searches for FHIR-12949 and DocumentReference summary found only the original tracker bot notification and no conflicting minutes or discussion. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12949",
+    "url": "https://jira.hl7.org/browse/FHIR-12949",
+    "snapshot_path": "contexts/FHIR-12949/jira/FHIR-12949.md",
+    "ref": { "jira_key": "FHIR-12949" },
+    "summary": "Published/Persuasive with Modification issue defining a minimal UI-list _summary set for DocumentReference.",
+    "learned": "This establishes the seed issue's accepted summary-element intent and the DSTU2-era element list to reconcile against current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "94e532a611046fcdc40df2d7d28457eeb7dad3a6",
+    "ref": { "commit": "94e532a611046fcdc40df2d7d28457eeb7dad3a6" },
+    "summary": "San Diego WGM block-vote commit explicitly lists GF#12949 and updates DocumentReference spreadsheet summary markers.",
+    "learned": "The seed issue was applied to the authoritative source used at the time, using content and attachment wrapper summary marks for selected content metadata.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:190; source/documentreference/structuredefinition-DocumentReference.xml:149,248,294,356,406,450,712,749,785,1071,1096,1143,1162,1199,1231",
+    "ref": { "path": "source/documentreference/structuredefinition-DocumentReference.xml" },
+    "summary": "DocumentReference is active in fhir.ini and current source marks the accepted fields or evolved equivalents as summary.",
+    "learned": "Current build source already carries forward the FHIR-12949 outcome after element renames and source refactoring.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:2553; source/datatypes/attachment.xml:848-880,900-907",
+    "ref": { "path": "source/datatypes/attachment.xml" },
+    "summary": "ElementDefinition summary guidance excludes Attachment.data, while Attachment.contentType and Attachment.language are summary datatype properties.",
+    "learned": "The current content.attachment wrapper does not return the document content itself and is needed to carry the accepted Attachment metadata.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-54538",
+    "url": "https://jira.hl7.org/browse/FHIR-54538",
+    "ref": { "jira_key": "FHIR-54538" },
+    "summary": "Resolved - change required/Ready_to_Apply R6 issue asking to add DocumentReference.practiceSetting to summary.",
+    "learned": "This later issue may change the future summary set, but it is not Applied/Published and was not in scope for a FHIR-12949 source edit.",
+    "supports": ["additional_context", "related_not_decided"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community searches for FHIR-12949 DocumentReference summary",
+    "command": "bun run zulip:search fts '\"FHIR-12949\" OR \"DocumentReference _summary\" OR \"DocumentReference summary\"' --limit 20; bun run confluence:search refs jira FHIR-12949; bun run confluence:search fts '\"FHIR-12949\" \"DocumentReference\" \"summary\"' --limit 20",
+    "query": "FHIR-12949 DocumentReference summary",
+    "summary": "Zulip returned only the tracker bot notification and Confluence had no refs or full-text hits.",
+    "learned": "No discovered community evidence conflicts with the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

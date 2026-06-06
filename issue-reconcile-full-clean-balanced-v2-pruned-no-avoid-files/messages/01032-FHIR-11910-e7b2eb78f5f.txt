@@ -1,0 +1,105 @@
+FHIR-11910: Mark CodeSystem value sets immutable
+
+Issue request:
+FHIR-11910 was a Published/Persuasive vocabulary issue asking whether a ValueSet whose content logical definition is all codes in a code system should be immutable. The accepted resolution narrowed that rule: when a ValueSet is referred to from CodeSystem.valueSet, it SHALL be immutable and SHALL only reference that code system; otherwise immutable remains at the author's discretion.
+
+Initial application:
+The Jira comments record the original application as SVN revision 10165. That pre-git application is preserved in the current CodeSystem.valueSet comment, and FHIR-15587 later applied the explicit "all codes from this code system and only codes from this code system, and it SHALL be immutable" wording in SVN revisions 13127/13130. Current git history does not contain a commit that mentions FHIR-11910, but commit 27b184d047 later refined the same CodeSystem.valueSet text for FHIR-36837 without removing the immutability requirement.
+
+Additional context:
+The Zulip Task 11910 thread confirms the work group deliberately rejected making every "all codes" CLD immutable and instead limited the SHALL to the CodeSystem.valueSet case. source/fhir.ini places the edited resource folders in the active [resources] set, and fivews in the active [logical] set. Current build spot checks showed active CodeSystem.valueSet pairs such as task-business-status and resource-status still published with immutable false or absent on the referenced all-codes ValueSet, so the rule text and individual conformance resources had diverged.
+
+AutoFHIR reconciliation:
+This commit marks 62 active, local, all-codes ValueSet sources as immutable. Each edited ValueSet is the local target of a CodeSystem.valueSet declaration, its compose has a single include for that CodeSystem.url with no concepts, filters, or nested value sets, and the source file is in current build scope. The change only adds missing <immutable value="true"/> elements or changes existing false values to true; it does not edit disabled, archived, out-of-build, external, generated-only, or non-all-code ValueSet cases.
+
+Recommendation:
+Keep this commit. It restores consistency between the normative CodeSystem.valueSet rule and the current conformance resources, while preserving the FHIR-11910/FHIR-15587/FHIR-36837 scope that immutable is mandatory only for ValueSets nominated by CodeSystem.valueSet. Future terminology generation or validation should enforce this check so newly added CodeSystem.valueSet pairs do not regress.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11910
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-15587: same-change-family - later Published/Persuasive issue that explicitly added the CodeSystem.valueSet comment requiring only codes from the code system and immutable.
+FHIR-36837: later-change - Published/Persuasive R5 clarification that refined the current CodeSystem.valueSet wording while preserving the immutable SHALL.
+FHIR-12335: background - Resolved - No Change follow-up from the Zulip discussion about defining a separate immutable extension; current ValueSet.immutable makes an extension unnecessary.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11910: Published/Persuasive resolution says ValueSets referred to from CodeSystem.valueSet SHALL be immutable and only reference the code system. Learned: this is the final seed decision and establishes the required current behavior.
+- E2 Zulip #terminology > Task 11910: November 2016 thread reached consensus that immutable is mandatory when CodeSystem.valueSet nominates the all-code ValueSet, not for every CLD that happens to include all codes. Learned: this bounds the source change scope.
+- E3 Source source/codesystem/structuredefinition-CodeSystem.xml:622 and source/fhir.ini:169: current CodeSystem.valueSet comments carry the SHALL rule, and fhir.ini identifies active build-scope resource/logical folders. Learned: the authoritative source rule is in build scope and the edited files feed current artifacts.
+- E4 Jira/Git FHIR-15587, FHIR-36837, and git 27b184d047: later published decisions refined the same CodeSystem.valueSet text but kept immutable mandatory. Learned: no later decision reverses FHIR-11910.
+- E5 Command current build/source checks: build.fhir.org showed task-business-status immutable=false and resource-status immutable absent despite CodeSystem.valueSet links; the scoped source scan found 62 active local all-code pairs needing immutable. Learned: the current spec had real conformance-resource inconsistencies, not just missing prose.
+- E6 Source 62 ValueSet XML files: added immutable=true or changed false to true on active local all-code ValueSets referenced by CodeSystem.valueSet. Learned: the reconciliation applies the Jira rule to current source artifacts without touching out-of-build cases.
+- E7 Verification command: changed XML parsed successfully, git diff --check passed, and the scoped consistency scan reported remaining_fixable_all-code_pairs=0. Learned: the edited source is syntactically valid and the targeted inconsistency is resolved.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11910",
+    "url": "https://jira.hl7.org/browse/FHIR-11910",
+    "snapshot_path": "contexts/FHIR-11910/jira/FHIR-11910.md",
+    "ref": { "jira_key": "FHIR-11910" },
+    "summary": "Published/Persuasive issue requiring ValueSets referred to from CodeSystem.valueSet to be immutable and only reference that code system.",
+    "learned": "This is the final seed decision and establishes the required behavior for current CodeSystem.valueSet targets.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#terminology > Task 11910",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/Task%2011910",
+    "ref": { "stream": "terminology", "topic": "Task 11910" },
+    "summary": "The November 2016 discussion reached consensus that the immutable SHALL applies when CodeSystem.valueSet nominates the all-code ValueSet, while other all-code CLDs remain author discretion.",
+    "learned": "This bounds the fix to CodeSystem.valueSet targets and avoids making unrelated all-code ValueSets immutable.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/codesystem/structuredefinition-CodeSystem.xml:622; source/fhir.ini:169,154",
+    "summary": "CodeSystem.valueSet currently says the referenced ValueSet SHALL include all and only codes from the code system and SHALL be immutable; fhir.ini lists active resource folders and the fivews logical source.",
+    "learned": "The rule and the edited ValueSet sources are part of the current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "27b184d04790893f6ff56757454031e29bf64ff9",
+    "ref": { "commit": "27b184d04790893f6ff56757454031e29bf64ff9" },
+    "summary": "FHIR-36837 refined CodeSystem.valueSet wording in 2022 while preserving the immutable requirement introduced by FHIR-11910/FHIR-15587.",
+    "learned": "Later source history did not reverse the seed rule, so current ValueSet instances should still satisfy it.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current build and scoped source consistency checks",
+    "command": "curl -fsSL https://build.fhir.org/valueset-task-business-status.json | jq .immutable; curl -fsSL https://build.fhir.org/valueset-resource-status.json | jq .immutable; python3 scoped CodeSystem.valueSet consistency scan",
+    "summary": "Current build examples had immutable=false or absent, and the scoped source scan found 62 active local all-code ValueSet targets needing immutable=true.",
+    "learned": "The reconciliation needed source changes to current conformance resources, not only an audit of existing prose.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "62 ValueSet XML files under source/",
+    "summary": "Added missing immutable=true or changed immutable=false to true on active local all-code ValueSets referenced by CodeSystem.valueSet.",
+    "learned": "The edited artifacts now conform to the FHIR-11910 rule.",
+    "supports": ["source_changes", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Post-change validation",
+    "command": "git diff --check; python3 parse changed XML files; python3 scoped CodeSystem.valueSet consistency scan",
+    "summary": "Changed XML parsed successfully, whitespace checks passed, and the scoped scan reported remaining_fixable_all-code_pairs=0.",
+    "learned": "The targeted inconsistency is resolved in the edited source set.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

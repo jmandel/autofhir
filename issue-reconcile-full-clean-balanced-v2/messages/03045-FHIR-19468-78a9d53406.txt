@@ -1,0 +1,120 @@
+FHIR-19468: Audit MedicationStatement not-taken handling
+
+Issue request:
+FHIR-19468 was a Published/Persuasive with Modification Pharmacy change request for R5 asking whether taken/not-taken needed to be restored to MedicationStatement. The approved resolution was to remove not-taken from MedicationUsage.status and use the adherence attribute, tracked by FHIR-19470, for taken/not-taken information.
+
+Initial application:
+The issue appears to have been applied in git commit f351511a95, which changed MedicationUsage for FHIR-19468/FHIR-19470/FHIR-28593 by removing the not-taken status semantics, making status describe the recording state, and adding MedicationUsage.adherence plus adherence terminology and examples.
+
+Additional context:
+FHIR-19470 supplied the paired adherence rename/addition and is already represented on the combined branch by commit 8912f00eea, which fixed the last stale adherence search-parameter path metadata. FHIR-28593, FHIR-32060, and FHIR-39271 later refined or reaffirmed the model that status records the statement state while adherence, effective[x], and examples represent taking/not-taking. FHIR-38682 renamed MedicationUsage back to MedicationStatement while keeping the adherence/status model.
+
+AutoFHIR reconciliation:
+This commit makes no source change. The current active MedicationStatement source in source/fhir.ini has status bound to recorded | entered-in-error | draft with no not-taken code, explicitly points status users to MedicationStatement.adherence, defines MedicationStatement.adherence and its example adherence value set, and includes a not-taking adherence code for the clinical statement that the medication is not being taken.
+
+Recommendation:
+Keep this no-change audit commit. FHIR-19468 is already correctly reflected in current MedicationStatement source; reopening the old status code or adding another taken/not-taken element would conflict with the later Pharmacy decisions that preserve adherence as the computable location for taking/not-taking.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19468
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-19470: same-change-family - paired Published/Persuasive decision adding and renaming the adherence attribute used to carry taking/not-taking semantics; already represented on the combined branch.
+FHIR-28593: same-change-family - confirmed MedicationUsage.status should describe the record status rather than clinical usage state.
+FHIR-32060: later-change - refined the status code set to recorded, entered-in-error, and draft.
+FHIR-38682: later-change - renamed MedicationUsage back to MedicationStatement while keeping the adherence/status changes.
+FHIR-39271: supporting-decision - later Pharmacy decision explicitly reaffirming that adherence, not status, reflects whether medication is being taken.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19468: Published/Persuasive with Modification issue resolved to remove not-taken from MedicationUsage.status and add adherence via FHIR-19470. Learned: establishes the target reconciliation state for the seed.
+- E2 Source source/fhir.ini:204 and source/medicationstatement/structuredefinition-MedicationStatement.xml:140,484: MedicationStatement is active; status is record-state only and adherence is present. Learned: the current build source already carries the approved model.
+- E3 Source source/medicationstatement/codesystem-medication-statement-status.xml:24 and source/medicationstatement/codesystem-medication-statement-adherence.xml:27: status codes are recorded, entered-in-error, and draft, while adherence includes not-taking. Learned: not-taken was removed from status and retained as adherence semantics.
+- E4 Git f351511a95: applied FHIR-19468/FHIR-19470/FHIR-28593 by changing MedicationUsage status semantics and adding adherence. Learned: the historical source application matches the Jira resolution.
+- E5 Git 8912f00eea: combined-branch FHIR-19470 reconciliation fixed the remaining stale takenAsOrdered search-parameter path. Learned: the paired adherence issue no longer leaves a source mismatch on the target branch.
+- E6 Jira FHIR-39271: later Published decision says status reflects the statement record and adherence reflects medication being taken or not taken. Learned: later review reaffirmed, rather than reversed, the FHIR-19468 model.
+- E7 Confluence 86978002: September 2020 Pharmacy WGM minutes list motions for FHIR-19468 and FHIR-19470, including removing not-taken and adding adherence. Learned: meeting evidence supports the Jira resolution.
+- E8 Verification command/query: rg and XML checks over MedicationStatement source found no not-taken status code, found MedicationStatement.adherence and the not-taking adherence code, and confirmed the active resource entry. Learned: no source change is needed for this seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19468",
+    "url": "https://jira.hl7.org/browse/FHIR-19468",
+    "snapshot_path": "contexts/FHIR-19468/jira/FHIR-19468.md",
+    "ref": { "jira_key": "FHIR-19468" },
+    "summary": "Published/Persuasive with Modification Pharmacy issue resolved to remove not-taken from MedicationUsage.status and add adherence via FHIR-19470.",
+    "learned": "This establishes that the current spec should not restore not-taken to status and should use adherence for taking/not-taking semantics.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:204; source/medicationstatement/structuredefinition-MedicationStatement.xml:140,484",
+    "ref": { "path": "source/medicationstatement/structuredefinition-MedicationStatement.xml", "line": 140 },
+    "summary": "MedicationStatement is an active build resource; its status element is record-state only and its adherence backbone is present.",
+    "learned": "The active StructureDefinition already reflects the approved status/adherence split.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationstatement/codesystem-medication-statement-status.xml:24; source/medicationstatement/codesystem-medication-statement-adherence.xml:27",
+    "ref": { "path": "source/medicationstatement/codesystem-medication-statement-status.xml", "line": 24 },
+    "summary": "MedicationStatement status codes are recorded, entered-in-error, and draft; adherence terminology includes not-taking.",
+    "learned": "Not-taken is not a status code in the current source and the not-taking concept is available through adherence.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "f351511a957fc178e55907a68ff1016e2387aa80",
+    "ref": { "commit": "f351511a957fc178e55907a68ff1016e2387aa80" },
+    "summary": "Commit f351511a95 applied FHIR-19468/FHIR-19470/FHIR-28593 by changing MedicationUsage status semantics and adding adherence.",
+    "learned": "The historical application path matches the Jira resolution and explains why no additional source edit is necessary now.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "8912f00eeae08504099240e379c68de4de18cbe1",
+    "ref": { "commit": "8912f00eeae08504099240e379c68de4de18cbe1" },
+    "summary": "Combined-branch FHIR-19470 reconciliation fixed the remaining stale takenAsOrdered search-parameter path metadata.",
+    "learned": "The paired adherence issue no longer leaves a target-branch mismatch that would require changing FHIR-19468.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-39271",
+    "url": "https://jira.hl7.org/browse/FHIR-39271",
+    "ref": { "jira_key": "FHIR-39271" },
+    "summary": "Later Published Pharmacy issue reaffirmed that MedicationStatement status reflects the statement record and adherence reflects taking/not-taking.",
+    "learned": "Later review supports leaving the FHIR-19468 model intact.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "September 2020 Virtual WGM Minutes page 86978002",
+    "url": "https://confluence.hl7.org/spaces/PHAR/pages/86978002/September+2020+Virtual+WGM+Minutes",
+    "ref": { "confluence_page_id": 86978002 },
+    "summary": "Pharmacy WGM minutes list the FHIR-19468 and FHIR-19470 motions to remove not-taken and add adherence.",
+    "learned": "Meeting evidence aligns with the Jira resolutions and current source model.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "MedicationStatement source verification",
+    "command": "rg -n '<code value=\"not-taken\"|MedicationStatement\\.takenAsOrdered|MedicationStatement\\.status.*not-taken' source/medicationstatement/structuredefinition-MedicationStatement.xml source/medicationstatement/codesystem-medication-statement-status.xml source/medicationstatement/bundle-MedicationStatement-search-params.xml; rg -n '<element id=\"MedicationStatement\\.adherence\"|<code value=\"not-taking\"|<short value=\"recorded \\| entered-in-error \\| draft\"|MedicationStatement\\.adherence should be used' source/medicationstatement/structuredefinition-MedicationStatement.xml source/medicationstatement/codesystem-medication-statement-adherence.xml source/medicationstatement/bundle-MedicationStatement-search-params.xml",
+    "summary": "The negative search found no not-taken status or stale takenAsOrdered status path, and the positive search found adherence, not-taking, and the current status code summary.",
+    "learned": "The current source satisfies FHIR-19468 without another edit.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,108 @@
+FHIR-17728: Audit ElementDefinition choice path invariant
+
+Issue request:
+FHIR-17728 was a Published/Persuasive technical correction for FHIR-core ElementDefinition. It reported that the element-name invariant introduced by GF#/FHIR-15678 was being enforced against ElementDefinition.path, where choice elements can legitimately include [x], and asked that [x] be allowed by the path regex.
+
+Initial application:
+The Jira comment says the issue was pre-applied with SVN #14927. The git-svn history contains commit 97ec32a1d28851e0b0ca79ef125d2824e53a9c93, "Fixed issue with validation of paths containing [x] - GF#17728", which changed source/datatypes/elementdefinition.xml so eld-20 allowed an optional (\[x]) segment in path components. The precursor GF#/FHIR-15678 is represented by commit 1df3fff3b3, which first added the element path/name constraints.
+
+Additional context:
+source/fhir.ini lists ElementDefinition as an active datatype and maps its type page to elementdefinition, so source/datatypes/elementdefinition.xml is in the current build scope. Later Published FHIR-I issues refined the same invariant family without reversing the [x] allowance: FHIR-26306 fixed anchoring and Schematron namespace/escaping, FHIR-19745 enforced the 64-character component length, and FHIR-38795 clarified the human descriptions for eld-19 and eld-20. Current source still permits optional [x] in both the error-level eld-19 regex and the warning-level eld-20 regex.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current active ElementDefinition spreadsheet already implements the requested [x] allowance for ElementDefinition.path, including the later anchoring and length corrections, and a small regex check confirms representative choice paths such as Observation.value[x] match the current expressions.
+
+Recommendation:
+Keep this no-change audit commit as-is. No further core FHIR source work is needed for FHIR-17728 unless a future work group decision changes the broader eld-19/eld-20 path rules.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17728
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-15678: background - original Published issue that introduced the element path/name invariant later corrected by FHIR-17728.
+FHIR-19745: later-change - tightened the same regex family to enforce the 64-character component limit while preserving the [x] allowance.
+FHIR-26306: later-change - corrected FHIRPath/XPath anchoring and Schematron namespace/escaping for eld-19/eld-20 while preserving the [x] allowance.
+FHIR-38795: later-change - clarified the human descriptions for eld-19/eld-20 while preserving the [x] allowance.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17728: Published/Persuasive issue says the path regex from GF#15678 was too strict because ElementDefinition.path can contain [x], and the comment records pre-application in SVN #14927. Learned: the final request was specifically to allow [x] in the ElementDefinition.path invariant.
+- E2 Source source/datatypes/elementdefinition.xml:4770-4783: active ElementDefinition invariant source contains eld-19 and eld-20 regexes with optional (\\[x\\])? path components. Learned: current source already implements the requested allowance.
+- E3 Source source/fhir.ini:11-61,75-89: ElementDefinition is listed as an active datatype and elementdefinition maps to the active type page. Learned: the checked spreadsheet is build-scoped current source.
+- E4 Git 97ec32a1d28851e0b0ca79ef125d2824e53a9c93: git-svn commit "Fixed issue with validation of paths containing [x] - GF#17728" added the optional [x] component to the warning regex. Learned: the issue was historically applied in source as Jira reported.
+- E5 Jira/Git FHIR-19745, FHIR-26306, FHIR-38795: later Published decisions and commits adjusted length, anchoring, XPath, and descriptions for the same invariants but retained optional [x]. Learned: later context supports the current form rather than requiring a rollback or additional edit.
+- E6 Community search: Zulip has only bot/commit mentions for GF#17728 and a later eld-20 description thread; Confluence has no direct FHIR-17728 or ElementDefinition.path hits. Learned: no discovered community evidence conflicts with the Jira/source/history conclusion.
+- E7 Verification command: Python regex check against current eld-19/eld-20 patterns matched Observation.value[x], Patient.name, and StructureDefinition.snapshot.element. Learned: the current regex behavior covers representative choice paths.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17728",
+    "url": "https://jira.hl7.org/browse/FHIR-17728",
+    "snapshot_path": "contexts/FHIR-17728/jira/FHIR-17728.md",
+    "ref": { "jira_key": "FHIR-17728" },
+    "summary": "Published/Persuasive technical correction asking that ElementDefinition.path regexes allow [x] choice markers.",
+    "learned": "This establishes the final requested change and records pre-application in SVN #14927.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:4770-4783",
+    "ref": { "path": "source/datatypes/elementdefinition.xml", "start_line": 4770, "end_line": 4783 },
+    "summary": "Current eld-19 and eld-20 regexes include optional (\\[x\\])? components in ElementDefinition.path.",
+    "learned": "The current authoritative source already permits choice element paths such as Observation.value[x].",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:11-61 and 75-89",
+    "ref": { "path": "source/fhir.ini", "start_line": 11, "end_line": 89 },
+    "summary": "ElementDefinition is listed under active datatypes and maps to the elementdefinition type page.",
+    "learned": "The inspected ElementDefinition spreadsheet is in current build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "97ec32a1d28851e0b0ca79ef125d2824e53a9c93",
+    "ref": { "commit": "97ec32a1d28851e0b0ca79ef125d2824e53a9c93" },
+    "summary": "Commit 'Fixed issue with validation of paths containing [x] - GF#17728' changed source/datatypes/elementdefinition.xml to allow optional [x] in path components.",
+    "learned": "The Jira pre-application is visible in git history and matches the requested correction.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-19745, FHIR-26306, FHIR-38795",
+    "snapshot_path": "contexts/FHIR-17728/jira/FHIR-19745.md; contexts/FHIR-17728/jira/FHIR-26306.md; contexts/FHIR-17728/jira/FHIR-38795.md",
+    "ref": { "jira_key": "FHIR-19745/FHIR-26306/FHIR-38795" },
+    "summary": "Later Published FHIR-I decisions refined the same invariant family for length, anchoring, Schematron, and descriptions.",
+    "learned": "These later changes preserve the [x] allowance and explain why the current regex differs from the 2018 text.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-17728/GF#17728 and ElementDefinition.path [x]",
+    "command": "bun run zulip:search fts '\"FHIR-17728\"' --limit 10; bun run zulip:search fts '\"GF#17728\"' --limit 10; bun run confluence:search refs jira FHIR-17728; bun run confluence:search fts '\"ElementDefinition.path\" invariant' --limit 10",
+    "summary": "Zulip returned only bot/commit messages for GF#17728 plus a later eld-20 description thread; Confluence returned no direct hits.",
+    "learned": "No discovered community record conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Python regex check for current eld-19/eld-20 patterns",
+    "command": "python3 - <<'PY' ... assert eld19.match('Observation.value[x]') and eld20.match('Observation.value[x]') ... PY",
+    "summary": "Representative paths including Observation.value[x] matched the current patterns.",
+    "learned": "The current regex behavior satisfies the specific [x] validation concern.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

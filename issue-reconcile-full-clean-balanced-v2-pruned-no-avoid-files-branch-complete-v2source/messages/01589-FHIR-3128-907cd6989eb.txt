@@ -1,0 +1,96 @@
+FHIR-3128: Fix old extension encoding in example
+
+Issue request:
+FHIR-3128 was a Published/Persuasive FHIR-core technical correction for Questionnaire-era extension examples, asking that examples using the older extension XML format be corrected. Jira records the application for DSTU1 and comments identifying svn revision 3066.
+
+Initial application:
+The original application is git-svn commit 679da6f1e2cd95e4fd2f1aa3cd4ad157891298fc, which corresponds to svn build revision 3066 and changed source/extensibility.html from a modifierExtension containing a child <url value="..."/> element to a modifierExtension with a url attribute. The current Extensibility page still uses the corrected attribute form in its modifier extension examples.
+
+Additional context:
+Questionnaire remains an active resource, and the historically fixed Extensibility page remains active through source/fhir.ini. A current whole-source check for extension or modifierExtension elements that still carried a child url found one later-introduced instance in source/plandefinition/plandefinition-example-episode-of-care.xml. PlanDefinition is an active resource in source/fhir.ini, so the XML example source is in current build scope even though this particular stale encoding was introduced after the original 2014 application.
+
+AutoFHIR reconciliation:
+This commit changes the PlanDefinition episode-of-care example's primitive extension from the obsolete <extension><url value="cqf-expression"/>...</extension> shape to the current <extension url="cqf-expression">...</extension> XML shape, preserving the same cqf-expression extension and valueExpression content.
+
+Recommendation:
+Keep this commit as a source fix. It completes the same old-format extension example correction in current source without changing semantics; no work-group review is needed unless a full build later identifies additional obsolete extension encodings outside the searched source tree.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3128
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3128: Published/Persuasive technical correction asking that extension examples in the old format be fixed, with comments pointing to svn revision 3066. Learned: the final issue intent is to correct obsolete extension XML examples.
+- E2 Git 679da6f1e2cd95e4fd2f1aa3cd4ad157891298fc: git-svn application for svn build revision 3066 changed a source/extensibility.html modifierExtension example to put the URL on the element. Learned: the original application establishes the specific old-format pattern and the desired XML form.
+- E3 Source source/extensibility.html:382 and source/fhir.ini:80: current active Extensibility source shows modifierExtension url="..." in the example. Learned: the historically targeted narrative page is already corrected in current source.
+- E4 Source source/fhir.ini:273 and source/plandefinition/plandefinition-example-episode-of-care.xml:40: PlanDefinition is active and the current example source had extension/url as a child element before this commit. Learned: a current build-scope XML example still used the obsolete encoding.
+- E5 Command rg -n -U '&lt;(modifierExtension|extension)&gt;\s*&lt;url\b|<\s*(modifierExtension|extension)\s*>\s*<\s*url\b' source; XML parse; diff whitespace check. Learned: after the fix, the searched source tree has no remaining old extension-url child pattern and the edited XML remains well-formed.
+- E6 Command bun run jira:search fts '"FHIR-3128" Questionnaire extension old format' --limit 10; bun run zulip:search fts '"FHIR-3128" Questionnaire extension old format' --limit 10; bun run confluence:search refs jira FHIR-3128. Learned: no additional Jira, Zulip, or Confluence evidence was found that changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3128",
+    "url": "https://jira.hl7.org/browse/FHIR-3128",
+    "snapshot_path": "contexts/FHIR-3128/jira/FHIR-3128.md",
+    "ref": { "jira_key": "FHIR-3128" },
+    "summary": "Published/Persuasive FHIR-core technical correction saying extension examples were in the old format, with comments identifying svn revision 3066.",
+    "learned": "This establishes the final issue request and the old-format extension example correction target.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "679da6f1e2cd95e4fd2f1aa3cd4ad157891298fc",
+    "ref": { "commit": "679da6f1e2cd95e4fd2f1aa3cd4ad157891298fc" },
+    "summary": "git-svn commit for build revision 3066 changed source/extensibility.html from a child url element under modifierExtension to a modifierExtension url attribute.",
+    "learned": "This shows how the issue was initially applied and identifies the obsolete XML pattern.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/extensibility.html:382; source/fhir.ini:80",
+    "ref": { "path": "source/extensibility.html", "line": 382 },
+    "summary": "The active Extensibility page's current modifier extension example uses modifierExtension url=\"...\".",
+    "learned": "The original application target remains correct in current source.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/plandefinition/plandefinition-example-episode-of-care.xml:40; source/fhir.ini:273",
+    "ref": { "path": "source/plandefinition/plandefinition-example-episode-of-care.xml", "line": 40 },
+    "summary": "PlanDefinition is an active resource, and the episode-of-care XML example had an extension with a child url value before reconciliation.",
+    "learned": "A current build-scope source example still needed the same old-format extension correction.",
+    "supports": ["additional_context", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Post-fix old extension pattern and XML checks",
+    "command": "rg -n -U '&lt;(modifierExtension|extension)&gt;\\s*&lt;url\\b|<\\s*(modifierExtension|extension)\\s*>\\s*<\\s*url\\b' source; xmllint --noout source/plandefinition/plandefinition-example-episode-of-care.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/plandefinition/plandefinition-example-episode-of-care.xml",
+    "result_count": 0,
+    "summary": "After the edit, no old child-url extension pattern was found in source and the edited XML/whitespace checks passed.",
+    "learned": "The source fix removes the detected stale encoding without introducing a local XML or whitespace problem.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-3128 and extension old format",
+    "command": "bun run jira:search fts '\"FHIR-3128\" Questionnaire extension old format' --limit 10; bun run zulip:search fts '\"FHIR-3128\" Questionnaire extension old format' --limit 10; bun run confluence:search refs jira FHIR-3128",
+    "query": "\"FHIR-3128\" Questionnaire extension old format",
+    "result_count": 0,
+    "summary": "No additional Jira, Zulip, or Confluence hits were found beyond the seed Jira snapshot.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

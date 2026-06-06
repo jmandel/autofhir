@@ -1,0 +1,96 @@
+FHIR-34399: Audit core extension root cardinalities
+
+Issue request:
+FHIR-34399 was Published with a Persuasive with Modification resolution for R5. It asked that core extensions not define a root minimum cardinality above zero; the accepted modification was to warn, rather than error, if an extension definition root has min != 0.
+
+Initial application:
+The issue was applied in upstream commit 72c352b6b3296389275a7f4c71b5e57666bd8e29, which changed the known non-zero core extension roots for cqm-ValidityPeriod, messageheader-response-request, and the general language extension from 1..1 to 0..1. A later source refactor, dd468d4f1799dd79819315b211588ef1cf4586e0, removed many R5 extension definitions from the core source tree as part of the Extension Pack move.
+
+Additional context:
+The linked Zulip thread confirms the problem was first noticed because the common messageheader-response-request extension had root cardinality 1..1, making it impossible for profiles to include the extension optionally. Current source/fhir.ini still lists active core extension spreadsheet/profile inputs, and the affected extension definitions now present in the FHIR Extension Pack also carry root min=0. No Confluence references for FHIR-34399 were found.
+
+AutoFHIR reconciliation:
+This audit made no source change. A scan of current core Extension StructureDefinitions found no Extension root with min other than 0, a scan of active core extension spreadsheet/profile inputs found no non-zero root cardinality literals, and a read-only scan of the Extension Pack found no Extension root with min other than 0. The remaining warning-policy wording in the Jira resolution is build tooling behavior, and no current FHIR source correction is needed to make the specification content correct.
+
+Recommendation:
+Keep this no-change audit commit. If the work group wants to verify or strengthen generic warning enforcement, that should be handled in the publisher/build-tooling or Extension Pack QA workflow rather than by changing current core specification source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34399
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34399: Published/Persuasive with Modification issue requested preventing non-zero root min on core extensions, with final resolution to warn instead of error. Learned: establishes the final issue scope and warning-vs-error nuance.
+- E2 Zulip #implementers > Hard coding an Extension: messageheader-response-request: discussion identifies messageheader-response-request as an accidental 1..1 core extension root and records the warning-not-error rationale. Learned: confirms the practical problem and why root min=0 is the desired normal state.
+- E3 Git 72c352b6: upstream FHIR-34399 commit changed cqm-ValidityPeriod, messageheader-response-request, and the general language extension root cardinalities from 1..1 to 0..1. Learned: shows the issue was applied to the known offending core sources.
+- E4 Git dd468d4f17 and Extension Pack files: later core source removed those extension definitions, and the current Extension Pack copies have Extension root min=0. Learned: explains why the old individual core files are absent and rules out a moved-source regression.
+- E5 Source/command scan of source/fhir.ini active extension profiles plus current core and Extension Pack XML: no Extension StructureDefinition root min != 0 and no active extension spreadsheet non-zero root cardinality literals were found. Learned: verifies no current source fix is needed.
+- E6 Confluence/Zulip search command: quoted FHIR-34399 Zulip search found only the linked thread; Confluence refs and FTS found no relevant records. Learned: no discovered community evidence conflicts with the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34399",
+    "url": "https://jira.hl7.org/browse/FHIR-34399",
+    "snapshot_path": "contexts/FHIR-34399/jira/FHIR-34399.md",
+    "ref": { "jira_key": "FHIR-34399" },
+    "summary": "Published/Persuasive with Modification issue requesting that core extensions not define a root minimum cardinality higher than zero, with a final warning-not-error resolution.",
+    "learned": "This establishes final WG intent and confirms that the accepted behavior was a warning for non-zero extension roots rather than a hard error.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Hard coding an Extension: messageheader-response-request",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Hard%20coding%20an%20Extension%3A%20messageheader-response-request",
+    "snapshot_path": "contexts/FHIR-34399/zulip/implementers--hard-coding-an-extension-messageheader-response-request.md",
+    "ref": { "stream": "implementers", "topic": "Hard coding an Extension: messageheader-response-request" },
+    "summary": "Implementers could not include messageheader-response-request optionally because the common extension root was 1..1; Grahame Grieve called it an oversight and Lloyd McKenzie recommended a warning rather than an error for the general rule.",
+    "learned": "This confirms the concrete driver for FHIR-34399 and the rationale behind the modified resolution.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "72c352b6b3296389275a7f4c71b5e57666bd8e29",
+    "ref": { "commit": "72c352b6b3296389275a7f4c71b5e57666bd8e29" },
+    "summary": "Historical commit titled 'FHIR-34399 Core extensions should have min cardinality zero' changed cqm-ValidityPeriod, messageheader-response-request, and the general language extension root cardinalities from 1..1 to 0..1.",
+    "learned": "The known offending core extension source rows were already corrected when the issue was originally applied.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "dd468d4f1799dd79819315b211588ef1cf4586e0 plus /home/jmandel/work/fhir-extensions/input/definitions",
+    "ref": { "commit": "dd468d4f1799dd79819315b211588ef1cf4586e0" },
+    "summary": "Later core commit removed many R5 extension definitions from the core source, and the current Extension Pack files for cqm-ValidityPeriod, messageheader-response-request, and language all show Extension root min=0.",
+    "learned": "The absence of old core files is due to the extension move, not a missing current core fix, and moved definitions preserve the corrected cardinality.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current core and Extension Pack extension cardinality scans",
+    "command": "python3 XML scan of source/ and /home/jmandel/work/fhir-extensions for Extension StructureDefinition root min != 0; active source/fhir.ini extension spreadsheet/profile scan for non-zero cardinality literals",
+    "summary": "The scans returned count 0 for core Extension StructureDefinition root min != 0, count 0 for Extension Pack Extension root min != 0, and no non-zero root cardinality literals in active core extension spreadsheet/profile inputs.",
+    "learned": "No current build-scope source correction is needed for FHIR-34399.",
+    "supports": ["source_scope", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-34399",
+    "command": "bun run zulip:search fts '\"FHIR-34399\"' --limit 10; bun run confluence:search refs jira FHIR-34399; bun run confluence:search fts '\"FHIR-34399\" \"core extensions\" \"min cardinality\"' --limit 10",
+    "query": "FHIR-34399 core extensions min cardinality",
+    "summary": "Quoted Zulip search found only the linked implementers thread, and Confluence refs/FTS found no relevant records.",
+    "learned": "No additional community record was found that changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

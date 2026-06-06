@@ -1,0 +1,108 @@
+FHIR-13740: Audit SimpleQuantity root sliceName cleanup
+
+Issue request:
+FHIR-13740 was a Published/Persuasive FHIR-core datatypes issue raised against STU3. It reported that the SimpleQuantity definition generated from profiles-types.xml included <sliceName value="SimpleQuantity"/> on the root Quantity element, which is invalid because a profile root element is not itself a slice. The approved resolution was auto-approved: fix the code so that sliceName no longer propagates into the resource representation.
+
+Initial application:
+The Jira comment says the issue was applied in svn revision 12619. The matching git-svn commit de70b2e64f1ced835648f041b70749a2495e271b, "#13740 - remove bogus slice name," changed the old ProfileGenerator.java to stop calling e.setSliceName(pt.getName()) when creating the profile root element. That historical generator path is no longer present in the current checkout.
+
+Additional context:
+SimpleQuantity remains an active datatype/profile in source/fhir.ini and its current restriction source is the Quantity spreadsheet row that constrains comparator.empty(); it does not carry a source sliceName. The broader root-sliceName family has since been covered by the current ElementDefinition interpretation table and the active StructureDefinition invariant sdf-23, "No slice name on root," applied to both snapshot.element and differential.element. Related audits for FHIR-12849 and FHIR-13400 are already represented on the combined branch. The only root sliceName found in current source is the deliberate failing sdf-23 invariant test fixture, not an active profile.
+
+AutoFHIR reconciliation:
+No source change was made. The historical SimpleQuantity generator defect is already fixed, current build-scope source prohibits root sliceName, and the current generated SimpleQuantity XML on build.fhir.org contains no sliceName elements.
+
+Recommendation:
+Keep this no-change audit commit. No FHIR core source follow-up is needed for FHIR-13740; if root sliceName reappears in future generated output, the fix belongs in the generator or profile source path that reintroduced it, while the current failing invariant test fixture should remain as negative test coverage.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13740
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12849: same-change-family - Later Published issue addressed the broader generated-profile root sliceName cleanup and is already represented on the combined branch.
+FHIR-13400: supporting-decision - Later Published issue/audit covers the formal StructureDefinition no-root-sliceName invariant already present in current source and represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13740: Published/Persuasive issue requested removal of the invalid SimpleQuantity root sliceName from generated resource representation. Learned: the final WG intent is a non-substantive generator cleanup for SimpleQuantity output.
+- E2 Git de70b2e64f1: git-svn revision 12619, "#13740 - remove bogus slice name," commented out the root e.setSliceName(pt.getName()) call in the old ProfileGenerator.java. Learned: the Jira was historically applied in the generator named by the Jira comment.
+- E3 Source source/fhir.ini:22,1016,1237,1531 and source/datatypes/quantity.xml:4068-4092: SimpleQuantity is active/normative/currently generated from Quantity restriction source, whose rule is comparator.empty() and contains no sliceName source field. Learned: the current build-scope datatype source does not encode the invalid root sliceName.
+- E4 Source source/elementdefinition.html:126-145 and source/structuredefinition/structuredefinition-StructureDefinition.xml:162-166,956,1029: current source says sliceName is prohibited on root elements and enforces sdf-23, "No slice name on root," for snapshot and differential elements. Learned: current build-scope source already states and validates the rule behind the issue.
+- E5 Published spec https://build.fhir.org/simplequantity.profile.xml: current generated XML has zero <sliceName> elements. Learned: the originally reported SimpleQuantity representation defect is absent from the current generated build.
+- E6 Verification command: parsed current source StructureDefinition XML files excluding invariant-tests and found 179 non-test StructureDefinitions with zero root sliceName values; the single root sliceName under invariant-tests/sdf-23.f1.fail.xml is deliberate negative coverage. Learned: no active current source StructureDefinition shows the invalid root sliceName pattern.
+- E7 Command community/Jira search for FHIR-13740 and SimpleQuantity root sliceName: Zulip and Confluence had no direct hits or references; Jira term search found only FHIR-13740. Learned: no discovered community or related-Jira evidence changes the Jira/git/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13740",
+    "url": "https://jira.hl7.org/browse/FHIR-13740",
+    "snapshot_path": "contexts/FHIR-13740/jira/FHIR-13740.md",
+    "ref": { "jira_key": "FHIR-13740" },
+    "summary": "Published/Persuasive issue reported an invalid sliceName on the SimpleQuantity root element and approved fixing the code so it no longer propagates to the resource representation.",
+    "learned": "This establishes the final WG request as a non-substantive generator cleanup for SimpleQuantity output.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "de70b2e64f1ced835648f041b70749a2495e271b",
+    "ref": { "commit": "de70b2e64f1ced835648f041b70749a2495e271b", "svn_revision": 12619 },
+    "summary": "The git-svn commit '#13740 - remove bogus slice name' commented out the old ProfileGenerator root e.setSliceName(pt.getName()) call.",
+    "learned": "The Jira comment's svn revision maps to an implementation commit that removed the bad generated root sliceName.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:22,1016,1237,1531; source/datatypes/quantity.xml:4068-4092",
+    "ref": { "path": "source/datatypes/quantity.xml", "line": 4068 },
+    "summary": "SimpleQuantity is active/normative in fhir.ini and its current Quantity restriction row constrains comparator.empty() without a sliceName source value.",
+    "learned": "The current build-scope datatype source does not contain the invalid root sliceName that the old generator emitted.",
+    "supports": ["source_state", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/elementdefinition.html:126-145; source/structuredefinition/structuredefinition-StructureDefinition.xml:162-166,956,1029",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml", "line": 162 },
+    "summary": "Current source prohibits sliceName on root elements and defines/applies sdf-23, 'No slice name on root,' to snapshot.element and differential.element.",
+    "learned": "The current specification already states and validates the root-sliceName rule implicated by FHIR-13740.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/simplequantity.profile.xml",
+    "url": "https://build.fhir.org/simplequantity.profile.xml",
+    "summary": "The current generated SimpleQuantity XML contains zero <sliceName> elements.",
+    "learned": "The originally reported SimpleQuantity resource representation defect is absent from the current generated build.",
+    "supports": ["published_surface", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current source root sliceName scan",
+    "command": "python3 - <<'PY' ... parse source/**/*.xml StructureDefinition roots excluding invariant-tests ... PY; curl -fsSL https://build.fhir.org/simplequantity.profile.xml | grep -c '<sliceName'",
+    "result_count": 0,
+    "summary": "Parsed 179 non-test current source StructureDefinitions and found zero root sliceName values; the only root sliceName in source is the deliberate failing sdf-23 invariant test fixture.",
+    "learned": "No active current source StructureDefinition shows the invalid root sliceName pattern.",
+    "supports": ["source_state", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and Jira search for FHIR-13740 SimpleQuantity root sliceName",
+    "command": "bun run zulip:search fts '\"FHIR-13740\" SimpleQuantity sliceName root' --limit 10; bun run confluence:search refs jira FHIR-13740; bun run confluence:search fts '\"FHIR-13740\" SimpleQuantity sliceName root' --limit 10; bun run jira:search fts '\"SimpleQuantity\" sliceName root' --limit 10",
+    "query": "FHIR-13740 SimpleQuantity sliceName root",
+    "result_count": 0,
+    "summary": "Zulip and Confluence had no direct hits or references, and the related Jira term search found only FHIR-13740.",
+    "learned": "No discovered community or neighboring Jira evidence changes the Jira, git, and source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

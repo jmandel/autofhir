@@ -1,0 +1,96 @@
+FHIR-34485: Activate resource list tab hashes
+
+Issue request:
+FHIR-34485 was Published/Persuasive for R5 as a non-substantive correction asking that direct links such as resourcelist.html#tab-7 open the Resource Type Index and activate the target sub-tab, especially the Security Category tab.
+
+Initial application:
+The Jira-tagged August 2022 commits d78907197b3fbbbafead95cc5d551aded6e3435c and 33f2b54394c0ef1ebe1260789bd3fc1567275624 implemented hash-addressable tabs for generated resource pages using #tt-* anchors. The current resource list page itself still initialized its tabs from sessionStorage or tab 0 and did not let a resourcelist.html#tabs-7 URL override that state.
+
+Additional context:
+source/hierarchy.xml and publish.ini include resourcelist.html in the current build, and source/security.html currently links to resourcelist.html#tabs-7 for the Security Category tab. jQuery UI only auto-selects a location hash when the active option remains null; the resource list script always supplied an active option, so the current source could still ignore direct tab hashes. Zulip evidence confirms the original implementation announcement covered resource-page #tt-* tabs rather than this resourcelist.html tab family, and no Confluence reference was found that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+Updated source/resourcelist.html so its tab initialization first maps window.location.hash to the matching Resource Type Index tab, with compatibility for the issue's #tab-* form by normalizing it to #tabs-*. The script now falls back to the stored tab index only when the URL does not name a resource-list tab.
+
+Recommendation:
+Keep this source fix. It is limited to the active Resource Type Index page and makes existing links such as source/security.html's Security Category link behave as the Published Jira requested without changing resource content or unrelated tab templates.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34485
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34485: Published/Persuasive, applied for R5, requested that resource list sub-tab fragments activate their tabs. Learned: this is final WG intent and establishes the expected URL behavior.
+- E2 Source source/resourcelist.html:31-36,458-502: the Resource Type Index defines #tabs-* tab links and now chooses the active tab from window.location.hash before session storage. Learned: the edited page is the authoritative source for the requested behavior.
+- E3 Source source/security.html:137 and source/hierarchy.xml:20: the current build links to resourcelist.html#tabs-7 and includes the page in the navigation hierarchy. Learned: the hash target is in current build scope and has an in-spec caller.
+- E4 Git d78907197 and 33f2b543: Jira-tagged commits added #tt-* resource-page tab support, not resource-list tab activation. Learned: the issue was only partially applied for the page named in the Jira.
+- E5 Zulip #committers > New Feature, 2022-08-26: Grahame announced FHIR-34485 as #tt-* links to resource pages. Learned: community evidence matches the git history and explains why resourcelist.html still needed reconciliation.
+- E6 Verification command/query: git diff --check and a Node hash-mapping check passed for #tabs-1, #tabs-2, #tabs-7, #tabs-5, and #tab-7; Confluence refs for FHIR-34485 found no references. Learned: the edit is whitespace-clean and covers the relevant fragment forms without discovered conflicting minutes.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34485",
+    "url": "https://jira.hl7.org/browse/FHIR-34485",
+    "snapshot_path": "contexts/FHIR-34485/jira/FHIR-34485.md",
+    "ref": { "jira_key": "FHIR-34485" },
+    "summary": "Published/Persuasive R5 issue asking that Resource List sub-tab fragment links activate the target tab, such as the Security Category tab.",
+    "learned": "This is final work-group intent and defines the expected behavior for resourcelist.html hash links.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/resourcelist.html:31-36,458-502",
+    "ref": { "path": "source/resourcelist.html", "lines": "31-36,458-502" },
+    "summary": "The Resource Type Index declares #tabs-* tab links and now maps window.location.hash to the active tab before falling back to session storage.",
+    "learned": "The edited source directly implements the requested tab-fragment behavior on the active resource list page.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/security.html:137; source/hierarchy.xml:20; publish.ini:363,451",
+    "ref": { "paths": "source/security.html, source/hierarchy.xml, publish.ini" },
+    "summary": "Security narrative links to resourcelist.html#tabs-7, and the resource list page is present in the current navigation/publish configuration.",
+    "learned": "The target page and fragment are in current build scope and have an existing source link that benefits from the fix.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "d78907197b3fbbbafead95cc5d551aded6e3435c; 33f2b54394c0ef1ebe1260789bd3fc1567275624",
+    "ref": { "commits": "d78907197b3fbbbafead95cc5d551aded6e3435c,33f2b54394c0ef1ebe1260789bd3fc1567275624" },
+    "summary": "The Jira-tagged commits changed generated resource-page templates and #tt-* anchors but did not update source/resourcelist.html.",
+    "learned": "Prior application addressed a related tab-navigation mechanism while leaving the named Resource List page incomplete.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#committers > New Feature, 2022-08-26",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/New%20Feature",
+    "ref": { "stream": "committers", "topic": "New Feature" },
+    "summary": "Grahame announced FHIR-34485 as a feature where #tt-* fragments on resource-page links make the specified resource tab visible.",
+    "learned": "The announcement corroborates that the original applied work was resource-page #tt-* behavior, not resource-list #tabs-* activation.",
+    "supports": ["additional_context", "initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Validation and negative Confluence search",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/resourcelist.html; node hash-mapping check; bun run confluence:search refs jira FHIR-34485",
+    "query": "FHIR-34485; #tabs-1 #tabs-2 #tabs-7 #tabs-5 #tab-7",
+    "result_count": 0,
+    "summary": "Whitespace and hash-mapping checks passed, and Confluence refs for FHIR-34485 returned no references.",
+    "learned": "The source change covers the relevant fragment forms and no discovered Confluence record changes the Jira/source conclusion.",
+    "supports": ["confidence", "absence_of_conflict"]
+  }
+]
+</evidence-manifest>

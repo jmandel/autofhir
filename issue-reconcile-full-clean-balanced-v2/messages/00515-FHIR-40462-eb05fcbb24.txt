@@ -1,0 +1,117 @@
+FHIR-40462: Include procedure reason codes in MedicationRequest
+
+Issue request:
+FHIR-40462 was an Applied/Persuasive Pharmacy change request asking MedicationRequest reason support Procedure both as a coded reason and as a referenced reason. The important final resolution was: "Will update medicationRequest.reason to include codes and reference for procedure."
+
+Initial application:
+The issue was partially applied by commit 0eef1b615326487c7e0f16d455c272937cf98ae6, which added Procedure to the MedicationRequest.reason CodeableReference targetProfile list. That covered the reference half after the R5/R6 reasonCode and reasonReference merge, but the current active source still bound MedicationRequest.reason.concept to the Condition/Problem/Diagnosis example value set.
+
+Additional context:
+source/fhir.ini lists medicationrequest=MedicationRequest, so source/medicationrequest/structuredefinition-MedicationRequest.xml is in current build scope. The linked Zulip thread records the original use case and Lloyd McKenzie's request to file a change request, and Pharmacy minutes record FHIR-40462 discussed and approved on 2023-04-10. The existing procedure-reason value set includes both SNOMED clinical-finding and procedure hierarchies, matching the Jira request to allow diagnosis/problem/condition reasons and procedure reasons without adding a new value set. Related FHIR-40787 applied a parallel MedicationStatement Procedure reference request and is already represented on the combined branch.
+
+AutoFHIR reconciliation:
+This commit changes the MedicationRequest.reason example binding from ValueSet/condition-code to ValueSet/procedure-reason. The Procedure targetProfile was already present, so this fixes the remaining coded-reason portion of the Applied Jira resolution while preserving the existing example binding strength.
+
+Recommendation:
+Keep this source fix. No broader MedicationRequest changes are needed for FHIR-40462; any future harmonization of MedicationStatement's example reason binding should be handled under a separate MedicationStatement tracker because FHIR-40787 only requested Procedure references.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-40462
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-40787: same-change-family - Applied/Persuasive MedicationStatement issue that followed FHIR-40462 for Procedure reason references; it is already represented on the combined branch and was not republished here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-40462: Applied/Persuasive Pharmacy issue requesting MedicationRequest reason include Procedure codes and references. Learned: this establishes the final WG intent and the two required surfaces.
+- E2 Zulip #Medication > Using Procedure as the reason in MedicationRequest: Erez Shalom described procedure-as-reason use cases and Lloyd McKenzie asked him to submit a change request. Learned: this confirms the practical motivation cited by the Jira.
+- E3 Confluence PHAR 2023-04-10 Agenda/Meeting Notes page 161066352: Pharmacy tracker notes say FHIR-40462 was discussed and voted to approve. Learned: this supports the Jira vote/resolution as the responsible WG decision.
+- E4 Source source/medicationrequest/structuredefinition-MedicationRequest.xml:740-762: MedicationRequest.reason is an active CodeableReference with Procedure in the targetProfile list and an example binding. Learned: the reference half is already present and the binding is the authoritative coded-reason surface fixed here.
+- E5 Source source/procedure/valueset-procedure-reason.xml:40-56: procedure-reason includes SNOMED clinical-finding and procedure hierarchies. Learned: this existing value set covers both diagnosis/problem/condition codes and procedure codes requested by FHIR-40462.
+- E6 Source source/fhir.ini:203: medicationrequest=MedicationRequest is active in the resources list. Learned: the edited StructureDefinition source is in current build scope.
+- E7 Git 0eef1b615326487c7e0f16d455c272937cf98ae6: historical FHIR-40462 application added the Procedure targetProfile but left the condition-code binding unchanged. Learned: this reconciliation should be a targeted binding fix, not a duplicate reference-target edit.
+- E8 Command searches: Jira search for the exact MedicationRequest.reasonCode/reasonReference/Procedure terms found only FHIR-40462; Zulip and Confluence searches found the linked Zulip thread and the Pharmacy/FHIR-I meeting records. Learned: no discovered later or conflicting decision changes the source fix.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-40462",
+    "url": "https://jira.hl7.org/browse/FHIR-40462",
+    "snapshot_path": "contexts/FHIR-40462/jira/FHIR-40462.md",
+    "ref": { "jira_key": "FHIR-40462" },
+    "summary": "Applied/Persuasive Pharmacy change request asking MedicationRequest reason support Procedure codes and Procedure references.",
+    "learned": "This is the final WG intent and establishes both the coded-reason and reference-reason surfaces to check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#Medication > Using Procedure as the reason in MedicationRequest",
+    "url": "https://chat.fhir.org/#narrow/stream/179249-Medication/topic/Using.20Procedure.20.C2.A0as.20the.20reason.20in.20.C2.A0MedicationRequest",
+    "ref": { "stream": "Medication", "topic": "Using Procedure as the reason in MedicationRequest" },
+    "summary": "The thread describes surgery or diagnostic procedure as a MedicationRequest reason and records Lloyd McKenzie's request to submit a change request.",
+    "learned": "This confirms the use case and ties the Jira to the original community discussion.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "PHAR 2023-04-10 Agenda/Meeting Notes page 161066352",
+    "url": "https://confluence.hl7.org/spaces/PHAR/pages/161066352/2023-04-10+Agenda+Meeting+Notes",
+    "ref": { "confluence_page_id": 161066352 },
+    "summary": "Pharmacy tracker notes state that FHIR-40462 was discussed and voted to approve.",
+    "learned": "This supports the Jira vote and confirms Pharmacy ownership of the applied decision.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationrequest/structuredefinition-MedicationRequest.xml:740-762",
+    "ref": { "path": "source/medicationrequest/structuredefinition-MedicationRequest.xml", "start_line": 740, "end_line": 762 },
+    "summary": "MedicationRequest.reason is CodeableReference, already includes Procedure as a targetProfile, and now binds to ValueSet/procedure-reason.",
+    "learned": "The active source now covers both Procedure references and Procedure-compatible reason codes.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/procedure/valueset-procedure-reason.xml:40-56",
+    "ref": { "path": "source/procedure/valueset-procedure-reason.xml", "start_line": 40, "end_line": 56 },
+    "summary": "The procedure-reason value set includes SNOMED clinical-finding and procedure hierarchies.",
+    "learned": "This existing example value set satisfies the requested condition/problem/diagnosis plus procedure code coverage.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:203",
+    "ref": { "path": "source/fhir.ini", "line": 203 },
+    "summary": "The resource list contains medicationrequest=MedicationRequest.",
+    "learned": "The edited MedicationRequest StructureDefinition is part of the current build scope.",
+    "supports": ["source_scope", "publishing"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "0eef1b615326487c7e0f16d455c272937cf98ae6",
+    "ref": { "commit": "0eef1b615326487c7e0f16d455c272937cf98ae6" },
+    "summary": "Historical FHIR-40462 application added Procedure to MedicationRequest.reason targetProfile.",
+    "learned": "The prior application covered references but left the coded reason value set still pointing at condition-code.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Bounded Jira/Zulip/Confluence searches for FHIR-40462 and MedicationRequest Procedure reason",
+    "command": "bun run jira:search fts '\"MedicationRequest.reasonReference\" Procedure \"MedicationRequest.reasonCode\"' --limit 10; bun run zulip:search fts '\"Using Procedure\" \"MedicationRequest\"' --limit 10; bun run confluence:search refs jira FHIR-40462",
+    "query": "MedicationRequest.reasonReference Procedure MedicationRequest.reasonCode; Using Procedure MedicationRequest; FHIR-40462",
+    "summary": "Searches found the seed Jira, its linked Zulip thread, and Pharmacy/FHIR-I meeting references, with no later conflicting issue discovered in the bounded search.",
+    "learned": "The source fix is supported by the known issue trail and no discovered evidence narrows or reverses it.",
+    "supports": ["additional_context", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,109 @@
+FHIR-14451: Audit PA workflow report cleanup
+
+Issue request:
+FHIR-14451 was a Published/Persuasive STU3 Patient Administration issue. It asked PA to review Appointment, AppointmentResponse, ChargeItem, Encounter, and EpisodeOfCare against the workflow alignment report, either aligning the resources with workflow patterns or marking intentional divergences as ignored/suppressed. The final resolution says there were no longer workflow warnings in the QA report.
+
+Initial application:
+The Jira comments show PA divided the review across Appointment/AppointmentResponse, ChargeItem, EpisodeOfCare, and Encounter. EpisodeOfCare was intentionally left structurally different because it acts as a meta-event/container, with divergences treated as workflow-report suppressions. ChargeItem was explicitly applied at SVN revision 13751, preserved as Git commit 43760072c2364a02e6a33a38eed0ba9db622654a, which renamed ChargeItem.participant to ChargeItem.performer, role to function, and updated the example/search-parameter rows. I did not find a separate commit explicitly tagged GF#14451 for Appointment, AppointmentResponse, or Encounter, but later source history added current mapping-exception files for those PA resources.
+
+Additional context:
+The current build scope differs from the STU3 artifact list. source/fhir.ini still lists Appointment, AppointmentResponse, Encounter, and EpisodeOfCare as active PA resources, while ChargeItem was removed from the current core build by commit 71567db3ee039ac6977be5f96a7e013896569a36. The active PA resources now have workflow/FiveWs mappings and mapping-exception files that document intentional Request/Event/FiveWs divergences: Appointment and AppointmentResponse have Request-pattern exception files; Encounter and EpisodeOfCare have Event-pattern exception files. The current suppressed workflow warning file has no resource-specific warning for active Appointment, AppointmentResponse, Encounter, or EpisodeOfCare; the only FHIR-14451 target resource still named there is inactive ChargeItem.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Reapplying the 2018 workflow report would either target an out-of-build ChargeItem resource or duplicate current mapping-exception documentation for active PA resources. The present source state is consistent with the Jira closure rationale that PA had reviewed the report and no current build-scope workflow source fix remains.
+
+Recommendation:
+Keep this no-change audit. If the Workflow project wants to revisit the still-documented PA divergences, especially EpisodeOfCare as a container/meta-event or AppointmentResponse's Request-like behavior, that should be a new work-group decision rather than a reapplication of this closed STU3 cleanup issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14451
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-14452: same-change-family - analogous ImagingStudy workflow-report cleanup found in Jira search and already represented on the combined branch; it concerns a different work group/resource.
+FHIR-14455: same-change-family - analogous pharmacy workflow-report cleanup seen in history and already represented on the combined branch; it concerns different resources.
+FHIR-22143: later-change - later ChargeItem performer target change already represented on the combined branch; it confirms ChargeItem performer remained the post-FHIR-14451 model before ChargeItem was removed from current core.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14451: Published/Persuasive issue for PA workflow-report cleanup over Appointment, AppointmentResponse, ChargeItem, Encounter, and EpisodeOfCare; resolution says no workflow QA warnings remained. Learned: this establishes the final work-group disposition and the target artifact set.
+- E2 Confluence PA minutes 26574975: Baltimore 2018 PA minutes include FHIR-14451 and record that the WG reviewed the workflow report with Brian following up. Learned: PA meeting evidence aligns with the Jira comments that the issue was actively reviewed rather than left untriaged.
+- E3 Git 43760072c2364a02e6a33a38eed0ba9db622654a: GF#14551/14451 ChargeItem alignment commit renamed participant to performer, role to function, and updated examples/search parameters. Learned: the explicit ChargeItem application noted in Jira is present in source history.
+- E4 Source source/fhir.ini:190,230-231,257 and Git 71567db3ee039ac6977be5f96a7e013896569a36: current build includes Encounter, Appointment, AppointmentResponse, and EpisodeOfCare, while ChargeItem source and fhir.ini entries were removed. Learned: current reconciliation must not edit removed ChargeItem source, and the active scope is the four remaining PA resources.
+- E5 Source mapping exception files: source/appointment/appointment-request-mapping-exceptions.xml:1, source/appointmentresponse/appointmentresponse-request-mapping-exceptions.xml:1, source/encounter/encounter-event-mapping-exceptions.xml:1, source/episodeofcare/episodeofcare-event-mapping-exceptions.xml:1. Learned: current build-scope PA divergences from Request/Event workflow patterns are explicitly documented in source inputs used by the build.
+- E6 Source workflow/FiveWs mappings and warning search: Appointment has workflow Request mappings, Encounter and EpisodeOfCare have workflow Event mappings, AppointmentResponse has FiveWs scheduling mappings and a Request exception file, and a targeted suppressed-workflow-warnings search found no active-resource PA warning. Learned: no current source hunk is needed to make the active PA resources clearer for this seed.
+- E7 Community/Jira search commands: Jira FTS found only FHIR-14451 plus analogous FHIR-14452; Confluence key search found no direct key references beyond the PA minutes found by workflow terms; Zulip searches for FHIR-14451 and EpisodeOfCare workflow/statusReason found no directly relevant conflicting discussion. Learned: no discovered later community evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14451",
+    "url": "https://jira.hl7.org/browse/FHIR-14451",
+    "snapshot_path": "contexts/FHIR-14451/jira/FHIR-14451.md",
+    "ref": { "jira_key": "FHIR-14451" },
+    "summary": "Published/Persuasive PA issue asking Appointment, AppointmentResponse, ChargeItem, Encounter, and EpisodeOfCare to clear workflow-report warnings by alignment or suppression.",
+    "learned": "This establishes the final work-group request, target resources, and closure rationale that no workflow QA warnings remained.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "PA 2018-10 Baltimore Working Group Meeting Minutes page 26574975",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/26574975/2018-10+Baltimore+Working+Group+Meeting+Minutes",
+    "snapshot_path": "contexts/FHIR-14451/confluence/26574975.md",
+    "ref": { "confluence_page_id": 26574975 },
+    "summary": "PA minutes include FHIR-14451, state that PA reviewed the workflow report issue, and record that Brian would follow up to see if it was done.",
+    "learned": "The issue had PA work-group review outside Jira comments, supporting an audit rather than treating it as unreviewed.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "43760072c2364a02e6a33a38eed0ba9db622654a",
+    "ref": { "commit": "43760072c2364a02e6a33a38eed0ba9db622654a" },
+    "summary": "SVN revision 13751/GF#14551 ChargeItem commit renamed participant to performer, role to function, and updated the example/search-parameter rows.",
+    "learned": "The ChargeItem work explicitly cited in the FHIR-14451 Jira comments is present in source history.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:190,230-231,257; git 71567db3ee039ac6977be5f96a7e013896569a36",
+    "ref": { "commit": "71567db3ee039ac6977be5f96a7e013896569a36" },
+    "summary": "Current build config lists Encounter, Appointment, AppointmentResponse, and EpisodeOfCare as active resources; ChargeItem source and fhir.ini entries were removed in November 2025.",
+    "learned": "ChargeItem is outside current core build scope, so the remaining current-source check is limited to the active PA resources.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/appointment/appointment-request-mapping-exceptions.xml:1; source/appointmentresponse/appointmentresponse-request-mapping-exceptions.xml:1; source/encounter/encounter-event-mapping-exceptions.xml:1; source/episodeofcare/episodeofcare-event-mapping-exceptions.xml:1",
+    "summary": "The active PA resources have current mapping-exception files documenting Request/Event workflow divergences.",
+    "learned": "The modern source carries the workflow-report suppression/exception information in build-scope inputs rather than requiring new prose or element changes.",
+    "supports": ["reconciliation", "no_change"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Workflow mapping and suppressed warning checks",
+    "command": "rg -n 'identity value=\"workflow\"|<map value=\"Request\\.|<map value=\"Event\\.' source/appointment/structuredefinition-Appointment.xml source/encounter/structuredefinition-Encounter.xml source/episodeofcare/structuredefinition-EpisodeOfCare.xml; rg -n 'workflow|Request\\.|FiveWs\\.' source/appointmentresponse/structuredefinition-AppointmentResponse.xml; rg -n 'The resource (Appointment|AppointmentResponse|Encounter|EpisodeOfCare|ChargeItem)\\b|The element (Appointment|AppointmentResponse|Encounter|EpisodeOfCare|ChargeItem)\\.' source/suppressed-workflow-warnings.xml",
+    "query": "FHIR-14451 PA resources workflow mappings and suppressed workflow warnings",
+    "summary": "Appointment, Encounter, and EpisodeOfCare have workflow mappings; AppointmentResponse has FiveWs scheduling mappings and a Request exception file; only inactive ChargeItem appears as a FHIR-14451 target in suppressed-workflow-warnings.",
+    "learned": "No active PA resource warning or missing mapping documentation was found that would justify a current source edit for this seed.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-14451 and PA workflow report terms",
+    "command": "bun run jira:search fts '\"Workflow report\" \"Appointment\" \"ChargeItem\" \"EpisodeOfCare\"' --limit 20; bun run confluence:search refs jira FHIR-14451 --limit 10; bun run confluence:search fts '\"FHIR-14451\"' --limit 10; bun run confluence:search fts '\"workflow report\" \"EpisodeOfCare\"' --limit 10; bun run zulip:search fts '\"FHIR-14451\"' --limit 10; bun run zulip:search fts '\"EpisodeOfCare\" \"workflow\" \"statusReason\"' --limit 10",
+    "query": "FHIR-14451 PA workflow report Appointment ChargeItem EpisodeOfCare statusReason",
+    "summary": "Jira search found the seed and analogous ImagingStudy issue; Confluence found the PA minutes; Zulip searches found no directly relevant conflicting discussion.",
+    "learned": "No discovered community or Jira-neighborhood evidence changes the source/history no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,96 @@
+FHIR-8639: Audit primitive value type handling
+
+Issue request:
+FHIR-8639 was a Published/Persuasive with Modification FHIR-core StructureDefinition issue from the DSTU1/DSTU2 period. It reported that constrained primitive `[field].value` paths could be generated without an ElementDefinition type, and the accepted resolution was to fill out type/code while carrying XML and JSON primitive type details as extensions.
+
+Initial application:
+The original application is present in source history. Commit df4c5c6e8168a8038eccdf28e940441014084a73 fixed null type publication at SVN r6984, and commits 516206eec03d8b15cef5002dace86d742116f555, 96bd597e0cc1f29aa01c6d03963466345b67da5a, and 75f547a5c0b1d8f9d57ca7574883271c4f42c06f implemented the primitive XML/JSON type-extension approach at SVN r7143-r7145.
+
+Additional context:
+The current build no longer uses the old DSTU2 `structuredefinition-xml-type` and `structuredefinition-json-type` pair for primitive simple values. Later source and Jira history, especially FHIR-25274, document the current representation: simple non-extensible primitive value slots may use FHIRPath system types, typically with `structuredefinition-fhir-type` to preserve the corresponding FHIR primitive constraints. The active `source/fhir.ini` still includes `PrimitiveType` in infrastructure and records current primitive type characteristics.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current checked and CI build evidence shows `string.value` is typed with `http://hl7.org/fhirpath/System.String` plus `structuredefinition-fhir-type` value `string`, so the semantic requirement behind FHIR-8639 is already satisfied in the current specification. Reintroducing the obsolete DSTU2 XML/JSON extension representation would conflict with the later documented representation.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed unless a future generated primitive `.value` ElementDefinition is found without a type in the current build artifacts.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8639
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25274: later-change - This later Published issue documents and explains the FHIRPath System.String plus structuredefinition-fhir-type pattern now used where primitive behavior must be constrained without inheriting id/extension children.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8639: Published/Persuasive with Modification; resolution said to fill out type/code for primitive values and carry XML/JSON primitive type details in extensions. Learned: the final WG intent was to avoid missing type information on primitive `.value` ElementDefinitions.
+- E2 Git df4c5c6e8168a8038eccdf28e940441014084a73, 516206eec03d8b15cef5002dace86d742116f555, 96bd597e0cc1f29aa01c6d03963466345b67da5a, 75f547a5c0b1d8f9d57ca7574883271c4f42c06f: Jira-tagged SVN r6984 and r7143-r7145 commits fixed null type publication and added primitive XML/JSON type extension generation. Learned: the issue was historically applied.
+- E3 Source source/fhir.ini:63-75 and source/fhir.ini:2860-2880: PrimitiveType remains active infrastructure, and primitive characteristics are current build inputs. Learned: the relevant primitive type generation remains in current build scope.
+- E4 Source source/elementdefinition.html:346-353 and Jira FHIR-25274: ElementDefinition notes document FHIRPath system datatypes and structuredefinition-fhir-type for constrained simple primitive values. Learned: later published source history intentionally superseded the old XML/JSON extension representation.
+- E5 Published spec https://build.fhir.org/string.profile.json: `string.value` has representation `xmlAttr`, type code `http://hl7.org/fhirpath/System.String`, `structuredefinition-fhir-type` value `string`, and maxLength 1048576. Learned: the current CI build surface has a type on the primitive value element.
+- E6 Command search: `bun run jira:search fts '"FHIR-8639" primitive StructureDefinition' --limit 10; bun run confluence:search refs jira FHIR-8639; bun run zulip:search fts '"FHIR-8639" primitive StructureDefinition' --limit 10` found only the seed Jira and no Confluence or Zulip references. Learned: no discovered community evidence conflicts with the source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8639",
+    "url": "https://jira.hl7.org/browse/FHIR-8639",
+    "snapshot_path": "contexts/FHIR-8639/jira/FHIR-8639.md",
+    "ref": { "jira_key": "FHIR-8639" },
+    "summary": "Published/Persuasive with Modification issue requiring missing primitive `.value` type information to be filled, with XML and JSON primitive details carried as extensions.",
+    "learned": "This establishes the final WG intent: primitive value ElementDefinitions should not be left without type information.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "df4c5c6e81, 516206eec0, 96bd597e0c, 75f547a5c0",
+    "ref": { "commits": "df4c5c6e8168a8038eccdf28e940441014084a73 516206eec03d8b15cef5002dace86d742116f555 96bd597e0cc1f29aa01c6d03963466345b67da5a 75f547a5c0b1d8f9d57ca7574883271c4f42c06f" },
+    "summary": "SVN r6984 fixed null type publication and SVN r7143-r7145 populated primitive XML/JSON type extension generation for FHIR-8639.",
+    "learned": "The issue was historically applied, so current reconciliation should preserve or audit the modern equivalent rather than duplicate the old fix.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:63-75, source/fhir.ini:2860-2880",
+    "summary": "PrimitiveType is an active infrastructure type and primitive type characteristics are active current build inputs.",
+    "learned": "The primitive type area investigated is in current core build scope.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-25274 and source/elementdefinition.html:346-353",
+    "url": "https://jira.hl7.org/browse/FHIR-25274",
+    "ref": { "jira_key": "FHIR-25274", "commit": "a60a9ee277bbd8c4b2be9b0686c37f0bdfe6bf37" },
+    "summary": "Later Published issue and commit document using FHIRPath System.String plus structuredefinition-fhir-type when generic primitive behavior is not desired.",
+    "learned": "The current representation intentionally supersedes the old DSTU2 XML/JSON extension pair while preserving primitive constraints.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/string.profile.json string.value",
+    "url": "https://build.fhir.org/string.profile.json",
+    "summary": "The current CI build shows `string.value` with representation `xmlAttr`, type code `http://hl7.org/fhirpath/System.String`, structuredefinition-fhir-type `string`, and maxLength 1048576.",
+    "learned": "The current published build surface has type information for the primitive value element, satisfying the core FHIR-8639 requirement.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-8639 primitive StructureDefinition",
+    "command": "bun run jira:search fts '\"FHIR-8639\" primitive StructureDefinition' --limit 10; bun run confluence:search refs jira FHIR-8639; bun run zulip:search fts '\"FHIR-8639\" primitive StructureDefinition' --limit 10",
+    "query": "FHIR-8639 primitive StructureDefinition",
+    "result_count": 1,
+    "summary": "The search found only the seed Jira and no Confluence or Zulip references.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

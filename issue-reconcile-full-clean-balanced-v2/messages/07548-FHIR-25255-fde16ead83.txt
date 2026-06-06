@@ -1,0 +1,109 @@
+FHIR-25255: Audit Task reason cardinality update
+
+Issue request:
+FHIR-25255 is a Published/Persuasive with Modification FHIR-core Task change request raised against R4 and applied for R5. It asked to change Task.reasonReference from 0..1 to 0..* so multiple Observations could justify a Task recommendation; the approved modification was to replace Task.reasonCode and Task.reasonReference with 0..* reason CodeableReference.
+
+Initial application:
+The Jira comment records git commit fbb011b3a9 as the application. That commit changed the authoritative Task StructureDefinition by replacing Task.reasonCode and Task.reasonReference with Task.reason, setting max to *, and using CodeableReference. It also migrated the active Task examples from reasonCode to reason, and later reconciliation for FHIR-29636 removed stale example reason guidance that had been carried forward by the same refactor.
+
+Additional context:
+Task is an active resource in source/fhir.ini. Current migration annotations record Task.reason as the merge of reasonCode and reasonReference, mapping the old paths to reason.concept and reason.reference. The current Task source defines Task.reason as 0..* CodeableReference with targetProfile Resource, which is the current source representation of CodeableReference(Any). The original genomics Zulip thread confirms the use case: multiple Observations may support a recommendation and a workaround grouper should not be required. FHIRI minutes record the 2020 block-vote approval. Related issue FHIR-37905, already represented on the combined branch, completed/audited the Any target-profile aspect for the same Task.reason change family.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current build-scope source already satisfies FHIR-25255, and targeted checks found no active Task.reasonCode or Task.reasonReference element definitions remaining. The only remaining reasonCode/reasonReference strings in fhir.ini are migration annotations for the old paths, which are appropriate.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-25255 unless a future work-group review intentionally changes the Task.reason design beyond the already-applied CodeableReference(Any) model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25255
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-37905: same-change-family - later Applied issue asking that Task.reasonCode and Task.reasonReference become Task.reason CodeableReference(Any); already audited on the combined branch and confirms the current targetProfile Resource representation.
+FHIR-29636: background - Task reason usage clarification already represented on the combined branch; its reconciliation removed stale example text preserved during the FHIR-25255 refactor.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25255: Published/Persuasive with Modification issue approving replacement of Task.reasonCode and Task.reasonReference with 0..* reason CodeableReference. Learned: establishes the final requested source shape for this audit.
+- E2 Zulip #genomics > task recommendations: the reporter and reviewers discussed multiple Observations supporting a Task recommendation, and Lloyd McKenzie said fixing Task was preferable to a grouper workaround. Learned: confirms the practical reason for changing the base Task cardinality/model.
+- E3 Confluence FHIRI Minutes CC 20200413 page 80121637: minutes record FHIR-25255 as Persuasive with Mod, "Will replace reasonCode and reasonReference with 0..* reasonCodeableReference", motion 10-0-0. Learned: corroborates Jira's final disposition.
+- E4 Git fbb011b3a9: Jira-tagged source commit replaced Task.reasonCode/reasonReference with Task.reason, max *, and CodeableReference. Learned: shows the issue was applied in source history.
+- E5 Source source/fhir.ini:271,1249,2077-2079 and source/task/structuredefinition-Task.xml:791-801: Task is active, migration annotations map old paths into Task.reason, and Task.reason is 0..* CodeableReference(Resource). Learned: current build-scope source already satisfies the approved change.
+- E6 Git 013db94ba6: existing FHIR-37905 audit commit on the combined branch confirms the same Task.reason change family, including the Resource targetProfile for CodeableReference(Any). Learned: no duplicate related commit is needed and the later issue does not require more FHIR-25255 source work.
+- E7 Command/source checks: idempotency check found no existing FHIR-25255 commit; rg found no active Task.reasonCode or Task.reasonReference element definitions, only fhir.ini migration annotations. Learned: publishing this no-change audit is safe and source edits are unnecessary.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25255",
+    "url": "https://jira.hl7.org/browse/FHIR-25255",
+    "snapshot_path": "contexts/FHIR-25255/jira/FHIR-25255.md",
+    "ref": { "jira_key": "FHIR-25255" },
+    "summary": "Published/Persuasive with Modification issue approving replacement of Task.reasonCode and Task.reasonReference with 0..* reason CodeableReference.",
+    "learned": "This establishes the final requested source shape for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#genomics > task recommendations",
+    "url": "https://chat.fhir.org/#narrow/stream/genomics/topic/task%20recommendations",
+    "snapshot_path": "contexts/FHIR-25255/zulip/genomics--task-recommendations.md",
+    "ref": { "stream": "genomics", "topic": "task recommendations" },
+    "summary": "The reporter asked for multiple Observations to justify one Task recommendation; Lloyd McKenzie replied that fixing Task was preferable to introducing a grouper workaround.",
+    "learned": "This confirms the practical rationale for changing the base Task reason model.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20200413 page 80121637",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/80121637/FHIR+Infrastructure+Minutes+CC+20200413",
+    "snapshot_path": "contexts/FHIR-25255/confluence/80121637.md",
+    "ref": { "confluence_page_id": 80121637 },
+    "summary": "FHIRI minutes record FHIR-25255 as Persuasive with Mod: replace reasonCode and reasonReference with 0..* reasonCodeableReference, motion 10-0-0.",
+    "learned": "This corroborates Jira's final disposition and approved wording.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "fbb011b3a967e17706a6f6f8554cd5b36be48acb",
+    "ref": { "commit": "fbb011b3a967e17706a6f6f8554cd5b36be48acb" },
+    "summary": "Jira-tagged commit changed Task.reasonCode/reasonReference to Task.reason, max *, and CodeableReference in source/task/structuredefinition-Task.xml.",
+    "learned": "The issue was applied in source history before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:271,1249,2077-2079; source/task/structuredefinition-Task.xml:791-801",
+    "ref": { "path": "source/task/structuredefinition-Task.xml", "start_line": 791, "end_line": 801 },
+    "summary": "Task is active; migration annotations record the reasonCode/reasonReference merge; Task.reason is currently 0..* CodeableReference with targetProfile Resource.",
+    "learned": "Current build-scope source already satisfies FHIR-25255.",
+    "supports": ["source_current_state", "reconciliation", "build_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "013db94ba67d4657e98f35f89a42af9d7a46b85b",
+    "ref": { "commit": "013db94ba67d4657e98f35f89a42af9d7a46b85b", "jira_key": "FHIR-37905" },
+    "summary": "Existing combined-branch FHIR-37905 audit confirms the related Task.reason CodeableReference(Any) application and Resource targetProfile.",
+    "learned": "The later same-change-family issue is already represented and does not require another source edit for FHIR-25255.",
+    "supports": ["additional_context", "absence_of_duplicate"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted idempotency and source checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-25255' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n '<path value=\"Task\\.reason(Code|Reference)\"|<element id=\"Task\\.reason(Code|Reference)\"|Task\\.reasonCode|Task\\.reasonReference' source/task source/fhir.ini",
+    "summary": "No existing FHIR-25255 reconciliation commit was found; no active Task.reasonCode or Task.reasonReference element definitions remain, with only fhir.ini old-path migration annotations matching.",
+    "learned": "An empty no-change audit is appropriate and source edits are unnecessary.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

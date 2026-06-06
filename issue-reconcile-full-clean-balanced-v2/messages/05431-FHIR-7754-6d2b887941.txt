@@ -1,0 +1,125 @@
+FHIR-7754: Correct not-done reason guidance
+
+Issue request:
+FHIR-7754 was Published/Persuasive with Modification for DSTU1 by Patient Care. It asked for a way to capture reasons a requested action was not performed, citing Communication.reasonNotPerformed/reasonRejected in QUICK. The final resolution put the capability in the Event pattern by adding a notDone indicator, a separate reasonNotDone element with distinct binding, and usage guidance that not-done records are for explicit clinical/business statements that something was not done, not merely workflow tracking.
+
+Initial application:
+The issue was initially applied in 839bf586d6c1cf9a322e122852f0cc49bcfed263, the workflow-alignment commit that explicitly lists #7754 and added Event.notDone/Event.notDoneReason guidance. Later workflow commits, especially 5064224bd079b7f4ef4023d3ead9111b57bd8bff for pre-applied FHIR-13457 and FHIR-13907, collapsed Event.notDone into the not-done status and replaced notDoneReason with statusReason. FHIR-14063 then synchronized Communication to that model, and FHIR-12766 preserved the Communication not-done reason example binding on the current Communication.statusReason element.
+
+Additional context:
+Current source/fhir.ini includes event in [logical] and Communication in [resources], so source/event/event-spreadsheet.xml and source/communication/structuredefinition-Communication.xml are active build inputs. Related Published issues FHIR-13306 and FHIR-13346 removed the redundant Communication reasonNotPerformed extension; both are already represented on the combined branch. FHIR-14063 and FHIR-12766 are also already represented on the combined branch. Clean Jira/Zulip/Confluence searches found no community evidence that changes the later status/statusReason interpretation.
+
+AutoFHIR reconciliation:
+This commit updates active source to match the final current model. In the Event logical model spreadsheet it removes the stale notDoneReason invariant by replacing it with the current reason-vs-not-done invariant using Event.reason, updates the XPath/FHIRPath from reasonCode/reasonReference to reason, and updates Event comments from reasonCode.text to reason.concept.text. In Communication it updates statusReason guidance to refer to the current Communication.reason element and keeps the mapping exception file synchronized.
+
+Recommendation:
+Keep this source fix. It preserves the FHIR-7754 intent through the later approved status/statusReason model, avoids resurrecting the removed reasonNotPerformed extension or notDone boolean, and corrects stale active source that otherwise referred implementers and generated constraints to retired element names.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7754
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-13457: later-change - Collapsed Event.notDone into the Event.status not-done code and required existing invariants to refer to the status code instead of the removed attribute.
+FHIR-13907: later-change - Added statusReason to Request and Event to subsume notDoneReason for not-done and other exceptional statuses.
+FHIR-14063: later-change - Synchronized Communication with the Event pattern, renaming Communication.notDoneReason to Communication.statusReason; an existing combined-branch audit already represents this issue.
+FHIR-12766: supporting-decision - Added the Communication not-done reason example binding that is now carried by Communication.statusReason; an existing combined-branch audit already represents this issue.
+FHIR-13306: same-change-family - Removed the redundant Communication reasonNotPerformed extension; an existing combined-branch audit already represents this issue.
+FHIR-13346: same-change-family - Also removed the redundant Communication reasonNotPerformed extension; an existing combined-branch audit already represents this issue.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7754: Published/Persuasive with Modification request for Event-pattern notDone and reasonNotDone support. Learned: the seed intent is to represent explicit not-done statements and their reasons, not merely workflow non-fulfillment.
+- E2 Source source/fhir.ini:154-157 and 169-182: event is an active logical model and Communication is an active resource. Learned: the edited Event spreadsheet and Communication StructureDefinition are current build inputs.
+- E3 Source source/event/event-spreadsheet.xml and source/communication/structuredefinition-Communication.xml: current source already used status/statusReason but retained stale notDoneReason, reasonCode, and reasonReference references in active Event constraints/comments and Communication guidance. Learned: a focused source correction was needed to align active text and constraints with current elements.
+- E4 Git 839bf586d6c1cf9a322e122852f0cc49bcfed263: workflow commit explicitly listed #7754 and added the original Event notDone/notDoneReason approach. Learned: FHIR-7754 was initially applied in source history.
+- E5 Jira FHIR-13457 and FHIR-13907: Published later workflow decisions collapsed notDone into status and made statusReason subsume notDoneReason. Learned: current reconciliation must fix stale names, not restore the original boolean/element.
+- E6 Jira/Git FHIR-14063, FHIR-12766, FHIR-13306, and FHIR-13346: later/current Communication decisions synchronized statusReason, preserved the not-done reason binding, and removed redundant reasonNotPerformed extensions. Learned: Communication.statusReason is the right current location for the seed capability.
+- E7 Community search: quoted Zulip and Confluence searches for FHIR-7754/GF#7754/reasonNotPerformed/reasonRejected and related statusReason/notDoneReason terms found no conflicting community decision. Learned: no discovered community evidence changes the Jira/source/git conclusion.
+- E8 Verification command: xmllint, targeted ripgrep checks, and CRLF-aware git diff --check passed for edited files. Learned: the edited XML remains well-formed and no touched active source still contains the retired notDoneReason/reasonCode constraint references.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7754",
+    "url": "https://jira.hl7.org/browse/FHIR-7754",
+    "snapshot_path": "contexts/FHIR-7754/jira/FHIR-7754.md",
+    "ref": { "jira_key": "FHIR-7754" },
+    "summary": "Published/Persuasive with Modification Patient Care issue asking to capture reasons a requested action was not performed via Event-pattern notDone and reasonNotDone support.",
+    "learned": "This establishes the seed intent: support explicit not-done records and their reasons, distinct from ordinary workflow tracking.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:154-157; source/fhir.ini:169-182",
+    "ref": { "path": "source/fhir.ini", "line": 154 },
+    "summary": "The fhir.ini [logical] section includes event and [resources] includes communication.",
+    "learned": "The Event spreadsheet and Communication StructureDefinition are active current-build source, so stale names there are in scope for correction.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/event/event-spreadsheet.xml:1089-1104,1406-1421,1750-1766; source/communication/structuredefinition-Communication.xml:206-225",
+    "ref": { "path": "source/event/event-spreadsheet.xml", "line": 1750 },
+    "summary": "Active Event source used current statusReason/reason elements but still had notDoneReason and split reasonCode/reasonReference constraint text; Communication.statusReason also pointed to reasonCode.",
+    "learned": "The current source had a semantic stale-reference defect that could mislead implementers and generated constraints.",
+    "supports": ["current_source", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "839bf586d6c1cf9a322e122852f0cc49bcfed263",
+    "ref": { "commit": "839bf586d6c1cf9a322e122852f0cc49bcfed263" },
+    "summary": "The 2016 FHIR Workflow changes commit explicitly listed #7754 and added the original Event notDone/notDoneReason approach.",
+    "learned": "FHIR-7754 was applied in source history before later workflow refactors changed the representation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-13457 and FHIR-13907",
+    "url": "https://jira.hl7.org/browse/FHIR-13907",
+    "snapshot_path": "contexts/FHIR-7754/jira/FHIR-13907.md",
+    "ref": { "jira_key": "FHIR-13907" },
+    "summary": "Published workflow decisions collapsed Event.notDone into status and added statusReason to subsume notDoneReason.",
+    "learned": "The correct reconciliation is to use status='not-done' plus statusReason, not to restore notDone or notDoneReason.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-14063, FHIR-12766, FHIR-13306, FHIR-13346",
+    "url": "https://jira.hl7.org/browse/FHIR-14063",
+    "snapshot_path": "contexts/FHIR-7754/jira/FHIR-14063.md",
+    "ref": { "jira_key": "FHIR-14063" },
+    "summary": "Related Communication decisions synchronized Communication.statusReason, preserved its not-done reason binding, and removed the redundant reasonNotPerformed extension.",
+    "learned": "Communication.statusReason is the approved current home for the seed capability.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-7754 and related notDone/statusReason terms",
+    "command": "bun run zulip:search fts '\"FHIR-7754\" OR \"GF#7754\" OR \"reasonNotPerformed\" OR \"reasonRejected\"' --limit 10; bun run confluence:search refs jira FHIR-7754; bun run confluence:search fts '\"FHIR-7754\" OR \"GF#7754\" OR \"reasonNotPerformed\" OR \"reasonRejected\"' --limit 10; bun run zulip:search fts '\"GF#13907\" OR \"FHIR-13907\" OR \"statusReason\" \"notDoneReason\"' --limit 10",
+    "query": "FHIR-7754 GF#7754 reasonNotPerformed reasonRejected statusReason notDoneReason",
+    "result_count": 0,
+    "summary": "No directly conflicting community record was found; related hits only confirmed the statusReason/notDoneReason transition and unrelated Goal/QI-Core discussions.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Edited-source XML and stale-reference checks",
+    "command": "xmllint --noout source/event/event-spreadsheet.xml source/communication/structuredefinition-Communication.xml source/communication/communication-event-mapping-exceptions.xml; rg 'notDoneReason|f:notDoneReason|reasonCode\\.exists\\(\\)|reasonReference\\.exists\\(\\)|reasonCode\\.text|captured in reasonCode' <edited files>; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- <edited files>",
+    "summary": "Edited XML files are well-formed, CRLF-aware whitespace checks pass, and retired notDoneReason/reasonCode constraint references are absent from the touched active source.",
+    "learned": "The source fix is syntactically valid and addresses the stale references found for this issue.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

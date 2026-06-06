@@ -1,0 +1,86 @@
+FHIR-14670: Audit operation subset capability guidance
+
+Issue request:
+FHIR-14670 was a Published STU3 FHIR-core change request asking to split ValueSet $expand so terminology servers could distinguish support for GET ValueSet/[id]/$expand from POST ValueSet/$expand with an arbitrary ValueSet. The final Not Persuasive with Modification resolution rejected splitting the operation and instead required CapabilityStatement guidance: referencing a base OperationDefinition means supporting the full operation, while subset support requires a custom OperationDefinition based on the original.
+
+Initial application:
+The issue appears to have been applied by git commit 73c40e6c1f2068f77c616a53ae2f37c564acb4b2, "GF#14670 - not about custom operations in capabilitystatement", which changed the CapabilityStatement spreadsheet source. Current history shows the wording was carried through later source refactors into source/capabilitystatement/structuredefinition-CapabilityStatement.xml.
+
+Additional context:
+The linked Zulip thread confirms the same intent: CapabilityStatement references must point to an OperationDefinition that describes the server's actual implementation, and a server that deviates from the base $expand definition needs its own OperationDefinition. FHIR-14960 arose from the same thread for the separate GET/POST operation execution wording and is already represented on the combined branch by d6452c245ad646a2636ed8de3e9d251d9dc05fcb, so this commit does not duplicate that decision.
+
+AutoFHIR reconciliation:
+No source change was made. CapabilityStatement is an active resource in source/fhir.ini, OperationDefinition is active, and CapabilityStatement.rest.resource.operation.definition already says that referencing the specification base OperationDefinition such as ValueSet-expand means supporting the full capabilities including GET and POST; if only a subset is supported, a custom OperationDefinition with base pointing to the original must describe that subset.
+
+Recommendation:
+Keep this no-change audit commit. The current built source satisfies FHIR-14670, and adding more prose or splitting $expand would contradict the published resolution.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14670
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-14960: background - same Zulip discussion clarified operation GET/POST execution rules separately and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14670: Published / Not Persuasive with Modification; requested splitting $expand but resolved to add CapabilityStatement guidance for base vs custom OperationDefinitions. Learned: this is the final source requirement for the seed.
+- E2 Source source/fhir.ini:169,183,237 plus source/capabilitystatement/structuredefinition-CapabilityStatement.xml:1273-1277: CapabilityStatement and OperationDefinition are active resources, and the operation.definition element contains the base/full-capability and custom-subset guidance. Learned: the current build-scope source already implements the resolution.
+- E3 Git 73c40e6c1f2068f77c616a53ae2f37c564acb4b2: GF#14670 changed the historical CapabilityStatement spreadsheet source. Learned: the issue was explicitly applied before later source refactors.
+- E4 Zulip #implementers > CapabilityStatement operation addition: discussion says the intent is to use OperationDefinition rather than new CapabilityStatement properties, and that external/custom OperationDefinitions must describe the server implementation. Learned: community discussion supports the Jira resolution and no split operation.
+- E5 Command checks: confluence refs for FHIR-14670 found no references, and git log found FHIR-14960 already represented on the combined branch. Learned: no discovered meeting evidence changes the conclusion and no related duplicate commit is needed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14670",
+    "url": "https://jira.hl7.org/browse/FHIR-14670",
+    "snapshot_path": "contexts/FHIR-14670/jira/FHIR-14670.md",
+    "ref": { "jira_key": "FHIR-14670" },
+    "summary": "Published / Not Persuasive with Modification issue requesting a split of ValueSet $expand so servers could advertise GET-only versus arbitrary POST support.",
+    "learned": "The final decision was not to split $expand, but to clarify that a base OperationDefinition reference means full operation support and subset support requires a custom derived OperationDefinition.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,183,237; source/capabilitystatement/structuredefinition-CapabilityStatement.xml:1273-1277",
+    "ref": { "path": "source/capabilitystatement/structuredefinition-CapabilityStatement.xml", "line": 1276 },
+    "summary": "CapabilityStatement and OperationDefinition are active resources, and CapabilityStatement.rest.resource.operation.definition contains the requested base/full-capability and custom-subset OperationDefinition guidance.",
+    "learned": "The authoritative current source already conveys the rule required by FHIR-14670.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "73c40e6c1f2068f77c616a53ae2f37c564acb4b2",
+    "ref": { "commit": "73c40e6c1f2068f77c616a53ae2f37c564acb4b2" },
+    "summary": "Commit titled 'GF#14670 - not about custom operations in capabilitystatement' changed the historical CapabilityStatement spreadsheet source.",
+    "learned": "There was an explicit prior application of the seed issue, later carried forward through source refactors.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "zulip",
+    "locator": "#implementers > CapabilityStatement operation addition",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/CapabilityStatement%20operation%20addition",
+    "query": "CapabilityStatement operation addition",
+    "result_count": 67,
+    "summary": "The discussion concluded that operation support variation belongs in OperationDefinition, and referenced OperationDefinitions must describe the server's actual implementation.",
+    "learned": "Community context supports the Jira resolution and does not support splitting the $expand operation.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative Confluence search and related-key idempotency checks",
+    "command": "bun run confluence:search refs jira FHIR-14670; bun run confluence:search fts 'CapabilityStatement OperationDefinition expand' --limit 10; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-14960' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "No Confluence reference to FHIR-14670 was found; broader Confluence hits were not directly relevant; FHIR-14960 is already represented on the combined branch by d6452c245ad646a2636ed8de3e9d251d9dc05fcb.",
+    "learned": "No discovered community evidence changes the seed conclusion, and the related GET/POST issue should not receive a duplicate commit here.",
+    "supports": ["absence_of_conflict", "related_issue_scope"]
+  }
+]
+</evidence-manifest>

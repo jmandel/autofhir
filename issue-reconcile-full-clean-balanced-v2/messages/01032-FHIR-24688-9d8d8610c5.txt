@@ -1,0 +1,103 @@
+FHIR-24688: Align Coverage subscriberId model cardinality
+
+Issue request:
+FHIR-24688 was a Published Financial Management change request for R5 asking to update Coverage.subscriberId cardinality from 0..1 to 0..* so a single Coverage can carry multiple subscriber identifiers with different Identifier.period values.
+
+Initial application:
+The authoritative Coverage StructureDefinition already has Coverage.subscriberId min 0, max *, and type Identifier. Git history shows commit 720258c80a9 changed the Coverage StructureDefinition max from 1 to *, but it was a broad "FHIR code updates" commit without the Jira key. The active FHIR model-definition Library still exposed Coverage.subscriberId as a scalar immediately before this reconciliation, so the initial application missed this parallel model metadata surface.
+
+Additional context:
+FHIR-24638 is the same Coverage.subscriberId change family and established the Identifier type. The preceding AutoFHIR commit aligned the stale model-info type with FHIR-24638, leaving this commit to represent the FHIR-24688 cardinality change. Coverage and Library are active current-build inputs, publish.ini publishes the readable model-info content, and source/library/list-Library-examples.xml lists the FHIR Model Definition Library as a built Library example. Direct Zulip and Confluence searches did not find a conflicting community decision for FHIR-24688.
+
+AutoFHIR reconciliation:
+Changed Coverage.subscriberId in the FHIR model-definition Library from a scalar Identifier element to a ListTypeSpecifier of FHIR.Identifier, and refreshed the embedded model-info attachment in source/library/library-fhir-model-definition.xml for the same Coverage entry. No change was needed to the Coverage StructureDefinition or diagram because they already show Identifier [0..*].
+
+Recommendation:
+Keep this commit as-is. It completes the Published FHIR-24688 cardinality change in the remaining current-build model metadata while preserving the already-correct authoritative Coverage definition.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-24688
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-24638: same-change-family - prerequisite Published issue that changed Coverage.subscriberId from string to Identifier; handled in the immediately preceding AutoFHIR commit because the same model-info entry also lagged that type change.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-24688: Published/Persuasive R5 issue requested Coverage.subscriberId cardinality 0..* after discussion of multiple payer subscriber identifiers. Learned: establishes the final WG intent for the seed issue.
+- E2 Source source/coverage/structuredefinition-Coverage.xml:357: current Coverage.subscriberId has min 0, max *, and type Identifier. Learned: the authoritative resource definition already carries the requested cardinality.
+- E3 Git 720258c80a9: broad Coverage update changed Coverage.subscriberId max from 1 to *. Learned: identifies the initial source application even though the commit did not cite FHIR-24688.
+- E4 Source source/fhir.ini:240,281; publish.ini:206; source/library/list-Library-examples.xml:67: Coverage and Library are active, the model-info content is published, and the FHIR Model Definition Library is a listed example. Learned: the edited model-definition files are current-build source surfaces.
+- E5 Source source/library/library-fhir-model-definition-content.xml:3494 and source/library/library-fhir-model-definition.xml:277: before this commit, Coverage.subscriberId was scalar in the FHIR 6.0.0 model definition; after this commit it is a ListTypeSpecifier of FHIR.Identifier. Learned: this was the remaining semantic inconsistency for FHIR-24688.
+- E6 Command community search: direct Zulip and Confluence searches for FHIR-24688 plus Coverage subscriberId found no relevant hits, and broader searches found only unrelated implementation/type discussions. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E7 Verification command: XML parsing, embedded Coverage subscriberId list checks, and CRLF-aware whitespace diff check passed. Learned: the edited model metadata is syntactically valid and exposes subscriberId as repeating Identifier.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-24688",
+    "url": "https://jira.hl7.org/browse/FHIR-24688",
+    "snapshot_path": "contexts/FHIR-24688/jira/FHIR-24688.md",
+    "ref": { "jira_key": "FHIR-24688" },
+    "summary": "Published/Persuasive R5 Financial Management issue requesting Coverage.subscriberId cardinality 0..* to support multiple subscriber identifiers on one Coverage.",
+    "learned": "This establishes final WG intent for the seed cardinality change.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/coverage/structuredefinition-Coverage.xml:357",
+    "summary": "Current Coverage.subscriberId is defined with min 0, max *, and type Identifier.",
+    "learned": "The authoritative resource definition already reflects FHIR-24688.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "720258c80a99566e1259c4c1a1dcacd8fbc5abbf",
+    "ref": { "commit": "720258c80a99566e1259c4c1a1dcacd8fbc5abbf" },
+    "summary": "Broad Coverage update changed Coverage.subscriberId max from 1 to * in the StructureDefinition.",
+    "learned": "The original application happened in source but missed the model-definition Library and lacked an issue-specific commit marker.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:240,281; publish.ini:206; source/library/list-Library-examples.xml:67",
+    "summary": "Coverage and Library are active current-build inputs, publish.ini copies the model-info content, and the FHIR Model Definition Library is listed as a Library example.",
+    "learned": "The edited model-definition files are in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:3494; source/library/library-fhir-model-definition.xml:277",
+    "summary": "The FHIR 6.0.0 model-definition Library exposed Coverage.subscriberId as scalar before this commit and now exposes it as ListTypeSpecifier<FHIR.Identifier>.",
+    "learned": "This fixes the missed parallel model metadata for FHIR-24688.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community searches for FHIR-24688 Coverage subscriberId",
+    "command": "bun run zulip:search fts '\"FHIR-24688\" Coverage subscriberId' --limit 10; bun run zulip:search fts 'Coverage subscriberId' --limit 10; bun run confluence:search refs jira FHIR-24688; bun run confluence:search fts '\"FHIR-24688\" Coverage subscriberId' --limit 10; bun run confluence:search fts 'Coverage subscriberId' --limit 10",
+    "query": "FHIR-24688 Coverage subscriberId; Coverage subscriberId",
+    "result_count": 0,
+    "summary": "No direct FHIR-24688 Zulip or Confluence hits were found; broader results were unrelated implementation/type discussions and did not conflict with the Jira decision.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted post-edit checks",
+    "command": "python3 XML/base64 Coverage subscriberId list check; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Edited XML parsed, the embedded model-definition Coverage block uses a ListTypeSpecifier of FHIR.Identifier for subscriberId, and whitespace check reported no errors.",
+    "learned": "The model metadata cardinality fix is syntactically valid.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

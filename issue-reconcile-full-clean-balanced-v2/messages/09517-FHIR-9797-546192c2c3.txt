@@ -1,0 +1,106 @@
+FHIR-9797: Audit div type enforcement
+
+Issue request:
+FHIR-9797 was a Published/Persuasive DSTU2 FHIR-I change request asking that the FHIR build tool enforce that an element named 'div' is only used for Narrative.div, so format converters can treat div as the narrative XHTML element without consulting schema every time.
+
+Initial application:
+The issue was applied before this reconciliation. The Jira comments record Grahame Grieve's 2018 note that the change was "already done", and historical commit 0c4049e17d (#9797 - enforce rule on type of element if named 'div') added the ResourceValidator rule that any element named div must have type xhtml.
+
+Additional context:
+The current core source checkout no longer carries the Java build-tool source; build.gradle.kts runs org.hl7.fhir.tools.publisher.Publisher from the external org.hl7.fhir:kindling dependency. The current HL7/kindling ResourceValidator still contains the same div/xhtml rule. In the current core source, source/fhir.ini keeps Narrative in the active infrastructure datatype set, source/datatypes/narrative.xml defines Narrative.div with type xhtml, and a source scan found no other element-definition rows ending in .div.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source and current external build-tool rule already satisfy the published issue, and editing core source would either be redundant or target code that is no longer in this checkout.
+
+Recommendation:
+Keep this no-change audit commit. If a future regression is found in build-tool enforcement, address it in HL7/kindling rather than in the core FHIR source checkout; no current core follow-up is needed for FHIR-9797.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-9797
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-9797: Published/Persuasive, raised and applied for DSTU2, asked to enforce that div only be allowed for Narrative.div. Learned: this is a final issue decision and defines the requested build-tool behavior.
+- E2 Zulip #implementers > div: Vadim asked whether div could be assumed to be Narrative.div, Lloyd recommended a build-tool rule, and Grahame replied "added". Learned: the community thread confirms the precise intent and contemporaneous application.
+- E3 Git 0c4049e17d: historical commit #9797 added ResourceValidator rule `!e.getName().equals("div") || e.typeCode().equals("xhtml")`. Learned: the issue was applied directly in the old build-tool source.
+- E4 Source source/datatypes/narrative.xml:878-882 and source/fhir.ini:63-74: Narrative is active infrastructure and Narrative.div is typed xhtml. Learned: the current authoritative core datatype source uses div only for the intended XHTML narrative element.
+- E5 Command current source scan: `rg`/`find` found no in-repo Java validator source, and found only Narrative.div element-definition rows ending in .div. Learned: there is no current core source hunk needed to preserve the issue's requirement.
+- E6 Web HL7/kindling ResourceValidator.java: current external Kindling source still contains the same div/xhtml enforcement rule. Learned: the build-tool rule survived the move out of the core source checkout.
+- E7 Command Confluence refs search for FHIR-9797: no references found. Learned: no discovered Confluence record changes the Jira/Zulip/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-9797",
+    "url": "https://jira.hl7.org/browse/FHIR-9797",
+    "snapshot_path": "contexts/FHIR-9797/jira/FHIR-9797.md",
+    "ref": { "jira_key": "FHIR-9797" },
+    "summary": "Published/Persuasive DSTU2 issue requesting build-tool enforcement that div only be allowed for Narrative.div.",
+    "learned": "This final issue decision establishes the requested behavior for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > div",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/div",
+    "ref": { "stream": "implementers", "topic": "div" },
+    "summary": "Vadim asked whether div could be assumed to mean Narrative.div, Lloyd supported a build-tool rule, and Grahame replied that it was added.",
+    "learned": "The thread confirms both the intended rule and that it was applied contemporaneously.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "0c4049e17ddc956f06240daaedace2d7f5808e0c",
+    "ref": { "commit": "0c4049e17ddc956f06240daaedace2d7f5808e0c" },
+    "summary": "Historical commit #9797 added the ResourceValidator rule requiring any element named div to have type xhtml.",
+    "learned": "The historical source change directly implemented the requested enforcement.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/narrative.xml:878-882; source/fhir.ini:63-74",
+    "ref": { "path": "source/datatypes/narrative.xml", "line": 878 },
+    "summary": "Narrative is active infrastructure and Narrative.div is defined with type xhtml.",
+    "learned": "The current authoritative core source satisfies the permitted div use case.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current source div/build-tool scan",
+    "command": "find . -path './.git' -prune -o -name '*.java' -print | wc -l; rg '<Data ss:Type=\"String\">[A-Za-z0-9]+(\\.[A-Za-z0-9]+)*\\.div</Data>' source --glob '*.xml'",
+    "summary": "The current core checkout has no Java validator source and the only source element-definition rows ending in .div are Narrative.div.",
+    "learned": "There is no current in-scope core source edit needed for this rule.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "web",
+    "locator": "HL7/kindling src/main/java/org/hl7/fhir/definitions/validation/ResourceValidator.java",
+    "url": "https://github.com/HL7/kindling/blob/b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8/src/main/java/org/hl7/fhir/definitions/validation/ResourceValidator.java",
+    "ref": { "repository": "HL7/kindling", "commit": "b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8", "line": 669 },
+    "summary": "The current external Kindling ResourceValidator contains the same rule requiring any element named div to have type xhtml.",
+    "learned": "The build-tool enforcement remains present after the tool source moved out of this core checkout.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Confluence references for FHIR-9797",
+    "command": "bun run confluence:search refs jira FHIR-9797",
+    "result_count": 0,
+    "summary": "No Confluence references to FHIR-9797 were found.",
+    "learned": "No discovered meeting record changes the Jira, Zulip, source, and git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,120 @@
+FHIR-32858: Clarify MedicationStatement adherence reason
+
+Issue request:
+FHIR-32858 was a Published Pharmacy change request with resolution Not Persuasive with Modification. It asked whether MedicationUsage needed additional status capability because R5 status had become record status and some R4 medication-use status scenarios appeared to be missing; the resolution said no new status codes were needed because the listed scenarios can be represented with effectivePeriod, adherence.code, and adherence.reason.
+
+Initial application:
+No source commit explicitly mentioning FHIR-32858 was found. The surrounding model had already been applied by earlier Pharmacy changes: FHIR-19468/FHIR-19470/FHIR-28593 introduced the adherence model and narrowed status, FHIR-32060 changed MedicationUsage.status to recorded, entered-in-error, and draft, and later FHIR-38682 renamed the resource back to MedicationStatement. A prior edit moved old statusReason wording onto MedicationUsage.adherence.reason, leaving a stale comment that still described exception statuses and reasonCode.
+
+Additional context:
+FHIR-31972 and FHIR-31879 were duplicate/status-scope concerns in the same family. FHIR-39271 later confirmed that status reflects recording status while adherence carries taking/not-taking meaning. FHIR-39329 and FHIR-39333 further clarified that adherence covers medication use or non-use even when no instruction exists and expanded the example adherence codes with on-hold and stopped descendants.
+
+AutoFHIR reconciliation:
+This commit updates the active MedicationStatement StructureDefinition text for MedicationStatement.adherence.reason so it no longer describes old statusReason/reasonCode behavior. The short, definition, and comment now identify adherence.reason as the place to explain use, non-use, stopped use, or taking differently than directed, while preserving MedicationStatement.reason as the reason for the statement itself. source/fhir.ini lists medicationstatement as an active resource, so this StructureDefinition feeds the current build.
+
+Recommendation:
+Keep this commit. It is the narrow source correction needed for FHIR-32858: the current status/adherence/effective model already has the required representational capability, but the adherence.reason documentation needed to align with the published resolution and avoid sending implementers back to the removed statusReason/reasonCode model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32858
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-32060: supporting-decision - changed MedicationUsage.status to recorded, entered-in-error, and draft, making status a record-status element rather than the medication-use status.
+FHIR-31972: duplicate - duplicate status-code clarification issue cited by FHIR-32858; it provides background but is not an independent reconciliation target here.
+FHIR-31879: duplicate - duplicate concern about statusReason after the status-scope change; it explains the stale wording but is not independently decided here.
+FHIR-39271: later-change - confirmed the status/adherence interpretation and was already represented on the combined branch by a separate reconciliation commit.
+FHIR-39329: later-change - clarified adherence can cover taking or not-taking whether or not the patient was instructed or prescribed to take the medication.
+FHIR-39333: later-change - expanded the example adherence codes with on-hold and stopped descendants for not-taking cases.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32858: Published/Not Persuasive with Modification; resolution says effectivePeriod start/end, adherence.code, and adherence.reason can convey the listed R4/R5 medication-use status scenarios. Learned: the seed decision relies on adherence.reason being understandable as usage/adherence reason, not old record status reason.
+- E2 Source source/fhir.ini:204 and source/medicationstatement/structuredefinition-MedicationStatement.xml:140: MedicationStatement is an active resource and status is recorded|entered-in-error|draft with text saying it concerns recording the statement. Learned: status is already scoped as record status in the current build.
+- E3 Source source/medicationstatement/structuredefinition-MedicationStatement.xml:286 and :522: effective[x] covers when medication is/was/will be taken or not taken, and adherence.reason is the reason slot tied to use/adherence. Learned: these are the authoritative elements named by the seed resolution.
+- E4 Source source/medicationstatement/codesystem-medication-statement-adherence.xml:27 and :41: adherence codes include taking, not-taking, on-hold, stopped, and unknown descendants. Learned: current example coding supports the not-taking/stopped distinctions discussed by the issue family.
+- E5 Git 934e781902: moved the old MedicationUsage.statusReason comment onto MedicationUsage.adherence.reason when reshaping the status/adherence elements. Learned: the stale reasonCode/status comment was inherited from prior statusReason wording rather than a deliberate current rule.
+- E6 Git f351511a95 and 6cdd7b792e: FHIR-19468/FHIR-19470/FHIR-28593 and FHIR-32060 narrowed status and established recorded/entered-in-error/draft. Learned: the source history matches FHIR-32858's premise that status had already become record status.
+- E7 Jira/community FHIR-39271, FHIR-39329, FHIR-39333, Confluence PHAR pages 77365352/81018804, and Zulip implementers/R5 MedicationUsage status and adherence: later decisions and discussion confirm adherence, including on-hold/stopped not-taking cases, is the intended representational channel. Learned: no discovered later decision calls for restoring medication-use status codes.
+- E8 Verification command/query: xmllint, git diff --check, and rg for the stale reasonCode/statusReason phrases all succeeded after the edit. Learned: the source XML is well formed and the targeted stale wording was removed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32858",
+    "url": "https://jira.hl7.org/browse/FHIR-32858",
+    "snapshot_path": "contexts/FHIR-32858/jira/FHIR-32858.md",
+    "ref": { "jira_key": "FHIR-32858" },
+    "summary": "Published/Not Persuasive with Modification issue asking whether MedicationUsage needed more status capability after status became record status.",
+    "learned": "The final decision says the scenarios can be represented with effectivePeriod, adherence.code, and adherence.reason rather than new status codes.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:204; source/medicationstatement/structuredefinition-MedicationStatement.xml:140",
+    "ref": { "path": "source/medicationstatement/structuredefinition-MedicationStatement.xml", "line": 140 },
+    "summary": "MedicationStatement is active in fhir.ini, and MedicationStatement.status is recorded|entered-in-error|draft with text saying it records the statement status.",
+    "learned": "The current build already reflects status as record status, so the remaining fix belongs in the adherence reason documentation.",
+    "supports": ["source_change_scope", "initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationstatement/structuredefinition-MedicationStatement.xml:286; source/medicationstatement/structuredefinition-MedicationStatement.xml:522",
+    "ref": { "path": "source/medicationstatement/structuredefinition-MedicationStatement.xml", "line": 522 },
+    "summary": "MedicationStatement.effective[x] covers when medication is/was/will be taken or not taken, and adherence.reason carries the reason tied to use/adherence.",
+    "learned": "These active source elements are the exact representational path identified by the FHIR-32858 resolution.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationstatement/codesystem-medication-statement-adherence.xml:27; source/medicationstatement/codesystem-medication-statement-adherence.xml:41",
+    "ref": { "path": "source/medicationstatement/codesystem-medication-statement-adherence.xml", "line": 41 },
+    "summary": "The example adherence code system includes taking, not-taking, on-hold, stopped, and unknown codes.",
+    "learned": "Current terminology supports the not-taking/stopped distinctions considered by FHIR-32858 and later related issues.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "934e781902",
+    "ref": { "commit": "934e781902" },
+    "summary": "A prior Pharmacy status/adherence edit removed MedicationUsage.statusReason and added MedicationUsage.adherence.reason while carrying over the old statusReason comment.",
+    "learned": "The stale reasonCode/status comment was historical residue and not a current rule about adherence.reason.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "f351511a95; 6cdd7b792e",
+    "ref": { "commit": "6cdd7b792e" },
+    "summary": "Earlier commits for FHIR-19468/FHIR-19470/FHIR-28593 and FHIR-32060 narrowed MedicationUsage.status and established recorded, entered-in-error, and draft.",
+    "learned": "The source history matches the FHIR-32858 premise and explains why no medication-use status restoration is appropriate.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Related Jira, Confluence, and Zulip checks for MedicationUsage status/adherence",
+    "command": "bun run jira:search snapshot FHIR-32060 FHIR-39271 FHIR-39329 FHIR-39333; bun run confluence:search refs jira FHIR-32858; bun run zulip:search snapshot implementers 'R5 MedicationUsage status  and adherence'",
+    "query": "FHIR-32858 MedicationUsage status adherence stopped on-hold",
+    "summary": "Related decisions and community evidence confirm status remains record status and adherence is the channel for taking, not-taking, on-hold, and stopped cases.",
+    "learned": "No discovered later decision requires restoring the old medication-use status codes; the safe fix is to clarify adherence.reason.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML and wording verification",
+    "command": "xmllint --noout source/medicationstatement/structuredefinition-MedicationStatement.xml && git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/medicationstatement/structuredefinition-MedicationStatement.xml && ! rg -n 'reasonCode, not here|exception&quot; statuses|MedicationStatement\\.adherence\\.reason.*reasonCode' source/medicationstatement/structuredefinition-MedicationStatement.xml",
+    "summary": "The edited XML is well formed, the diff has no whitespace errors, and the stale reasonCode/statusReason wording is absent.",
+    "learned": "The source correction is syntactically valid and removes the targeted stale guidance.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

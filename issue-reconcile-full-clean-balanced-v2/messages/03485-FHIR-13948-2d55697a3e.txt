@@ -1,0 +1,105 @@
+FHIR-13948: Audit queued claim outcome
+
+Issue request:
+FHIR-13948 was Published/Persuasive with Modification for STU3. It asked to add an acknowledgement-style code to ExplanationOfBenefit.outcome because the existing partial code implied some adjudication had already occurred; the final resolution chose the code `queued` for a claim/preauthorization/predetermination received but not yet processed.
+
+Initial application:
+The issue was applied in SVN-era commits cff1ea3a29 and fca077283d, first adding a received concept to the remittance outcome code system and then changing the outcome code list, ClaimResponse source, and ExplanationOfBenefit source from `received` to `queued`.
+
+Additional context:
+The current build lists ExplanationOfBenefit and ClaimResponse as active resources in source/fhir.ini. The old remittance-outcome source file was later refactored into the current claim-outcome source by 33b409a4b6, preserving the `queued` concept. Current ExplanationOfBenefit.outcome binds to ValueSet/claim-outcome and its short/comment explicitly include `queued`; the claim-outcome CodeSystem defines `queued` with the received-but-not-processed meaning. A later Zulip thread about an R4B RemittanceOutcome regression described a rogue legacy remittance definition and recorded that it was fixed in source, supporting the current claim-outcome source as the authoritative location.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source changes because the current active ExplanationOfBenefit source and required outcome value set already contain the resolved `queued` semantics. Editing the remaining legacy remittance-outcome strings would not improve the current EOB binding and could re-open retired terminology plumbing rather than correcting the active build artifact.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up is needed for FHIR-13948 unless a future terminology cleanup deliberately removes legacy RemittanceOutcome names from non-authoritative model/binding artifacts as a separate maintenance task.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13948
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-8570: background - earlier request for a pending/remittance outcome code resolved that partial already covered pended adjudication; it explains the nearby terminology history but did not require a separate current-source decision here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13948: Published/Persuasive with Modification; requested an acknowledgement outcome and resolved to add `queued`. Learned: final WG intent is a received-but-not-processed claim outcome code.
+- E2 Source source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:711: ExplanationOfBenefit.outcome short/comment include `queued` and bind to http://hl7.org/fhir/ValueSet/claim-outcome. Learned: the current active EOB element already exposes the resolved code.
+- E3 Source source/claimresponse/codesystem-claim-outcome.xml:24: claim-outcome is complete and defines `queued` as received but processing not begun. Learned: the required value set used by EOB includes the resolved concept.
+- E4 Git fca077283d: Tracker #13948 changed remittance-outcome and EOB/ClaimResponse source from `received` to `queued`. Learned: the issue was explicitly applied historically.
+- E5 Git 33b409a4b6: reworked source for the new build core by renaming remittance-outcome source to claim-outcome while preserving `queued`. Learned: current claim-outcome is the successor authoritative source, not a missed application.
+- E6 Zulip/confluence/Jira searches: quoted FHIR-13948/remittance searches found no conflicting Confluence record, found the FHIR-13948 commit notification, and found an R4B RemittanceOutcome thread saying a rogue legacy definition was fixed in source. Learned: community evidence supports no current correction beyond the active claim-outcome source.
+- E7 Build-scope check: source/fhir.ini lists explanationofbenefit and claimresponse as active resources and has no active remittance-outcome value set entry. Learned: the checked source locations are in current build scope; legacy remittance-outcome strings are not the active EOB binding source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13948",
+    "url": "https://jira.hl7.org/browse/FHIR-13948",
+    "snapshot_path": "contexts/FHIR-13948/jira/FHIR-13948.md",
+    "ref": { "jira_key": "FHIR-13948" },
+    "summary": "Published/Persuasive with Modification issue asking for an acknowledgement-style ExplanationOfBenefit.outcome code and resolving to add `queued`.",
+    "learned": "This establishes final WG intent for a received-but-not-yet-processed outcome code.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:711-729",
+    "ref": { "path": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml", "line": 711 },
+    "summary": "ExplanationOfBenefit.outcome has short/comment text including `queued` and binds to ValueSet/claim-outcome.",
+    "learned": "The active EOB element already carries the resolved code and meaning.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/claimresponse/codesystem-claim-outcome.xml:24-29",
+    "ref": { "path": "source/claimresponse/codesystem-claim-outcome.xml", "line": 24 },
+    "summary": "The claim-outcome CodeSystem is complete and defines `queued` as received but processing not begun.",
+    "learned": "The required value set used by EOB contains the resolved concept.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "fca077283d",
+    "ref": { "commit": "fca077283d638f3c1058a809b6d950d25c18a856" },
+    "summary": "Tracker #13948 changed remittance-outcome and EOB/ClaimResponse source from `received` to `queued`.",
+    "learned": "The issue was explicitly applied in source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "33b409a4b6",
+    "ref": { "commit": "33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "The new-build-core refactor renamed remittance-outcome source files to claim-outcome while preserving the `queued` code.",
+    "learned": "Current claim-outcome is the successor authoritative source for this outcome terminology.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community searches for FHIR-13948 and remittance-outcome",
+    "command": "bun run zulip:search fts '\"FHIR-13948\" OR \"Tracker #13948\" OR \"remittance-outcome\"' --limit 10; bun run confluence:search refs jira FHIR-13948; bun run confluence:search fts '\"FHIR-13948\" OR \"Tracker #13948\" OR \"remittance-outcome\"' --limit 10; bun run zulip:search snapshot implementers 'ValueSet RemittanceOutcome in R4B'",
+    "query": "FHIR-13948, Tracker #13948, remittance-outcome, ValueSet RemittanceOutcome in R4B",
+    "summary": "No conflicting Confluence record was found; Zulip showed the FHIR-13948 commit notification and an R4B RemittanceOutcome thread saying a rogue legacy definition was fixed in source.",
+    "learned": "Community evidence did not reveal a current unresolved source problem and supports relying on the active claim-outcome source.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-244,1264-1313",
+    "ref": { "path": "source/fhir.ini", "line": 170 },
+    "summary": "ExplanationOfBenefit and ClaimResponse are active resources; fhir.ini has no active remittance-outcome value set entry.",
+    "learned": "The inspected EOB and claim-outcome source files are in build scope, while legacy remittance-outcome strings are not the active EOB binding source.",
+    "supports": ["build_scope", "reconciliation"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,110 @@
+FHIR-7582: Audit AllergyIntolerance active status handling
+
+Issue request:
+FHIR-7582 was a Published/Persuasive with Modification Patient Care change request raised against DSTU1 AllergyIntolerance. It asked how to represent active or resolved allergies and requested a way to distinguish clinical activity from certainty, with the approved resolution to add `active` as a parent/ancestor for `confirmed` and `unconfirmed` and to define all AllergyIntolerance status codes; `resolved` was already an existing code.
+
+Initial application:
+No single clean seed-only commit exists in the current git history, but the 2015-08-20 application set is identifiable. Commit 895df7d512162acde0f7ccde8a9cdfb19d0290a9 added the `active` AllergyIntolerance.status code, made `unconfirmed` and `confirmed` children of it, and updated the status short label. The adjacent commit 4aafeeebac46b47f643f2d49a5a619d0cb000f72 explicitly cites `#7582 - added status "active"`; its AllergyIntolerance source hunk was example/criticality cleanup, which suggests the status-source change had just landed in the preceding generated/source spreadsheet update.
+
+Additional context:
+Later Published Patient Care issues refined and then superseded the old combined AllergyIntolerance.status hierarchy. FHIR-8599 added an `inactive` parent for resolved/refuted/entered-in-error; FHIR-10067 clarified the old status definitions and renamed `confirmed` to `active-confirmed`; FHIR-11206 moved entered-in-error out of the inactive hierarchy; and FHIR-11151 replaced the mixed status element with separate `clinicalStatus` and `verificationStatus` elements. The current resource is in build scope through `source/fhir.ini`, and the current build-scope StructureDefinition now has `AllergyIntolerance.clinicalStatus` for `active | inactive | resolved` and `AllergyIntolerance.verificationStatus` for certainty/error states including `unconfirmed`, `presumed`, `confirmed`, `refuted`, and `entered-in-error`. Current THO terminology definitions also define `active` and `resolved`, and keep certainty in the verification code system.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The original FHIR-7582 need is preserved in the current split representation: implementers can represent an active confirmed allergy as clinicalStatus=active plus verificationStatus=confirmed, an active unconfirmed allergy as clinicalStatus=active plus verificationStatus=unconfirmed, and a resolved allergy with clinicalStatus=resolved. Reintroducing an `active` ancestor under the obsolete combined status model would be wrong for the current specification.
+
+Recommendation:
+Keep this audit commit as-is. No current FHIR core source change is needed for FHIR-7582; any future change to the external allergy status code systems should go through the normal terminology/UTG process and account for the later FHIR-11151 split.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7582
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-8599: same-change-family - Follow-up Published DSTU1 issue added inactive as the parallel parent status and confirms the same combined-status hierarchy work.
+FHIR-10067: later-change - Published DSTU2 issue refined the old status definitions and active-confirmed naming before the status split.
+FHIR-11151: superseded-by - Published DSTU2 issue replaced the old mixed AllergyIntolerance.status with clinicalStatus and verificationStatus; it is already represented on the combined branch.
+FHIR-11206: same-change-family - Published DSTU2 issue cleaned the old inactive hierarchy before the split; it is already represented on the combined branch.
+FHIR-15525: later-change - Published STU3 issue clarified that unconfirmed plus resolved remains meaningful after the split.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7582: Published/Persuasive with Modification issue asked how to specify active/resolved allergies and resolved to add active as an ancestor for confirmed and unconfirmed with clear code definitions. Learned: this establishes the seed request and target semantics.
+- E2 Git 895df7d512162acde0f7ccde8a9cdfb19d0290a9: The AllergyIntolerance spreadsheet added `active`, made `unconfirmed` and `confirmed` children of it, and updated the status short label. Learned: the requested active parent was applied historically.
+- E3 Git 4aafeeebac46b47f643f2d49a5a619d0cb000f72: Adjacent commit message explicitly cites `#7582 - added status "active"`. Learned: the historical application set was tied to this seed issue even though the status-source diff is in the prior commit.
+- E4 Jira FHIR-11151 and git ed170ff0754268f2a677a011f9d432d1328415f0: The later Published decision and implementation split AllergyIntolerance.status into clinicalStatus and verificationStatus. Learned: current source should be judged against the split status model, not the obsolete combined hierarchy.
+- E5 Source source/fhir.ini:175 and source/allergyintolerance/structuredefinition-AllergyIntolerance.xml:120-175: AllergyIntolerance is an active resource, with clinicalStatus bound to active/inactive/resolved and verificationStatus bound to the certainty/error value set. Learned: the current build-scope conformance source already represents active, resolved, confirmed, and unconfirmed without ambiguity.
+- E6 Command current THO code-system check: `curl` of the clinical and verification code systems shows active and resolved clinical definitions plus unconfirmed/presumed/confirmed/refuted/entered-in-error verification definitions. Learned: current terminology surfaces provide the definitions the seed requested, in the later split representation.
+- E7 Command Jira/Zulip/Confluence searches: Jira found related AllergyIntolerance status issues FHIR-8599, FHIR-10067, FHIR-11151, FHIR-15525, and FHIR-11206; direct Zulip and Confluence searches for FHIR-7582 found no conflicting community record. Learned: later final Jira decisions refine the interpretation, and no discovered community evidence requires a source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7582",
+    "url": "https://jira.hl7.org/browse/FHIR-7582",
+    "snapshot_path": "contexts/FHIR-7582/jira/FHIR-7582.md",
+    "ref": { "jira_key": "FHIR-7582" },
+    "summary": "Published/Persuasive with Modification Patient Care issue asked how to specify active or resolved allergies and resolved to add active as an ancestor for confirmed and unconfirmed while defining all status codes.",
+    "learned": "This establishes the seed request and the target semantics to check in current AllergyIntolerance source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "895df7d512162acde0f7ccde8a9cdfb19d0290a9",
+    "ref": { "commit": "895df7d512162acde0f7ccde8a9cdfb19d0290a9" },
+    "summary": "The 2015 AllergyIntolerance spreadsheet change added active, placed unconfirmed and confirmed under it, and updated the status short label.",
+    "learned": "The requested active parent was applied historically in the pre-split status model.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "4aafeeebac46b47f643f2d49a5a619d0cb000f72",
+    "ref": { "commit": "4aafeeebac46b47f643f2d49a5a619d0cb000f72" },
+    "summary": "The adjacent 2015 commit message explicitly cites `#7582 - added status \"active\"` while cleaning the AllergyIntolerance example/criticality source.",
+    "learned": "The historical application set was tied to FHIR-7582 even though the exact status-source hunk landed in the preceding commit.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-11151 and ed170ff0754268f2a677a011f9d432d1328415f0",
+    "url": "https://jira.hl7.org/browse/FHIR-11151",
+    "ref": { "jira_key": "FHIR-11151", "commit": "ed170ff0754268f2a677a011f9d432d1328415f0" },
+    "summary": "Published related issue and implementation replaced the mixed AllergyIntolerance.status with clinicalStatus and verificationStatus.",
+    "learned": "The current specification intentionally represents activity and certainty as separate elements, superseding the old active/confirmed hierarchy.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:175; source/allergyintolerance/structuredefinition-AllergyIntolerance.xml:120-175",
+    "ref": { "path": "source/allergyintolerance/structuredefinition-AllergyIntolerance.xml", "line": 120 },
+    "summary": "AllergyIntolerance is an active resource; current source defines clinicalStatus as active/inactive/resolved and verificationStatus as unconfirmed/presumed/confirmed/refuted/entered-in-error.",
+    "learned": "The build-scope source already supports active confirmed, active unconfirmed, and resolved allergy representations.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current THO allergy status code systems",
+    "command": "curl -fsSL https://terminology.hl7.org/CodeSystem-allergyintolerance-clinical.json; curl -fsSL https://terminology.hl7.org/CodeSystem-allergyintolerance-verification.json",
+    "summary": "The clinical code system defines active, inactive, and resolved; the verification code system defines unconfirmed, presumed, confirmed, refuted, and entered-in-error.",
+    "learned": "The seed's requested definitions exist in the current terminology surface, organized according to the later split.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Jira, Zulip, and Confluence searches for FHIR-7582 and AllergyIntolerance status terms",
+    "command": "bun run jira:search fts 'AllergyIntolerance status active resolved confirmed unconfirmed' --limit 20; bun run zulip:search fts '\"FHIR-7582\" AllergyIntolerance active resolved' --limit 10; bun run confluence:search refs jira FHIR-7582; bun run confluence:search fts '\"FHIR-7582\" AllergyIntolerance active resolved' --limit 10",
+    "query": "FHIR-7582 AllergyIntolerance active resolved confirmed unconfirmed",
+    "summary": "Jira found the same status-change family, while direct FHIR-7582 Zulip and Confluence searches found no conflicting community evidence.",
+    "learned": "No discovered community record changes the Jira/source conclusion that no current core edit is needed.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

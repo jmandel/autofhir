@@ -1,0 +1,187 @@
+diff --git a/source/clinicalreasoning-quality-reporting.html b/source/clinicalreasoning-quality-reporting.html
+index 8bec673dec..149f0fb394 100644
+--- a/source/clinicalreasoning-quality-reporting.html
++++ b/source/clinicalreasoning-quality-reporting.html
+@@ -139,9 +139,9 @@
+ <a name="measure-logic"> </a>
+ <h5>Measure Logic</h5>
+ 
+-<p>As with other knowledge artifacts, logic is included by referencing a <a href="library.html">Library</a> resource.The Library resource is a general purpose container for clinical knowledge artifacts. It can be used to describe and expose existing knowledge such as logic and information model descriptions, as well as to describe a collection of knowledge artifacts. Measures should reference only one Library, the primary measure library, and that library should contain all the named expressions required to define the measure structure. For more information on using libraries with CQL and FHIR, refer to the <a href="https://hl7.org/fhir/uv/cql/STU1/using-cql.html#libraries">Libraries</a> topic in the Using CQL with FHIR Implementation Guide.</p>
++<p>As with other knowledge artifacts, logic is included by referencing one or more <a href="library.html">Library</a> resources. The Library resource is a general purpose container for clinical knowledge artifacts. It can be used to describe and expose existing knowledge such as logic and information model descriptions, as well as to describe a collection of knowledge artifacts. Measure-level libraries apply to the measure as a whole. When a measure contains multiple groups with different subjects, rates, or logic, each group can instead reference its own library or libraries, but library references SHALL be specified either at the measure level or on every group, not both. For more information on using libraries with CQL and FHIR, refer to the <a href="https://hl7.org/fhir/uv/cql/STU1/using-cql.html#libraries">Libraries</a> topic in the Using CQL with FHIR Implementation Guide.</p>
+ 
+-<p>Note that this approach does not preclude sharing of logic between measures, it only requires that that sharing be explicitly done as dependencies within the referenced libraries, rather than allowing a measure to reference multiple libraries directly.</p>
++<p>When a measure or group references multiple libraries, expression references within the resource must be qualified with the name of the library that contains the referenced expression. Sharing logic between measures can still be done explicitly as dependencies within the referenced libraries.</p>
+ 
+ <a name="specifying-population-criteria"> </a>
+ <h6>Population Criteria</h6>
+@@ -161,7 +161,7 @@
+ 	</tbody>
+ </table>
+ 
+-<p>The Measure resource identifies specific named expressions within the referenced primary measure library that define the criteria for each population. For example, the following fragment illustrates the population criteria definitions for the CMS146 measure example:</p>
++<p>The Measure resource identifies specific named expressions within the referenced measure or group library that define the criteria for each population. For example, the following fragment illustrates the population criteria definitions for the CMS146 measure example:</p>
+ 
+ <pre><code>&lt;group&gt;
+   &lt;linkId value=&quot;CMS146-group-1&quot;/&gt;
+diff --git a/source/measure/measure-introduction.xml b/source/measure/measure-introduction.xml
+index ecf5107ade..1c110d4c30 100644
+--- a/source/measure/measure-introduction.xml
++++ b/source/measure/measure-introduction.xml
+@@ -71,6 +71,12 @@
+                 specify stratifications to subdivide the measure population and/or supplemental data
+                 to communicate additional information about a population.</p>
+ 
++            <p>Measure-level <code>library</code>, <code>subject</code>, and <code>rateAggregation</code>
++                elements apply to all population groups. For measures with groups that use different
++                libraries, subjects, or rate aggregation approaches, omit the corresponding
++                measure-level element and specify it on every group. Do not mix measure-level and
++                group-level declarations for the same element within a single Measure.</p>
++
+             <p>The data of interest for a measure is described as a set of data requirements, and
+                 include the specific data type, as well as any constraints. If the measure is
+                 specified computably, this information may be inferred by static analysis of the
+diff --git a/source/measure/operationdefinition-Measure-care-gaps.xml b/source/measure/operationdefinition-Measure-care-gaps.xml
+index be39fbcb14..74b74e2fd9 100644
+--- a/source/measure/operationdefinition-Measure-care-gaps.xml
++++ b/source/measure/operationdefinition-Measure-care-gaps.xml
+@@ -123,8 +123,8 @@
+     <name value="subject"/>
+     <use value="in"/>
+     <min value="0"/>
+-    <max value="1"/>
+-    <documentation value="Subject(s) for which the care gaps report will be produced. The subject may be a Patient, Practitioner, PractitionerRole, Organization, Location, Device, or Group. Subjects provided in this parameter SHALL match the subjectType of the measure being evaluated (e.g. if the Measure.group.subjectType is Patient, the subject SHALL be a reference to a Patient or a Group of Patients). If no subject is provided, what subjects are evaluated is up to the server. This parameter cannot be used with the subjectGroup parameter."/>
++    <max value="*"/>
++    <documentation value="Subject(s) for which the care gaps report will be produced. Subjects provided in this parameter SHALL match the subject required by the measure being evaluated (e.g. if the Measure.group.subject is Patient, each subject SHALL be a reference to a Patient). This parameter cannot be used with the subjectGroup parameter. For individual care gaps reporting, subject parameters SHALL NOT reference Group resources, and at most one subject of each resource type and profile combination SHALL be supplied. If no subject or subjectGroup is provided, what subjects are evaluated is up to the server."/>
+     <type value="string"/>
+     <searchType value="reference"/>
+   </parameter>
+@@ -132,8 +132,8 @@
+     <name value="subjectGroup"/>
+     <use value="in"/>
+     <min value="0"/>
+-    <max value="1"/>
+-    <documentation value="Subject for which the gaps in care report will be created is provided as a Group resource. Subjects provided in this parameter SHALL match the subjectType of the measure being evaluated.  (e.g. if the Measure.group.subjectType is Patient, the subject SHALL be a reference to a Patient or a Group of Patients). If no subject is provided, what subjects are evaluated is up to the server. This parameter cannot be used with the subject parameter."/>
++    <max value="*"/>
++    <documentation value="Subject Groups for which the gaps in care report will be created. Subject Groups provided in this parameter SHALL match the subject required by the measure being evaluated (e.g. if the Measure.group.subject is Patient, each subjectGroup SHALL be a Group of Patients). This parameter cannot be used with the subject parameter. For population care gaps reporting, only Group subjects can be provided, and at most one Group of each subject resource type and profile combination SHALL be supplied. If no subject or subjectGroup is provided, what subjects are evaluated is up to the server."/>
+     <type value="Group"/>
+   </parameter>
+   <parameter>
+diff --git a/source/measure/operationdefinition-Measure-collect-data.xml b/source/measure/operationdefinition-Measure-collect-data.xml
+index 8bae9c213a..36673d91da 100644
+--- a/source/measure/operationdefinition-Measure-collect-data.xml
++++ b/source/measure/operationdefinition-Measure-collect-data.xml
+@@ -90,8 +90,8 @@
+     <name value="subject"/>
+     <use value="in"/>
+     <min value="0"/>
+-    <max value="1"/>
+-    <documentation value="Subject(s) for which the data-of-interest for the measure will be collected. The subject may be a Patient, Practitioner, PractitionerRole, Organization, Location, Device, or Group. Subjects provided in this parameter SHALL match the subjectType of the measure for which data is being collected (e.g. if the Measure.group.subjectType is Patient, the subject SHALL be a reference to a Patient or a Group of Patients). If no subject is provided, subjects for which data is collected is up to the server. This parameter cannot be used with the subjectGroup parameter."/>
++    <max value="*"/>
++    <documentation value="Subject(s) for which the data-of-interest for the measure will be collected. Subjects provided in this parameter SHALL match the subject required by the measure for which data is being collected (e.g. if the Measure.group.subject is Patient, each subject SHALL be a reference to a Patient). This parameter cannot be used with the subjectGroup parameter. For individual data collection, subject parameters SHALL NOT reference Group resources, and at most one subject of each resource type and profile combination SHALL be supplied. If no subject or subjectGroup is provided, subjects for which data is collected is up to the server."/>
+     <type value="string"/>
+     <searchType value="reference"/>
+   </parameter>
+@@ -99,8 +99,8 @@
+     <name value="subjectGroup"/>
+     <use value="in"/>
+     <min value="0"/>
+-    <max value="1"/>
+-    <documentation value="Subjects for which the data-of-interest for the measure will be collected, provided as a Group resource. Subjects provided in this parameter SHALL match the subjectType of the measure for which data is being collected. (e.g. if the Measure.group.subjectType is Patient, the subject SHALL be a reference to a Patient or a Group of Patients). If no subject is provided, subjects for which data is collected is up to the server. This parameter cannot be used with the subject parameter."/>
++    <max value="*"/>
++    <documentation value="Subject Groups for which the data-of-interest for the measure will be collected. Subject Groups provided in this parameter SHALL match the subject required by the measure for which data is being collected (e.g. if the Measure.group.subject is Patient, each subjectGroup SHALL be a Group of Patients). This parameter cannot be used with the subject parameter. For population data collection, only Group subjects can be provided, and at most one Group of each subject resource type and profile combination SHALL be supplied. If no subject or subjectGroup is provided, subjects for which data is collected is up to the server."/>
+     <type value="Group"/>
+   </parameter>
+   <parameter>
+diff --git a/source/measure/operationdefinition-Measure-evaluate-measure.xml b/source/measure/operationdefinition-Measure-evaluate-measure.xml
+index e8d6248ce0..f55e8e90da 100644
+--- a/source/measure/operationdefinition-Measure-evaluate-measure.xml
++++ b/source/measure/operationdefinition-Measure-evaluate-measure.xml
+@@ -116,8 +116,8 @@
+     <name value="subject"/>
+     <use value="in"/>
+     <min value="0"/>
+-    <max value="1"/>
+-    <documentation value="Subject for which the measure will be calculated. The subject must be an instance of a type that is consistent with the subjectType of the Measure being evaluated (e.g. Patient, Practitioner, Location...). The subject may be a Patient, Practitioner, PractitionerRole, Organization, Location, Device, or Group. If the subject is a Group, it must be an actual Group, not a definitional one. Subjects provided in this parameter SHALL match the subjectType of the measure being evaluated (i.e. if the Measure.subjectType is Patient, the subject SHALL be a reference to a Patient or a Group of Patients). If no subject is provided, the evaluation will be performed for all subjects appropriate to the Measure.subjectType (possibly constrained further by the provider parameter)."/>
++    <max value="*"/>
++    <documentation value="Subject(s) for which the measure will be calculated. The subject must be an instance of a type that is consistent with the subject of the Measure being evaluated (e.g. Patient, Practitioner, Location...). The subject may be a Patient, Practitioner, PractitionerRole, Organization, Location, Device, or Group. If the subject is a Group, it must be an actual Group, not a definitional one. Subjects provided in this parameter SHALL match the subject required by the measure being evaluated (i.e. if the Measure.subject is Patient, the subject SHALL be a reference to a Patient or a Group of Patients). When running individual evaluation, no Group subjects can be provided, and at most one subject of each resource type and profile combination SHALL be supplied. When running population evaluation, only Group subjects can be provided, and at most one Group of each subject resource type and profile combination SHALL be supplied. If no subject is provided, the evaluation will be performed for all subjects appropriate to the Measure subject (possibly constrained further by the provider parameter)."/>
+     <type value="string"/>
+     <searchType value="reference"/>
+   </parameter>
+@@ -142,7 +142,7 @@
+     <use value="in"/>
+     <min value="0"/>
+     <max value="1"/>
+-    <documentation value="The type of measure report: individual, subject-list, or summary. If not specified, a default value of subject will be used if the subject parameter is supplied and is not a Group, otherwise, summary will be used. NOTE: Implementations should support the use of `subject` for individual and `population` for summary for backwards compatibility with existing implementations."/>
++    <documentation value="The type of measure report: individual, subject-list, or summary. If not specified, a default value of individual will be used if one or more non-Group subject parameters are supplied; otherwise, summary will be used. NOTE: Implementations should support the use of `subject` for individual and `population` for summary for backwards compatibility with existing implementations."/>
+     <type value="code"/>
+     <binding>
+       <strength value="required"/>
+diff --git a/source/measure/operationdefinition-Measure-evaluate.xml b/source/measure/operationdefinition-Measure-evaluate.xml
+index 3e7862536b..c022932f93 100644
+--- a/source/measure/operationdefinition-Measure-evaluate.xml
++++ b/source/measure/operationdefinition-Measure-evaluate.xml
+@@ -97,9 +97,9 @@
+     <name value="subject"/>
+     <use value="in"/>
+     <min value="0"/>
+-    <max value="1"/>
++    <max value="*"/>
+     <documentation
+-      value="Subject(s) for which the measure will be calculated. Subjects provided in this parameter SHALL match the subjectType of the measure being evaluated (e.g. if the Measure.group.subjectType is Patient, the subject SHALL be a reference to a Patient or a Group of Patients). This parameter cannot be used with the subjectGroup parameter. If no subject or subjectGroup is provided, what subjects are evaluated is up to the server."/>
++      value="Subject(s) for which the measure will be calculated. Subjects provided in this parameter SHALL match the subject required by the measure being evaluated (e.g. if the Measure.group.subject is Patient, each subject SHALL be a reference to a Patient). This parameter cannot be used with the subjectGroup parameter. For individual evaluation, subject parameters SHALL NOT reference Group resources, and at most one subject of each resource type and profile combination SHALL be supplied. If no subject or subjectGroup is provided, what subjects are evaluated is up to the server."/>
+     <type value="string"/>
+     <searchType value="reference"/>
+   </parameter>
+@@ -107,9 +107,9 @@
+     <name value="subjectGroup"/>
+     <use value="in"/>
+     <min value="0"/>
+-    <max value="1"/>
++    <max value="*"/>
+     <documentation
+-      value="Subjects for which the measure will be evaluated, provided as a Group resource. Subjects provided in this parameter SHALL match the subjectType of the measure being evaluated. (e.g. if the Measure.group.subjectType is Patient, the subject SHALL be a reference to a Patient or a Group of Patients). This parameter cannot be used with the subject parameter. If no subject or subjectGroup is provided, what subjects are evaluated is up to the server."/>
++      value="Subject Groups for which the measure will be evaluated. Subject Groups provided in this parameter SHALL match the subject required by the measure being evaluated (e.g. if the Measure.group.subject is Patient, each subjectGroup SHALL be a Group of Patients). This parameter cannot be used with the subject parameter. For population evaluation, only Group subjects can be provided, and at most one Group of each subject resource type and profile combination SHALL be supplied. If no subject or subjectGroup is provided, what subjects are evaluated is up to the server."/>
+     <type value="Group"/>
+   </parameter>
+   <parameter>
+@@ -118,7 +118,7 @@
+     <min value="0"/>
+     <max value="1"/>
+     <documentation
+-      value="The type of measure report: `individual`, `subject-list`, or `summary`. If not specified, a default value of `summary` will be used if the subject parameter is supplied and is a `Group` resource; a default value of `individual` will be used if the subject parameter is supplied and is not a `Group` resource; otherwise, a default value of `summary` will be used. NOTE: Implementations should support the use of `subject` for `individual` and `population` for `summary` for backwards compatibility with existing implementations."/>
++      value="The type of measure report: `individual`, `subject-list`, or `summary`. If not specified, a default value of `summary` will be used if a subjectGroup parameter is supplied; a default value of `individual` will be used if one or more subject parameters are supplied; otherwise, a default value of `summary` will be used. NOTE: Implementations should support the use of `subject` for `individual` and `population` for `summary` for backwards compatibility with existing implementations."/>
+     <type value="code"/>
+     <binding>
+       <strength value="required"/>
+diff --git a/source/measure/structuredefinition-Measure.xml b/source/measure/structuredefinition-Measure.xml
+index aa7749a0d8..85150fb065 100644
+--- a/source/measure/structuredefinition-Measure.xml
++++ b/source/measure/structuredefinition-Measure.xml
+@@ -102,6 +102,27 @@
+         <expression value="group.stratifier.all((code | description | criteria).exists() xor component.exists())"/>
+         <source value="http://hl7.org/fhir/StructureDefinition/Measure"/>
+       </constraint>
++      <constraint>
++        <key value="mea-9"/>
++        <severity value="error"/>
++        <human value="A Measure SHALL NOT mix measure-level and group-level libraries, and group-level libraries SHALL be specified on every group when used"/>
++        <expression value="(library.exists() implies group.library.exists().not()) and (group.library.exists() implies group.all(library.exists()))"/>
++        <source value="http://hl7.org/fhir/StructureDefinition/Measure"/>
++      </constraint>
++      <constraint>
++        <key value="mea-10"/>
++        <severity value="error"/>
++        <human value="A Measure SHALL NOT mix measure-level and group-level subject, and group-level subject SHALL be specified on every group when used"/>
++        <expression value="(subject.exists() implies group.subject.exists().not()) and (group.subject.exists() implies group.all(subject.exists()))"/>
++        <source value="http://hl7.org/fhir/StructureDefinition/Measure"/>
++      </constraint>
++      <constraint>
++        <key value="mea-11"/>
++        <severity value="error"/>
++        <human value="A Measure SHALL NOT mix measure-level and group-level rate aggregation, and group-level rate aggregation SHALL be specified on every group when used"/>
++        <expression value="(rateAggregation.exists() implies group.rateAggregation.exists().not()) and (group.rateAggregation.exists() implies group.all(rateAggregation.exists()))"/>
++        <source value="http://hl7.org/fhir/StructureDefinition/Measure"/>
++      </constraint>
+       <mapping>
+         <identity value="workflow"/>
+         <map value="Definition"/>

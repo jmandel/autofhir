@@ -1,0 +1,109 @@
+FHIR-26299: Audit DeviceRequest DeviceDefinition choice
+
+Issue request:
+FHIR-26299 was a Published/Persuasive R4 change request from Orders and Observations asking DeviceRequest.code to support DeviceDefinition as well as Device, and to use CodeableReference(Device | DeviceDefinition) rather than the older CodeableConcept-or-Device shape.
+
+Initial application:
+The Jira comment says the issue was preapplied. The 2020-05-04 OO HCP minutes record a motion to accept the DeviceRequest code reference proposal as preadopted. In git history, commit 33b409a4b6d544598262f2f074ebb4b6dc466157 introduced the new-build DeviceRequest source with DeviceRequest.code typed as CodeableReference targeting both Device and DeviceDefinition.
+
+Additional context:
+The current build no longer has DeviceRequest.code as the primary element name: source/fhir.ini maps the old DeviceRequest.code name to DeviceRequest.product[x]. A later DeviceDefinition modeling decision, FHIR-39389, says references to DeviceDefinition should be canonical; commit e3ef4ee44f6a25130aeb63548e9bb2929e103299 changed DeviceRequest.product from CodeableReference(Device | DeviceDefinition) to the current product[x] choice with CodeableConcept, Reference(Device), and canonical(DeviceDefinition). The active fhir.ini resources list includes devicerequest=DeviceRequest, so the inspected source is in current build scope.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active DeviceRequest StructureDefinition already includes DeviceDefinition as the definitional-device choice via canonical(DeviceDefinition), and the CodeableReference wording from the original issue has been superseded by the later canonical DeviceDefinition representation.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce CodeableReference for DeviceRequest.product solely to match the 2020 wording; that would conflict with the later canonical-resource modeling decision for DeviceDefinition. A separate future review could consider whether DeviceRequest needs a canonical search parameter, but that is outside FHIR-26299.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26299
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-39389: later-change - changed references to DeviceDefinition toward canonical representation and directly explains the current DeviceRequest.product[x] shape.
+FHIR-40307: background - confirms the R5-era element was understood as CodeableReference(DeviceDefinition) but the WG rejected renaming it to DeviceRequest.device.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26299: Published/Persuasive issue requesting DeviceRequest.code as CodeableReference(Device | DeviceDefinition), with a preapplied comment. Learned: the seed has final WG intent and was expected to be in R5.
+- E2 Confluence 2020-05-04 HCP: OO minutes record FHIR-26299 as Device.codeReference(Device | DeviceDefinition) and a 9-0-1 motion to accept as proposed and preadopted. Learned: the Jira disposition is corroborated by WG minutes.
+- E3 Source source/fhir.ini:139 and source/fhir.ini:169-186: DeviceRequest appears as an active draft/current resource and devicerequest=DeviceRequest. Learned: the inspected DeviceRequest source is in build scope.
+- E4 Source source/devicerequest/structuredefinition-DeviceRequest.xml:357-375 plus source/fhir.ini:1697 and source/fhir.ini:2198: current DeviceRequest.product[x] contains CodeableConcept, Reference(Device), and canonical(DeviceDefinition), while old DeviceRequest.code names map to product[x]. Learned: the current source still supports the DeviceDefinition option through the current element name and canonical representation.
+- E5 Git 33b409a4b6d544598262f2f074ebb4b6dc466157: introduced DeviceRequest.code as CodeableReference targeting Device and DeviceDefinition in the new-build source. Learned: FHIR-26299 was applied in source before this reconciliation.
+- E6 Jira FHIR-39389 and Git e3ef4ee44f6a25130aeb63548e9bb2929e103299: later DeviceDefinition modeling work required DeviceDefinition references to be canonical and changed DeviceRequest.product to product[x] with canonical(DeviceDefinition). Learned: the current non-CodeableReference shape is a later intentional source change, not a missed FHIR-26299 hunk.
+- E7 Community search: Zulip search for FHIR-26299/DeviceRequest/DeviceDefinition/CodeableReference found no direct discussion, while Confluence refs found the 2020 OO minutes. Learned: no discovered community evidence conflicts with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26299",
+    "url": "https://jira.hl7.org/browse/FHIR-26299",
+    "snapshot_path": "contexts/FHIR-26299/jira/FHIR-26299.md",
+    "ref": { "jira_key": "FHIR-26299" },
+    "summary": "Published/Persuasive issue requested DeviceRequest.code as CodeableReference(Device | DeviceDefinition) and was marked preapplied.",
+    "learned": "This establishes the final seed request and expected R5 application.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "2020-05-04 HCP page 82906856",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/82906856/2020-05-04+HCP",
+    "ref": { "confluence_page_id": 82906856 },
+    "summary": "OO minutes list FHIR-26299 as Device.codeReference(Device | DeviceDefinition) and record a 9-0-1 motion to accept as proposed and preadopted.",
+    "learned": "The minutes corroborate the Jira disposition and preadoption.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:139 and source/fhir.ini:169-186",
+    "ref": { "path": "source/fhir.ini", "lines": "139,169-186" },
+    "summary": "DeviceRequest is listed as an active draft resource and devicerequest=DeviceRequest appears in the resources list.",
+    "learned": "The inspected DeviceRequest source is in current build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/devicerequest/structuredefinition-DeviceRequest.xml:357-375; source/fhir.ini:1697,2198",
+    "ref": { "path": "source/devicerequest/structuredefinition-DeviceRequest.xml", "lines": "357-375" },
+    "summary": "Current DeviceRequest.product[x] allows CodeableConcept, Reference(Device), and canonical(DeviceDefinition), and fhir.ini maps old DeviceRequest.code names to product[x].",
+    "learned": "The current source preserves the requested DeviceDefinition option using the current element name and canonical representation.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "33b409a4b6d544598262f2f074ebb4b6dc466157",
+    "ref": { "commit": "33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "The new-build DeviceRequest source had DeviceRequest.code as CodeableReference targeting Device and DeviceDefinition.",
+    "learned": "The seed issue was applied before this reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "FHIR-39389 / e3ef4ee44f6a25130aeb63548e9bb2929e103299",
+    "url": "https://jira.hl7.org/browse/FHIR-39389",
+    "ref": { "jira_key": "FHIR-39389", "commit": "e3ef4ee44f6a25130aeb63548e9bb2929e103299" },
+    "summary": "Later DeviceDefinition modeling work required canonical DeviceDefinition references and changed DeviceRequest.product from CodeableReference to product[x] with canonical(DeviceDefinition).",
+    "learned": "The current product[x] shape is a later intentional update, not an incomplete FHIR-26299 application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-26299 and DeviceRequest DeviceDefinition CodeableReference",
+    "command": "bun run zulip:search fts '\"FHIR-26299\" DeviceRequest DeviceDefinition CodeableReference' --limit 10; bun run confluence:search refs jira FHIR-26299",
+    "query": "FHIR-26299 DeviceRequest DeviceDefinition CodeableReference",
+    "result_count": 1,
+    "summary": "No direct Zulip hits were found; Confluence refs found the 2020 OO HCP minutes.",
+    "learned": "No discovered community evidence conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

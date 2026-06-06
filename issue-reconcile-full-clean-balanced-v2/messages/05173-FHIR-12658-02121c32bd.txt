@@ -1,0 +1,121 @@
+FHIR-12658: Clarify Account coverage priority ordering
+
+Issue request:
+FHIR-12658 was a Published FHIR-core Account change request from Patient Administration, resolved Persuasive with Modification for DSTU2. It asked to replace Account's direct 0..* Coverage reference with a 0..* Account.coverage BackboneElement containing Account.coverage.coverage 1..1 Reference(Coverage) and Account.coverage.priority 0..1 positiveInt, using the v2/alias concept "coordination of benefit priority" and applying the lowest value first; it also requested renaming coveragePeriod to period.
+
+Initial application:
+The historical Jira-tagged commit bbaf6a813fd0003b8dc83473640dc4a5392adee8 ("Tracker# 12658 (and other Account QA issues)") applied the backbone shape in the spreadsheet-era Account source and changed examples from a direct Coverage reference to nested coverage plus priority. The later source-generation/refactor commits preserved Account.coverage, Account.coverage.coverage, and Account.coverage.priority in source/account/structuredefinition-Account.xml. However, the applied element text carried the priority element and examples but did not preserve the resolution's explicit "lowest value first" ordering rule.
+
+Additional context:
+Account is an active current-build resource in source/fhir.ini. FHIR-14813 later renamed the FHIR-12658-era Account.period element to Account.servicePeriod and is already represented on the combined branch, so the current servicePeriod name is a deliberate later PA decision rather than a FHIR-12658 miss. Later FM issue FHIR-27107 and applied issue FHIR-43028 discuss Coverage.order versus Account.coverage.priority; FHIR-43028 is already represented on the combined branch and confirms that Account.coverage.priority is the use-case-dependent account-context ordering point. Direct Zulip and Confluence searches for FHIR-12658 found no conflicting community record.
+
+AutoFHIR reconciliation:
+This commit updates the active Account StructureDefinition source so Account.coverage.priority says lower values are applied first. No generated diagram-only files were edited; the change is limited to the authoritative source element definition needed to carry the approved ordering semantics.
+
+Recommendation:
+Keep this source fix. It completes the missed semantic detail from FHIR-12658 while preserving later Account.servicePeriod and Coverage.order decisions; no further FHIR core follow-up is needed unless PA/FM later changes the Account/Coverage ordering model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12658
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-14813: later-change - later Published PA issue renamed Account.period to Account.servicePeriod and explains why the current source no longer uses the interim period name from FHIR-12658.
+FHIR-27107: supporting-decision - later Resolved - No Change FM issue records that Coverage.order and Account.coverage.priority are similar ordering concepts used in different contexts.
+FHIR-43028: later-change - later Applied FM issue clarified Coverage.order by pointing use-case-dependent coverage sets to Account.coverage.priority; it is already audited on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12658: Published/Persuasive with Modification request for Account.coverage backbone, nested Coverage reference, priority positiveInt with coordination-of-benefit alias and lowest-value-first ordering, plus coveragePeriod rename. Learned: establishes the current source shape and ordering semantics to verify.
+- E2 Source source/fhir.ini:262: Account is an active resource entry. Learned: source/account/structuredefinition-Account.xml is in current build scope.
+- E3 Source source/account/structuredefinition-Account.xml:267-314: current Account source contains Account.coverage as a 0..* BackboneElement, Account.coverage.coverage as 1..1 Reference(Coverage), and Account.coverage.priority as 0..1 positiveInt. Learned: the structural part of FHIR-12658 is present in active source.
+- E4 Git bbaf6a813fd0003b8dc83473640dc4a5392adee8: historical Tracker#12658 commit changed the spreadsheet-era Account source and example to the backbone/priority representation. Learned: the issue was explicitly applied, but the element text did not include the resolution's lowest-value-first rule.
+- E5 Jira/Git FHIR-14813 and e88e991a574185bed8cad539e6ab012cab0cca51: later Published issue renamed Account.period to Account.servicePeriod and updated the service-period definition/comment. Learned: current servicePeriod is a later approved rename, not a reason to reintroduce Account.period for FHIR-12658.
+- E6 Jira/Git FHIR-43028 and combined commit 48ff68271f6f4c7d45ed96e6d9d7ef7599757efc: later Applied clarification says Coverage.order is use-case-independent COB ordering and Account.coverage.priority is for use-case-dependent coverage sets. Learned: later related decisions preserve Account.coverage.priority as the right place for account-specific ordering.
+- E7 Command Zulip/Confluence searches for FHIR-12658 and Account coverage priority: direct FHIR-12658 community searches found no hits, while broader Account coverage priority searches found related discussion but no conflicting final decision. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E8 Verification command: git diff, XML parse of source/account/structuredefinition-Account.xml, and targeted rg confirmed the single source hunk and valid XML. Learned: the reconciliation made the intended active-source change without breaking XML well-formedness.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12658",
+    "url": "https://jira.hl7.org/browse/FHIR-12658",
+    "snapshot_path": "contexts/FHIR-12658/jira/FHIR-12658.md",
+    "ref": { "jira_key": "FHIR-12658" },
+    "summary": "Published/Persuasive with Modification Account issue requesting a coverage BackboneElement with nested Coverage reference, positiveInt coordination-of-benefit priority using lowest value first, and a coveragePeriod rename.",
+    "learned": "This establishes the approved Account coverage structure and ordering semantics that current source must convey.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:262",
+    "ref": { "path": "source/fhir.ini", "line": 262 },
+    "summary": "Account is listed as an active resource in fhir.ini.",
+    "learned": "The Account StructureDefinition source inspected and edited is in current build scope.",
+    "supports": ["source_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/account/structuredefinition-Account.xml:267-314",
+    "ref": { "path": "source/account/structuredefinition-Account.xml", "start_line": 267, "end_line": 314 },
+    "summary": "Account.coverage is a 0..* BackboneElement, Account.coverage.coverage is a 1..1 Reference(Coverage), and Account.coverage.priority is a 0..1 positiveInt with the coordination-of-benefit alias.",
+    "learned": "The structural part of the issue is already present, but the priority definition needed the missing lower-values-first semantics.",
+    "supports": ["initial_application", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "bbaf6a813fd0003b8dc83473640dc4a5392adee8",
+    "ref": { "commit": "bbaf6a813fd0003b8dc83473640dc4a5392adee8" },
+    "summary": "Historical Tracker#12658 commit changed Account examples and the spreadsheet-era Account source to use nested coverage plus priority.",
+    "learned": "FHIR-12658 was explicitly applied, but the source text did not carry forward the resolution's explicit lowest-value-first ordering rule.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-14813; e88e991a574185bed8cad539e6ab012cab0cca51",
+    "url": "https://jira.hl7.org/browse/FHIR-14813",
+    "snapshot_path": "contexts/FHIR-14813/jira/FHIR-14813.md",
+    "ref": { "jira_key": "FHIR-14813", "commit": "e88e991a574185bed8cad539e6ab012cab0cca51" },
+    "summary": "Later Published PA issue renamed Account.period to Account.servicePeriod and updated the service-period wording.",
+    "learned": "The current servicePeriod name is a later approved change and should not be reverted while reconciling FHIR-12658.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "FHIR-43028 combined audit 48ff68271f6f4c7d45ed96e6d9d7ef7599757efc",
+    "url": "https://jira.hl7.org/browse/FHIR-43028",
+    "snapshot_path": "contexts/FHIR-43028/jira/FHIR-43028.md",
+    "ref": { "jira_key": "FHIR-43028", "commit": "48ff68271f6f4c7d45ed96e6d9d7ef7599757efc" },
+    "summary": "Later Applied FM clarification distinguishes use-case-independent Coverage.order from use-case-dependent Account.coverage.priority and is already audited on the combined branch.",
+    "learned": "Later related decisions keep Account.coverage.priority as the right element for account-context ordering.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-12658 and Account coverage priority",
+    "command": "bun run zulip:search fts '\"FHIR-12658\"' --limit 10; bun run confluence:search fts '\"FHIR-12658\"' --limit 10; bun run confluence:search refs jira FHIR-12658; bun run zulip:search fts '\"Account\" \"coverage\" \"priority\"' --limit 10; bun run confluence:search fts 'Account coverage priority' --limit 10",
+    "query": "FHIR-12658; Account coverage priority",
+    "summary": "Direct FHIR-12658 community searches found no hits; broader Account coverage priority searches found related discussion but no conflicting final decision.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local validation of Account StructureDefinition edit",
+    "command": "git diff -- source/account/structuredefinition-Account.xml; python3 - <<'PY' ... ET.parse('source/account/structuredefinition-Account.xml') ... PY; rg -n 'Account\\.coverage\\.priority|lower values are applied first|coordination of benefit priority' source/account/structuredefinition-Account.xml",
+    "summary": "The diff contains one Account.coverage.priority definition hunk, the XML parses successfully, and the expected text is present.",
+    "learned": "The source fix is targeted and preserves XML well-formedness.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

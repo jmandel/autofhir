@@ -1,0 +1,94 @@
+FHIR-15128: Align Request requester search path
+
+Issue request:
+FHIR-15128 was Published with resolution Not Persuasive with Modification. It asked to restore Request.requester.onBehalfOf and Event.performer.onBehalfOf after workflow patterns replaced the Practitioner-plus-Organization onBehalfOf pattern with PractitionerRole. The final decision did not restore onBehalfOf for RelatedPerson/other actors under the 80% rule, accepted PractitionerRole as the intended representation, and directed removal of the stale Request constraint that referenced onBehalfOf.
+
+Initial application:
+No source commit was found that explicitly names FHIR-15128. History shows the old Request.requester.agent/onBehalfOf backbone and its onBehalfOf constraint were introduced before the issue, then the workflow-pattern reconciliation changed Request.requester and Event.performer to direct references that include PractitionerRole. A later 2018 pattern update removed the stale Request.requester onBehalfOf invariant, matching the Jira resolution, but the Request pattern search-parameter row still pointed at the removed Request.requester.agent subpath.
+
+Additional context:
+source/fhir.ini lists request and event as active logical models, so source/request/request-spreadsheet.xml and source/event/event-spreadsheet.xml are current build inputs. Current Request.requester is a direct Reference including PractitionerRole, Organization, Patient, RelatedPerson, and Device, and current Event.performer.actor is a direct Reference including PractitionerRole and RelatedPerson. A January 2018 Zulip workflow discussion also records that the updated workflow patterns called for eliminating onBehalfOf in favor of PractitionerRole, and no direct Confluence or Zulip conflict for FHIR-15128 was found.
+
+AutoFHIR reconciliation:
+Updated the Request pattern requester search-parameter mapping from the removed Request.requester.agent path to the current Request.requester element. No Event source change was needed because Event.performer.onBehalfOf is absent and Event.performer.actor already uses the current direct-reference pattern.
+
+Recommendation:
+Keep this source fix. Do not restore workflow-pattern onBehalfOf without a new work-group decision and evidence that the Organization-on-behalf-of use case is common enough for core; use PractitionerRole under the current pattern in the meantime.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15128
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-14334: background - the January 2018 Zulip discussion referenced the CareTeam PractitionerRole/onBehalfOf debate, but that issue concerns the CareTeam resource rather than the Request/Event workflow patterns and was not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15128: Published/Not Persuasive with Modification; asked to bring back Request.requester.onBehalfOf and Event.performer.onBehalfOf but resolved to leave onBehalfOf out and remove the stale Request constraint. Learned: final WG intent is PractitionerRole rather than restoring workflow onBehalfOf.
+- E2 Source source/fhir.ini:154: request and event are active logical models. Learned: the Request/Event spreadsheet sources are in current build scope.
+- E3 Source source/request/request-spreadsheet.xml:1398 and source/event/event-spreadsheet.xml:1357: current Request.requester and Event.performer.actor are direct references including PractitionerRole/RelatedPerson, with no onBehalfOf subelement. Learned: the main current pattern definitions already match the Jira decision.
+- E4 Git 14b69a1: removed the obsolete Request.requester onBehalfOf invariant after earlier workflow reconciliation removed the onBehalfOf subelement. Learned: the intended initial application happened, but one search-parameter path remained stale.
+- E5 Zulip #implementers > FMM5 Patient Change - GeneralPracitioner: Lloyd McKenzie stated that updated workflow patterns eliminate onBehalfOf and use PractitionerRole. Learned: community discussion supports the current pattern direction and does not justify re-adding onBehalfOf.
+- E6 Verification command: rg found no Request.requester.agent, Request.requester.onBehalfOf, or Event.performer.onBehalfOf paths in source/request or source/event after the edit, and diff --check reported no whitespace errors. Learned: the stale path was removed without introducing formatting issues.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15128",
+    "url": "https://jira.hl7.org/browse/FHIR-15128",
+    "snapshot_path": "contexts/FHIR-15128/jira/FHIR-15128.md",
+    "ref": { "jira_key": "FHIR-15128" },
+    "summary": "Published/Not Persuasive with Modification issue asking to restore workflow onBehalfOf elements, with final resolution to rely on PractitionerRole and remove a stale Request onBehalfOf constraint.",
+    "learned": "This establishes that current core should not re-add Request.requester.onBehalfOf or Event.performer.onBehalfOf, but should remove stale references to the removed Request structure.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:154",
+    "ref": { "path": "source/fhir.ini", "line": 154 },
+    "summary": "The fhir.ini logical model list includes event and request.",
+    "learned": "The Request and Event spreadsheet sources are active current-build inputs, so their paths matter for reconciliation.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/request/request-spreadsheet.xml:1398; source/event/event-spreadsheet.xml:1357; source/request/request-spreadsheet.xml:2407",
+    "ref": { "path": "source/request/request-spreadsheet.xml", "line": 2407 },
+    "summary": "Current Request.requester and Event.performer.actor are direct reference elements, and the Request requester search row now maps to Request.requester.",
+    "learned": "The remaining invalid Request.requester.agent reference was corrected while preserving the no-onBehalfOf pattern decision.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "14b69a1c6dd33918b20d53ffd6cfbab523f840ba",
+    "ref": { "commit": "14b69a1c6dd33918b20d53ffd6cfbab523f840ba" },
+    "summary": "The 2018 pattern update removed the obsolete Request.requester invariant named 'onBehalfOf for Practitioner or Device'.",
+    "learned": "FHIR-15128's requested constraint removal had been applied historically, leaving only the stale requester search path found during reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > FMM5 Patient Change - GeneralPracitioner",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/FMM5%20Patient%20Change%20-%20GeneralPracitioner",
+    "summary": "A January 2018 implementers thread records that updated workflow patterns eliminate onBehalfOf and use PractitionerRole in those situations.",
+    "learned": "Community evidence supports the PractitionerRole direction and does not reveal a conflicting mandate to restore onBehalfOf.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Validation search and whitespace check",
+    "command": "rg -n 'Request\\.requester\\.agent|Request\\.requester\\.onBehalfOf|Event\\.performer\\.onBehalfOf' source/request source/event; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/request/request-spreadsheet.xml",
+    "summary": "No obsolete Request/Event onBehalfOf or requester.agent paths remain in source/request or source/event, and diff --check reported no whitespace errors.",
+    "learned": "The source fix removed the stale path cleanly.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

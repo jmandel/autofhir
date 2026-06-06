@@ -1,0 +1,121 @@
+FHIR-8502: Align medication rate-change guidance
+
+Issue request:
+FHIR-8502 was a Published Pharmacy change request, resolved Persuasive with Modification, asking to resolve contradictory rate-change guidance. The final decision changed MedicationAdministration.dosage.rate[x] to say rate changes recorded during administration should be captured as distinct MedicationAdministration events with their times, changed the MedicationOrder dosage rate comment to new/updated orders, and removed the corresponding rate comment from MedicationDispense.
+
+Initial application:
+The issue was initially applied by git commit 0c6541df60, whose message explicitly says it changed MedicationOrder rate comments, MedicationAdministration rate comments, and removed the MedicationDispense rate comment for #8502. The current MedicationAdministration source still carries the intended distinct-MedicationAdministration wording. A later FHIR-12840 refactor in 6a4b0d916e moved MedicationOrder/MedicationRequest dosage details into the reusable Dosage datatype, so the old request-specific rate guidance now appears as generic Dosage.doseAndRate.rate[x] text.
+
+Additional context:
+The current build scope includes Dosage and the MedicationAdministration, MedicationDispense, and MedicationRequest resources through source/fhir.ini. Later R6 dosage work, including FHIR-51540 source changes and the Applied FHIR-54651 cleanup, changed MedicationRequest, MedicationDispense, and MedicationStatement dosageInstruction from repeated Dosage elements to a single DosageDetails element whose steps/components represent complex or changing dosage regimes. Current dosage narrative and the MedicationRequest/MedicationDispense introduction pages already describe that DosageDetails structure. The remaining old text in Dosage.doseAndRate.rate[x] still said each rate change should become a new MedicationRequest, and MedicationDispense.dosageInstruction still said multiple dosageInstruction instances were needed despite current cardinality 0..1. FHIR-52892 also copied that stale MedicationDispense comment onto doseAdministrationAid, an adherence-packaging element where dosageInstruction rate-change prose is not meaningful.
+
+AutoFHIR reconciliation:
+This commit keeps the current MedicationAdministration wording unchanged and updates active source so the rate-change guidance matches the current R6 dosage model. Dosage.doseAndRate.rate[x] now tells implementers to use the dosage structure available in the containing context, such as separate DosageDetails steps, or a new/updated MedicationRequest when the change represents a change to the request. MedicationDispense.dosageInstruction now points to DosageDetails instead of impossible repeated dosageInstruction instances, and the accidentally copied dosageInstruction rate-change comment was removed from MedicationDispense.doseAdministrationAid.
+
+Recommendation:
+Keep this source fix. It preserves the FHIR-8502 MedicationAdministration resolution while preventing the old MedicationOrder/MedicationDispense rate-change wording from misleading R6 implementers after the DosageDetails restructuring. If the broader FHIR-51540 DosageDetails model is later substantially reworked, re-check this wording with that change family, but no separate FHIR-51540 or FHIR-52892 audit is intended here.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8502
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-12840: same-change-family - renamed DosageInstruction to Dosage and explains how the MedicationOrder rate comment became reusable Dosage source.
+FHIR-51540: later-change - current source implements DosageDetails for complex dosage regimes; it makes the literal new-MedicationRequest guidance stale, but this run does not decide FHIR-51540.
+FHIR-54651: later-change - Applied follow-up removed DosageDetails.simple and confirms current complex dosage representation uses steps/components.
+FHIR-7737: background - older MedicationPrescription comment introduced multiple-dosageInstruction wording; current R6 DosageDetails makes that wording stale for MedicationDispense.dosageInstruction.
+FHIR-52892: background - introduced doseAdministrationAid and appears to have copied the stale dosageInstruction comment onto that packaging element; this commit removes only that copied comment and does not audit the FHIR-52892 request.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8502: Published/Persuasive with Modification Pharmacy issue requesting MedicationAdministration, MedicationOrder, and MedicationDispense rate-comment changes. Learned: establishes final intent for the seed reconciliation.
+- E2 Source source/medicationadministration/structuredefinition-MedicationAdministration.xml:765: current MedicationAdministration.dosage.rate[x] comment uses distinct MedicationAdministration events with rate-change times. Learned: the original MedicationAdministration contradiction is already corrected in active source.
+- E3 Git 0c6541df60: initial #8502 application commit changed MO/MA rate comments and removed the MD rate comment. Learned: confirms historical application path and exact source family.
+- E4 Git 6a4b0d916e and Jira FHIR-12840: changed DosageInstruction to Dosage. Learned: explains why the MedicationOrder/MedicationRequest rate comment now lives in generic Dosage source.
+- E5 Source source/datatypes/dosage.xml:1249 and source/dosage.html:47: Dosage.doseAndRate.rate[x] is active reusable dosage source, while dosage narrative says dosageInstruction now uses one DosageDetails with steps/components. Learned: the old new-MedicationRequest wording needed alignment with current build semantics.
+- E6 Source source/medicationdispense/structuredefinition-MedicationDispense.xml:729 and source/fhir.ini:200: MedicationDispense is an active resource, dosageInstruction is 0..1 DosageDetails, and its stale multiple-instances comment contradicted the current model. Learned: source change is in build scope and necessary for implementer understanding.
+- E7 Jira/Zulip FHIR-51540 and Jira FHIR-54651: later dosage work introduced and refined DosageDetails for complex/concurrent dosage regimes. Learned: later context supports using DosageDetails steps/components rather than repeated dosageInstruction instances or always-new MedicationRequests.
+- E8 Command community/source search: Jira/Zulip/Confluence searches found no FHIR-8502-specific community discussion that conflicts with the Jira/source conclusion. Learned: no discovered external discussion changes the reconciliation decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8502",
+    "url": "https://jira.hl7.org/browse/FHIR-8502",
+    "snapshot_path": "contexts/FHIR-8502/jira/FHIR-8502.md",
+    "ref": { "jira_key": "FHIR-8502" },
+    "summary": "Published/Persuasive with Modification Pharmacy issue requiring corrected MedicationAdministration and order rate-change comments and removal of the MedicationDispense rate comment.",
+    "learned": "This is the final WG decision that governs the seed reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/medicationadministration/structuredefinition-MedicationAdministration.xml:765",
+    "ref": { "path": "source/medicationadministration/structuredefinition-MedicationAdministration.xml", "line": 765 },
+    "summary": "MedicationAdministration.dosage.rate[x] now says rate changes should be distinct MedicationAdministration events with specific rates and times.",
+    "learned": "The seed's original MedicationAdministration contradiction remains fixed in current active source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "0c6541df60",
+    "ref": { "commit": "0c6541df609f5323c35e204e971168e5a89a4846" },
+    "summary": "Initial #8502 commit changed MedicationOrder and MedicationAdministration rate comments and removed the MedicationDispense rate comment.",
+    "learned": "This confirms how FHIR-8502 was originally applied before later source refactors.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "6a4b0d916e / FHIR-12840",
+    "url": "https://jira.hl7.org/browse/FHIR-12840",
+    "ref": { "commit": "6a4b0d916ec0983d3c0e8a2d28366e99dc12fc76", "jira_key": "FHIR-12840" },
+    "summary": "FHIR-12840 changed DosageInstruction to the reusable Dosage datatype.",
+    "learned": "This refactor explains why the old MedicationOrder/MedicationRequest rate comment was in generic Dosage source.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/dosage.xml:1249; source/dosage.html:47",
+    "ref": { "path": "source/datatypes/dosage.xml", "line": 1249 },
+    "summary": "Dosage.doseAndRate.rate[x] is active datatype source; dosage narrative says dosageInstruction now uses one DosageDetails with steps/components for complex regimes.",
+    "learned": "The generic rate comment needed to mention the containing dosage structure instead of always directing a new MedicationRequest.",
+    "supports": ["additional_context", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/medicationdispense/structuredefinition-MedicationDispense.xml:729; source/fhir.ini:200",
+    "ref": { "path": "source/medicationdispense/structuredefinition-MedicationDispense.xml", "line": 729 },
+    "summary": "MedicationDispense is active build source; dosageInstruction is 0..1 DosageDetails but still had a comment requiring multiple dosageInstruction instances.",
+    "learned": "The stale MedicationDispense wording contradicted current cardinality and the DosageDetails model.",
+    "supports": ["additional_context", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-51540 / FHIR-54651",
+    "url": "https://jira.hl7.org/browse/FHIR-54651",
+    "ref": { "jira_key": "FHIR-54651" },
+    "summary": "Later dosage work introduced and refined DosageDetails steps/components for complex dosage regimes.",
+    "learned": "Current-source context supports aligning FHIR-8502's old rate-change comments with DosageDetails rather than repeated dosageInstruction elements.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-8502 and medication rate changes",
+    "command": "bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-8502%' ...\"; bun run confluence:search refs jira FHIR-8502; bun run zulip:search fts 'MedicationAdministration rate dosage average' --limit 10; bun run confluence:search fts 'MedicationAdministration rate dosage average' --limit 10",
+    "query": "FHIR-8502 MedicationAdministration rate dosage average",
+    "summary": "No directly relevant or conflicting FHIR-8502 Zulip or Confluence discussion was found.",
+    "learned": "No discovered community record changes the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

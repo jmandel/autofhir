@@ -1,0 +1,101 @@
+FHIR-25027: Audit choice-type extension differential migration
+
+Issue request:
+FHIR-25027 was Published/Persuasive for R5 as a FHIR-I technical correction. It reported that many profile differentials used typed choice paths incorrectly, with the iso21090 ADXP postBox extension shown as using Extension.valueString where the differential should constrain Extension.value[x] with type string.
+
+Initial application:
+The issue appears to have been applied by core commit 9346c8cc45, which changed the legacy SpreadsheetParser extension-generation logic to always name the generated Extension value element value[x] instead of deriving valueString, valueReference, or another type-specific value element name. A contemporaneous FHIR-I Zulip technical-correction thread records GF#25027 as approved.
+
+Additional context:
+The affected legacy parser is no longer present in this checkout after the later Gradle/kindling migration, and the active core iso-21090 profile page now links to extension definitions via the Extension Pack location rather than carrying the definitions directly in core. The current Extension Pack postBox definition already has Extension.value[x] with type string. A bounded residual search found no current core source definitions with top-level Extension.value<Type> paths, but did find a separate active Extension Pack extension, address-official from FHIR-43838, with the same style of typed value paths.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no core source change. The original FHIR-core correction is already represented in history and the seed example is correct in the current external Extension Pack; any remaining same-pattern cleanup is outside this FHIR-core checkout.
+
+Recommendation:
+Keep this audit commit as the core reconciliation for FHIR-25027. If the Extension Pack is in scope for a separate worker or human follow-up, review and likely correct StructureDefinition-address-official.xml so its value[x] type slices use path Extension.value[x] rather than Extension.valueBoolean/Extension.valueCodeableConcept.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25027
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-43838: background - added the current Extension Pack address-official extension where a bounded residual search found the only active same-pattern typed Extension.value paths outside core.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25027: Published/Persuasive R5 technical correction for wrong choice-type differential paths, including iso21090 ADXP postBox. Learned: establishes final WG intent to use value[x] in differentials.
+- E2 Git 9346c8cc45: legacy SpreadsheetParser was changed to set generated extension value element names to value[x]. Learned: the issue was initially applied as a generator-level core correction.
+- E3 Source source/fhir.ini:449 and source/profiles/iso-21090-introduction.xml:85-97: iso-21090 remains an active core profile page but links extension definitions through the configured extensions location. Learned: current core no longer directly owns the affected extension definitions.
+- E4 Source /home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-iso21090-ADXP-postBox.xml:68-73: current postBox differential uses Extension.value[x] with type string. Learned: the seed example is already correct in the live external definition source.
+- E5 Source /home/jmandel/work/fhir-extensions/input/extensions-ig.xml:263-268 and input/definitions/datatypes/StructureDefinition-address-official.xml:61-80: Extension Pack includes all input/definitions resources and address-official has top-level typed value paths. Learned: any remaining same-pattern cleanup is in the Extension Pack, not core.
+- E6 Zulip #fhir/infrastructure-wg > FHIR Technical Correction: message on 2019-10-21 says GF#25027 was among three approved technical corrections. Learned: community evidence supports the Jira technical-correction disposition.
+- E7 Verification command: rg found no top-level Extension.value<Type> paths in core source, while the bounded Extension Pack search found address-official as the only active same-pattern top-level case. Learned: a core source edit is not justified for this reconciliation.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25027",
+    "url": "https://jira.hl7.org/browse/FHIR-25027",
+    "snapshot_path": "contexts/FHIR-25027/jira/FHIR-25027.md",
+    "ref": { "jira_key": "FHIR-25027" },
+    "summary": "Published/Persuasive R5 technical correction requiring wrong choice-type differential paths such as Extension.valueString to be represented as Extension.value[x] with the constrained type.",
+    "learned": "This establishes the final FHIR-I intent for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "9346c8cc45620d9fa9ddead75a94a3cb8b9491c5",
+    "ref": { "commit": "9346c8cc45620d9fa9ddead75a94a3cb8b9491c5" },
+    "summary": "Changed legacy SpreadsheetParser extension generation to set value[x] for extension value elements.",
+    "learned": "The original core application was a generator fix rather than a hand edit to each generated extension definition.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:449; source/profiles/iso-21090-introduction.xml:85-97",
+    "summary": "The core iso-21090 profile remains active and its narrative links ISO 21090 extension pages through the extensions-location placeholder.",
+    "learned": "Current core source points to externally maintained extension definitions instead of directly carrying the affected definitions.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-iso21090-ADXP-postBox.xml:68-73",
+    "summary": "The current Extension Pack postBox differential has element/path Extension.value[x] with type string.",
+    "learned": "The concrete example from FHIR-25027 is already corrected in the external source that now owns it.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/extensions-ig.xml:263-268; /home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-address-official.xml:61-80",
+    "summary": "The Extension Pack build includes input/definitions resources; address-official has value[x] slices whose paths are Extension.valueBoolean and Extension.valueCodeableConcept.",
+    "learned": "The only discovered active same-pattern residual issue is outside this core checkout.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#fhir/infrastructure-wg > FHIR Technical Correction",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir%2Finfrastructure-wg/topic/FHIR%20Technical%20Correction",
+    "summary": "The 2019-10-21 thread records GF#25027 among three approved technical corrections.",
+    "learned": "Community evidence supports the Jira disposition and does not conflict with the audit conclusion.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Core and Extension Pack residual typed Extension.value path search",
+    "command": "rg -n '<element id=\"Extension\\.value[A-Z][^\"]*\">|<path value=\"Extension\\.value[A-Z][^\"]*\"/>' source --glob 'StructureDefinition-*' --glob '*.xml'; rg -n '<element id=\"Extension\\.value[A-Z][^\"]*\">|<path value=\"Extension\\.value[A-Z][^\"]*\"/>' /home/jmandel/work/fhir-extensions/input/definitions --glob 'StructureDefinition-*'",
+    "summary": "No top-level matching paths were found in core source; the bounded Extension Pack search found address-official as the only active same-pattern top-level case, aside from a nested quantity-accuracy child path.",
+    "learned": "Core should not be edited for FHIR-25027, and any residual cleanup belongs in the Extension Pack.",
+    "supports": ["reconciliation", "recommendation"]
+  }
+]
+</evidence-manifest>

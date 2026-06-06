@@ -1,0 +1,97 @@
+FHIR-6077: Audit complex extension rendering
+
+Issue request:
+FHIR-6077 was a Published / Persuasive DSTU1 FHIR-core issue reporting that the XML rendering for the complex questionnaire-enableWhen extension showed a valueString/value[x] shape instead of the extension's child extensions for question and answer.
+
+Initial application:
+The Jira comment records svn revision 5909. The migrated source history contains commit 66af2b41301710f038ffc5159b623180986135e7, git-svn build@5909, with the message "#6077 - fix rendering of complex extensions". That commit changed the old XML and JSON specification generators to detect complex extensions, render sliced Extension.extension children, suppress prohibited value/extension elements, and populate child extension URLs.
+
+Additional context:
+The exact questionnaire-enableWhen extension is no longer a current core extension: Questionnaire.item.enableWhen is now modeled directly in the active Questionnaire resource source, and FHIR-19527 later moved the remaining complicated Questionnaire extensions, including questionnaire-enableWhen renamed to questionnaire-enableWhenExpression, to SDC. Current core source still documents how complex extensions are represented through Extension.extension child slices, and current extension-pack source and CI rendering show complex extensions such as geolocation with latitude and longitude child extensions rather than a single erroneous valueString.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical rendering defect was applied by the Jira-tagged 2015 generator commit, the old generator files are no longer present in this checkout, and the current build-scope core source already describes complex extension structure correctly. Editing current narrative would only restate existing guidance, and the old questionnaire extension is outside current core source.
+
+Recommendation:
+Keep this audit commit as-is. No current FHIR-core source correction is needed for FHIR-6077; if a future rendering defect appears, it should be investigated in the current publisher/IG rendering pipeline with a fresh issue rather than by changing these core source pages for the obsolete DSTU1 example.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6077
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-19527: later-change - moved complicated Questionnaire extensions, including questionnaire-enableWhen renamed to questionnaire-enableWhenExpression, out of core and into SDC.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6077: Published/Persuasive issue describing bad rendering of the complex questionnaire-enableWhen extension and recording svn revision 5909. Learned: the final request was a rendering correction for complex extension child elements.
+- E2 Git 66af2b41301710f038ffc5159b623180986135e7: migrated build@5909 commit "#6077 - fix rendering of complex extensions" changed the old XML and JSON spec generators. Learned: the requested fix was historically applied in source history.
+- E3 Source source/extensibility.html:67-70 and source/defining-extensions.html:223-227: current active core source states that complex extensions use child extension slices and either value[x] or sub-extensions, not both. Learned: current core guidance preserves the intended complex-extension semantics.
+- E4 Extension Pack input/definitions/datatypes/StructureDefinition-geolocation.xml:57-83 and CI page StructureDefinition-geolocation-definitions.html: current complex extension source/rendering shows Extension.extension:latitude with value[x] and no erroneous root valueString. Learned: current extension rendering surfaces child extensions correctly in a representative complex extension.
+- E5 Jira FHIR-19527 and source/questionnaire/structuredefinition-Questionnaire.xml:1008-1096: later Published issue moved complicated Questionnaire extensions to SDC, while current core has Questionnaire.item.enableWhen as native elements. Learned: the obsolete questionnaire-enableWhen extension example is not a current core source defect.
+- E6 Command searches for Zulip and Confluence references to FHIR-6077/questionnaire-enableWhen: exact FHIR-6077 searches found no directly relevant community discussion or conflicting minutes. Learned: no community evidence was found that changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6077",
+    "url": "https://jira.hl7.org/browse/FHIR-6077",
+    "snapshot_path": "contexts/FHIR-6077/jira/FHIR-6077.md",
+    "ref": { "jira_key": "FHIR-6077" },
+    "summary": "Published/Persuasive DSTU1 issue reporting that the complex questionnaire-enableWhen extension rendered as valueString/value[x] instead of child extensions.",
+    "learned": "This establishes the final request and the intended correction: complex extension rendering should show child extensions.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "66af2b41301710f038ffc5159b623180986135e7",
+    "ref": { "commit": "66af2b41301710f038ffc5159b623180986135e7" },
+    "summary": "Migrated build@5909 commit '#6077 - fix rendering of complex extensions' changed the old XmlSpecGenerator and JsonSpecGenerator.",
+    "learned": "The Jira-recorded SVN revision was applied in source history and directly targeted the rendering bug.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/extensibility.html:67-70; source/defining-extensions.html:223-227",
+    "summary": "Current active core source says child extension slices introduced by complex extension definitions may use relative URLs and that Extension.extension is sliced by url for nested extensions.",
+    "learned": "Current core source already explains the child-extension model needed for complex extensions.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "FHIR Extensions Pack StructureDefinition-geolocation-definitions.html",
+    "url": "https://build.fhir.org/ig/HL7/fhir-extensions/StructureDefinition-geolocation-definitions.html",
+    "ref": { "source_path": "/home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-geolocation.xml" },
+    "summary": "A representative complex extension renders child slices such as Extension.extension:latitude and Extension.extension:longitude with their value[x] children.",
+    "learned": "Current rendering no longer exhibits the obsolete valueString-only failure described in FHIR-6077.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-19527",
+    "url": "https://jira.hl7.org/browse/FHIR-19527",
+    "ref": { "jira_key": "FHIR-19527" },
+    "summary": "Published/Persuasive with Modification issue moving complicated Questionnaire extensions, including questionnaire-enableWhen renamed to questionnaire-enableWhenExpression, to SDC.",
+    "learned": "The old questionnaire-enableWhen extension example is not a remaining current FHIR-core source artifact to edit.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-6077 and questionnaire-enableWhen rendering",
+    "command": "bun run zulip:search fts '\"FHIR-6077\" questionnaire enableWhen' --limit 10; bun run confluence:search refs jira FHIR-6077; bun run confluence:search fts '\"questionnaire-enableWhen\"' --limit 10",
+    "query": "FHIR-6077 questionnaire enableWhen rendering",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found for FHIR-6077; broader questionnaire-enableWhen hits were unrelated to the 2015 rendering issue.",
+    "learned": "No discovered community record changes the Jira/git/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,108 @@
+FHIR-13916: Audit Subscription creation rejection guidance
+
+Issue request:
+FHIR-13916 was a Published/Persuasive with Modification STU3 change request for Subscription error handling. It asked what a server should do when a posted Subscription cannot be honored at all, such as because the channel type or criteria are unsupported, and suggested not storing the Subscription and returning an error OperationOutcome; the approved resolution was to document this as a recommended option.
+
+Initial application:
+The issue was applied by commit 8efdf4db313c ("GF#13916 - note about subscription error handling", svn revision 14476), which added guidance to the Subscription notes saying the server SHOULD check whether it is prepared to accept/process the subscription and, if not, return an error with an OperationOutcome instead of processing the create. Later Subscription page refactors, including ef0558f0c600 and d51aae543ee9, moved and preserved this guidance in the active Subscriptions framework page while leaving the Subscription resource page linked back to that framework section.
+
+Additional context:
+Subscription and the Subscriptions framework are active in the current build: source/fhir.ini lists Subscription as an active resource, and source/hierarchy.xml lists subscriptions.html. Current source also lists the concrete checks a server should perform when processing a Subscription request, including supported topics, filters, channel type, endpoint, and payload. FHIR-47808 later asked a closely related R6 ballot question about failed Subscription creation HTTP codes; it was applied by bce7fd5987ae and is already represented on the combined branch by audit commit 952b52582d0e, so this reconciliation does not publish a duplicate FHIR-47808 commit. Its resolution and the current http.html#create text support using normal create error handling such as 400/422 plus OperationOutcome rather than hard-coding FHIR-13916's suggested 412 status.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build already conveys the approved FHIR-13916 behavior: unsupported or unprocessable Subscription requests can be rejected instead of created, and the server SHOULD return an OperationOutcome error. Adding another source edit would duplicate existing framework guidance and risk conflicting with the later standard HTTP create-error guidance.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR core source change is needed for FHIR-13916 unless a future work-group decision explicitly requires a Subscription-specific HTTP status code beyond the existing standard create interaction rules.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13916
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-47808: later-change - later Applied/Persuasive with Modification ballot issue clarified Subscription creation failure HTTP handling and is already audited on the combined branch by 952b52582d0e.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13916: Published/Persuasive with Modification issue requested guidance for unhonorable Subscription create requests and OperationOutcome errors. Learned: this establishes the final seed issue request and its recommended-option scope.
+- E2 Source source/subscriptions.html:431-463 and 720-740: current framework guidance says servers should validate supported topics, filters, channels, endpoints, and payloads, and SHOULD return an OperationOutcome error instead of processing an unacceptable create. Learned: the requested behavior is already present in active current source.
+- E3 Source source/http.html:1240-1290: the REST create interaction defines standard failure status handling, including 400/422 responses with OperationOutcome details. Learned: later context supports normal HTTP create errors rather than adding a Subscription-specific 412 rule.
+- E4 Git 8efdf4db313c and d51aae543ee9: the original GF#13916 application added the OperationOutcome rejection note, and later Subscription refactoring preserved it in the framework page. Learned: the current text is a direct continuation of the applied issue, not an accidental omission.
+- E5 Source source/hierarchy.xml:173 and source/fhir.ini:234: Subscriptions is in the build hierarchy and Subscription is an active resource. Learned: the checked source is in current FHIR build scope.
+- E6 Jira/Confluence/Git FHIR-47808 and 952b52582d0e: later related issue clarified Subscription creation failures, FHIR-I minutes recorded the 11-0-0 vote, source commit bce7fd5987ae applied it, and the combined branch already has an audit commit. Learned: the related later clarification supports the no-change decision and must not be duplicated here.
+- E7 Command community search: quoted Zulip and Confluence searches for FHIR-13916 plus Subscription OperationOutcome terms found no directly relevant or conflicting community records; Confluence refs for FHIR-13916 were empty. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13916",
+    "url": "https://jira.hl7.org/browse/FHIR-13916",
+    "snapshot_path": "contexts/FHIR-13916/jira/FHIR-13916.md",
+    "ref": { "jira_key": "FHIR-13916" },
+    "summary": "Published/Persuasive with Modification STU3 issue asking how to handle a Subscription create request the server cannot honor, with OperationOutcome error guidance.",
+    "learned": "This establishes the final seed issue request and shows the approved scope was a recommended option rather than a mandatory Subscription-specific status code.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/subscriptions.html:431-463; source/subscriptions.html:720-740",
+    "ref": { "path": "source/subscriptions.html", "lines": "431-463,720-740" },
+    "summary": "Current Subscriptions framework source lists the checks for processing Subscription requests and says unacceptable creates SHOULD return an OperationOutcome error instead of processing the create.",
+    "learned": "The requested behavior is already present in active current source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/http.html:1240-1290",
+    "ref": { "path": "source/http.html", "lines": "1240-1290" },
+    "summary": "The REST create interaction defines normal create failure handling, including 400/422 responses and OperationOutcome details.",
+    "learned": "Current general HTTP guidance covers status-code selection and argues against adding a Subscription-only 412 rule for this older issue.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "8efdf4db313c; d51aae543ee9",
+    "ref": { "commit": "8efdf4db313c7d7a828d5f5cfdeca3a9fde3bb9d" },
+    "summary": "Commit 8efdf4db313c applied GF#13916 by adding the OperationOutcome rejection note; later Subscription refactoring in d51aae543ee9 preserved the guidance in the framework page.",
+    "learned": "History confirms the current source is the applied FHIR-13916 guidance carried forward through refactors.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/hierarchy.xml:173; source/fhir.ini:234",
+    "ref": { "path": "source/hierarchy.xml", "lines": "173" },
+    "summary": "The Subscriptions framework page is listed in the build hierarchy, and Subscription is an active resource in fhir.ini.",
+    "learned": "The source locations checked are in the current FHIR build scope.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-47808 and combined audit 952b52582d0e",
+    "url": "https://jira.hl7.org/browse/FHIR-47808",
+    "snapshot_path": "contexts/FHIR-47808/jira/FHIR-47808.md",
+    "ref": { "jira_key": "FHIR-47808", "commit": "952b52582d0ec16680238e28212489ac1f0fdb7c" },
+    "summary": "Later Applied/Persuasive with Modification issue clarified failed Subscription creation HTTP handling and is already audited on the combined branch.",
+    "learned": "This related later decision supports the no-change seed decision and should not be republished as part of this worker.",
+    "supports": ["additional_context", "related_issue_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-13916 Subscription OperationOutcome error",
+    "command": "bun run zulip:search fts '\"FHIR-13916\" Subscription OperationOutcome error' --limit 10; bun run confluence:search refs jira FHIR-13916; bun run confluence:search fts '\"FHIR-13916\" Subscription OperationOutcome error' --limit 10",
+    "query": "FHIR-13916 Subscription OperationOutcome error",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence records were found for the seed issue key and terms.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,130 @@
+FHIR-28464: Audit ResearchStudy status unknown handling
+
+Issue request:
+FHIR-28464 was a Published/Persuasive with Modification R4 change request asking for an unknown value in the ResearchStudy status code system because ResearchStudy.status is required and source data may have an unknown or blank clinical-trial status. The final resolution accepted the concern as part of shifting ResearchStudy.status to mean only the publication status of the resource.
+
+Initial application:
+A Jira-referencing source commit, 9175459a6e, mentions #28464 but only added ResearchStudy.site and ResearchStudy.result target profiles, so it did not itself implement the status resolution. The status semantics were actually changed in commit d5448ea900 for the broader ClinicalTrials.gov ResearchStudy work: ResearchStudy.status changed from the required research-study-status value set and "current state of the study" definition to the required publication-status value set with short "draft | active | retired | unknown" and definition "The publication state of the resource (not of the study)."
+
+Additional context:
+ResearchStudy is active in the current build through source/fhir.ini, and current source still carries the FHIR-28464 resolution: ResearchStudy.status is required, bound to http://hl7.org/fhir/ValueSet/publication-status, and the PublicationStatus code system includes unknown. The older research-study-status terminology remains in current source, but it is now used for ResearchStudy.progressStatus.state, not for the required resource status. Later Jira FHIR-50644 confirms this interpretation by rejecting a request to broaden ResearchStudy.status for trial lifecycle states because ResearchStudy.status is publication status and study states belong in ResearchStudy.progressStatus.state.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Adding unknown to the research-study-status code system would now be the wrong fix for FHIR-28464 because that code system no longer constrains required ResearchStudy.status; the current source already satisfies the final resolution through PublicationStatus.
+
+Recommendation:
+Keep this no-change audit commit as-is. No follow-up source work is needed for FHIR-28464 unless BR&R reopens the separate question of whether progressStatus.state should include a distinct unknown/blank study-state code.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-28464
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-31604: supporting-decision - broader ClinicalTrials.gov ResearchStudy work whose source commit shifted ResearchStudy.status to publication status.
+FHIR-50644: later-change - later BR&R no-change decision confirming ResearchStudy.status is publication status and trial lifecycle status belongs in progressStatus.state.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-28464: Published/Persuasive with Modification issue requested an unknown status value and resolved it through the shift to publication status. Learned: this establishes the final target behavior for reconciliation.
+- E2 Source source/researchstudy/structuredefinition-ResearchStudy.xml:373: ResearchStudy.status is required, has short "draft | active | retired | unknown", is defined as publication state, and binds required to ValueSet/publication-status. Learned: the current built ResearchStudy source already carries the requested unknown status path.
+- E3 Source source/canonicalresource/codesystem-publication-status.xml:73: PublicationStatus includes code unknown. Learned: the required value set bound from ResearchStudy.status has an unknown code available.
+- E4 Source source/researchstudy/structuredefinition-ResearchStudy.xml:802: ResearchStudy.progressStatus.state is the current home for research-study lifecycle status values. Learned: the old research-study-status code system is not the required ResearchStudy.status binding anymore.
+- E5 Git d5448ea900: changed ResearchStudy.status from study state / research-study-status to publication state / publication-status. Learned: the FHIR-28464 resolution was applied through the broader status semantics shift rather than by adding a code to the old code system.
+- E6 Jira FHIR-50644: Resolved - No Change decision says ResearchStudy.status is publication status and points to progressStatus.state for study status. Learned: later BR&R guidance confirms the current interpretation.
+- E7 Confluence 91989729: Vocabulary WGM minutes note FHIR-28464 was moved to the BR&R accelerator. Learned: community/minutes evidence does not contradict Jira/source and confirms BR&R ownership.
+- E8 Command community search: Zulip searches for "FHIR-28464" and "ResearchStudy unknown status" found no results. Learned: no discovered Zulip discussion changes the Jira/source conclusion.
+- E9 Verification command/query: fhir.ini and source grep confirmed researchstudy is active in [resources] and current status binding/unknown code are present. Learned: the checked source is in current build scope and already satisfies the issue.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-28464",
+    "url": "https://jira.hl7.org/browse/FHIR-28464",
+    "snapshot_path": "contexts/FHIR-28464/jira/FHIR-28464.md",
+    "ref": { "jira_key": "FHIR-28464" },
+    "summary": "Published/Persuasive with Modification issue asking for an unknown ResearchStudy status value, resolved as part of shifting status to publication status.",
+    "learned": "This establishes that the accepted fix is the publication-status reinterpretation, not necessarily adding a code to the old study-status system.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/researchstudy/structuredefinition-ResearchStudy.xml:373-392",
+    "ref": { "path": "source/researchstudy/structuredefinition-ResearchStudy.xml", "start_line": 373, "end_line": 392 },
+    "summary": "ResearchStudy.status is required, defined as publication state, has short draft | active | retired | unknown, and binds to ValueSet/publication-status.",
+    "learned": "The current active ResearchStudy source already provides unknown through the intended binding.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/canonicalresource/codesystem-publication-status.xml:73-76",
+    "ref": { "path": "source/canonicalresource/codesystem-publication-status.xml", "start_line": 73, "end_line": 76 },
+    "summary": "PublicationStatus includes code unknown with a definition for authoring systems that do not know which listed status applies.",
+    "learned": "The required status binding contains the unknown code requested by the issue.",
+    "supports": ["current_source", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/researchstudy/structuredefinition-ResearchStudy.xml:792-818",
+    "ref": { "path": "source/researchstudy/structuredefinition-ResearchStudy.xml", "start_line": 792, "end_line": 818 },
+    "summary": "ResearchStudy.progressStatus.state is a CodeableConcept for study-state labels and binds to the research-study-status value set.",
+    "learned": "The old research-study-status terminology remains for study lifecycle/progress states, separate from required resource publication status.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "d5448ea900",
+    "ref": { "commit": "d5448ea900" },
+    "summary": "The 2021-03-25 ResearchStudy ClinicalTrials.gov commit changed ResearchStudy.status from current study state bound to research-study-status to publication state bound to publication-status.",
+    "learned": "This is the source-history event that applied the semantic shift cited by FHIR-28464's resolution.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-50644",
+    "url": "https://jira.hl7.org/browse/FHIR-50644",
+    "ref": { "jira_key": "FHIR-50644" },
+    "summary": "Resolved - No Change issue stating ResearchStudy.status is publication status and study-status concepts belong in ResearchStudy.progressStatus.state.",
+    "learned": "Later BR&R guidance confirms the current source interpretation and argues against adding lifecycle statuses to ResearchStudy.status.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "Confluence page 91989729",
+    "url": "https://confluence.hl7.org/spaces/VOC/pages/91989729/Sept+2020+-+Virtual+HL7+WGM+-+Wednesday+8AM+Minutes",
+    "snapshot_path": "contexts/FHIR-28464/confluence/91989729.md",
+    "ref": { "confluence_page_id": 91989729 },
+    "summary": "Vocabulary WGM minutes mention FHIR-28464 and that it was moved to the BR&R accelerator.",
+    "learned": "The minutes do not add a conflicting terminology requirement; they support BR&R handling of the issue.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative Zulip search for FHIR-28464 and ResearchStudy unknown status",
+    "command": "bun run zulip:search fts '\"FHIR-28464\"' --limit 10; bun run zulip:search fts '\"ResearchStudy\" '\"unknown\"' '\"status\"' --limit 10",
+    "query": "FHIR-28464; ResearchStudy unknown status",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip hits were found for the issue key or concept search.",
+    "learned": "No discovered Zulip discussion changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Current build-scope and source verification",
+    "command": "git grep -n 'researchstudy' -- source/fhir.ini; rg -n 'ResearchStudy.status|publication-status|<code value=\"unknown\"' source/researchstudy source/canonicalresource/codesystem-publication-status.xml",
+    "summary": "fhir.ini lists researchstudy as an active resource, and source searches confirm ResearchStudy.status binds to publication-status while PublicationStatus includes unknown.",
+    "learned": "The reconciliation checks active source, not stale generated output, and confirms no source edit is needed.",
+    "supports": ["build_scope", "verification"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,117 @@
+FHIR-36674: Align new patient search parameters
+
+Issue request:
+FHIR-36674 was Published/Persuasive for R5 and asked the search parameter registry to stop showing many separately named *-patient search parameters when they were the same cross-resource patient search concept, folding them into clinical-patient except for unrelated text such as wrong-patient.
+
+Initial application:
+The original application appears to be git commit 02267166956241cca648a944409aa70d9adce398, which expanded source/searchparameter/common-search-parameters.xml for clinical-date, clinical-code, clinical-encounter, clinical-identifier, and clinical-patient shortly after the FHIR-I vote. That commit did not cite FHIR-36674, but it matches the Jira comment that Grahame had merged the common search parameter registry entries. Later FHIR-37812 followed the same pattern by adding DeviceAssociation to clinical-patient rather than removing the resource-specific source SearchParameter file.
+
+Additional context:
+The registry generator keeps resource-specific SearchParameter definitions in their resource bundles, but suppresses aligned patient rows in the all-search-parameters registry when the resource base is listed under clinical-patient. Current fhir.ini still builds DeviceAlert and EnrollmentResponse and classifies both in the patient compartment. Their patient SearchParameters were added or changed after the original FHIR-36674 application, so the current build exposed DeviceAlert-patient and EnrollmentResponse-patient as the only real remaining *-patient registry rows outside clinical-patient.
+
+AutoFHIR reconciliation:
+This commit adds DeviceAlert and EnrollmentResponse as bases of source/searchparameter/common-search-parameters.xml clinical-patient. It intentionally leaves the resource-specific SearchParameter definitions in place, matching the existing build pattern used by FHIR-37812 and the current source generator.
+
+Recommendation:
+Keep this source fix. It is a narrow continuation of the already-applied registry alignment and should remove the two current patient-registry outliers without changing the individual resource search parameter definitions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36674
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-16547: supporting-decision - earlier Published decision established that duplicate common code/patient registry rows should be worked through and aligned.
+FHIR-37812: same-change-family - later Applied issue used the same common-search-parameters.xml clinical-patient base-list pattern for DeviceAssociation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36674: Published/Persuasive, vote 13-0-0, requested aligning *-patient search parameters in the registry and Jira comment says the common merge was done. Learned: final WG intent supports a source fix for remaining registry patient outliers.
+- E2 Confluence 156545358: FHIR-I 2023-02-27 minutes record FHIR-36674 as Persuasive, motion Grahame Grieve/Rick Geimer 13-0-0. Learned: meeting evidence confirms the final Jira disposition.
+- E3 Git 02267166956241cca648a944409aa70d9adce398: expanded common-search-parameters.xml clinical-* base lists on 2023-02-28. Learned: this is the historical application pattern for FHIR-36674 even though the commit subject did not cite the key.
+- E4 Source source/searchparameter/common-search-parameters.xml:304,329,336 and source/fhir.ini:251,306,682,692: clinical-patient now includes DeviceAlert and EnrollmentResponse, both active patient-compartment resources. Learned: the authoritative build inputs now include the missing bases.
+- E5 Source source/devicealert/bundle-DeviceAlert-search-params.xml:37-60 and source/enrollmentresponse/bundle-EnrollmentResponse-search-params.xml:65-78: both resources define code=patient SearchParameters targeting Patient. Learned: these are the resource-level definitions the common registry entry should aggregate.
+- E6 Published build query: build.fhir.org search-parameters.json listed DeviceAlert-patient and EnrollmentResponse-patient plus clinical-patient before this reconciliation. Learned: the current rendered/package surface had exactly two real *-patient outliers to correct.
+- E7 Verification command/query: targeted XML parse showed both new bases in clinical-patient, active patient SearchParameter comparison found no active outliers, and git diff --check passed. Learned: the source change addresses the measurable registry alignment issue without whitespace errors.
+- E8 Community Zulip search: searches for FHIR-36674, clinical-patient, and search parameter registry patient found no directly conflicting implementation discussion. Learned: no discovered community record changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36674",
+    "url": "https://jira.hl7.org/browse/FHIR-36674",
+    "snapshot_path": "contexts/FHIR-36674/jira/FHIR-36674.md",
+    "ref": { "jira_key": "FHIR-36674" },
+    "summary": "Published/Persuasive issue requesting alignment of *-patient search parameters in the FHIR-core registry.",
+    "learned": "This establishes final WG intent to fold equivalent patient search parameters into clinical-patient.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2023-02-27 page 156545358",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/156545358/FHIR+Infrastructure+Minutes+CC+2023-02-27",
+    "ref": { "confluence_page_id": 156545358 },
+    "summary": "Minutes record FHIR-36674 as Persuasive with a Grahame Grieve/Rick Geimer 13-0-0 motion.",
+    "learned": "This confirms the Jira decision was approved by FHIR-I.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "02267166956241cca648a944409aa70d9adce398",
+    "ref": { "commit": "02267166956241cca648a944409aa70d9adce398" },
+    "summary": "Commit expanded common-search-parameters.xml clinical-* base lists shortly after the vote.",
+    "learned": "The issue was historically applied by maintaining common base lists rather than deleting per-resource SearchParameter files.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/searchparameter/common-search-parameters.xml:304,329,336; source/fhir.ini:251,306,682,692",
+    "summary": "clinical-patient now includes DeviceAlert and EnrollmentResponse, and fhir.ini shows both as active patient-compartment resources.",
+    "learned": "The authoritative common-registry source now covers the two active resources that had patient outliers.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/devicealert/bundle-DeviceAlert-search-params.xml:37-60; source/enrollmentresponse/bundle-EnrollmentResponse-search-params.xml:65-78",
+    "summary": "DeviceAlert and EnrollmentResponse each define a patient SearchParameter that targets Patient.",
+    "learned": "These resource-level search parameters are eligible for clinical-patient aggregation.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/search-parameters.json",
+    "url": "https://build.fhir.org/search-parameters.json",
+    "command": "curl -fsSL https://build.fhir.org/search-parameters.json and list ids ending -patient",
+    "result_count": 3,
+    "summary": "Before this reconciliation the current build exposed clinical-patient plus DeviceAlert-patient and EnrollmentResponse-patient.",
+    "learned": "The remaining current registry defect was bounded to two real patient outliers.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted local source validation",
+    "command": "python3 XML parse of common-search-parameters.xml and active patient SearchParameters; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "DeviceAlert and EnrollmentResponse are present in clinical-patient, active patient SearchParameters have no uncovered active outliers, and whitespace check passed.",
+    "learned": "The edited source satisfies the measurable alignment requirement.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Zulip search for FHIR-36674 and clinical-patient registry terms",
+    "command": "bun run zulip:search fts '\"FHIR-36674\" OR \"clinical-patient\"' --limit 10; bun run zulip:search fts '\"search parameter registry\" \"patient\"' --limit 10",
+    "query": "FHIR-36674 clinical-patient search parameter registry patient",
+    "summary": "No directly relevant or conflicting Zulip discussion about FHIR-36674 was found.",
+    "learned": "No discovered community discussion changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

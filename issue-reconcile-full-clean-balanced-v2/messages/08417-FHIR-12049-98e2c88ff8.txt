@@ -1,0 +1,118 @@
+FHIR-12049: Audit current dosage sequencing model
+
+Issue request:
+FHIR-12049 was Published/Persuasive for the Pharmacy work group. It asked to add a sequence number to dosage instructions so same-number instructions are concurrent, different-number instructions are sequential, and ordered courses such as a first-day dose followed by later doses can be represented when absolute start dates are not known.
+
+Initial application:
+No current git commit message grep hit uses FHIR-12049 directly. A source-history pickaxe found commit 6a4b0d916ec0983d3c0e8a2d28366e99dc12fc76, `TR#12840 - changed DosageInstruction to Dosage`, adding `Dosage.sequence` with the exact requested short definition and concurrent/sequential comments. That historical source also carried a note that the all-or-none sequence invariant still needed to be added.
+
+Additional context:
+The active current build no longer has multiple `Dosage`-typed dosageInstruction repetitions on the medication resources named by the issue. `MedicationRequest.dosageInstruction`, `MedicationDispense.dosageInstruction`, and `MedicationStatement.dosageInstruction` now use `DosageDetails`, and the active `fhir.ini` R5-to-R6 change map records `Dosage.sequence=` as removed. The current dosage narrative says multiple `DosageDetails.step` entries are sequential and components inside one step are concurrent, which preserves the core sequencing/concurrency semantics in the new model. Later R6 work in FHIR-51540 and the Medication Zulip thread explicitly proposed removing `Dosage.sequence` as part of the DosageDetails redesign. Subsequent FHIR-54329/FHIR-54597 ballot issues ask whether an explicit number should be added back to `DosageDetails.step`, but those issues are still Triaged/Unresolved and are not safe to apply under this published DSTU2-era seed.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Reintroducing `Dosage.sequence` or adding a new `DosageDetails.step` number would conflict with the current R6 dosage model and with active unresolved Pharmacy work-group discussion. The current source already provides sequential steps and concurrent components for the original use case, so this old issue should not drive another source edit.
+
+Recommendation:
+Keep this no-change audit for FHIR-12049. Handle any future explicit step-number or `ElementDefinition.orderMeaning` change through the active R6 ballot issues such as FHIR-54329 or FHIR-54597 after Pharmacy reaches a final decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12049
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-51540: later-change - R6 dosage redesign removed `Dosage.sequence` and introduced DosageDetails/DosageSafety as current-source context, but its Jira status is Resolved - change required rather than Applied/Published in this run.
+FHIR-54329: background - Triaged R6 request to add a number similar to sequence to `DosageDetails.step`; not final enough for this worker to decide.
+FHIR-54597: background - Triaged R6 request warning that relying on step list order may be unsafe; not final enough for this worker to decide.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12049: Published/Persuasive Pharmacy issue requesting a sequence number on dosage instructions, with same sequence meaning concurrent and different sequence meaning sequential. Learned: establishes the historical final request.
+- E2 Git 6a4b0d916e: `TR#12840 - changed DosageInstruction to Dosage` added `Dosage.sequence` with the order/concurrent/sequential wording. Learned: the original issue family was historically applied to Dosage source even though the commit message did not name FHIR-12049.
+- E3 Source source/fhir.ini:51,201-203,1000,1391-1393,2208: Dosage/DosageDetails and MedicationRequest/MedicationDispense/MedicationStatement are active, Dosage is normative, and the R5-to-R6 map records `Dosage.sequence=`. Learned: the current build scope is active and current source intentionally lacks the old sequence element.
+- E4 Source source/dosage.html:126-146 and medication StructureDefinitions: current narrative says DosageDetails steps are sequential and components in a step are concurrent; medication dosageInstruction elements use DosageDetails. Learned: the current model carries the original sequencing/concurrency semantics through a different structure.
+- E5 Jira FHIR-51540: Resolved - change required R6 dosage redesign lists removal of `sequence`, adds DosageDetails/DosageSafety, and a comment confirms the sequence element was agreed to be removed. Learned: later WG context supports not reintroducing the old element under FHIR-12049.
+- E6 Zulip #Medication > Maximum Dosage per day: 2020 guidance pointed users to `dosage.sequence`, while the November 2025 R6 proposal says to remove Dosage.sequence and replace dosageInstructions with DosageDetails. Learned: community discussion traces the shift from the old solution to the current redesign.
+- E7 Jira/Confluence FHIR-54329 and FHIR-54597: later unresolved ballot discussions ask whether DosageDetails.step needs an explicit number or orderMeaning. Learned: any new explicit step sequencing decision belongs to those active issues, not this old published seed.
+- E8 Verification command/query: git grep/idempotency checks, rg over fhir.ini/current dosage and medication sources, Jira snapshots, Zulip snapshot, and Confluence refs/search. Learned: no duplicate combined-branch commit exists and no source hunk is warranted for this seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12049",
+    "url": "https://jira.hl7.org/browse/FHIR-12049",
+    "snapshot_path": "contexts/FHIR-12049/jira/FHIR-12049.md",
+    "ref": { "jira_key": "FHIR-12049" },
+    "summary": "Published/Persuasive Pharmacy issue requesting a sequence number on dosage instructions to distinguish sequential and concurrent instructions.",
+    "learned": "This is the final historical request that the reconciliation must audit.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "6a4b0d916ec0983d3c0e8a2d28366e99dc12fc76",
+    "ref": { "commit": "6a4b0d916ec0983d3c0e8a2d28366e99dc12fc76" },
+    "summary": "Commit `TR#12840 - changed DosageInstruction to Dosage` added `Dosage.sequence` with the requested sequencing and concurrency wording.",
+    "learned": "The sequence concept was historically applied in source before later R6 restructuring.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:51,201-203,1000,1391-1393,2208",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "The active build lists Dosage/DosageDetails and the medication resources, marks Dosage normative, and records `Dosage.sequence=` in the R5-to-R6 change map.",
+    "learned": "The relevant current sources are in build scope and the old sequence element is intentionally absent from the current model.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/dosage.html:126-146; source/medicationrequest/structuredefinition-MedicationRequest.xml:869-877; source/medicationdispense/structuredefinition-MedicationDispense.xml:729-743; source/medicationstatement/structuredefinition-MedicationStatement.xml:479-481",
+    "ref": { "path": "source/dosage.html" },
+    "summary": "Current dosage narrative defines DosageDetails steps as sequential and components in a step as concurrent; medication dosageInstruction elements use DosageDetails.",
+    "learned": "The original ordering/concurrency behavior is represented through the current R6 DosageDetails structure.",
+    "supports": ["reconciliation", "no_source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-51540",
+    "url": "https://jira.hl7.org/browse/FHIR-51540",
+    "ref": { "jira_key": "FHIR-51540" },
+    "summary": "Resolved - change required R6 dosage redesign removes `sequence`, adds DosageDetails/DosageSafety, and confirms the sequence element was agreed to be removed.",
+    "learned": "Later WG context supports leaving the old sequence element out of current source while not deciding FHIR-51540 in this default run.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#Medication > Maximum Dosage per day",
+    "url": "https://chat.fhir.org/#narrow/stream/Medication/topic/Maximum%20Dosage%20per%20day",
+    "summary": "The thread shows 2020 guidance to use dosage.sequence and a November 2025 proposal to remove Dosage.sequence and replace dosageInstructions with DosageDetails.",
+    "learned": "Community discussion corroborates the transition from the old sequence solution to the R6 redesign.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-54329 and FHIR-54597",
+    "url": "https://jira.hl7.org/browse/FHIR-54329",
+    "ref": { "jira_key": "FHIR-54329" },
+    "summary": "Later Triaged/Unresolved R6 ballot issues ask whether DosageDetails.step needs an explicit number or order semantics.",
+    "learned": "Any new explicit step-number work remains unresolved and should not be applied under FHIR-12049.",
+    "supports": ["related_not_decided", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local source, history, Jira, Zulip, and Confluence verification",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-12049'; git log --all -S 'Dosage.sequence'; rg current dosage/medication sources; bun run jira:search snapshot FHIR-51540 FHIR-54329 FHIR-54597; bun run zulip:search snapshot Medication Dosage; bun run confluence:search refs jira FHIR-12049",
+    "summary": "No duplicate combined-branch audit existed; source/history/community checks showed the old element was applied then superseded by the R6 DosageDetails model with later unresolved follow-up issues.",
+    "learned": "The safe reconciliation for FHIR-12049 is an empty no-change audit commit.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

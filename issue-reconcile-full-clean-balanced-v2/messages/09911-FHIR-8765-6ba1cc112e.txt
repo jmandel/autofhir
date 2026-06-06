@@ -1,0 +1,86 @@
+FHIR-8765: Audit extension summary rendering
+
+Issue request:
+FHIR-8765 was a Published/Persuasive FHIR-core change request asking that extension definition Summary views label the root row with the extension name instead of the generic "extension" label, for both complex and simple extensions, so users can click the meaningful extension name.
+
+Initial application:
+The issue was applied in SVN revision 14851, imported as git commit bbf3d10a30e4a5ea53d365619f9121867da4cb6a. That commit changed ProfileUtilities.generateExtensionTable so the non-full extension table uses ed.getName(), while the full structure table continues to show "extension" or "modifierExtension". The old in-repository Java renderer was later removed with the other Java implementation code, so there is no current core renderer source to update for this behavior.
+
+Additional context:
+Current core source still carries the extension page template with separate Summary and Full Structure calls, using <%extension-table false%> for Summary and <%extension-table true%> for Full Structure. Published R4 extension pages generated after the application show the intended distinction: the Summary table root row uses names such as birthPlace, wg, and question, while the Full Structure table still uses extension. Many current extension definitions are also represented in the separate FHIR Extensions Pack and rendered by external IG Publisher machinery, which is outside this core checkout and was not changed here.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical core application is present, the current core source has no remaining FHIR-8765 renderer logic to correct, and adding prose or changing extension StructureDefinition XML would not address the renderer behavior requested by the Jira.
+
+Recommendation:
+Keep this audit commit as-is for the core reconciliation. If the work group wants current FHIR Extensions Pack or IG Publisher pages to reproduce the old core Summary-vs-Full Structure labeling, track that separately against the extension-pack/publisher pipeline rather than changing FHIR core source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8765
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8765: Published/Persuasive request to label extension Summary root rows with the extension name. Learned: this establishes the final issue request and applied version context.
+- E2 Git bbf3d10a30e4a5ea53d365619f9121867da4cb6a: GF#8765 / SVN revision 14851 changed ProfileUtilities.generateExtensionTable to use ed.getName() when full is false. Learned: the requested rendering behavior was explicitly applied in source history.
+- E3 Source tools/templates/template-extension.html:58: Summary calls <%extension-table false%> and Full Structure calls <%extension-table true%>. Learned: current core template still distinguishes the table modes affected by the historical renderer fix.
+- E4 Published spec R4 extension pages: https://hl7.org/fhir/R4/extension-patient-birthplace.html and related samples show Summary root names birthPlace/wg/question while Full Structure retains extension. Learned: published core output after the fix reflects the intended behavior.
+- E5 Command search for FHIR-8765 and summary/extension terms across Jira, Zulip, and Confluence found no later conflicting decision. Learned: no discovered community or related Jira evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8765",
+    "url": "https://jira.hl7.org/browse/FHIR-8765",
+    "snapshot_path": "contexts/FHIR-8765/jira/FHIR-8765.md",
+    "ref": { "jira_key": "FHIR-8765" },
+    "summary": "Published/Persuasive request to show the extension name rather than the generic extension label in extension definition Summary views.",
+    "learned": "This is the final Jira request and establishes that the expected behavior applies to simple and complex extension summary rendering.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "bbf3d10a30e4a5ea53d365619f9121867da4cb6a",
+    "ref": { "commit": "bbf3d10a30e4a5ea53d365619f9121867da4cb6a" },
+    "summary": "GF#8765 / SVN revision 14851 changed ProfileUtilities.generateExtensionTable so non-full extension tables use ed.getName().",
+    "learned": "The Jira was explicitly applied in historical core renderer source, with Full Structure behavior preserved.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "tools/templates/template-extension.html:58",
+    "ref": { "path": "tools/templates/template-extension.html", "line": 58 },
+    "summary": "The current core extension page template calls <%extension-table false%> for Summary and <%extension-table true%> for Full Structure.",
+    "learned": "The core template still separates the two rendering modes touched by the historical application; no XML/source-definition hunk would change the renderer naming behavior.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "R4 extension pages sampled with curl",
+    "url": "https://hl7.org/fhir/R4/extension-patient-birthplace.html",
+    "command": "curl -L -s https://hl7.org/fhir/R4/extension-patient-birthplace.html; curl -L -s https://hl7.org/fhir/R4/extension-structuredefinition-wg.html; curl -L -s https://hl7.org/fhir/R4/extension-elementdefinition-question.html",
+    "summary": "R4 extension pages show Summary root labels such as birthPlace, wg, and question, while Full Structure rows retain extension.",
+    "learned": "Published core output after the application demonstrates the intended Summary-vs-Full Structure distinction.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community and related Jira search for FHIR-8765 plus summary/extension terms",
+    "command": "bun run jira:search fts '\"FHIR-8765\"' --limit 10; bun run jira:search fts '\"extension rendering\" summary view extension name' --limit 20; bun run zulip:search fts '\"FHIR-8765\"' --limit 10; bun run zulip:search fts '\"summary view\" extension name' --limit 10; bun run confluence:search refs jira FHIR-8765; bun run confluence:search fts '\"summary view\" extension name' --limit 10",
+    "query": "FHIR-8765; extension rendering summary view extension name",
+    "result_count": 1,
+    "summary": "The only direct Jira hit was FHIR-8765; Zulip and Confluence searches found no directly relevant or conflicting FHIR-8765 decision evidence.",
+    "learned": "No discovered later community or Jira evidence changes the conclusion that core needs no source change now.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,109 @@
+FHIR-7318: Clarify Claim item diagnosis order
+
+Issue request:
+FHIR-7318 was a Published/Persuasive FM change request for FHIR-core Claim. It asked that the diagnosis link id at a line item have a priority order relative to that line item, and its recorded resolution proposed replacing diagnosisLinkId 0..* integer with a diagnosis backbone carrying linkId and sequence children.
+
+Initial application:
+No explicit FHIR-7318-tagged source commit was found. Historical Claim source started with Claim.item.diagnosisLinkId as a repeated integer, later added diagnosis.type and removed global diagnosis-list ordering language, and then the FHIR-14254 Claim refactor renamed diagnosisLinkId to diagnosisSequence without adding the proposed backbone or any line-item order semantics. Current Claim.item.diagnosisSequence therefore preserved the reference list but did not expose the approved priority-order meaning.
+
+Additional context:
+FHIR-7317 is the same change family and its later Published/Persuasive with Modification resolution narrowed the applied approach: Claim.item.diagnosisLinkId and EOB.item.diagnosisLinkId should remain lists but be created in order of decreasing relevance, with element definitions updated. FHIR-7319 separately clarified that Claim.diagnosis.sequence is only a local reference identifier and that diagnosis.type carries global primary/secondary diagnosis roles, so item-specific diagnosis pointer ordering does not reintroduce global diagnosis-list ranking.
+
+AutoFHIR reconciliation:
+This commit adds orderMeaning to the active Claim StructureDefinition element Claim.item.diagnosisSequence, stating that diagnosis sequence references are listed in order of decreasing relevance to the service or product. Claim is active in source/fhir.ini, and source/fhir.ini maps the historical Claim.item.diagnosisLinkId name to Claim.item.diagnosisSequence, so the hunk is both in build scope and targeted at the current representation of the requested element.
+
+Recommendation:
+Keep this source fix. It applies the later narrowed issue-family decision to the current Claim model without adding a now-unapproved backbone; normal publication tooling can regenerate derived narrative and diagrams.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7318
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-7317: same-change-family - later modified resolution for the same line-item diagnosisLinkId ordering request; it narrows the current fix to ordered diagnosis pointer lists and also covers ExplanationOfBenefit.
+FHIR-7319: supporting-decision - clarifies that diagnosis.sequence is not global primary/secondary ranking and diagnosis.type carries that role, making item-specific diagnosis pointer order a separate rule.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7318: Published/Persuasive FM Claim issue requesting line-item diagnosisLinkId priority order, with a resolution proposing linkId plus sequence children. Learned: the seed establishes final intent that multiple diagnosis references on one item need ordered priority semantics.
+- E2 Jira FHIR-7317: Published/Persuasive with Modification same-family issue deciding that Claim.item.diagnosisLinkId and EOB.item.diagnosisLinkId lists should be created in decreasing relevance order. Learned: the later issue-family decision supports preserving the current repeated-list shape and documenting its order meaning.
+- E3 Source source/fhir.ini:240,500,2683: Claim is an active FM resource and maps historical Claim.item.diagnosisLinkId to current Claim.item.diagnosisSequence. Learned: the edited StructureDefinition source is in build scope and targets the current name of the Jira element.
+- E4 Source source/claim/structuredefinition-Claim.xml:1361: Claim.item.diagnosisSequence now has orderMeaning for decreasing relevance to the service or product. Learned: the current conformance source now exposes the line-item priority-order rule.
+- E5 Git ad79f6119f, cce85fffda, 15de009ec2, e7de0775bc: history shows the original repeated diagnosisLinkId, later diagnosis.type/global-order changes, and the rename to diagnosisSequence without item-level orderMeaning. Learned: the missing order semantics survived source evolution rather than being an intentional current-model backbone omission.
+- E6 Command searches: Jira/Zulip/Confluence searches around FHIR-7318, FHIR-7317, and Claim diagnosis priority found no later conflicting community decision. Learned: no discovered external discussion changes the Jira/source conclusion.
+- E7 Verification command/query: git diff --check and xmllint succeeded for source/claim/structuredefinition-Claim.xml. Learned: the targeted XML edit is well-formed and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7318",
+    "url": "https://jira.hl7.org/browse/FHIR-7318",
+    "snapshot_path": "contexts/FHIR-7318/jira/FHIR-7318.md",
+    "ref": { "jira_key": "FHIR-7318" },
+    "summary": "Published/Persuasive FM Claim issue asking for line-item diagnosisLinkId priority order, with a resolution proposing a diagnosis backbone with linkId and sequence children.",
+    "learned": "This establishes final seed intent that diagnosis references on a claim line item need priority-order semantics.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-7317",
+    "url": "https://jira.hl7.org/browse/FHIR-7317",
+    "snapshot_path": "contexts/FHIR-7317/jira/FHIR-7317.md",
+    "ref": { "jira_key": "FHIR-7317" },
+    "summary": "Published/Persuasive with Modification issue deciding Claim.item.diagnosisLinkId and EOB.item.diagnosisLinkId are lists created in order of decreasing relevance.",
+    "learned": "This later same-family decision narrows the current-source fix to documenting repeated-list order rather than adding a new backbone.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:240,500,2683",
+    "ref": { "path": "source/fhir.ini", "resource_line": 240, "workgroup_line": 500, "old_name_line": 2683 },
+    "summary": "Claim is an active FM resource, and the old Claim.item.diagnosisLinkId name maps to current Claim.item.diagnosisSequence.",
+    "learned": "The edited Claim StructureDefinition file is in current build scope and targets the current element corresponding to the Jira request.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/claim/structuredefinition-Claim.xml:1361",
+    "ref": { "path": "source/claim/structuredefinition-Claim.xml", "line": 1361, "element": "Claim.item.diagnosisSequence" },
+    "summary": "Claim.item.diagnosisSequence now declares that diagnosis sequence references are ordered by decreasing relevance to the service or product.",
+    "learned": "The authoritative Claim conformance source now carries the requested item-level priority-order semantics.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "ad79f6119f; cce85fffda; 15de009ec2; e7de0775bc",
+    "ref": { "initial_claim_commit": "ad79f6119f", "diagnosis_type_commit": "cce85fffda", "order_cleanup_commit": "15de009ec2", "rename_commit": "e7de0775bc" },
+    "summary": "Claim history shows diagnosisLinkId began as a repeated integer, diagnosis.type later handled global diagnosis roles, and FHIR-14254 renamed item diagnosisLinkId to diagnosisSequence without adding item-level orderMeaning.",
+    "learned": "The current missing line-item order semantics are a stale source gap after model evolution, not evidence that the issue was intentionally superseded away.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community and neighborhood search for Claim diagnosis item ordering",
+    "command": "cd /home/jmandel/work/fhir-community-search && bun run jira:search fts 'Claim diagnosis priority order sequence line item' --limit 20; bun run confluence:search refs jira FHIR-7318; bun run confluence:search refs jira FHIR-7317; bun run zulip:search fts '\"FHIR-7318\" Claim diagnosis priority order' --limit 10; bun run zulip:search fts '\"FHIR-7317\" Claim diagnosis priority order' --limit 10; bun run zulip:search fts 'Claim diagnosis priority order sequence item' --limit 10",
+    "query": "FHIR-7318 FHIR-7317 Claim diagnosis priority order sequence item",
+    "result_count": 2,
+    "summary": "Jira search found the same-family FHIR-7318/FHIR-7317 decisions, while Confluence refs and Zulip exact/broader searches found no relevant records.",
+    "learned": "No discovered community evidence reverses the Published Jira decisions or suggests a different current-source change.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Claim XML validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/claim/structuredefinition-Claim.xml; xmllint --noout source/claim/structuredefinition-Claim.xml",
+    "summary": "Whitespace checking and XML parsing passed for the edited Claim StructureDefinition source.",
+    "learned": "The targeted source edit is well-formed and does not introduce whitespace errors.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

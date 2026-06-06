@@ -1,0 +1,127 @@
+FHIR-37988: Audit Measure evaluate return cardinality
+
+Issue request:
+FHIR-37988 was Published/Persuasive for R5 and asked CQI to fix Measure $evaluate-measure because the return parameter was constrained to a single MeasureReport even though provider/subject evaluation can produce multiple results. The final resolution changed the return parameter to 0..* Bundle, with one Bundle per input subject and MeasureReport content plus evaluated/created resources in each Bundle.
+
+Initial application:
+The issue was applied before this reconciliation by PR 2305 in commit 804ded2ef07b29df6025e1a19c572d334c226219, followed by cleanup commit 060b160cb531b79f1eea1a1b04bf759bd809fc2a. The historical patch changed source/measure/operationdefinition-Measure-evaluate-measure.xml from return 1..1 MeasureReport to return 0..* Bundle and updated the operation-level wording. The Measure resource is active in source/fhir.ini, and source/measure/list-Measure-operations.xml still lists both the current Measure-evaluate operation and the retired Measure-evaluate-measure operation.
+
+Additional context:
+The current build now has a newer Measure-evaluate operation and retains Measure-evaluate-measure as retired/deprecated. Both operation definitions now use return min 0, max *, type Bundle. Later CQI work, including FHIR-51487 already represented on the combined branch, clarified the return documentation to state that Bundles contain 1..* MeasureReport resources and that the multi-cardinality return is represented using a Parameters response. FHIR-40422 also refined group-level Measure subject support and current Measure evaluate wording. Searches found no directly relevant Zulip or Confluence record for FHIR-37988 that conflicts with the Jira/source history.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The authoritative current operation sources already satisfy FHIR-37988: the returned value is 0..* Bundle rather than 1..1 MeasureReport, examples show a Parameters response containing a Bundle return resource, and the linked quality-reporting guidance discusses Bundle organization by subject. The note in the original issue about possible OperationOutcome output was not adopted by the final resolution, and operation failures are handled by the general operations/REST framework rather than by adding OperationOutcome as an explicit success return parameter here.
+
+Recommendation:
+Keep this no-change audit commit as-is. No FHIR-core source follow-up is needed for FHIR-37988 unless CQI opens a separate issue to add operation-specific error-response guidance.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37988
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-51487: later-change - clarified the same Measure evaluate return documentation for R6 and is already represented on the combined branch by its own Issue-Reconcile-Key commit.
+FHIR-40422: later-change - refined group-level Measure subject support and current Measure evaluate wording, including MeasureReport-per-measure language, but is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37988: Published/Persuasive, vote 11-0-0, resolution changed $evaluate-measure return to 0..* Bundle with Bundle-per-input-subject semantics. Learned: this establishes the final target behavior for reconciliation.
+- E2 Source source/fhir.ini:268 and source/measure/list-Measure-operations.xml:9-15: Measure is an active resource and the Measure operation list includes Measure-evaluate and Measure-evaluate-measure. Learned: the checked operation definitions are in current build scope.
+- E3 Source source/measure/operationdefinition-Measure-evaluate-measure.xml:186-192: retired $evaluate-measure return is min 0, max *, type Bundle, with Parameters-response documentation. Learned: the historical operation no longer has the stale 1..1 MeasureReport shape.
+- E4 Source source/measure/operationdefinition-Measure-evaluate.xml:337-343: current $evaluate return is also min 0, max *, type Bundle with the same Bundle/Parameters documentation. Learned: the successor current operation preserves the reconciled behavior.
+- E5 Source source/measure/evaluate-measure-operation-response.xml:2-7 and source/clinicalreasoning-quality-reporting.html:594-597: examples use a Parameters return containing a Bundle, and guidance defines Bundles organized by subject. Learned: nearby examples and guidance are consistent with the operation definition.
+- E6 Git 804ded2ef07b29df6025e1a19c572d334c226219 and 060b160cb531b79f1eea1a1b04bf759bd809fc2a: PR 2305/J#37988 changed the return from 1..1 MeasureReport to 0..* Bundle and cleaned up the operation source. Learned: the issue was historically applied in the expected source file.
+- E7 Git dda82bb30871b54c39b9d0d468568c95c34fdcc2: existing FHIR-51487 reconcile commit on the combined branch corrected Measure evaluate return documentation. Learned: later same-area clarification is already represented and should not be duplicated here.
+- E8 Community search: bun run zulip:search fts '"FHIR-37988"'; bun run confluence:search refs jira FHIR-37988; bun run confluence:search fts '"FHIR-37988"' found no direct hits. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E9 Verification command/query: rg checks for return/cardinality/type/docs in source/measure operation definitions and git log --fixed-strings --grep for existing Issue-Reconcile-Key FHIR-37988 on the combined branch. Learned: current source has the expected values and no prior FHIR-37988 audit commit existed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37988",
+    "url": "https://jira.hl7.org/browse/FHIR-37988",
+    "snapshot_path": "contexts/FHIR-37988/jira/FHIR-37988.md",
+    "ref": { "jira_key": "FHIR-37988" },
+    "summary": "Published/Persuasive R5 change request to replace the single MeasureReport return from Measure $evaluate-measure with 0..* Bundle output.",
+    "learned": "This is the final work-group decision and defines the target return cardinality and type for the source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:268; source/measure/list-Measure-operations.xml:9-15",
+    "ref": { "file": "source/fhir.ini", "line": 268 },
+    "summary": "Measure is active in fhir.ini and its operation list includes Measure-evaluate and Measure-evaluate-measure.",
+    "learned": "The operation definition sources inspected for this issue are in current build scope.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/measure/operationdefinition-Measure-evaluate-measure.xml:186-192",
+    "ref": { "file": "source/measure/operationdefinition-Measure-evaluate-measure.xml", "line": 186 },
+    "summary": "The retired $evaluate-measure return parameter is min 0, max *, type Bundle, with documentation explaining the multi-cardinality Parameters response.",
+    "learned": "The original stale 1..1 MeasureReport return no longer exists in the historical operation definition.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/measure/operationdefinition-Measure-evaluate.xml:337-343",
+    "ref": { "file": "source/measure/operationdefinition-Measure-evaluate.xml", "line": 337 },
+    "summary": "The current Measure $evaluate return parameter is also min 0, max *, type Bundle, with the same Bundle and Parameters response documentation.",
+    "learned": "The successor current operation preserves the FHIR-37988 return semantics.",
+    "supports": ["current_source", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/measure/evaluate-measure-operation-response.xml:2-7; source/clinicalreasoning-quality-reporting.html:594-597",
+    "ref": { "file": "source/measure/evaluate-measure-operation-response.xml", "line": 2 },
+    "summary": "The response example wraps the return resource in Parameters containing a Bundle, and quality-reporting guidance describes Bundles organized by subject.",
+    "learned": "Examples and nearby guidance are consistent with the corrected operation definition rather than contradicting it.",
+    "supports": ["current_source", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "804ded2ef07b29df6025e1a19c572d334c226219; 060b160cb531b79f1eea1a1b04bf759bd809fc2a",
+    "ref": { "commit": "804ded2ef07b29df6025e1a19c572d334c226219" },
+    "summary": "Historical J#37988 commits changed Measure-evaluate-measure return from 1..1 MeasureReport to 0..* Bundle and cleaned up the operation source.",
+    "learned": "The Jira request was applied in source before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "dda82bb30871b54c39b9d0d468568c95c34fdcc2",
+    "ref": { "commit": "dda82bb30871b54c39b9d0d468568c95c34fdcc2" },
+    "summary": "The combined branch already contains a FHIR-51487 reconcile commit that clarified Measure evaluate return documentation.",
+    "learned": "Later same-area clarification is already accounted for and does not require another FHIR-37988 source edit.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-37988",
+    "command": "bun run zulip:search fts '\"FHIR-37988\"' --limit 10; bun run confluence:search refs jira FHIR-37988; bun run confluence:search fts '\"FHIR-37988\"' --limit 10",
+    "query": "FHIR-37988",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence references to FHIR-37988 were found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Source and idempotency verification commands",
+    "command": "rg '<name value=\"return\"|<use value=\"out\"|<type value=\"MeasureReport\"|<type value=\"Bundle\"|<max value=\"\\*\"' source/measure -g 'operationdefinition-Measure-*.xml'; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-37988' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "The current Measure operation definitions have Bundle return parameters, and no prior FHIR-37988 reconcile commit was present on the combined branch.",
+    "learned": "An empty no-change audit commit is the correct publication action.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

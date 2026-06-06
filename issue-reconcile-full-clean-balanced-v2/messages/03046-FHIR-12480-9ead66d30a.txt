@@ -1,0 +1,110 @@
+FHIR-12480: Audit Provenance entity URL support
+
+Issue request:
+FHIR-12480 was a Published Security work group change request raised against DSTU2 and resolved Persuasive with Modification. It asked to change Provenance.entity.reference into entity.what[x] so the entity could be identified by either a URI or Reference(Any), because Provenance sometimes needs to point at non-FHIR source material.
+
+Initial application:
+The issue was initially applied in git commit 8058a0886c12cc7a61a61db3edae51be5e5698ef, whose subject explicitly cites GF#12480. That commit replaced Provenance.entity.reference with Provenance.entity.what[x], added uri|Reference(Any)|Identifier choices in the old spreadsheet source, and updated the entity search paths. The same commit also cited closely related Provenance entity issues GF#12503 and GF#12748.
+
+Additional context:
+Later final decisions intentionally changed the representation. FHIR-13694 clarified Reference.identifier logical-reference semantics, FHIR-13570 removed the separate Provenance.entity.whatUri as redundant with Identifier guidance, and FHIR-15659 simplified Provenance.entity.what[x] to a single Reference after logical references made the separate identifier/reference choices redundant. FHIR-49893 later corrected the current Provenance.entity.what comment to say what.identifier. The combined branch already has no-change audits for tightly related Provenance entity logical-reference issues, including FHIR-12503 and FHIR-15659, so this commit does not duplicate those decisions.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Provenance is active in source/fhir.ini, and current source/provenance/structuredefinition-Provenance.xml defines Provenance.entity.what as Reference(Resource) with a comment directing non-resource entities to what.identifier. The Reference datatype source and narrative define Reference.identifier as the logical-reference mechanism and explicitly cover cases where no actual FHIR instance exists for a Reference(Any) target. Reintroducing a direct uri choice would reverse later applied decisions rather than complete FHIR-12480.
+
+Recommendation:
+Keep this audit commit as-is. The current specification satisfies the DSTU2 URL/non-FHIR-source need through Reference.identifier; any future desire for a distinct Provenance.entity URI choice should be raised as a new Security/MnM issue because it would change later published Reference/Provenance modeling decisions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12480
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12503: same-change-family - same Provenance entity problem family; requested non-FHIR content support and is already audited on the combined branch.
+FHIR-12748: same-change-family - same implementation commit added Identifier support for non-FHIR source material.
+FHIR-13694: supporting-decision - clarified Reference.identifier logical-reference semantics that later replaced the separate Provenance URI/Identifier choices.
+FHIR-13570: later-change - removed Provenance.entity.whatUri as redundant and tied Provenance guidance to Reference.identifier.
+FHIR-15659: supersedes - removed redundant Provenance whatIdentifier/whatReference choices after logical references were introduced.
+FHIR-49893: later-change - corrected the current Provenance.entity.what comment from whatIdentity to what.identifier.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12480: Published/Persuasive with Modification request to allow Provenance.entity to point at a URI or Reference(Any). Learned: establishes the seed issue and original final work-group intent.
+- E2 Zulip #implementers > Unable to resolve invalid example reference: 2016 discussion concluded Provenance needed both a Reference and URI for source material, and John Moehrke filed GF#12480. Learned: confirms the source problem behind the Jira request.
+- E3 Git 8058a0886c12cc7a61a61db3edae51be5e5698ef: applied GF#12480 by changing Provenance.entity.reference to Provenance.entity.what[x] with uri|Reference(Any)|Identifier choices. Learned: the issue was historically implemented in the old choice-element model.
+- E4 Jira FHIR-13694, FHIR-13570, and FHIR-15659: later final issues clarified Reference.identifier, removed whatUri, and simplified Provenance.entity.what[x] to Reference. Learned: current absence of a direct uri choice is intentional later policy.
+- E5 Source source/fhir.ini:170,217 and source/provenance/structuredefinition-Provenance.xml:716-725: Provenance is active and current Provenance.entity.what is Reference(Resource) with a what.identifier comment. Learned: the current build-scope source directs non-resource entity identity through Reference.identifier.
+- E6 Source source/datatypes/reference.xml:900-916 and source/references.html:238-246: Reference.identifier is an Identifier logical reference and one use case is when no FHIR representation exists for Reference(Any). Learned: the current datatype semantics preserve the capability FHIR-12480 sought without a separate uri choice.
+- E7 Command searches for FHIR-12480 in Confluence and stale source paths: no Confluence references and no active Provenance.entity.reference, whatUri, whatIdentifier, or whatReference definitions remain in current Provenance source. Learned: no discovered evidence requires a source fix.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12480",
+    "url": "https://jira.hl7.org/browse/FHIR-12480",
+    "snapshot_path": "contexts/FHIR-12480/jira/FHIR-12480.md",
+    "ref": { "jira_key": "FHIR-12480" },
+    "summary": "Published/Persuasive with Modification DSTU2 Security issue asking Provenance.entity.reference to become entity.what[x] with URI or Reference(Any) so Provenance can point at non-FHIR source material.",
+    "learned": "This establishes the seed request and final work-group intent that must be reconciled against current source and later decisions.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Unable to resolve invalid example reference",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Unable%20to%20resolve%20invalid%20example%20reference",
+    "ref": { "stream": "implementers", "topic": "Unable to resolve invalid example reference" },
+    "summary": "The 2016 thread discussed whether Provenance.entity.reference could point at external/non-FHIR source material; Grahame Grieve said a Reference and URI were needed, and John Moehrke filed GF#12480.",
+    "learned": "The community discussion confirms the original issue was about representing non-FHIR or external source identity in Provenance.entity.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "8058a0886c12cc7a61a61db3edae51be5e5698ef",
+    "ref": { "commit": "8058a0886c12cc7a61a61db3edae51be5e5698ef" },
+    "summary": "Commit titled 'Provenance improvements from ballot for GF#12480, GF#12503, GF#12748' changed Provenance.entity.reference to Provenance.entity.what[x] with uri|Reference(Any)|Identifier choices and updated search paths.",
+    "learned": "FHIR-12480 was initially applied in the old Provenance choice-element model rather than missed entirely.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-13694; FHIR-13570; FHIR-15659; FHIR-49893",
+    "url": "https://jira.hl7.org/browse/FHIR-13694",
+    "ref": { "jira_key": "FHIR-13694" },
+    "summary": "Later final issues clarified Reference.identifier semantics, removed Provenance.entity.whatUri as redundant, simplified Provenance.entity.what[x] to Reference, and corrected the current comment to what.identifier.",
+    "learned": "These decisions explain why the current source should remain Reference-based instead of reintroducing a direct URI choice.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,217; source/provenance/structuredefinition-Provenance.xml:716-725",
+    "summary": "Provenance is active in the build, and current Provenance.entity.what is Reference(Resource) with a comment that what.identifier SHOULD be used for entities that are not a Resource type.",
+    "learned": "The active current source preserves the non-resource/non-FHIR source identity capability through Reference.identifier.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/datatypes/reference.xml:900-916; source/references.html:238-246",
+    "summary": "Reference.identifier is an Identifier logical reference; the datatype guidance says one use case is where no FHIR representation exists for a Reference(Any) target.",
+    "learned": "The generic Reference datatype now carries the URI/identifier capability that FHIR-12480 originally tried to add directly to Provenance.entity.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and stale-source searches for FHIR-12480 and Provenance entity URI choices",
+    "command": "bun run zulip:search snapshot implementers 'Unable to resolve invalid example reference'; bun run confluence:search refs jira FHIR-12480; rg -n 'Provenance.entity.reference|whatUri|whatIdentifier|whatReference' source/provenance source/fhir.ini",
+    "query": "FHIR-12480 Provenance.entity.reference whatUri whatIdentifier whatReference",
+    "summary": "The linked Zulip thread was reviewed; no Confluence references were found; current active Provenance source has no old entity.reference or direct whatUri/whatIdentifier/whatReference definitions.",
+    "learned": "No discovered community or source evidence contradicts the no-change reconciliation.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

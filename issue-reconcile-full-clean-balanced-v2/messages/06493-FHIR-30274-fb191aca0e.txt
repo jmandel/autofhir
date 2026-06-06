@@ -1,0 +1,134 @@
+FHIR-30274: Align DeviceDefinition property ModelInfo
+
+Issue request:
+FHIR-30274 was Published as Not Persuasive with Modification for OO. It asked to replace DeviceDefinition.physicalCharacteristics, which used the removed ProdCharacteristic datatype, with a repeating backbone property carrying a 1..1 CodeableConcept type and a value[x]. The final resolution treated the main structural change as already addressed by the DeviceDefinition.property consolidation and clarified that valueInteger/valueQuantity and valueCodeableConcept/valueString should remain separate choices.
+
+Initial application:
+No Jira-keyed FHIR-30274 source commit was found. The same change family was applied through FHIR-26424 and FHIR-32290: commits 188021453f and 01a6bc6ffa removed DeviceDefinition.physicalCharacteristics from the authoritative DeviceDefinition StructureDefinition, commit 23d0f3c36f adjusted Device and DeviceDefinition property.value[x] to 1..1, and commit 7333cb0ead commented ProdCharacteristic out of source/fhir.ini. The active StructureDefinition now has DeviceDefinition.property as a BackboneElement with type and value[x] choices and no physicalCharacteristics element.
+
+Additional context:
+The FHIR-30274 resolution text names FHIR-32464, but that Jira is an unrelated AuditEvent issue; the FHIR-30274 comments, FHIR-26424 resolution, FHIR-32290 follow-up, and OO minutes identify FHIR-26424/FHIR-32290 as the relevant DeviceDefinition.property consolidation trail. OO minutes on 2021-09-13 recorded that FHIR-30274 had been merged into DeviceDefinition.property while the value[x] datatype discussion remained, and the 2022-06-20 minutes recorded that this issue was no longer needed and done. The Library/FHIR-ModelInfo example is build-visible via the Library examples list and publish.ini, so its stale DeviceDefinition model surface is in scope.
+
+AutoFHIR reconciliation:
+Updated source/library/library-fhir-model-definition-content.xml so DeviceDefinition.Property exposes a single value choice with Quantity, CodeableConcept, string, boolean, integer, Range, and Attachment, matching the current DeviceDefinition.property.value[x] source. Removed the stale DeviceDefinition.physicalCharacteristics ModelInfo element and refreshed source/library/library-fhir-model-definition.xml so the embedded Library.data payload matches the edited ModelInfo content. No primary DeviceDefinition StructureDefinition edit was needed because it was already correct.
+
+Recommendation:
+Keep this source fix. It completes FHIR-30274 on the remaining build-visible ModelInfo surface while preserving the fhir.ini R4/R6 migration mapping from old DeviceDefinition.physicalCharacteristics to DeviceDefinition.property. Do not treat this commit as a full reconciliation of the broader FHIR-26424/FHIR-32290 Device/DeviceDefinition consolidation; those issues have wider scope and should be audited separately if needed.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-30274
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-26424: supporting-decision - published OO issue that consolidated DeviceDefinition.physicalCharacteristics, capability, and specialization into property and defined the property value choices used to interpret FHIR-30274.
+FHIR-32290: supporting-decision - published follow-up that tracked incomplete FHIR-26424 application, specifically noting DeviceDefinition.physicalCharacteristics and property.value[x] cardinality.
+FHIR-32464: background - named in the FHIR-30274 resolution text, but its snapshot is an unrelated AuditEvent source.site issue, so it appears to be a Jira-key typo rather than governing evidence.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-30274: Published/Not Persuasive with Modification issue requesting DeviceDefinition.physicalCharacteristics/ProdCharacteristic replacement and finalizing separate integer/quantity and CodeableConcept/string value choices. Learned: the current spec should not expose DeviceDefinition.physicalCharacteristics and should support those distinct property value choices.
+- E2 Jira FHIR-26424: Published/Persuasive with Modification issue that removed/deprecated DeviceDefinition.physicalCharacteristics and updated DeviceDefinition.property to type plus value[x] choices. Learned: this is the actual structural consolidation that FHIR-30274 relies on.
+- E3 Jira FHIR-32290: Published/Persuasive follow-up noting FHIR-26424 was incomplete because DeviceDefinition.physicalCharacteristics was not fully removed and property.value[x] cardinality needed correction. Learned: later accepted work confirms the removal and 1..1 value shape.
+- E4 Source source/fhir.ini:297,1682 and source/devicedefinition/structuredefinition-DeviceDefinition.xml:1218-1278: DeviceDefinition is active; the StructureDefinition defines DeviceDefinition.property/type/value[x] with the expected choices and no physicalCharacteristics; fhir.ini only keeps an old-path migration mapping. Learned: the authoritative resource source is correct and the fhir.ini mapping should stay.
+- E5 Source source/library/list-Library-examples.xml:67-78, source/library/library-examples-header.xml:40-42, publish.ini:206, source/library/library-fhir-model-definition-content.xml:1352-1365,5774-5824: FHIR ModelInfo is a build-visible Library example; before this commit it still exposed the old physicalCharacteristics path and old valueQuantity/valueCode shape; after this commit it matches DeviceDefinition.property. Learned: these ModelInfo files were the remaining active stale source surface.
+- E6 Git 188021453f, 01a6bc6ffa, 23d0f3c36f, 7333cb0ead: history removed physicalCharacteristics from the DeviceDefinition StructureDefinition, corrected property.value[x] cardinality, and commented ProdCharacteristic out of fhir.ini. Learned: initial application fixed primary source but missed ModelInfo.
+- E7 Confluence OO HCP minutes 2021-09-13 page 79497577 and 2022-06-20 page 131047647: minutes record that FHIR-30274 was merged into DeviceDefinition.property, value[x] datatype comments were resolved, and the issue was later no longer needed/done. Learned: meeting evidence corroborates the Jira interpretation and no-change status of the primary StructureDefinition.
+- E8 Command community search: Zulip term search for DeviceDefinition physicalCharacteristics ProdCharacteristic found no direct rationale thread; quoted FHIR-30274 found one passing ballot discussion mention; Confluence refs found the OO minutes. Learned: no discovered community discussion conflicts with the Jira/source conclusion.
+- E9 Verification command/query: XML parsing, embedded Library.data synchronization, targeted ModelInfo assertions, CRLF-aware diff check, line-ending check, and targeted rg checks passed. Learned: the edited XML is well-formed, the embedded Library payload is synchronized, and DeviceDefinition no longer exposes physicalCharacteristics in ModelInfo.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-30274",
+    "url": "https://jira.hl7.org/browse/FHIR-30274",
+    "snapshot_path": "contexts/FHIR-30274/jira/FHIR-30274.md",
+    "ref": { "jira_key": "FHIR-30274" },
+    "summary": "Published/Not Persuasive with Modification OO issue asking to replace DeviceDefinition.physicalCharacteristics/ProdCharacteristic with DeviceDefinition.property and preserve distinct integer, quantity, CodeableConcept, and string value choices.",
+    "learned": "The current spec should not expose DeviceDefinition.physicalCharacteristics and should support the distinct DeviceDefinition.property.value[x] choices.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-26424",
+    "url": "https://jira.hl7.org/browse/FHIR-26424",
+    "snapshot_path": "contexts/FHIR-26424/jira/FHIR-26424.md",
+    "ref": { "jira_key": "FHIR-26424" },
+    "summary": "Published/Persuasive with Modification issue resolving to remove/deprecate DeviceDefinition.physicalCharacteristics, capability, and specialization and update DeviceDefinition.property with type plus value[x] choices.",
+    "learned": "This is the relevant structural consolidation that addressed the main FHIR-30274 request.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-32290",
+    "url": "https://jira.hl7.org/browse/FHIR-32290",
+    "snapshot_path": "contexts/FHIR-32290/jira/FHIR-32290.md",
+    "ref": { "jira_key": "FHIR-32290" },
+    "summary": "Published/Persuasive follow-up for incomplete FHIR-26424 application, noting DeviceDefinition.physicalCharacteristics was not fully removed and property.value[x] cardinality needed to be 1..1.",
+    "learned": "Later accepted work confirms the removal and the 1..1 property value shape used for this reconciliation.",
+    "supports": ["additional_context", "initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:297,1682; source/devicedefinition/structuredefinition-DeviceDefinition.xml:1218-1278",
+    "ref": { "paths": "source/fhir.ini; source/devicedefinition/structuredefinition-DeviceDefinition.xml" },
+    "summary": "DeviceDefinition is active; the authoritative StructureDefinition defines DeviceDefinition.property/type/value[x] with the expected choices and no physicalCharacteristics; fhir.ini only retains an old-path migration mapping.",
+    "learned": "The primary DeviceDefinition source is already correct, and the migration mapping should remain.",
+    "supports": ["build_scope", "initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/library/list-Library-examples.xml:67-78; source/library/library-examples-header.xml:40-42; publish.ini:206; source/library/library-fhir-model-definition-content.xml:1352-1365,5774-5824",
+    "ref": { "paths": "source/library/list-Library-examples.xml; source/library/library-examples-header.xml; publish.ini; source/library/library-fhir-model-definition-content.xml; source/library/library-fhir-model-definition.xml" },
+    "summary": "FHIR ModelInfo is a build-visible Library example; this commit changes DeviceDefinition.Property to the current value choice and removes the stale DeviceDefinition.physicalCharacteristics element, then synchronizes the embedded Library.data payload.",
+    "learned": "The edited ModelInfo files were the remaining active stale source surface for FHIR-30274.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "188021453f; 01a6bc6ffa; 23d0f3c36f; 7333cb0ead",
+    "ref": { "commits": "188021453f,01a6bc6ffa,23d0f3c36f,7333cb0ead" },
+    "summary": "History removed DeviceDefinition.physicalCharacteristics from the StructureDefinition, corrected property.value[x] cardinality, and commented ProdCharacteristic out of fhir.ini.",
+    "learned": "Initial application fixed the primary source but missed the ModelInfo Library surface.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "OO HCP minutes 2021-09-13 page 79497577; 2022-06-20 page 131047647",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/79497577/2021-09-13+HCP",
+    "snapshot_path": "contexts/FHIR-33034/confluence/79497577.md",
+    "ref": { "confluence_page_ids": "79497577,131047647" },
+    "summary": "Minutes record FHIR-30274 as merged into DeviceDefinition.property with value[x] datatype comments resolved, and later as no longer needed/done.",
+    "learned": "Meeting evidence corroborates the Jira interpretation and supports limiting the source edit to the stale ModelInfo surface.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-30274 DeviceDefinition physicalCharacteristics ProdCharacteristic",
+    "command": "bun run zulip:search fts 'DeviceDefinition physicalCharacteristics ProdCharacteristic' --limit 10; bun run zulip:search fts '\"FHIR-30274\"' --limit 10; bun run confluence:search refs jira FHIR-30274",
+    "query": "FHIR-30274 DeviceDefinition physicalCharacteristics ProdCharacteristic",
+    "result_count": 4,
+    "summary": "No direct Zulip rationale thread was found; one passing Zulip ballot mention and three Confluence references were found.",
+    "learned": "No discovered community discussion conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Targeted ModelInfo validation",
+    "command": "python3 XML/base64/assertions over source/library model-info files; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg targeted DeviceDefinition ModelInfo checks",
+    "summary": "XML parsing, embedded Library.data synchronization, targeted DeviceDefinition assertions, whitespace, line-ending, and rg checks passed.",
+    "learned": "The edited XML is structurally valid, synchronized, and removes the stale DeviceDefinition.physicalCharacteristics ModelInfo surface.",
+    "supports": ["checks", "confidence"]
+  }
+]
+</evidence-manifest>

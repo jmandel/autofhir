@@ -1,0 +1,101 @@
+FHIR-30791: Add Observation instantiates definition link
+
+Attribution note: surfaced while reviewing FHIR-14675, but direct Jira backing for this change is FHIR-30791.
+
+Issue request:
+FHIR-14675 was Published with a Persuasive with Modification resolution for STU3/R5, after noting that ObservationDefinition documentation said Observation.basedOn referenced ObservationDefinition while Observation.basedOn did not permit Reference(ObservationDefinition). The final resolution did not add ObservationDefinition to basedOn; it pointed to the related applied work and comments explaining that a new instantiates element should carry the ObservationDefinition relationship instead of overloading basedOn.
+
+Initial application:
+The seed issue itself has no Jira-keyed commit in the local history. The related FHIR-30791 Jira snapshot records applied R5 work in the same Observation/ObservationDefinition family, but the current source still had Observation.basedOn limited to plan/proposal/order resources and had no Observation.instantiates[x] element. The current CI build profile likewise did not expose Observation.instantiates[x].
+
+Additional context:
+FHIR-32698 later restated the intended application explicitly: ObservationDefinition is not a plan, proposal, or order, and the Observation-to-ObservationDefinition relationship belongs in Observation.instantiates[x] as canonical(ObservationDefinition) or Reference(ObservationDefinition), per FHIR-14675. FHIR-39201 is background for later naming of instantiates choices in rendered/API form, but it does not supersede the Observation-specific Reference option recorded by OO.
+
+AutoFHIR reconciliation:
+This commit adds Observation.instantiates[x] to the active Observation StructureDefinition source with canonical and Reference types constrained to ObservationDefinition. Observation.basedOn is left unchanged because adding ObservationDefinition there would contradict the final Jira interpretation and the existing basedOn definition.
+
+Recommendation:
+Keep this source change. It implements the OO resolution path for FHIR-14675 while preserving basedOn semantics; FHIR-32698 should be reviewed separately if a future worker wants a dedicated audit record for that later R6 clarification.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14675
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-30791: same-change-family - FHIR-14675's resolution says the concern was addressed through the applied Observation/ObservationDefinition work tracked there rather than by adding ObservationDefinition to basedOn.
+FHIR-32698: supporting-decision - later Published OO issue states that Observation.instantiates[x] canonical/reference to ObservationDefinition is the intended result per FHIR-14675.
+FHIR-39201: background - broader R5 naming change around instantiates choices, relevant only to interpreting rendered/API choice names.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14675: Published/Persuasive with Modification issue asking why Observation.basedOn lacked Reference(ObservationDefinition), with final resolution pointing to related applied work instead of adding the target to basedOn. Learned: the seed is final and the intended fix is not to overload basedOn.
+- E2 Jira FHIR-32698: Published/Persuasive with Modification issue says Observation.instantiates[x] should be canonical(ObservationDefinition) or Reference(ObservationDefinition) per FHIR-14675. Learned: later OO context confirms the ObservationDefinition relationship belongs in instantiates.
+- E3 Source source/fhir.ini:621,637: Observation and ObservationDefinition are active resources in the current build. Learned: the edited Observation StructureDefinition is in build scope.
+- E4 Source source/observation/structuredefinition-Observation.xml:197: added Observation.instantiates[x] with canonical/reference targetProfile ObservationDefinition while Observation.basedOn remains request/order-focused. Learned: the current source now expresses the final relationship without changing basedOn semantics.
+- E5 Command checks: local git history searches found no existing Issue-Reconcile-Key commit for FHIR-14675 and no local Jira-keyed application commit; build.fhir.org observation.profile.json lacked Observation.instantiates[x] before this edit; xmllint and diff whitespace checks passed. Learned: this was not already reconciled, the source gap was real, and the XML edit is well-formed.
+- E6 Community search: Zulip and Confluence searches for FHIR-14675/FHIR-30791 and ObservationDefinition basedOn/instantiates found no directly relevant conflicting discussion or minutes. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14675",
+    "url": "https://jira.hl7.org/browse/FHIR-14675",
+    "snapshot_path": "contexts/FHIR-14675/jira/FHIR-14675.md",
+    "ref": { "jira_key": "FHIR-14675" },
+    "summary": "Published/Persuasive with Modification issue asking to reconcile ObservationDefinition documentation with Observation.basedOn not allowing Reference(ObservationDefinition).",
+    "learned": "The final issue disposition points away from adding ObservationDefinition to basedOn and toward the related applied ObservationDefinition linkage work.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-32698",
+    "url": "https://jira.hl7.org/browse/FHIR-32698",
+    "ref": { "jira_key": "FHIR-32698" },
+    "summary": "Published OO issue states that Observation.instantiates[x] should be canonical(ObservationDefinition) or Reference(ObservationDefinition), per FHIR-14675.",
+    "learned": "This later decision confirms the proper element and target types for implementing the seed issue without changing basedOn.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:621 and source/fhir.ini:637",
+    "ref": { "path": "source/fhir.ini", "lines": "621,637" },
+    "summary": "The current build configuration has active Observation and ObservationDefinition resource entries.",
+    "learned": "The edited Observation StructureDefinition source is in build scope for the current specification.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-Observation.xml:197",
+    "ref": { "path": "source/observation/structuredefinition-Observation.xml", "line": 197 },
+    "summary": "Observation now has instantiates[x] with canonical and Reference types targeting ObservationDefinition; basedOn remains limited to plan/proposal/order targets.",
+    "learned": "The source now carries the ObservationDefinition linkage in the intended element while preserving basedOn semantics.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "local history, CI profile, and XML validation checks",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-14675' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git log --all --grep='FHIR-14675\\|FHIR-30791' -- source/observation source/observationdefinition source/fhir.ini; curl -fsSL https://build.fhir.org/observation.profile.json | jq -e '.snapshot.element[] | select(.id==\"Observation.instantiates[x]\")'; xmllint --noout source/observation/structuredefinition-Observation.xml; git diff --check",
+    "summary": "No existing reconcile commit or local Jira-keyed application commit was found; the live CI profile lacked Observation.instantiates[x] before the edit; XML and whitespace checks passed.",
+    "learned": "The issue had not already been reconciled, the current source/profile gap was real, and the edited XML is well-formed.",
+    "supports": ["initial_application", "verification", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence searches",
+    "command": "bun run zulip:search fts 'Observation basedOn ObservationDefinition' --limit 10; bun run zulip:search fts 'ObservationDefinition basedOn' --limit 20; bun run confluence:search refs jira FHIR-14675; bun run confluence:search refs jira FHIR-30791",
+    "query": "Observation basedOn ObservationDefinition; ObservationDefinition basedOn; FHIR-14675; FHIR-30791",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence evidence was found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

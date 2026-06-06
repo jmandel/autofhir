@@ -1,0 +1,100 @@
+FHIR-11312: Audit retired Sequence reference string clarification
+
+Issue request:
+FHIR-11312 was a Published Clinical Genomics change request for the DSTU2 Sequence resource, resolved Not Persuasive with Modification. The requester asked what the string in Sequence.referenceSeq.referenceSeqString meant; the accepted clarification explained that referenceSeq could be represented four ways and that referenceSeqString was a literal reference sequence string such as "ACGTTAG".
+
+Initial application:
+I found no explicit git commit mentioning FHIR-11312, #11312, or core #466. The closest historical source change after the vote was 3149123edb040e04385f2a496490c08a842015ff, "Add constraints on Sequence.referenceString", which added invariants requiring exactly one referenceSeq representation among genomeBuild, referenceSeqId, referenceSeqPointer, and referenceSeqString, but it left the old referenceSeqString definition as the generic "A Reference Sequence string." Thus the original clarification appears at most partially applied in the legacy Sequence source.
+
+Additional context:
+The affected Sequence resource is now listed under removed resources in source/fhir.ini. The later MolecularSequence resource is commented out for Clinical Genomics, and source/diagnostics-module.html says MolecularSequence has been replaced by MolecularDefinition. Later final Clinical Genomics decisions reshaped this area: FHIR-37441 changed the legacy referenceSeq alternatives into a choice, and FHIR-51227 superseded legacy MolecularSequence with MolecularDefinition. Current MolecularDefinition uses a different representation model with literal, code, resolvable, extracted, repeated, concatenated, and relative representations; its literal.value definition already describes a string literal representation of the molecular entity and gives primary DNA sequence as an example.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The original ambiguous Sequence.referenceSeq.referenceSeqString element is not in the current build, and copying the DSTU2 clarification into MolecularDefinition would be a model translation rather than applying the historical issue. The current source already handles literal molecular sequences through MolecularDefinition.representation.literal.value, while the old Sequence and MolecularSequence referenceSeq fields have been retired or superseded.
+
+Recommendation:
+Keep this audit commit as-is. Do not resurrect or back-port the retired Sequence.referenceSeqString text into the current core source; any remaining ambiguity in MolecularDefinition literal or extracted sequence representation should be handled as a new MolecularDefinition-specific Clinical Genomics issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11312
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-37441: later-change - Published R5 decision changed legacy MolecularSequence referenceSeq CodeableConcept/MolecularSequence/string alternatives into referenceSequence[x], narrowing the old representation model before it was retired.
+FHIR-51227: later-change - Applied R6 decision replacing MolecularSequence with MolecularDefinition, which supersedes the legacy Sequence/MolecularSequence model affected by FHIR-11312.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11312: Published/Not Persuasive with Modification Clinical Genomics issue for DSTU2 Sequence.referenceSeq.referenceSeqString. Learned: the final request was to clarify that referenceSeqString is a literal sequence string such as "ACGTTAG".
+- E2 Git 3149123edb040e04385f2a496490c08a842015ff: nearby historical change added invariants requiring exactly one of genomeBuild, referenceSeqId, referenceSeqPointer, or referenceSeqString. Learned: the legacy source was touched around the issue family, but no explicit FHIR-11312 commit or direct definition clarification was found.
+- E3 Source source/fhir.ini:170-220,309-413,591-592 and source/diagnostics-module.html:117: Sequence is removed, molecularsequence is commented out, and current diagnostics text says MolecularSequence was replaced by MolecularDefinition. Learned: the original target element is outside the current build scope.
+- E4 Jira FHIR-37441 and git e3be7248f37efeab08e9625d43bd9ead22c8e824: later Published change made the legacy referenceSeq alternatives a choice. Learned: later WG decisions substantially refactored the old referenceSeq representation.
+- E5 Jira FHIR-51227 and source/moleculardefinition/structuredefinition-MolecularDefinition.xml:525-590: Applied R6 replacement with MolecularDefinition, whose literal.value is a string literal representation of a molecular entity and may be a primary DNA sequence. Learned: the current model already expresses literal sequence data through a different, active artifact.
+- E6 Community searches: quoted Zulip/Confluence searches for FHIR-11312 found no direct hits; a related 2022 Zulip thread discussed referenceSeqString confusion and simplification before FHIR-37441. Learned: no discovered community record conflicts with treating the old element as superseded rather than needing a current source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11312",
+    "url": "https://jira.hl7.org/browse/FHIR-11312",
+    "snapshot_path": "contexts/FHIR-11312/jira/FHIR-11312.md",
+    "ref": { "jira_key": "FHIR-11312" },
+    "summary": "Published Clinical Genomics issue asking what Sequence.referenceSeq.referenceSeqString meant, resolved to clarify that it is a reference sequence string such as ACGTTAG.",
+    "learned": "This establishes the final historical DSTU2 clarification request for the legacy Sequence element.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "3149123edb040e04385f2a496490c08a842015ff",
+    "ref": { "commit": "3149123edb040e04385f2a496490c08a842015ff" },
+    "summary": "Commit 'Add constraints on Sequence.referenceString' added invariants requiring exactly one referenceSeq representation among genomeBuild, referenceSeqId, referenceSeqPointer, and referenceSeqString.",
+    "learned": "The legacy source was modified around the same referenceSeq representation family, but no explicit FHIR-11312 commit or direct referenceSeqString definition clarification was found.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-220,309-413,591-592; source/diagnostics-module.html:117",
+    "summary": "Sequence is listed under removed resources, molecularsequence is commented out for Clinical Genomics, moleculardefinition is active, and diagnostics text says MolecularSequence was replaced by MolecularDefinition.",
+    "learned": "The current build does not expose the old Sequence.referenceSeq.referenceSeqString element as an edit target.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-37441 / e3be7248f37efeab08e9625d43bd9ead22c8e824",
+    "url": "https://jira.hl7.org/browse/FHIR-37441",
+    "snapshot_path": "contexts/FHIR-37441/jira/FHIR-37441.md",
+    "ref": { "jira_key": "FHIR-37441", "commit": "e3be7248f37efeab08e9625d43bd9ead22c8e824" },
+    "summary": "Published R5 decision changed legacy MolecularSequence referenceSeq CodeableConcept, MolecularSequence, and string alternatives into referenceSequence[x].",
+    "learned": "Later WG work refactored the old referenceSeq representation model before MolecularSequence was retired.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-51227 and source/moleculardefinition/structuredefinition-MolecularDefinition.xml:525-590",
+    "url": "https://jira.hl7.org/browse/FHIR-51227",
+    "snapshot_path": "contexts/FHIR-51227/jira/FHIR-51227.md",
+    "ref": { "jira_key": "FHIR-51227" },
+    "summary": "Applied R6 decision replaced MolecularSequence with MolecularDefinition; current MolecularDefinition defines literal.value as a string literal representation of the molecular entity, for example a primary DNA sequence.",
+    "learned": "The active current model expresses literal sequence strings through MolecularDefinition rather than the retired Sequence.referenceSeqString element.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community and current-source searches for FHIR-11312/referenceSeqString",
+    "command": "bun run zulip:search fts '\"FHIR-11312\" referenceSeqString Sequence' --limit 10; bun run confluence:search fts '\"FHIR-11312\" referenceSeqString Sequence' --limit 10; bun run zulip:search fts 'referenceSeqString Sequence' --limit 10; rg -n 'referenceSeqString|referenceSeq\\.referenceSeqString|referenceString' source",
+    "query": "FHIR-11312 referenceSeqString Sequence",
+    "result_count": 1,
+    "summary": "No direct FHIR-11312 Zulip or Confluence hits and no current source referenceSeqString hits were found; one related Zulip thread discussed referenceSeqString confusion during later MolecularSequence simplification.",
+    "learned": "No discovered community or current-source evidence requires a current core edit for this retired DSTU2 element.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,118 @@
+FHIR-20481: Audit on-hold medication status wording
+
+Issue request:
+FHIR-20481 was a Published/Persuasive Pharmacy change request raised against STU3 and applied for R5. It asked whether on-hold MedicationRequest/MedicationStatement medications that might later be stopped should remain on-hold before discharge, and the final resolution said the medication should stay on hold unless someone with authority can discontinue it. The approved wording removed the prior expectation that an on-hold prescription must continue later and instead said it may or may not be resumed.
+
+Initial application:
+Jira records application to build in merge commit 16680e7ffc2f0f3b8cf031ce23e828ec14c2457e. The underlying Pharmacy commit 92cc8632039c231c346b3ab90697c9c0537a1a5f changed the MedicationRequest on-hold code definition from "temporarily halted, but are expected to continue later" to "temporarily halted. The prescription might or might not be resumed." I found no corresponding FHIR-20481-specific MedicationStatement status definition change in that commit.
+
+Additional context:
+Both MedicationRequest and MedicationStatement are active current-build resources in source/fhir.ini. Current MedicationRequest now says the request might or might not be resumed, preserving the approved FHIR-20481 semantics with the current resource terminology. Later Pharmacy decisions changed MedicationStatement more substantially: FHIR-19468/FHIR-19470 introduced adherence for taking/not-taking semantics, FHIR-32060 and FHIR-39271 confirm MedicationStatement.status now reflects only the recording status of the statement, and FHIR-39333 added on-hold and stopped descendants under the MedicationStatement adherence not-taking code. The combined branch already contains reconciliation commits for FHIR-19470 and FHIR-39271, so those related decisions should not be republished here.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active MedicationRequest CodeSystem already carries the approved "might or might not be resumed" meaning. MedicationStatement no longer has an on-hold status code to update; the current adherence model represents on-hold as a kind of not-taking without retaining the obsolete "expected to continue later" restriction. Adding new resumption prose to the example-bound adherence codes would be a broader, later MedicationStatement wording decision rather than a necessary FHIR-20481 fix.
+
+Recommendation:
+Keep this audit commit as-is. If Pharmacy wants more detailed MedicationStatement.adherence code definitions, handle that as follow-up under the MedicationStatement adherence issue family rather than as a delayed application of FHIR-20481.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20481
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-19470: later-change - introduced MedicationStatement.adherence for taking/not-taking semantics, replacing the prior status-based model for those assertions.
+FHIR-39271: later-change - confirms MedicationStatement.status reflects recording status while MedicationStatement.adherence carries taking/not-taking information; already represented on the combined branch.
+FHIR-39333: later-change - added on-hold and stopped descendants under the MedicationStatement adherence not-taking code.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20481: Published/Persuasive Pharmacy issue; resolution says an on-hold medication stays on hold unless the institution can discontinue and changes the definition so it may or may not be resumed. Learned: this establishes the seed's required semantics.
+- E2 Source source/fhir.ini:203-204: MedicationRequest and MedicationStatement are active resources in the current build. Learned: their source files are in build scope for this reconciliation.
+- E3 Source source/medicationrequest/codesystem-medicationrequest-status.xml:31-33: on-hold is defined as temporarily halted and the request might or might not be resumed. Learned: the current MedicationRequest source already preserves the FHIR-20481 wording with current resource terminology.
+- E4 Git 16680e7ffc2f0f3b8cf031ce23e828ec14c2457e and 92cc8632039c231c346b3ab90697c9c0537a1a5f: Jira-linked application changed the MedicationRequest on-hold definition. Learned: the original source application is present and explains the current wording.
+- E5 Source source/medicationstatement/structuredefinition-MedicationStatement.xml:140-144 and source/medicationstatement/codesystem-medication-statement-adherence.xml:46-48: MedicationStatement.status is recorded|entered-in-error|draft, while adherence includes on-hold under not-taking. Learned: there is no current MedicationStatement on-hold status definition carrying the obsolete expectation-to-resume language.
+- E6 Jira FHIR-39271 and FHIR-39333: later Published Pharmacy decisions keep the MedicationStatement status/adherence split and add on-hold/stopped adherence codes. Learned: later final decisions explain why no FHIR-20481 MedicationStatement status edit is appropriate now.
+- E7 Community search for FHIR-20481 and on-hold MedicationStatement terms: no direct Zulip or Confluence references to FHIR-20481 were found; broader hits matched the later MedicationStatement status/adherence family and did not conflict with the no-change conclusion. Learned: no discovered community evidence reverses the Jira/source/history conclusion.
+- E8 Verification command/query: rg for current on-hold/status/adherence text, xmllint on relevant XML files, and CRLF-aware git diff --check. Learned: the checked source is well formed, in scope, and needs no source delta for this seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20481",
+    "url": "https://jira.hl7.org/browse/FHIR-20481",
+    "snapshot_path": "contexts/FHIR-20481/jira/FHIR-20481.md",
+    "ref": { "jira_key": "FHIR-20481" },
+    "summary": "Published/Persuasive Pharmacy issue asking how to represent on-hold medication requests/statements that might later be stopped.",
+    "learned": "The final decision removes the implication that an on-hold medication is expected to resume and says it may or may not be resumed.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:203-204",
+    "ref": { "path": "source/fhir.ini", "line": 203 },
+    "summary": "MedicationRequest and MedicationStatement are listed as active resources in the current FHIR build configuration.",
+    "learned": "The MedicationRequest and MedicationStatement source checks are in current-build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationrequest/codesystem-medicationrequest-status.xml:31-33",
+    "ref": { "path": "source/medicationrequest/codesystem-medicationrequest-status.xml", "line": 33 },
+    "summary": "The MedicationRequest on-hold definition says actions are temporarily halted and the request might or might not be resumed.",
+    "learned": "Current MedicationRequest source already expresses the FHIR-20481 resolution.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "16680e7ffc2f0f3b8cf031ce23e828ec14c2457e; 92cc8632039c231c346b3ab90697c9c0537a1a5f",
+    "ref": { "commit": "92cc8632039c231c346b3ab90697c9c0537a1a5f" },
+    "summary": "The Jira-linked 2019 Pharmacy application changed the MedicationRequest on-hold definition from expected continuation to might-or-might-not resume.",
+    "learned": "The historical application is present in source history and accounts for the current wording.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/medicationstatement/structuredefinition-MedicationStatement.xml:140-144; source/medicationstatement/codesystem-medication-statement-adherence.xml:46-48",
+    "ref": { "path": "source/medicationstatement/codesystem-medication-statement-adherence.xml", "line": 46 },
+    "summary": "MedicationStatement.status is now recorded, entered-in-error, or draft; the on-hold code appears under MedicationStatement adherence not-taking.",
+    "learned": "There is no current MedicationStatement on-hold status definition that needs the old FHIR-20481 wording adjustment.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-39271; FHIR-39333",
+    "url": "https://jira.hl7.org/browse/FHIR-39271",
+    "ref": { "jira_key": "FHIR-39271" },
+    "summary": "Later Published Pharmacy issues confirm the MedicationStatement status/adherence model and add on-hold/stopped adherence descendants.",
+    "learned": "Later final decisions explain why the seed should not reintroduce or rewrite MedicationStatement status semantics.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-20481 and on-hold MedicationStatement terms",
+    "command": "bun run zulip:search fts '\"FHIR-20481\" OR \"20481\"' --limit 10; bun run confluence:search refs jira FHIR-20481; bun run zulip:search fts '\"on-hold\" \"MedicationStatement\" \"stopped\"' --limit 10; bun run confluence:search fts '\"on-hold\" \"MedicationStatement\" \"stopped\"' --limit 10",
+    "query": "FHIR-20481; on-hold MedicationStatement stopped",
+    "summary": "No direct Zulip or Confluence references to FHIR-20481 were found; broader hits aligned with the later MedicationStatement status/adherence family.",
+    "learned": "No discovered community evidence conflicts with treating the current source as already correct for FHIR-20481.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Source verification commands",
+    "command": "rg -n 'The request might or might not be resumed|expected to continue later|MedicationStatement.status|MedicationStatement.adherence|The medication is on hold' source/medicationrequest/codesystem-medicationrequest-status.xml source/medicationstatement/structuredefinition-MedicationStatement.xml source/medicationstatement/codesystem-medication-statement-adherence.xml source/fhir.ini; xmllint --noout source/medicationrequest/codesystem-medicationrequest-status.xml source/medicationstatement/structuredefinition-MedicationStatement.xml source/medicationstatement/codesystem-medication-statement-adherence.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/medicationrequest/codesystem-medicationrequest-status.xml source/medicationstatement/structuredefinition-MedicationStatement.xml source/medicationstatement/codesystem-medication-statement-adherence.xml",
+    "summary": "The relevant current source text was found, the XML files are well formed, and there is no source diff needing whitespace validation.",
+    "learned": "The no-change decision is based on active, valid source inputs rather than generated output.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

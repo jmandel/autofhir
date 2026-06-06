@@ -1,0 +1,118 @@
+FHIR-37847: Clarify OperationDefinition searchType use
+
+Issue request:
+FHIR-37847 was Published with a Persuasive with Modification resolution for R5. It asked to clarify OperationDefinition.parameter.searchType, document that searchType only applies to input parameters and add an invariant for that, remove the redundant optional Search Type bullet on the operations page, and ensure invalid OperationDefinitions do not violate opd-2.
+
+Initial application:
+Commit bd263e608c193abcd2d6ad7e71d704200796e2ac added the input-only opd-4 invariant, added searchType explanatory text with an Evaluate Measure example, and removed the redundant operations-page bullet. The same-day FHIR-32069 commit e7b4eba11e0bf24c8b4452079cc80dff04c014c0 changed the new wording back from primitive parameters to string parameters while updating OperationDefinition type bindings. The current source still had the FHIR-37847 invariant and example, but later Measure operation edits left three resource-typed reporterResource parameters with searchType values that violated the existing opd-2 rule.
+
+Additional context:
+FHIR-41220 later clarified operations-page wording about parameters that can be passed on the URL using search syntax. That later clarification does not require OperationDefinition.parameter.searchType on non-string parameters because non-string parameter data types have their search behavior determined by their type. FHIR-55967 intentionally changed the Measure $evaluate, $care-gaps, and $collect-data reporterResource inputs to Practitioner, PractitionerRole, or Organization resources represented with type DomainResource and allowed-type extensions; their inherited searchType="reference" values were stale against that resource-typed representation. source/fhir.ini lists both OperationDefinition and Measure as active resources, so the edited source participates in the current build.
+
+AutoFHIR reconciliation:
+This commit keeps the FHIR-37847 rule that searchType is a string-parameter discriminator, clarifies the OperationDefinition element prose and operations-page bullet accordingly, and removes stale searchType="reference" from the three DomainResource reporterResource inputs. A targeted scan of current OperationDefinition resources now finds no searchType on output parameters and no searchType on parameters whose type is not string.
+
+Recommendation:
+Keep this commit as a current-spec source fix for FHIR-37847. Do not treat FHIR-41220 or FHIR-55967 as separately decided here; they are later context that remains otherwise applied, and this commit only removes the inconsistency their interaction exposed.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37847
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-41220: later-change - Later operations-page clarification replaced the previous "simple string parameters" text and needed to be reconciled with FHIR-37847's string-only searchType rule.
+FHIR-55967: later-change - Later Measure operation alignment changed reporterResource inputs to DomainResource while leaving stale searchType values behind.
+FHIR-32069: background - Same-day OperationDefinition binding cleanup changed the initial FHIR-37847 wording from primitive parameters back to string parameters.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37847: Published/Persuasive with Modification issue requested clearer searchType documentation, an input-only invariant, redundant bullet removal, and build enforcement of opd-2. Learned: establishes the final source rule being reconciled.
+- E2 Source source/operationdefinition/structuredefinition-OperationDefinition.xml:705-723,889-901: current OperationDefinition source contains opd-2/opd-4 and the edited searchType definition/comment. Learned: OperationDefinition is the authoritative source for the element and its constraints.
+- E3 Source source/operations.html:170-178: current operations-page parameter list now says searchType is for string parameters and that other data types derive search behavior from their type. Learned: narrative guidance now matches the formal element rule.
+- E4 Source source/measure/operationdefinition-Measure-evaluate.xml:150-156; source/measure/operationdefinition-Measure-care-gaps.xml:179-185; source/measure/operationdefinition-Measure-collect-data.xml:128-134: reporterResource inputs are DomainResource values with allowed-type extensions and no searchType. Learned: current active Measure operations no longer violate opd-2.
+- E5 Git bd263e608c193abcd2d6ad7e71d704200796e2ac and e7b4eba11e0bf24c8b4452079cc80dff04c014c0: history shows the original FHIR-37847 application and the same-day wording change back to string parameters. Learned: current reconciliation preserves the applied string-only rule rather than re-opening the primitive-type question.
+- E6 Jira FHIR-41220 and FHIR-55967: later Applied issues changed operations-page wording and Measure reporterResource parameters. Learned: these later decisions explain how the current inconsistency arose without superseding FHIR-37847.
+- E7 Confluence FHIR-I minutes 2022-08-08 page 108298488: records FHIR-37847 Persuasive with Modification vote and concern that invariants were not caught by the main build. Learned: supports fixing current source violations rather than merely auditing no-change.
+- E8 Verification command: Python XML scan of current OperationDefinition resources plus git diff --check. Learned: all parsed OperationDefinition resources now have zero searchType-on-non-string or output-parameter violations, and the diff has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37847",
+    "url": "https://jira.hl7.org/browse/FHIR-37847",
+    "snapshot_path": "contexts/FHIR-37847/jira/FHIR-37847.md",
+    "ref": { "jira_key": "FHIR-37847" },
+    "summary": "Published/Persuasive with Modification issue requesting clearer OperationDefinition.parameter.searchType documentation, input-only enforcement, redundant bullet removal, and opd-2 build enforcement.",
+    "learned": "This establishes the final FHIR-I decision and the string/input-only searchType rule to reconcile in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/operationdefinition/structuredefinition-OperationDefinition.xml:705-723,889-901",
+    "ref": { "path": "source/operationdefinition/structuredefinition-OperationDefinition.xml" },
+    "summary": "OperationDefinition source contains opd-2/opd-4 constraints and the edited searchType definition/comment.",
+    "learned": "The formal element definition is in build scope and now aligns the prose with the constraints.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/operations.html:170-178",
+    "ref": { "path": "source/operations.html" },
+    "summary": "Operations narrative now says searchType is for string parameters and other parameter data types derive search behavior from their type.",
+    "learned": "The local narrative no longer implies searchType should be supplied on non-string parameters.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/measure/operationdefinition-Measure-evaluate.xml:150-156; source/measure/operationdefinition-Measure-care-gaps.xml:179-185; source/measure/operationdefinition-Measure-collect-data.xml:128-134",
+    "ref": { "path": "source/measure" },
+    "summary": "The three reporterResource inputs are DomainResource parameters with allowed-type extensions and no searchType value.",
+    "learned": "The active Measure OperationDefinitions now conform to opd-2 while preserving the resource-typed reporterResource design.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "bd263e608c193abcd2d6ad7e71d704200796e2ac; e7b4eba11e0bf24c8b4452079cc80dff04c014c0",
+    "ref": { "commit": "bd263e608c193abcd2d6ad7e71d704200796e2ac" },
+    "summary": "Git history shows the original FHIR-37847 application and same-day wording change back to string parameters.",
+    "learned": "The reconciliation should preserve the applied string-only rule and remove later source violations of it.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-41220; FHIR-55967",
+    "url": "https://jira.hl7.org/browse/FHIR-41220",
+    "ref": { "jira_key": "FHIR-41220" },
+    "summary": "Later Applied issues changed operations-page wording and Measure reporterResource parameters.",
+    "learned": "These explain the current inconsistency without requiring separate decisions for those issues in this commit.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2022-08-08 page 108298488",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/108298488/FHIR+Infrastructure+Minutes+CC+2022-08-08",
+    "ref": { "confluence_page_id": 108298488 },
+    "summary": "Minutes record the FHIR-37847 Persuasive with Modification vote and a concern that invariant violations were not caught by the main build.",
+    "learned": "This supports fixing current opd-2 violations in source rather than leaving a no-change audit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "OperationDefinition searchType validation scan",
+    "command": "python3 XML scan of source/**/operationdefinition-*.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Parsed 45 OperationDefinition resources and found zero searchType-on-non-string or output-parameter violations; diff whitespace check passed.",
+    "learned": "The source fix satisfies the measurable FHIR-37847 consistency check for current OperationDefinition sources.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

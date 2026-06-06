@@ -1,0 +1,119 @@
+FHIR-28435: Audit packaged product recursion target
+
+Issue request:
+FHIR-28435 was a Published FHIR-core BR&R change request, resolved Persuasive for R5, asking to add PackagedProductDefinition to the PackagedProductDefinition.package.containedItem.item list so identified packages can recursively contain a full packaged-product resource while retaining the lighter-weight approach.
+
+Initial application:
+The issue was explicitly applied before this reconciliation in git 0ee3e67a82, whose message includes "add package as package item FHIR#28435". That commit changed the then-spreadsheet source for PackagedProductDefinition.package.containedItem.item from Reference(ManufacturedItemDefinition|DeviceDefinition|BiologicallyDerivedProduct|NutritionProduct) to CodeableReference(ManufacturedItemDefinition|DeviceDefinition|PackagedProductDefinition|BiologicallyDerivedProduct|NutritionProduct) and added the matching package search parameter. Later source regeneration carried the target into the current StructureDefinition XML.
+
+Additional context:
+FHIR-29692 later renamed the backbone from package to packaging, so the current element path is PackagedProductDefinition.packaging.containedItem.item. FHIR-28584 was applied in the same commit family and is already represented on the combined branch as a no-change audit that cites FHIR-28435. FHIR-31805 is also already represented on the combined branch and preserved the package-of-packages guidance for when the recursive PackagedProductDefinition route should be used.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active current source defines PackagedProductDefinition.packaging.containedItem.item as CodeableReference with a PackagedProductDefinition targetProfile, its definition explains that another whole packaged product can be included for wholesale/distribution package-of-packages cases, and the PackagedProductDefinition-package search parameter points to the item.reference expression. CodeableReference also preserves the requested lightweight option through its concept arm.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR core source follow-up is needed for FHIR-28435 unless BR&R opens a later issue to change the package-of-packages modeling; the current source already implements the published request and later path-name/guidance decisions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-28435
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-28584: same-change-family - applied in the same 2020 commit family that introduced the CodeableReference modeling and is already audited on the combined branch.
+FHIR-28086: same-change-family - expanded the same containedItem.item target family to BiologicallyDerivedProduct and NutritionProduct, but covers broader scope text and was not independently decided here.
+FHIR-29692: later-change - renamed PackagedProductDefinition.package to PackagedProductDefinition.packaging, explaining the current path name.
+FHIR-31805: supporting-decision - later published guidance explains when the recursive PackagedProductDefinition target should be used and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-28435: Published/Persuasive BR&R issue for R5 requesting PackagedProductDefinition as an allowed containedItem.item target while retaining the lightweight approach. Learned: this establishes final WG intent for the current source check.
+- E2 Source source/fhir.ini:148,1032: PackagedProductDefinition is active and normative in the current build configuration. Learned: source/packagedproductdefinition is in current FHIR build scope.
+- E3 Source source/packagedproductdefinition/structuredefinition-PackagedProductDefinition.xml:614-627: containedItem.item is a CodeableReference with targetProfile PackagedProductDefinition alongside ManufacturedItemDefinition, DeviceDefinition, BiologicallyDerivedProduct, and NutritionProduct. Learned: the requested recursive full-resource target is present and the lightweight CodeableReference concept option remains available.
+- E4 Source source/packagedproductdefinition/structuredefinition-PackagedProductDefinition.xml:617 and source/packagedproductdefinition/packagedproductdefinition-introduction.xml:45-64: current definitions and Scope and Usage text explain package-of-packages recursion and distinguish it from internal packaging layers. Learned: later guidance preserves the intended use of the PackagedProductDefinition target.
+- E5 Source source/packagedproductdefinition/bundle-PackagedProductDefinition-search-params.xml:160-172: current package search parameter uses PackagedProductDefinition.packaging.containedItem.item.reference. Learned: the search surface for the recursive package target is also present.
+- E6 Git 0ee3e67a82: historical application commit says "add package as package item FHIR#28435" and adds PackagedProductDefinition to the containedItem.item CodeableReference target list. Learned: the Jira was applied before source regeneration/refactoring.
+- E7 Command community search: direct Zulip and Confluence searches for FHIR-28435 with PackagedProductDefinition found no relevant hits or conflicting minutes. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+- E8 Verification command/query: XML parsing plus an element-type assertion confirmed the active StructureDefinition has CodeableReference and the PackagedProductDefinition targetProfile. Learned: the no-change decision is grounded in syntactically valid current source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-28435",
+    "url": "https://jira.hl7.org/browse/FHIR-28435",
+    "snapshot_path": "contexts/FHIR-28435/jira/FHIR-28435.md",
+    "ref": { "jira_key": "FHIR-28435" },
+    "summary": "Published/Persuasive BR&R R5 issue requesting PackagedProductDefinition as an allowed PackagedProductDefinition.package.containedItem.item target while retaining the lightweight approach.",
+    "learned": "This establishes final WG intent to allow recursive full packaged-product references without removing coded/lightweight modeling.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:148,1032",
+    "ref": { "path": "source/fhir.ini", "lines": "148,1032" },
+    "summary": "fhir.ini lists PackagedProductDefinition as an active resource and normative artifact.",
+    "learned": "The inspected PackagedProductDefinition source is in current build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/packagedproductdefinition/structuredefinition-PackagedProductDefinition.xml:614-627",
+    "ref": { "path": "source/packagedproductdefinition/structuredefinition-PackagedProductDefinition.xml", "start_line": 614, "end_line": 627 },
+    "summary": "The current containedItem.item element is CodeableReference and includes PackagedProductDefinition in its targetProfile list.",
+    "learned": "The requested recursive full-resource target is present while CodeableReference preserves a lightweight coded alternative.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/packagedproductdefinition/structuredefinition-PackagedProductDefinition.xml:617; source/packagedproductdefinition/packagedproductdefinition-introduction.xml:45-64",
+    "ref": { "paths": "source/packagedproductdefinition/structuredefinition-PackagedProductDefinition.xml;source/packagedproductdefinition/packagedproductdefinition-introduction.xml", "lines": "617;45-64" },
+    "summary": "Current definitions and Scope and Usage text explain that PackagedProductDefinition recursion is for package-of-packages cases and separate it from internal packaging layers.",
+    "learned": "Later guidance is consistent with leaving the recursive PackagedProductDefinition target in place.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/packagedproductdefinition/bundle-PackagedProductDefinition-search-params.xml:160-172",
+    "ref": { "path": "source/packagedproductdefinition/bundle-PackagedProductDefinition-search-params.xml", "start_line": 160, "end_line": 172 },
+    "summary": "The current PackagedProductDefinition-package search parameter points at PackagedProductDefinition.packaging.containedItem.item.reference.",
+    "learned": "The generated/search surface for recursive package references is present in source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "0ee3e67a82c0c38d9b72a24283a41aefd527d296",
+    "ref": { "commit": "0ee3e67a82c0c38d9b72a24283a41aefd527d296" },
+    "summary": "Historical application commit says 'add package as package item FHIR#28435' and adds PackagedProductDefinition to the containedItem.item CodeableReference target list.",
+    "learned": "FHIR-28435 was applied before later source regeneration and path-renaming refactors.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative direct community search for FHIR-28435",
+    "command": "bun run zulip:search fts '\"FHIR-28435\" PackagedProductDefinition' --limit 10; bun run confluence:search refs jira FHIR-28435; bun run confluence:search fts '\"FHIR-28435\" PackagedProductDefinition' --limit 10",
+    "query": "FHIR-28435 PackagedProductDefinition",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence hits were found for FHIR-28435 with PackagedProductDefinition.",
+    "learned": "No discovered community evidence conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML parse and containedItem.item type assertion",
+    "command": "xmllint --noout source/packagedproductdefinition/structuredefinition-PackagedProductDefinition.xml; python3 - <<'PY' ... assert CodeableReference and PackagedProductDefinition targetProfile ... PY",
+    "summary": "The StructureDefinition XML parsed and the containedItem.item assertion printed CodeableReference plus the expected target profiles including PackagedProductDefinition.",
+    "learned": "The no-change decision is based on valid current conformance source.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

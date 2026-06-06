@@ -1,0 +1,118 @@
+FHIR-29639: Audit Statistic modelCharacteristic cleanup
+
+Issue request:
+FHIR-29639 was Published/Persuasive with Modification for R5 and asked to simplify Statistic.modelCharacteristic by removing valueCodeableConcept from Statistic.modelCharacteristic.value[x], making Statistic.modelCharacteristic.code 1..1, adding StatisticModelCode codes, and then further simplifying value[x] so the remaining value element was only SimpleQuantity after removing valueBoolean and valueRange.
+
+Initial application:
+The issue was applied in commit 7d9ae39d22525c89071c3ab92d5bf08eaf152ed4 against the then-current source/datatypes/statistic.xml spreadsheet. That commit changed Statistic.modelCharacteristic.code from 0..1 to 1..1, replaced the value[x] choice CodeableConcept | boolean | SimpleQuantity | Range with a non-choice SimpleQuantity value, and expanded the statistic-model-code sheet. Later R5/R6 refactors removed the standalone Statistic datatype and inlined the statistic backbone under Evidence.
+
+Additional context:
+Evidence is an active CDS resource in source/fhir.ini, while the old Statistic datatype source no longer exists in the current build. The current authoritative source is source/evidence/structuredefinition-Evidence.xml. In R5-import state commit 49b86f8a697 the inlined Evidence.statistic.modelCharacteristic.value was still SimpleQuantity-only, preserving FHIR-29639. Later Applied R6 issue FHIR-41379 deliberately changed the current Evidence.statistic.modelCharacteristic.value element back to value[x] with Quantity | Range | CodeableConcept to support endpoint analysis plans. Later FHIR-42885 removed only the conditional core element in favor of an EBM extension, and FHIR-43328 simplified recursive modelCharacteristic structure; neither reversed FHIR-41379's value[x] decision. FHIR-39632 and commit caa1fb75adbcca96f92873c7d958e31f547124bb moved Evidence terminology definitions out of base FHIR to THO, and the current THO Statistic Model CodeSystem contains the relevant Paule-Mandel/tau and related model codes.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Removing Range and CodeableConcept from the current Evidence.statistic.modelCharacteristic.value[x] would incorrectly reverse the later Applied R6 FHIR-41379 decision. Adding or editing Statistic datatype source is also out of scope because that datatype is no longer in the current build.
+
+Recommendation:
+Keep this audit commit as-is. The current core source is correct after considering the R5 application plus later R6 Evidence decisions; any future desire to narrow Evidence.statistic.modelCharacteristic.value[x] again should be raised as a new CDS tracker that explicitly supersedes FHIR-41379.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-29639
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-27785: same-change-family - Created Statistic.modelCharacteristic and the initial statistic model code/method split that FHIR-29639 simplified.
+FHIR-41379: later-change - Applied R6 decision intentionally changed current Evidence.statistic.modelCharacteristic.value back to Quantity | Range | CodeableConcept.
+FHIR-42885: later-change - Later Applied issue removed the conditional core element and moved conditional modeling to an EBM extension without narrowing modelCharacteristic.value[x].
+FHIR-43328: later-change - Later Applied issue simplified recursive modelCharacteristic structure but did not change the value[x] types.
+FHIR-39632: later-change - Later Applied terminology cleanup moved Evidence code systems/value sets out of base FHIR and into THO references.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-29639: Published/Persuasive with Modification R5 issue requiring Statistic.modelCharacteristic.code 1..1 and value simplified to SimpleQuantity only. Learned: this establishes the original final WG request and why R5 source should not have valueCodeableConcept/valueBoolean/valueRange.
+- E2 Git 7d9ae39d22525c89071c3ab92d5bf08eaf152ed4: J#29639 changed source/datatypes/statistic.xml from value[x] CodeableConcept | boolean | SimpleQuantity | Range to SimpleQuantity and made code 1..1. Learned: the seed was applied to the old Statistic datatype source.
+- E3 Source source/fhir.ini:299-301 and command rg 'statistic=|Statistic|OrderedDistribution' source/fhir.ini/source/datatypes: Evidence is active and no current Statistic datatype source is in build scope. Learned: reconciliation must judge the current Evidence source, not edit retired datatype artifacts.
+- E4 Source source/evidence/structuredefinition-Evidence.xml:1035-1069: current Evidence.statistic.modelCharacteristic.code is 1..1 and value[x] permits Quantity(SimpleQuantity), Range, and CodeableConcept. Learned: the R5 code-cardinality part remains, while the current value choice reflects later R6 source.
+- E5 Jira/Git FHIR-41379 and adfff61daf510f58ac85ad9adef386bb699c00ee: Applied R6 issue explicitly changed Evidence.statistic.modelCharacteristic.value to value[x] Quantity | Range | CodeableConcept. Learned: removing Range/CodeableConcept now would contradict later final WG intent.
+- E6 Jira/Git FHIR-39632 and caa1fb75adbcca96f92873c7d958e31f547124bb plus THO CodeSystem-statistic-model-code.json: Evidence terminology bindings now point to THO, whose Statistic Model CodeSystem has 79 codes including Paule-Mandel/tau codes. Learned: no base-FHIR terminology source edit is needed for the seed's code-list portion.
+- E7 Confluence 2020-11-04 CDS agenda page 97455622 and Zulip/Confluence searches: CDS minutes for FHIR-29639 record the rationale for removing valueBoolean/valueRange, and quoted Zulip searches found no conflicting discussion. Learned: community evidence supports the original R5 simplification and shows no discovered conflict with the later-source conclusion.
+- E8 Verification commands: combined-branch grep found no existing FHIR-29639 reconcile commit before this audit; current source/history checks confirmed the later FHIR-41379 value[x] change and the absence of active Statistic datatype source. Learned: publishing a single empty no-change commit is idempotent and avoids duplicate issue representation.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-29639",
+    "url": "https://jira.hl7.org/browse/FHIR-29639",
+    "snapshot_path": "contexts/FHIR-29639/jira/FHIR-29639.md",
+    "ref": { "jira_key": "FHIR-29639" },
+    "summary": "Published/Persuasive with Modification R5 issue requiring Statistic.modelCharacteristic.code 1..1 and value simplified to SimpleQuantity only.",
+    "learned": "This establishes the original final WG request and why R5 source should not have valueCodeableConcept, valueBoolean, or valueRange.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "7d9ae39d22525c89071c3ab92d5bf08eaf152ed4",
+    "ref": { "commit": "7d9ae39d22525c89071c3ab92d5bf08eaf152ed4" },
+    "summary": "J#29639 changed source/datatypes/statistic.xml from value[x] CodeableConcept | boolean | SimpleQuantity | Range to SimpleQuantity and made code 1..1.",
+    "learned": "The seed was applied to the old Statistic datatype source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:299-301; source/datatypes",
+    "summary": "Evidence is an active resource and no current Statistic datatype source is present or active in fhir.ini.",
+    "learned": "Reconciliation must judge the current Evidence source, not edit retired datatype artifacts.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/evidence/structuredefinition-Evidence.xml:1035-1069",
+    "summary": "Current Evidence.statistic.modelCharacteristic.code is 1..1 and value[x] permits Quantity(SimpleQuantity), Range, and CodeableConcept.",
+    "learned": "The R5 code-cardinality part remains, while the current value choice reflects later R6 source.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-41379 / adfff61daf510f58ac85ad9adef386bb699c00ee",
+    "url": "https://jira.hl7.org/browse/FHIR-41379",
+    "ref": { "jira_key": "FHIR-41379", "commit": "adfff61daf510f58ac85ad9adef386bb699c00ee" },
+    "summary": "Applied R6 issue explicitly changed Evidence.statistic.modelCharacteristic.value to value[x] Quantity | Range | CodeableConcept.",
+    "learned": "Removing Range and CodeableConcept now would contradict later final WG intent.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "web",
+    "locator": "https://terminology.hl7.org/CodeSystem-statistic-model-code.json",
+    "url": "https://terminology.hl7.org/CodeSystem-statistic-model-code.json",
+    "summary": "The current THO Statistic Model CodeSystem has 79 concepts including Paule-Mandel/tau and related model codes.",
+    "learned": "No base-FHIR terminology source edit is needed for the seed's code-list portion.",
+    "supports": ["additional_context", "reconciliation_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "2020-11-04 CDS Meeting Agenda page 97455622",
+    "url": "https://confluence.hl7.org/spaces/CDS/pages/97455622/2020-11-04+Meeting+Agenda",
+    "ref": { "confluence_page_id": 97455622 },
+    "summary": "CDS minutes for FHIR-29639 record discussion of removing valueBoolean and valueRange and simplifying value to SimpleQuantity.",
+    "learned": "Community evidence supports the original R5 simplification rationale.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Idempotency and source/history checks for FHIR-29639",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-29639' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg 'statistic=|Statistic|OrderedDistribution' source/fhir.ini; git show adfff61daf -- source/evidence/structuredefinition-Evidence.xml",
+    "summary": "No existing FHIR-29639 reconcile commit was present before this audit; checks confirmed the later FHIR-41379 value[x] change and absence of active Statistic datatype source.",
+    "learned": "A single empty no-change commit is the right idempotent representation for the seed.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

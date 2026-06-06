@@ -1,0 +1,118 @@
+FHIR-15906: Audit patient compartment provenance links
+
+Issue request:
+FHIR-15906 was Published with a Persuasive with Modification resolution for the Patient CompartmentDefinition. It reported that Provenance.target.subject and Provenance.target.patient were confusing invalid chained parameters because Provenance.target can point to any resource, and the resolution asked to remove AuditEvent and Provenance from the compartment while noting their usefulness for $everything and access control.
+
+Initial application:
+The issue was applied in git-svn history as b63ba456ef969b5e173fc94623f34884301e68cc, which removed the indirect chained compartment links rather than deleting the resource rows: AuditEvent changed from patient | agent.patient | entity.patient to patient, and Provenance changed from target.subject | target.patient | patient to patient. That application eliminated the reported target.subject and target.patient ambiguity in the compartment source.
+
+Additional context:
+Later published/applied decisions changed the correct current interpretation. FHIR-33155 added explicit AuditEvent.patient and Provenance.patient elements and direct patient search parameters to enable deterministic patient-compartment discovery. FHIR-43373 then updated the Patient $everything text because Provenance and AuditEvent are now in the Patient compartment, and the related Zulip discussion recorded that this inclusion was intentional even if servers apply policy to returned resources. The active build includes CompartmentDefinition, AuditEvent, and Provenance source, so these current direct patient links are in scope.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. The current CompartmentDefinition source no longer contains target.subject, target.patient, agent.patient, or entity.patient links, and it lists AuditEvent and Provenance only through the direct patient parameter. The corresponding AuditEvent.patient and Provenance.patient elements and search parameters now exist in the current source, so removing the rows would conflict with later final work-group decisions.
+
+Recommendation:
+Keep this audit as-is. Do not re-apply the original removal wording literally; the confusing chained links from FHIR-15906 are gone, while the later FHIR-33155 and FHIR-43373 decisions supersede the broader idea that AuditEvent and Provenance should be outside the Patient compartment.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15906
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-33155: supporting-decision - later Published Security decision added explicit AuditEvent.patient and Provenance.patient elements and search parameters.
+FHIR-43373: later-change - later Applied PA decision updated Patient $everything wording because Provenance and AuditEvent are in the Patient compartment.
+FHIR-32454: background - earlier Security discussion sent the Provenance/AuditEvent subject question to FHIR-33155 rather than deciding it in that ticket.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15906: Published/Persuasive with Modification issue reported invalid Provenance target.subject and target.patient chained compartment links and asked for removal/notes. Learned: this establishes the seed request and the original intended correction.
+- E2 Source source/compartments.xml:190 and source/compartments.xml:692: current Patient compartment rows list AuditEvent and Provenance with direct patient only. Learned: the confusing chained links named by the seed are absent from current source.
+- E3 Git b63ba456ef969b5e173fc94623f34884301e68cc: git-svn r14108 changed AuditEvent and Provenance compartment rows to direct patient links for GF#15906. Learned: the seed was historically applied by removing indirect links, not by deleting the rows.
+- E4 Jira FHIR-33155 and source/auditevent/structuredefinition-AuditEvent.xml:519, source/provenance/structuredefinition-Provenance.xml:404: later Published issue added direct .patient elements and search parameters. Learned: current direct patient inclusion is supported by a later final decision.
+- E5 Jira FHIR-43373 and Zulip #implementers > $everything and auditEvent: later Applied issue and discussion say AuditEvent/Provenance are in the Patient compartment. Learned: removing them now would contradict later context.
+- E6 Build scope source/fhir.ini:270 and source/fhir.ini:1256: CompartmentDefinition is an active resource with an active page code. Learned: the checked compartment source is current build input.
+- E7 Verification query: rg target.subject|target.patient|agent.patient|entity.patient source/compartments.xml found no matches. Learned: the specific invalid chained links are no longer present.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15906",
+    "url": "https://jira.hl7.org/browse/FHIR-15906",
+    "snapshot_path": "contexts/FHIR-15906/jira/FHIR-15906.md",
+    "ref": { "jira_key": "FHIR-15906" },
+    "summary": "Published/Persuasive with Modification issue reported confusing Patient CompartmentDefinition links through Provenance.target.subject and Provenance.target.patient.",
+    "learned": "The seed request was to eliminate invalid chained compartment links and consider notes for $everything/access control.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/compartments.xml:190 and source/compartments.xml:692",
+    "ref": { "path": "source/compartments.xml", "lines": "190,692" },
+    "summary": "Current Patient compartment rows list AuditEvent and Provenance with direct patient parameters only.",
+    "learned": "The confusing target.subject and target.patient chained links named by FHIR-15906 are not present in current compartment source.",
+    "supports": ["reconciliation", "source_state"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "b63ba456ef969b5e173fc94623f34884301e68cc",
+    "ref": { "commit": "b63ba456ef969b5e173fc94623f34884301e68cc" },
+    "summary": "Historical GF#15906 commit changed AuditEvent and Provenance compartment rows from indirect/chained links to direct patient links.",
+    "learned": "The seed was already applied at the source level by eliminating the problematic chained parameter paths.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-33155",
+    "url": "https://jira.hl7.org/browse/FHIR-33155",
+    "ref": { "jira_key": "FHIR-33155" },
+    "summary": "Published/Persuasive with Modification Security issue added .patient elements to AuditEvent and Provenance for deterministic tracking/discovery.",
+    "learned": "Later final WG intent supports direct patient membership for these resources rather than removing them from the compartment.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:519; source/provenance/structuredefinition-Provenance.xml:404; source/auditevent/bundle-AuditEvent-search-params.xml:193; source/provenance/bundle-Provenance-search-params.xml:172",
+    "ref": { "paths": "source/auditevent/structuredefinition-AuditEvent.xml, source/provenance/structuredefinition-Provenance.xml, source/auditevent/bundle-AuditEvent-search-params.xml, source/provenance/bundle-Provenance-search-params.xml" },
+    "summary": "Current source defines AuditEvent.patient and Provenance.patient plus direct patient search parameters for both resources.",
+    "learned": "The current compartment rows are backed by actual direct search parameters, avoiding the original chained-parameter ambiguity.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-43373",
+    "url": "https://jira.hl7.org/browse/FHIR-43373",
+    "ref": { "jira_key": "FHIR-43373" },
+    "summary": "Applied/ Persuasive with Modification issue updated Patient $everything wording because Provenance and AuditEvent are now in the Patient compartment.",
+    "learned": "A later applied decision confirms that current inclusion of these resources is intentional.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > Compartment search specifications; #implementers > $everything and auditEvent",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Compartment%20search%20specifications",
+    "summary": "The 2018 thread records the original target.patient/target.subject concern; the 2023 thread records later recognition that AuditEvent/Provenance are in the Patient compartment.",
+    "learned": "Community discussion aligns with eliminating chained links while preserving later direct patient inclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative chained-link search in current source",
+    "command": "rg -n 'target\\.subject|target\\.patient|agent\\.patient|entity\\.patient' source/compartments.xml",
+    "result_count": 0,
+    "summary": "No invalid chained compartment links remain in source/compartments.xml.",
+    "learned": "The exact source defect named by FHIR-15906 is absent from current source.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

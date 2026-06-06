@@ -1,0 +1,106 @@
+FHIR-6195: Audit referral fulfillment links
+
+Issue request:
+FHIR-6195 was a Published DSTU1 Patient Care change request asking for a reference from ReferralRequest to the fulfillment of the referral request, including when the request was fulfilled or when the requested service occurred. The accepted Not Persuasive with Modification resolution kept the normal FHIR direction: fulfillment resources should point back to the request, and the related-resource documentation should explain that referral requests may be fulfilled by Encounter, Procedure, DiagnosticReport, or other assessment-related resources.
+
+Initial application:
+The issue was applied in SVN/git commit a7344a39, which added ReferralRequest introduction prose saying that a ReferralRequest might be fulfilled by DiagnosticReport, Encounter, Procedure, or other assessment-related resources. A separate nearby DiagnosticReport change, d543702d, widened DiagnosticReport.request to include ReferralRequest. Those historical ReferralRequest sources are no longer active current-build resources.
+
+Additional context:
+FHIR-13196 later merged ReferralRequest and ProcedureRequest into the current ServiceRequest resource, and source/fhir.ini records ReferralRequest as a deleted/renamed resource while ServiceRequest is active. The current ServiceRequest page says referral/transfer-of-care requests are represented by ServiceRequest and that generated resources link back to ServiceRequest through basedOn. The current Request pattern gives the general rule that requests do not track their own fulfillment; corresponding Event resources and Tasks track execution, with Events using basedOn. Encounter.basedOn explicitly covers incoming referrals and targets ServiceRequest; DiagnosticReport.basedOn, Procedure.basedOn, and Observation.basedOn also target ServiceRequest. No relevant Zulip or Confluence discussion was found that changes this interpretation.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build already preserves the FHIR-6195 directionality and implementer guidance through the active ServiceRequest and Request-pattern source plus the relevant event-resource basedOn definitions. Adding another ServiceRequest paragraph would duplicate existing guidance without changing conformance or implementer understanding.
+
+Recommendation:
+Keep this audit commit as-is. Future work should address any new request/event linkage issue through the current ServiceRequest and workflow/Event pattern, not by reviving ReferralRequest-specific wording.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6195
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13196: later-change - merged ReferralRequest and ProcedureRequest into ServiceRequest, establishing the current artifact that carries the referral-request behavior.
+FHIR-13195: background - renamed Appointment and Encounter incomingReferral to basedOn after the ServiceRequest merge, reinforcing the same current basedOn direction.
+FHIR-7125: background - contemporaneous Procedure/DiagnosticReport boundary discussion referenced FHIR-6195 but did not require a separate current-source decision here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6195: Published/Not Persuasive with Modification; fulfillment resources should point to ReferralRequest and related-resource documentation should describe Encounter, Procedure, DiagnosticReport, or other assessment-related fulfillment. Learned: establishes the original final WG decision and the intended link direction.
+- E2 Git a7344a39: added ReferralRequest fulfillment documentation to source/referralrequest/referralrequest-introduction.xml. Learned: the issue was historically applied to the then-active ReferralRequest page.
+- E3 Source source/fhir.ini:169-213 and 1468-1480: ServiceRequest is active and ReferralRequest became ServiceRequest. Learned: current reconciliation must inspect ServiceRequest rather than edit retired ReferralRequest source.
+- E4 Source source/servicerequest/servicerequest-introduction.xml:31-56 and source/request/request-spreadsheet-notes.xml:29-39: ServiceRequest covers referral/transfer-of-care requests, generated resources link back through basedOn, and the Request pattern says Events basedOn the request track fulfillment. Learned: current narrative already conveys the FHIR-6195 rule.
+- E5 Source source/encounter/structuredefinition-Encounter.xml:452-465, source/diagnosticreport/structuredefinition-DiagnosticReport.xml:146-161, source/procedure/structuredefinition-Procedure.xml:138-153, and source/observation/structuredefinition-Observation.xml:197-215: current event resources use basedOn references targeting ServiceRequest. Learned: the concrete fulfillment-resource links exist in current source.
+- E6 Jira FHIR-13196 and FHIR-13195: Published later decisions merged ReferralRequest/ProcedureRequest and renamed incomingReferral to basedOn. Learned: later approved work explains why the current artifact and link name differ from DSTU1 wording.
+- E7 Community search: corrected Zulip and Confluence searches for FHIR-6195 and ReferralRequest fulfillment found no relevant hits. Learned: no discovered community record conflicts with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6195",
+    "url": "https://jira.hl7.org/browse/FHIR-6195",
+    "snapshot_path": "contexts/FHIR-6195/jira/FHIR-6195.md",
+    "ref": { "jira_key": "FHIR-6195" },
+    "summary": "Published Not Persuasive with Modification issue requesting fulfillment linkage for ReferralRequest, resolved by having fulfillment resources point back and documenting likely fulfillment resources.",
+    "learned": "This establishes the final WG intent and the directionality to verify in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "a7344a39 source/referralrequest/referralrequest-introduction.xml",
+    "ref": { "commit": "a7344a39aa35eeb8f52cb6d13a8e63eabd6105b2" },
+    "summary": "The historical application commit added prose that ReferralRequest might be fulfilled by DiagnosticReport, Encounter, Procedure, or other assessment-related resources.",
+    "learned": "FHIR-6195 was applied to the then-active ReferralRequest documentation before later resource merger work.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-213,1468-1480",
+    "summary": "The active resources list includes ServiceRequest and the deleted-resource notes say ReferralRequest became ServiceRequest.",
+    "learned": "The current build-scope artifact for this reconciliation is ServiceRequest, not retired ReferralRequest source.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/servicerequest/servicerequest-introduction.xml:31-56; source/request/request-spreadsheet-notes.xml:29-39",
+    "summary": "ServiceRequest documents referral/transfer-of-care use and basedOn links from generated resources, while the Request pattern says Event resources basedOn the request track fulfillment.",
+    "learned": "Current narrative already communicates the rule that fulfillment points back to the request rather than adding fields to the request.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/encounter/structuredefinition-Encounter.xml:452-465; source/diagnosticreport/structuredefinition-DiagnosticReport.xml:146-161; source/procedure/structuredefinition-Procedure.xml:138-153; source/observation/structuredefinition-Observation.xml:197-215",
+    "summary": "Encounter, DiagnosticReport, Procedure, and Observation basedOn elements target ServiceRequest, with Encounter.basedOn explicitly describing an incoming referral.",
+    "learned": "The specific current fulfillment resources can already reference the ServiceRequest successor of ReferralRequest.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-13196 and FHIR-13195",
+    "url": "https://jira.hl7.org/browse/FHIR-13196",
+    "ref": { "jira_key": "FHIR-13196" },
+    "summary": "Published later decisions merged ReferralRequest with ProcedureRequest into ServiceRequest and renamed incomingReferral to basedOn for related resources.",
+    "learned": "Later approved work explains why current source uses ServiceRequest and basedOn rather than ReferralRequest-specific names.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-6195 ReferralRequest fulfillment",
+    "command": "bun run zulip:search fts '\"FHIR-6195\" OR \"6195\" ReferralRequest fulfillment' --limit 10; bun run zulip:search fts 'ReferralRequest fulfillment fulfilled DiagnosticReport Encounter Procedure' --limit 10; bun run confluence:search refs jira FHIR-6195; bun run confluence:search fts '\"FHIR-6195\" OR \"6195\" ReferralRequest fulfillment' --limit 10; bun run confluence:search fts 'ReferralRequest fulfillment fulfilled DiagnosticReport Encounter Procedure' --limit 10",
+    "query": "FHIR-6195 ReferralRequest fulfillment",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community evidence changes the Jira, git, and source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

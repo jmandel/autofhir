@@ -1,0 +1,96 @@
+FHIR-17077: Clarify history bundle response invariant
+
+Issue request:
+FHIR-17077 was a Published/Persuasive FHIR-core Feed change request from the STU3 2018-May Core Norm Infrastructure ballot. It asked to allow Bundle.type = 'history' in the old bdl-4 entry.response invariant because history delete entries need response metadata such as timestamp and version id, and the issue comment says the change was already done.
+
+Initial application:
+The pre-refactor application appears in git commit c613b68f9b76a6d4f114766f447107ba47643a62, which changed the Bundle spreadsheet from only allowing entry.response for batch-response and transaction-response to making response mandatory for batch-response, transaction-response, and history. Later invariant cleanup replaced the old bdl-4 shape with bdl-3a through bdl-3d constraints.
+
+Additional context:
+Bundle is in the active current build scope through source/fhir.ini, and the current authoritative source already has bdl-3b enforcing request.exists() and response.exists() for every history entry. However, the bdl-3b human-readable text said "request or response elements", which contradicted the expression and weakened the exact response requirement FHIR-17077 was meant to preserve after the invariant refactor.
+
+AutoFHIR reconciliation:
+This commit changes only source/bundle/structuredefinition-Bundle.xml so the bdl-3b human text says history entries must contain request and response elements. No FHIRPath behavior changes were needed because the existing expression already required both.
+
+Recommendation:
+Keep this commit as-is. It is a narrow source fix in the active Bundle StructureDefinition that removes a misleading human-readable invariant summary while preserving the existing validation rule.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17077
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-24860: later-change - later invariant cleanup split the old bdl-3/bdl-4 rules into bdl-3a through bdl-3d, creating the current location where the history response requirement is expressed.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17077: Published/Persuasive issue requested adding history to the old bdl-4 entry.response allowance and noted history deletes need response metadata. Learned: this establishes the required history response semantics.
+- E2 Source source/fhir.ini:245,935: bundle=Bundle is active and Bundle is in the infrastructure normative package. Learned: Bundle StructureDefinition source is in current build scope.
+- E3 Source source/bundle/structuredefinition-Bundle.xml:108-112: bdl-3b requires history entries to have request.exists() and response.exists(). Learned: the validation rule already carries the applied decision, while the human text needed alignment.
+- E4 Git c613b68f9b76a6d4f114766f447107ba47643a62: changed Bundle response invariant wording to make response mandatory for batch-response/transaction-response/history. Learned: the seed was initially applied before later refactors.
+- E5 Git 1f683a11386b08ebfdb12390f7e8696466fd1e0b: Fixed invariant issues introduced the current bdl-3b text and expression. Learned: the current mismatch came from later invariant cleanup, not from a reversal of FHIR-17077.
+- E6 Command community search: direct Zulip search for "FHIR-17077" and "Allow history" bdl Bundle found no results; Confluence refs for FHIR-17077 found no references. Learned: no discovered community record changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17077",
+    "url": "https://jira.hl7.org/browse/FHIR-17077",
+    "snapshot_path": "contexts/FHIR-17077/jira/FHIR-17077.md",
+    "ref": { "jira_key": "FHIR-17077" },
+    "summary": "Published/Persuasive issue requested allowing history in the old bdl-4 entry.response invariant because history delete entries need response metadata.",
+    "learned": "This establishes that current Bundle invariant text must preserve response support for history bundles.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:245,935",
+    "ref": { "path": "source/fhir.ini", "lines": "245,935" },
+    "summary": "The active resources list includes bundle=Bundle and the normative package section assigns Bundle to infrastructure.",
+    "learned": "The edited Bundle StructureDefinition is in current FHIR build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/bundle/structuredefinition-Bundle.xml:108-112",
+    "ref": { "path": "source/bundle/structuredefinition-Bundle.xml", "lines": "108-112" },
+    "summary": "bdl-3b's expression requires history entries to have both request and response, but the human text used 'request or response'.",
+    "learned": "Only the human-readable invariant summary needed correction; the FHIRPath behavior was already correct.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "c613b68f9b76a6d4f114766f447107ba47643a62",
+    "ref": { "commit": "c613b68f9b76a6d4f114766f447107ba47643a62" },
+    "summary": "2018 commit made Bundle entry.response mandatory for batch-response, transaction-response, and history.",
+    "learned": "The issue was originally applied in source before the current invariant refactor.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "1f683a11386b08ebfdb12390f7e8696466fd1e0b",
+    "ref": { "commit": "1f683a11386b08ebfdb12390f7e8696466fd1e0b" },
+    "summary": "2023 invariant cleanup introduced the current bdl-3b human text and expression.",
+    "learned": "The current wording mismatch is a later refactor artifact, not a substantive reversal of the applied issue.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-17077 and bdl history Bundle",
+    "command": "bun run zulip:search fts '\"FHIR-17077\"' --limit 10; bun run zulip:search fts '\"Allow history\" \"bdl\" \"Bundle\"' --limit 10; bun run confluence:search refs jira FHIR-17077",
+    "query": "FHIR-17077; Allow history bdl Bundle",
+    "result_count": 0,
+    "summary": "No directly keyed Zulip or Confluence references were found.",
+    "learned": "No discovered community evidence conflicts with the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,119 @@
+FHIR-37643: Correct ImagingSelection instance DICOM mapping
+
+Issue request:
+FHIR-37643 was Published/Persuasive for R5 ImagingSelection. It requested optional Series Number and Instance Number support: add top-level seriesNumber, add an optional unsignedInt instance number under instance with a note distinguishing instance and frame numbers, and add DICOM mappings to Series Number and Instance Number respectively.
+
+Initial application:
+The elements were initially added in commit 90f061e0ab31e4e1212985e90c3561d2f2adb361 as part of ImagingSelection July updates. That commit added ImagingSelection.seriesNumber and ImagingSelection.instance.number with the requested cardinalities and note, but the instance number DICOM mapping used (0020,0011), which is the Series Number tag, instead of the DICOM Instance Number tag.
+
+Additional context:
+ImagingSelection is an active build resource in source/fhir.ini. Later Applied issues refined nearby ImagingSelection text without changing the seed intent: FHIR-45044 confirmed the element path as ImagingSelection.instance.number with alias InstanceNumber and requirement text, and FHIR-48106 added the seriesNumber presence rule and fixed seriesUid spelling. FHIR-47520 updated ImagingStudy DICOM tag mappings and shows the parallel ImagingStudy.series.instance.number mapping as Instance Number (0020,0013), but it did not touch ImagingSelection.
+
+AutoFHIR reconciliation:
+Updated source/imagingselection/structuredefinition-ImagingSelection.xml so ImagingSelection.instance.number maps to DICOM Instance Number (0020,0013). The top-level seriesNumber mapping remains Series Number (0020,0011), and the existing instance/frame distinction note is unchanged.
+
+Recommendation:
+Keep this commit. It is a narrow authoritative-source fix for the remaining semantic mismatch in the Published FHIR-37643 application; no broader ImagingSelection or generated diagram edits are needed.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37643
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-45044: supporting-decision - later Applied issue confirms the current element path ImagingSelection.instance.number and associated requirement text rather than requiring a rename to instanceNumber.
+FHIR-48106: later-change - later Applied issue added the seriesNumber presence invariant and corrected seriesUid spelling; current source already reflects it.
+FHIR-47520: background - later ImagingStudy DICOM mapping cleanup confirms Instance Number (0020,0013) in the parallel ImagingStudy element but did not cover ImagingSelection.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37643: Published/Persuasive request to add ImagingSelection seriesNumber and an instance-level Instance Number with DICOM mappings. Learned: final WG intent includes a correct DICOM Instance Number mapping.
+- E2 Source source/fhir.ini:195: active resources include imagingselection=ImagingSelection. Learned: the edited StructureDefinition feeds the current core build.
+- E3 Source source/imagingselection/structuredefinition-ImagingSelection.xml:540 and :678: current source has seriesNumber and instance.number, with instance.number now mapped to Instance Number (0020,0013). Learned: the remaining application gap was the tag value, not the presence or naming of the elements.
+- E4 Git 90f061e0ab31e4e1212985e90c3561d2f2adb361: ImagingSelection July updates added seriesNumber and instance.number but mapped instance number as Instance Number (0020,0011). Learned: the original application introduced the wrong DICOM tag for the seed's instance-number mapping.
+- E5 Jira FHIR-45044 and FHIR-48106: later Applied ImagingSelection decisions refined requirements around seriesUid, seriesNumber, and instance.number. Learned: later decisions support preserving current element names and constraints while fixing only the DICOM tag.
+- E6 Source source/imagingstudy/structuredefinition-ImagingStudy.xml:1046: parallel ImagingStudy.series.instance.number maps to Instance Number (0020,0013). Learned: current core source agrees on the correct DICOM tag for Instance Number.
+- E7 Command community search for FHIR-37643 and ImagingSelection series/instance terms: no relevant Zulip or Confluence hits. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E8 Verification command: rg confirmed ImagingSelection seriesNumber maps to (0020,0011), ImagingSelection instance.number maps to (0020,0013), XML parsing succeeded, and diff whitespace check passed. Learned: the targeted source fix is syntactically valid and limited to the intended mapping.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37643",
+    "url": "https://jira.hl7.org/browse/FHIR-37643",
+    "snapshot_path": "contexts/FHIR-37643/jira/FHIR-37643.md",
+    "ref": { "jira_key": "FHIR-37643" },
+    "summary": "Published/Persuasive R5 issue requesting optional ImagingSelection seriesNumber and instance-level Instance Number elements plus DICOM mappings.",
+    "learned": "The final request requires the instance-level number to map to the DICOM Instance Number attribute, not the Series Number attribute.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:195",
+    "ref": { "path": "source/fhir.ini", "line": 195 },
+    "summary": "The active resource list contains imagingselection=ImagingSelection.",
+    "learned": "The edited ImagingSelection StructureDefinition is in current core build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/imagingselection/structuredefinition-ImagingSelection.xml:540-693",
+    "ref": { "path": "source/imagingselection/structuredefinition-ImagingSelection.xml", "start_line": 540, "end_line": 693 },
+    "summary": "Current source defines ImagingSelection.seriesNumber and ImagingSelection.instance.number; this commit maps instance.number to Instance Number (0020,0013).",
+    "learned": "The seed elements and note are present, and the source change completes the requested DICOM mapping.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "90f061e0ab31e4e1212985e90c3561d2f2adb361",
+    "ref": { "commit": "90f061e0ab31e4e1212985e90c3561d2f2adb361" },
+    "summary": "ImagingSelection July updates added seriesNumber and instance.number, including an Instance Number mapping with tag (0020,0011).",
+    "learned": "The historical application was substantively complete except for using the Series Number tag on the Instance Number mapping.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-45044 and FHIR-48106",
+    "url": "https://jira.hl7.org/browse/FHIR-45044",
+    "ref": { "jira_key": "FHIR-45044" },
+    "summary": "Later Applied ImagingSelection issues refined requirements for seriesUid, seriesNumber, and instance.number without changing the seed mapping request.",
+    "learned": "These later decisions support preserving the current element names and constraints while limiting this fix to the wrong DICOM tag.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/imagingstudy/structuredefinition-ImagingStudy.xml:1046",
+    "ref": { "path": "source/imagingstudy/structuredefinition-ImagingStudy.xml", "line": 1046 },
+    "summary": "The parallel ImagingStudy.series.instance.number DICOM mapping is Instance Number (0020,0013).",
+    "learned": "Current core source corroborates the correct DICOM tag for the Instance Number attribute.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-37643 ImagingSelection seriesNumber instanceNumber",
+    "command": "bun run zulip:search fts '\"FHIR-37643\" ImagingSelection seriesNumber instanceNumber' --limit 10; bun run zulip:search fts 'ImagingSelection seriesNumber instanceNumber' --limit 10; bun run confluence:search refs jira FHIR-37643; bun run confluence:search fts '\"FHIR-37643\" ImagingSelection seriesNumber instanceNumber' --limit 10; bun run confluence:search fts 'ImagingSelection seriesNumber instanceNumber' --limit 10",
+    "query": "FHIR-37643 ImagingSelection seriesNumber instanceNumber",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence records were found.",
+    "learned": "No discovered community evidence changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted source verification",
+    "command": "git diff -- source/imagingselection/structuredefinition-ImagingSelection.xml; rg -n 'Instance Number \\(0020,001[13]\\)|Series Number \\(0020,0011\\)' source/imagingselection/structuredefinition-ImagingSelection.xml source/imagingstudy/structuredefinition-ImagingStudy.xml; xmllint --noout source/imagingselection/structuredefinition-ImagingSelection.xml || python XML parse; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Verification confirmed the intended mapping values, valid XML, and no whitespace errors.",
+    "learned": "The reconciliation is syntactically valid and limited to the intended source line.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

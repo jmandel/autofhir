@@ -1,0 +1,119 @@
+FHIR-44746: Align AuditEvent DICOM type mappings
+
+Issue request:
+FHIR-44746 was Applied/Persuasive with Modification for the Security work group. It asked to reverse the R5 AuditEvent category/code model back to type/subtype because the R5 category/code cardinalities and DICOM EventIdentification mappings did not support the historic ASTM/IETF/DICOM/IHE audit model.
+
+Initial application:
+The issue was initially applied by 983d54c76d679b5c25a07667522940dea7590608 and merged by 2268c17c01881bb6256b9c2a61c98afd75396e98. That application renamed AuditEvent.category/code back to AuditEvent.type/subtype and restored the active search parameter names, but it left category/code-era DICOM aliases and mappings on the restored elements and retained Event.category prose that referred to multiple category repetitions and slicing.
+
+Additional context:
+AuditEvent is active in source/fhir.ini, so source/auditevent/structuredefinition-AuditEvent.xml and the resource mapping exception file are build inputs. FHIR-32443 created the R5 category/code model, and FHIR-41877 later corrected the DICOM mapping while that model still existed. FHIR-44746 is the later issue that restored the type/subtype model; R4/R4B mapped type to DICOM EventID and subtype to EventTypeCode, and the current type/subtype value sets already align with AuditEventID/CID 400 and AuditEventSubType/CID 401/403 respectively. Security minutes recorded approval of FHIR-44746, and no directly relevant Zulip discussion was found.
+
+AutoFHIR reconciliation:
+This commit updates the authoritative AuditEvent StructureDefinition so AuditEvent.type aliases/maps to DICOM EventID and AuditEvent.subtype aliases/maps to DICOM EventTypeCode. It also replaces the stale Event.category slicing comment with type/subtype-specific guidance and updates the Event pattern mapping exception to match. Generated-looking SVG artifacts were not edited manually.
+
+Recommendation:
+Keep this source fix. It completes the FHIR-44746 reversal in the active AuditEvent source while preserving the intentional type/subtype search parameter model; any future desire to retain FHIR-41877's category/code-era interpretation under the restored names should be handled as a separate work-group decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-44746
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-32443: superseded-by - created the R5 category/code model that FHIR-44746 later reversed.
+FHIR-41877: conflicting-decision - corrected DICOM mappings for the category/code model before FHIR-44746 restored type/subtype, so it explains why the stale aliases survived the initial application.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-44746: Applied/Persuasive with Modification; Security approved reverting AuditEvent to type/subtype for compatibility with DICOM and other audit standards. Learned: this is the final seed decision and target model.
+- E2 Source source/fhir.ini:170,224: AuditEvent is an active resource entry. Learned: source/auditevent inputs are in current build scope.
+- E3 Source source/auditevent/structuredefinition-AuditEvent.xml:114-202: AuditEvent.type/subtype are the active elements and now map type to EventID and subtype to EventTypeCode. Learned: the authoritative conformance source now matches the restored model.
+- E4 Source source/auditevent/auditevent-event-mapping-exceptions.xml:16-25: Event.category/Event.code pattern exceptions cover AuditEvent.type/subtype. Learned: the pattern comparison metadata was kept consistent with the source comment change.
+- E5 Git 983d54c76d67 and 2268c17c0188: initial application renamed category/code to type/subtype but left stale DICOM aliases/mappings and category prose. Learned: the seed was partially applied before this reconciliation.
+- E6 Jira FHIR-32443 and FHIR-41877: FHIR-32443 introduced category/code for R5; FHIR-41877 adjusted DICOM mapping while category/code existed. Learned: these are relevant historical context but are superseded or constrained by the later FHIR-44746 restoration.
+- E7 Confluence SEC minutes 225708389 and Zulip search: Security minutes record approval of FHIR-44746; targeted Zulip search for AuditEvent type/subtype/category/code/DICOM returned no hits. Learned: discovered community evidence supports the Jira decision and shows no conflicting Zulip rationale.
+- E8 Verification command: XML parse, CRLF-aware diff check, and assertions over AuditEvent.type/subtype aliases and DICOM mappings succeeded. Learned: the changed XML is well-formed and the requested mapping correction is present.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-44746",
+    "url": "https://jira.hl7.org/browse/FHIR-44746",
+    "snapshot_path": "contexts/FHIR-44746/jira/FHIR-44746.md",
+    "ref": { "jira_key": "FHIR-44746" },
+    "summary": "Applied/Persuasive with Modification issue requesting AuditEvent return from category/code to type/subtype for DICOM and historic audit-model compatibility.",
+    "learned": "This establishes the final seed decision and the restored type/subtype target model.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,224",
+    "ref": { "path": "source/fhir.ini", "lines": "170,224" },
+    "summary": "The [resources] section includes auditevent=AuditEvent.",
+    "learned": "The edited AuditEvent source files are in current FHIR build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:114-202",
+    "ref": { "path": "source/auditevent/structuredefinition-AuditEvent.xml", "lines": "114-202" },
+    "summary": "AuditEvent.type and AuditEvent.subtype are active elements; this commit maps type to EventID and subtype to EventTypeCode.",
+    "learned": "The authoritative conformance source now aligns the restored names with the DICOM EventIdentification mapping expected by FHIR-44746.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/auditevent/auditevent-event-mapping-exceptions.xml:16-25",
+    "ref": { "path": "source/auditevent/auditevent-event-mapping-exceptions.xml", "lines": "16-25" },
+    "summary": "The Event pattern exception for AuditEvent.type now records the updated type-specific comment.",
+    "learned": "Pattern metadata remains consistent with the StructureDefinition text change.",
+    "supports": ["source_change", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "983d54c76d679b5c25a07667522940dea7590608; 2268c17c01881bb6256b9c2a61c98afd75396e98",
+    "ref": { "commit": "983d54c76d679b5c25a07667522940dea7590608" },
+    "summary": "FHIR-44746 was initially applied by renaming AuditEvent.category/code back to type/subtype, then merged in 2268c17.",
+    "learned": "The initial application handled the element rename but left stale DICOM aliases/mappings and category prose.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-32443; FHIR-41877",
+    "url": "https://jira.hl7.org/browse/FHIR-41877",
+    "ref": { "jira_key": "FHIR-41877" },
+    "summary": "FHIR-32443 introduced R5 category/code; FHIR-41877 corrected DICOM mappings while category/code still existed.",
+    "learned": "These explain the source history but are constrained by the later FHIR-44746 restoration to type/subtype.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "2024-03-18 Security WG Agenda/Minutes page 225708389",
+    "url": "https://confluence.hl7.org/spaces/SEC/pages/225708389/2024-03-18+Security+WG+Agenda+Minutes",
+    "ref": { "confluence_page_id": 225708389 },
+    "summary": "Security minutes list FHIR-44746 and record approval on 2024-03-18.",
+    "learned": "Meeting evidence corroborates the Jira approval for the seed issue.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted community and validation commands",
+    "command": "bun run zulip:search fts 'AuditEvent type subtype category code DICOM' --limit 10; python3 XML parse/assertions; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "query": "AuditEvent type subtype category code DICOM",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip hits were found; XML parsing, mapping assertions, and CRLF-aware whitespace checks succeeded.",
+    "learned": "No discovered community conflict changes the Jira/source conclusion, and the edited XML passes targeted validation.",
+    "supports": ["absence_of_conflict", "verification"]
+  }
+]
+</evidence-manifest>

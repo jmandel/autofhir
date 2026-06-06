@@ -1,0 +1,118 @@
+FHIR-50487: Align Measure submit-data Bundle input
+
+Issue request:
+FHIR-50487 was Applied/Persuasive for R6 by CQI and asked that the core Measure $submit-data operation be aligned with the DEQM STU 5 $submit-data operation. The requested alignment included accepting submitted Bundles for one or more subjects, disallowing instance-level invocation because the MeasureReport identifies the measure, adding quality-reporting guidance, and updating the operation example to submit a Bundle.
+
+Initial application:
+The issue was partially applied by HL7/fhir commits 894f1a69b8 ([FHIR-50487]: initial DEQM alignment from PR #3778) and 7146e4e1cf ([FHIR-50487]: additional alignment from PR #3932). Those commits updated the operation narrative, made the operation type-level only, added the subject-organized and duplicate-data guidance, and changed the request example to wrap the submitted data in a Bundle. However, the OperationDefinition parameter was still typed as MeasureReport even though it was named and documented as a Bundle, the rendered request example still used an instance-level URL, and the embedded MeasureReport example still used the stale patient element instead of the current subject element.
+
+Additional context:
+The DEQM STU 5 OperationDefinition has a single 1..* input parameter named bundle with type Bundle and type=true, instance=false. FHIR-46373 is the DEQM same-change-family issue that created the multi-measure submit-data operation using Bundle input, and FHIR-51066 is the adjacent core collect-data alignment issue that already uses Bundle as the multi-cardinality operation payload type. The Measure resource is active in source/fhir.ini and source/measure/operationdefinition-Measure-submit-data.xml is referenced by the Measure operation list and example extensions, so these files feed the current build.
+
+AutoFHIR reconciliation:
+This commit changes Measure $submit-data's input parameter type from MeasureReport to Bundle, updates the request example URL from [base]/Measure/Measure-mrp/$submit-data to [base]/Measure/$submit-data to match instance=false, and changes the submitted MeasureReport example from patient to subject. These are semantic consistency fixes needed for the current built operation definition and example to match the applied Jira resolution and DEQM STU 5 input shape.
+
+Recommendation:
+Keep this commit as-is. It completes the already-applied FHIR-50487 alignment in core without changing unrelated DEQM-specific wording or reopening the broader deprecation direction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-50487
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-46373: same-change-family - DEQM Published issue that created the multi-measure submit-data operation with a 1..* Bundle input parameter and type-level invocation.
+FHIR-51066: same-change-family - core collect-data alignment issue whose resolved documentation and current source use Bundle for the multi-cardinality operation payload pattern.
+FHIR-48687: background - Jira comment on FHIR-50487 says this earlier discussion led to filing operation-alignment tickets, but it is not needed as an independent decision here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-50487: Applied/Persuasive CQI issue for R6 requiring Measure $submit-data to align with DEQM STU 5 and update Bundle-oriented guidance and examples. Learned: this is the final WG request for the seed decision.
+- E2 Published DEQM STU 5 OperationDefinition-submit-data.json: input parameter bundle is 1..* Bundle with type=true and instance=false. Learned: Bundle, not MeasureReport, is the target operation payload type.
+- E3 Git 894f1a69b8: initial FHIR-50487 implementation updated operation prose, instance=false, guidance, and the request example. Learned: most of the Jira request was already applied, but not all consistency details were fixed.
+- E4 Git 7146e4e1cf: additional FHIR-50487 alignment renamed the input parameter to bundle and left its type as MeasureReport. Learned: the remaining type mismatch was introduced or retained in the Jira-tagged application history.
+- E5 Source source/fhir.ini:170,1180,1389 and source/measure/list-Measure-operations.xml:24: Measure is an active approved resource and the submit-data OperationDefinition is referenced from the Measure operations list. Learned: the edited operation and examples are in current build scope.
+- E6 Source source/measure/operationdefinition-Measure-submit-data.xml:65-72, source/measure/$submit-data-request.txt:1-4, source/measure/submit-data-request.json:1-24: the reconciled source now uses a Bundle input, type-level example URL, and MeasureReport.subject. Learned: the source now matches the applied operation shape.
+- E7 Community search: Zulip SQL found no FHIR-50487 mentions, Confluence refs found no FHIR-50487 references, and broader submit-data/DEQM hits did not conflict with Jira and source evidence. Learned: no community evidence was found that changes the Jira/source conclusion.
+- E8 Verification command: XML parse, JSON parse/assertions, stale-pattern rg, and CRLF-aware git diff --check passed. Learned: the edited files are syntactically valid and no stale MeasureReport-type/instance-URL/patient pattern remains in the edited surfaces.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-50487",
+    "url": "https://jira.hl7.org/browse/FHIR-50487",
+    "snapshot_path": "contexts/FHIR-50487/jira/FHIR-50487.md",
+    "ref": { "jira_key": "FHIR-50487" },
+    "summary": "Applied/Persuasive CQI issue for R6 requiring Measure $submit-data to align with the DEQM STU 5 operation and Bundle-oriented guidance/examples.",
+    "learned": "This establishes the final WG request and the source surfaces that need to be reconciled.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "web",
+    "locator": "DEQM STU 5 OperationDefinition-submit-data.json",
+    "url": "https://hl7.org/fhir/us/davinci-deqm/STU5/OperationDefinition-submit-data.json",
+    "summary": "The DEQM STU 5 operation has a single input parameter named bundle with cardinality 1..* and type Bundle, and is allowed on the Measure type but not instances.",
+    "learned": "The core operation input must be typed as Bundle and examples should use the type-level URL.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "894f1a69b8d78338b0bb2dc33d5637386357d6cc",
+    "ref": { "commit": "894f1a69b8d78338b0bb2dc33d5637386357d6cc" },
+    "summary": "Initial FHIR-50487 commit updated operation prose, made Measure $submit-data type-level only, added quality-reporting guidance, and changed the request body to a Bundle parameter.",
+    "learned": "Most of the Jira request was already applied before reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "7146e4e1cf453cecc77e93deb28854d5766246ad",
+    "ref": { "commit": "7146e4e1cf453cecc77e93deb28854d5766246ad" },
+    "summary": "Additional FHIR-50487 commit renamed the input parameter to bundle and retained max=* but left type=MeasureReport.",
+    "learned": "The current operation retained a semantic mismatch after the Jira-tagged application commits.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini and source/measure/list-Measure-operations.xml",
+    "ref": { "paths": "source/fhir.ini:170,1180,1389; source/measure/list-Measure-operations.xml:24" },
+    "summary": "Measure is active and approved in fhir.ini and the Measure operation list references OperationDefinition/Measure-submit-data.",
+    "learned": "The edited operation source and examples are part of the current FHIR build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/measure/operationdefinition-Measure-submit-data.xml and submit-data example files",
+    "ref": { "paths": "source/measure/operationdefinition-Measure-submit-data.xml:65-72; source/measure/$submit-data-request.txt:1-4; source/measure/submit-data-request.json:1-24" },
+    "summary": "The reconciled source now declares the input parameter as Bundle, invokes [base]/Measure/$submit-data, and uses MeasureReport.subject in the example Bundle.",
+    "learned": "The source now matches the applied FHIR-50487 operation shape.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-50487 and submit-data DEQM context",
+    "command": "bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-50487%' ...\"; bun run confluence:search refs jira FHIR-50487; bun run zulip:search sql \"SELECT ... WHERE content LIKE '%submit-data%' AND content LIKE '%DEQM%' AND content LIKE '%Measure%' ...\"",
+    "query": "FHIR-50487; submit-data DEQM Measure",
+    "result_count": 8,
+    "summary": "No Zulip messages mentioned FHIR-50487 and Confluence had no FHIR-50487 references; broader submit-data/DEQM Zulip hits were background and did not conflict with Jira/source evidence.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted validation for edited submit-data files",
+    "command": "python3 XML/JSON parse and assertions; rg stale MeasureReport-type/instance URL/patient patterns; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The OperationDefinition XML and request JSON parsed successfully, assertions confirmed bundle/Bundle/subject, stale-pattern search found no matches in edited files, and whitespace check passed.",
+    "learned": "The source fix is syntactically valid and removes the identified stale patterns.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

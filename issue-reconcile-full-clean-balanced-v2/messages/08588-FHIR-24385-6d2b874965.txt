@@ -1,0 +1,96 @@
+FHIR-24385: Audit canonical JSON template rendering
+
+Issue request:
+FHIR-24385 was Published/Persuasive for FHIR-core and asked that the Resource Content JSON pseudo-template stop rendering canonical values inside surrounding braces. The concrete example was CapabilityStatement.instantiates, where the final resolution was to remove the surrounding {}.
+
+Initial application:
+No core source commit in this checkout mentions FHIR-24385. The active CapabilityStatement source defines instantiates/imports as primitive canonical elements with CapabilityStatement target profiles, and the current rendered CI build and published R5 page both show those elements as JSON string arrays such as ["<canonical(CapabilityStatement)>"] rather than arrays of objects. The fix therefore appears to have been applied through the generated template rendering/tooling path before R5 publication, not as a later editable CapabilityStatement XML change.
+
+Additional context:
+CapabilityStatement is an active resource in source/fhir.ini, and the current build is driven by the external Kindling publisher dependency declared in build.gradle.kts and gradle.properties. The Resource Content JSON template is generated output, while the authoritative core source already carries canonical as a primitive type. Jira/Zulip/Confluence searches found no later conflicting community or work-group evidence.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source changes. The current source and rendered specification already satisfy the Jira resolution, and changing CapabilityStatement source would not address the template-rendering concern.
+
+Recommendation:
+Keep this no-change audit commit. If canonical values ever regress to object-like JSON template rendering, fix the Kindling JSON template renderer or publisher tooling rather than editing individual resource StructureDefinitions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-24385
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-24385: Published/Persuasive technical correction requested removing surrounding {} around canonical in the Resource Content JSON view. Learned: this establishes the final approved request and the narrow target behavior.
+- E2 Source source/fhir.ini:169-183 and source/capabilitystatement/structuredefinition-CapabilityStatement.xml:512-522: CapabilityStatement is active and instantiates is typed as canonical with a CapabilityStatement target profile. Learned: the authoritative core source already models the element as a primitive canonical.
+- E3 Source build.gradle.kts:47,132-149 and gradle.properties:2: the FHIR build uses the external org.hl7.fhir:kindling publisher dependency. Learned: the affected JSON template rendering belongs to the build/tooling path, not to per-resource XML source content.
+- E4 Published spec https://build.fhir.org/capabilitystatement.html and https://hl7.org/fhir/R5/capabilitystatement.html: both JSON tabs render instantiates/imports as ["<canonical(CapabilityStatement)>"] with no surrounding object braces. Learned: the current CI build and the applied-for R5 publication already satisfy the issue.
+- E5 Git history query: git log --all --grep=FHIR-24385 found no core commit, while relevant CapabilityStatement/template history did not reveal a remaining source-side fix. Learned: there is no missing Jira-tagged source commit to replay in core.
+- E6 Community searches: Jira exact search found only FHIR-24385; Zulip searches for the issue and canonical JSON braces found no hits; Confluence refs found none. Learned: no discovered community evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-24385",
+    "url": "https://jira.hl7.org/browse/FHIR-24385",
+    "snapshot_path": "contexts/FHIR-24385/jira/FHIR-24385.md",
+    "ref": { "jira_key": "FHIR-24385" },
+    "summary": "Published/Persuasive technical correction requesting removal of surrounding braces around canonical values in the Resource Content JSON view.",
+    "learned": "This is the final approved request and defines the target behavior to verify.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-183; source/capabilitystatement/structuredefinition-CapabilityStatement.xml:512-522",
+    "ref": { "path": "source/capabilitystatement/structuredefinition-CapabilityStatement.xml" },
+    "summary": "CapabilityStatement is active and instantiates is typed as canonical with a CapabilityStatement target profile.",
+    "learned": "The authoritative core source already models the affected element as a primitive canonical.",
+    "supports": ["build_scope", "source_state"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "build.gradle.kts:47,132-149; gradle.properties:2",
+    "ref": { "path": "build.gradle.kts" },
+    "summary": "The build invokes org.hl7.fhir.tools.publisher.Publisher from the external org.hl7.fhir:kindling dependency version 1.25.5-SNAPSHOT.",
+    "learned": "The affected JSON template rendering is generated by publisher tooling rather than stored as editable per-resource source.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "build.fhir.org and hl7.org/fhir/R5 capabilitystatement.html JSON tabs",
+    "url": "https://build.fhir.org/capabilitystatement.html",
+    "command": "curl -fsSL https://build.fhir.org/capabilitystatement.html; curl -fsSL https://hl7.org/fhir/R5/capabilitystatement.html",
+    "summary": "Both pages render instantiates and imports as [\"<canonical(CapabilityStatement)>\"] in the JSON template.",
+    "learned": "The current CI build and the applied-for R5 publication already satisfy the requested brace removal.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "git history for FHIR-24385 and relevant CapabilityStatement/template files",
+    "command": "git log --all --grep='FHIR-24385'; git log --all -- source/capabilitystatement/structuredefinition-CapabilityStatement.xml tools/templates/template.html tools/templates/template-resource.html",
+    "summary": "No core commit mentions FHIR-24385; relevant source history did not identify a missing source-side change.",
+    "learned": "There is no Jira-tagged core source commit to replay for this issue.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-24385 canonical JSON braces",
+    "command": "bun run zulip:search fts '\"FHIR-24385\" canonical JSON CapabilityStatement' --limit 10; bun run zulip:search fts 'canonical JSON CapabilityStatement instantiates braces' --limit 10; bun run confluence:search refs jira FHIR-24385",
+    "query": "FHIR-24385 canonical JSON CapabilityStatement braces",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/rendered-spec conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

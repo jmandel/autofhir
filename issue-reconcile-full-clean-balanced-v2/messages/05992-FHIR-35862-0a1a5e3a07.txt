@@ -1,0 +1,134 @@
+FHIR-35862: Audit product lot/serial search parameters
+
+Issue request:
+FHIR-35862 was a Published/Persuasive with Modification OO change request for R5. It asked for a way to search product resources by lot number or serial number when a barcode or product identifier is known but the server's product resource type is not known. The related artifacts were Device, BiologicallyDerivedProduct, Medication, and NutritionProduct.
+
+Initial application:
+The issue was applied in commit 31564391acbf120de82ad6b2720eb87e3270659a, which added serial-number search parameters for BiologicallyDerivedProduct, Medication, and NutritionProduct, added lot-number for NutritionProduct, and made related product-code alignment changes later handled under FHIR-40397. Commit 08f4ca1bb8bc36faf757a479c54a52f3c02e0429 added NutritionProduct-lot-number, and commit 7ab5e1f3da672bd2b30b9d167228006851dcde7f corrected the initial NutritionProduct code typo from loy-number to lot-number. Device already had lot-number and serial-number search parameters from earlier Device production identifier work.
+
+Additional context:
+The May 2022 OO WGM minutes and the earlier Zulip thread both frame the requirement as cross-resource searching over product resources by using common search parameter codes. Current search rules allow root-level searches with _type when the other search parameters are common to the provided types. Later applied work changed Medication.batch to Medication.instance and moved the Medication serial-number search parameter to Medication.instance.identifier under FHIR-47622. Later BDP search-parameter review in FHIR-51588/FHIR-53204 kept BiologicallyDerivedProduct-serial-number on BiologicallyDerivedProduct.identifier and did not add a lot-number parameter; the current BiologicallyDerivedProduct structure has no lotNumber element. FHIR-40397, FHIR-47622, FHIR-14765, and FHIR-37979 already have reconciliation commits on the combined branch, so they are context rather than additional decisions here.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Device, Medication, NutritionProduct, and BiologicallyDerivedProduct are active resources in source/fhir.ini. The current source has serial-number on all four product resources where serial/instance identifiers exist, has lot-number on Device, Medication, and NutritionProduct where lotNumber elements exist, and does not add a BiologicallyDerivedProduct lot-number parameter because there is no BDP lotNumber source element and later BDP search-parameter review did not introduce one.
+
+Recommendation:
+Keep this audit commit as-is. If the work group later wants BiologicallyDerivedProduct to carry a distinct lot number, that should be a new BDP modeling decision before adding a BDP lot-number search parameter. Do not publish another FHIR-35862 source change unless that modeling decision is made or current build tooling stops exposing the shared lot-number/serial-number codes for the product resources that define them.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-35862
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-20568: background - Earlier Published Device issue added Device production identifier search parameters, including Device lot-number and serial-number, before FHIR-35862.
+FHIR-40397: same-change-family - Product code search-parameter alignment was partly pre-applied in the same 31564391 commit and already has a no-change reconciliation commit on the combined branch.
+FHIR-47622: later-change - Applied Medication decision renamed batch to instance and moved the Medication serial-number search parameter to Medication.instance.identifier; it already has a fixed reconciliation commit on the combined branch.
+FHIR-14765: background - Earlier Published Medication serial-number support issue is already audited on the combined branch and helps explain the later Medication serial-number lineage.
+FHIR-51588: later-change - Applied BDP search-parameter cleanup reviewed the BDP parameter set and kept serial-number over identifier without adding lot-number.
+FHIR-53204: later-change - Applied BDP normative prep explicitly listed BiologicallyDerivedProduct-serial-number as an active search parameter.
+FHIR-54379: background - Resolved-change-required Pharmacy correction concerns Medication serial-number description wording; current source already points to Medication.instance.identifier after FHIR-47622, so this default-scope run does not decide it separately.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-35862: Published/Persuasive with Modification request to search product resources by lot or serial number across Device, BiologicallyDerivedProduct, Medication, and NutritionProduct. Learned: this is the seed decision and defines the intended resource family.
+- E2 Confluence OO WGM 2022-05-09/13 page 101358457: minutes discuss FHIR-35862 as cross-resource searching by lot/serial number and describe using the same search parameter code across the needed resources. Learned: the intended mechanism was shared product search parameter codes, not a new BDP lot element.
+- E3 Zulip #implementers > Searching serial numbers: Jose Costa Teixeira describes the base/?serialnumber=123&type=medication,device,biologicallyderivedproduct,nutritionproduct use case, and Grahame Grieve says common search parameters across a set of resources can make that search work. Learned: community context supports the same-code cross-resource search interpretation.
+- E4 Source source/fhir.ini:185,204,295,301: Device, Medication, BiologicallyDerivedProduct, and NutritionProduct are active current-build resources. Learned: their resource-local search parameter bundles are in build scope for this reconciliation.
+- E5 Source search parameter bundles: Device has lot-number and serial-number; Medication has lot-number and serial-number on Medication.instance; NutritionProduct has lot-number and serial-number on NutritionProduct.instance; BiologicallyDerivedProduct has serial-number on identifier. Learned: current source carries the FHIR-35862 product lot/serial search parameters where matching elements exist.
+- E6 Source StructureDefinitions: Medication.instance.identifier/lotNumber, NutritionProduct.instance.identifier/lotNumber, Device.serialNumber/lotNumber, and BiologicallyDerivedProduct.identifier show the underlying element paths; BDP has no lotNumber element. Learned: absence of BDP lot-number follows current BDP structure rather than a missed search parameter over an existing element.
+- E7 Git 31564391, 08f4ca1, 7ab5e1f, 6b4f960: history shows initial FHIR-35862 application, the NutritionProduct lot-number typo fix, and later Medication serial-number remapping after FHIR-47622. Learned: current differences from the first application are later corrections already present in source.
+- E8 Jira FHIR-47622/FHIR-51588/FHIR-53204/FHIR-54379: later issue context moves Medication serial-number to instance.identifier, reviews BDP search parameters, marks BDP serial-number normative/active, and raises only a Medication description correction. Learned: later decisions do not require a new FHIR-35862 source edit.
+- E9 Command searches: focused Jira, Zulip, and Confluence searches for FHIR-35862, lot-number, serial-number, BiologicallyDerivedProduct lot, and product search parameters found no applied/published later decision requiring a missing BDP lot-number source change. Learned: no discovered community or Jira evidence overrides the current-source no-change decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-35862",
+    "url": "https://jira.hl7.org/browse/FHIR-35862",
+    "snapshot_path": "contexts/FHIR-35862/jira/FHIR-35862.md",
+    "ref": { "jira_key": "FHIR-35862" },
+    "summary": "Published/Persuasive with Modification request to search product resources by lot or serial number across Device, BiologicallyDerivedProduct, Medication, and NutritionProduct.",
+    "learned": "This is the seed decision and defines the intended product resource family.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "OO WGM 2022-05-09/13 page 101358457",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/101358457/2022-05-09-13+WGM",
+    "ref": { "confluence_page_id": 101358457 },
+    "summary": "Minutes discuss FHIR-35862 as cross-resource searching by lot/serial number and describe using the same search parameter code across the needed resources.",
+    "learned": "The intended mechanism was shared product search parameter codes, not a new BDP lot element.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "zulip",
+    "locator": "#implementers > Searching serial numbers",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Searching%20serial%20numbers",
+    "ref": { "stream": "implementers", "topic": "Searching serial numbers" },
+    "summary": "Jose Costa Teixeira describes the cross-product serial-number search use case, and Grahame Grieve says common search parameters across a resource set can make it work.",
+    "learned": "Community context supports the same-code cross-resource search interpretation.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:185,204,295,301",
+    "ref": { "path": "source/fhir.ini", "line": 185 },
+    "summary": "Device, Medication, BiologicallyDerivedProduct, and NutritionProduct are active current-build resources.",
+    "learned": "Their resource-local search parameter bundles are in build scope for this reconciliation.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/device/bundle-Device-search-params.xml:122-286; source/medication/bundle-Medication-search-params.xml:122-188; source/nutritionproduct/bundle-NutritionProduct-search-params.xml:103-133; source/biologicallyderivedproduct/bundle-BiologicallyDerivedProduct-search-params.xml:168-180",
+    "ref": { "path": "source/device/bundle-Device-search-params.xml", "line": 122 },
+    "summary": "Current search parameter bundles define lot-number and serial-number for Device, Medication, and NutritionProduct, and serial-number for BiologicallyDerivedProduct.",
+    "learned": "Current source carries the FHIR-35862 product lot/serial search parameters where matching elements exist.",
+    "supports": ["reconciliation", "no_change"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/medication/structuredefinition-Medication.xml:410-432; source/nutritionproduct/structuredefinition-NutritionProduct.xml:422-450; source/device/structuredefinition-Device.xml:606-646; source/biologicallyderivedproduct/structuredefinition-BiologicallyDerivedProduct.xml:164-172",
+    "ref": { "path": "source/biologicallyderivedproduct/structuredefinition-BiologicallyDerivedProduct.xml", "line": 164 },
+    "summary": "Medication, NutritionProduct, and Device have instance/lot or serial elements; BiologicallyDerivedProduct has identifier but no lotNumber element.",
+    "learned": "Absence of BDP lot-number follows current BDP structure rather than a missed search parameter over an existing element.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "31564391, 08f4ca1, 7ab5e1f, 6b4f960",
+    "ref": { "commit": "31564391acbf120de82ad6b2720eb87e3270659a" },
+    "summary": "Git history shows initial FHIR-35862 application, NutritionProduct lot-number typo correction, and later Medication serial-number remapping after FHIR-47622.",
+    "learned": "Current differences from the first application are later corrections already present in source.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-47622, FHIR-51588, FHIR-53204, FHIR-54379",
+    "url": "https://jira.hl7.org/browse/FHIR-47622",
+    "ref": { "jira_key": "FHIR-47622" },
+    "summary": "Later issue context moves Medication serial-number to instance.identifier, reviews BDP search parameters, marks BDP serial-number normative/active, and raises only a Medication description correction.",
+    "learned": "Later decisions do not require a new FHIR-35862 source edit.",
+    "supports": ["additional_context", "no_change"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Focused Jira/Zulip/Confluence searches for FHIR-35862 product lot and serial search parameters",
+    "command": "bun run jira:search fts 'lot serial product search parameter Device Medication NutritionProduct BiologicallyDerivedProduct' --limit 15; bun run zulip:search fts '\"FHIR-35862\" lot serial number search parameter' --limit 10; bun run confluence:search refs jira FHIR-35862; bun run jira:search fts 'BiologicallyDerivedProduct lot number lotNumber' --limit 20",
+    "query": "FHIR-35862 lot serial number product search parameter BiologicallyDerivedProduct lotNumber",
+    "summary": "Searches found the seed Jira, relevant OO minutes and Zulip thread, later BDP/Medication context, and no applied/published decision requiring a missing BDP lot-number source change.",
+    "learned": "No discovered community or Jira evidence overrides the current-source no-change decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

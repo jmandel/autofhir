@@ -1,0 +1,105 @@
+FHIR-18848: Audit FamilyMemberHistory birth sex binding
+
+Issue request:
+FHIR-18848 was a Published Patient Care change request raised against STU3 FamilyMemberHistory. It asked to replace the Birth Sex value set's administrative-gender male/female framing with a chromosomal-sex style XX/XY/other set. Patient Care's Persuasive with Modification resolution was narrower: keep administrative-gender and the male/female code displays for consistency with Patient.gender and FamilyMemberHistory.sex, but include other by removing the value set exclusion of administrative-gender#other.
+
+Initial application:
+The issue appears to have been applied in the STU3/R4-era FamilyMemberHistory spreadsheet work. Commit 04c4d675c5f4 included FHIR-18848 in the FamilyMemberHistory.sex binding change family, and commit 2bf5371d7642 changed the FamilyMemberHistory.sex short/description row to include other. Later FHIR-20393 commits corrected the binding URL so FamilyMemberHistory.sex points at the canonical administrative-gender value set rather than an unstable build URL.
+
+Additional context:
+The current source has FamilyMemberHistory active in source/fhir.ini and FamilyMemberHistory.sex is an extensible CodeableConcept binding to http://hl7.org/fhir/ValueSet/administrative-gender with the short list male | female | other | unknown. The old source/familymemberhistory/valueset-birth-sex.xml file still contains the original is-not-a other filter, but current source references to ValueSet/birth-sex are limited to that file and the OID registry, and the current build.fhir.org/hl7.org build surface has no valueset-birth-sex artifact. Related FHIR-19716 was resolved as a duplicate/no-change of this same decision not to switch away from administrative-gender, and later FHIR-43360 again left the element named sex while noting the extensible administrative-gender binding can carry other codes.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change. The active FamilyMemberHistory resource already conveys the approved result by allowing administrative-gender#other through the administrative-gender binding, and editing the unreferenced/out-of-build Birth Sex value set source would not be a current-spec fix.
+
+Recommendation:
+Keep this audit commit as-is. If maintainers want to remove or normalize orphaned historical source files such as valueset-birth-sex.xml, that should be handled as separate cleanup with build-system confirmation rather than as part of FHIR-18848.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-18848
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-19716: duplicate - Resolved No Change as a duplicate of FHIR-18848 and confirms Patient Care did not want to replace administrative-gender with a distinct chromosomal-sex code system.
+FHIR-20393: later-change - Published technical correction changed FamilyMemberHistory.sex to the canonical administrative-gender value set URL and is already represented on the combined branch.
+FHIR-43360: later-change - Resolved No Change request to rename FamilyMemberHistory.sex; confirms the current sex element name and extensible administrative-gender binding remain intentional.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-18848: Published/Persuasive with Modification; Patient Care chose to keep administrative-gender/male-female displays and include other. Learned: this establishes the final seed intent.
+- E2 Source source/familymemberhistory/structuredefinition-FamilyMemberHistory.xml:430: FamilyMemberHistory.sex short is male | female | other | unknown and binds extensibly to ValueSet/administrative-gender. Learned: the active resource allows the requested other code.
+- E3 Source source/fhir.ini:180-192: FamilyMemberHistory is an active resource entry. Learned: the checked FamilyMemberHistory StructureDefinition is in current build scope.
+- E4 Command git grep ValueSet/birth-sex: only valueset-birth-sex.xml and source/oids.ini reference ValueSet/birth-sex. Learned: the stale standalone value set is not referenced by the current resource binding or narrative source.
+- E5 Git 04c4d675c5f4, 2bf5371d7642, 0b584258d4, 88c9c65a: FamilyMemberHistory.sex was renamed/bound, other was added to the sex short/description, and the binding URL was later corrected to canonical administrative-gender. Learned: history explains why the current source uses administrative-gender rather than the old Birth Sex value set.
+- E6 Published-spec check: curl of build.fhir.org/valueset-birth-sex.json/xml and hl7.org/fhir/valueset-birth-sex.json returned 404. Learned: ValueSet/birth-sex is not on the current published/build surface checked for this reconciliation.
+- E7 Jira/community search: FHIR-20393, FHIR-19716, FHIR-43360, the Zulip Birthsex on FamilyMemberHistory thread, and negative FHIR-18848 community searches were reviewed. Learned: no later final decision requires a source edit for FHIR-18848.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-18848",
+    "url": "https://jira.hl7.org/browse/FHIR-18848",
+    "snapshot_path": "contexts/FHIR-18848/jira/FHIR-18848.md",
+    "ref": { "jira_key": "FHIR-18848" },
+    "summary": "Published/Persuasive with Modification request to keep administrative-gender for FamilyMemberHistory sex but include administrative-gender#other.",
+    "learned": "This is the final seed decision and defines the reconciliation target.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/familymemberhistory/structuredefinition-FamilyMemberHistory.xml:430-448",
+    "summary": "FamilyMemberHistory.sex has short male | female | other | unknown and an extensible binding to http://hl7.org/fhir/ValueSet/administrative-gender.",
+    "learned": "The active resource already allows administrative-gender#other and keeps the administrative-gender system selected by Patient Care.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:180-192",
+    "summary": "source/fhir.ini lists familymemberhistory=FamilyMemberHistory in the active resources section.",
+    "learned": "The inspected FamilyMemberHistory StructureDefinition is in current build scope.",
+    "supports": ["build_scope", "current_source"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "ValueSet/birth-sex source reference search",
+    "command": "git --no-pager grep -n \"ValueSet/birth-sex\\|valueset-birth-sex\\|birth-sex\" HEAD -- source fhir.ini",
+    "query": "ValueSet/birth-sex valueset-birth-sex birth-sex",
+    "summary": "Only source/familymemberhistory/valueset-birth-sex.xml and source/oids.ini referenced ValueSet/birth-sex.",
+    "learned": "The stale standalone Birth Sex value set is not used by the current FamilyMemberHistory binding or other current source found in this search.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "04c4d675c5f4; 2bf5371d7642; 0b584258d4; 88c9c65a",
+    "ref": { "commits": "04c4d675c5f4,2bf5371d7642,0b584258d4,88c9c65a" },
+    "summary": "Historical commits applied the FamilyMemberHistory.sex rename/binding work, added other to the sex wording, and corrected the binding URL to canonical administrative-gender.",
+    "learned": "The current administrative-gender binding is the result of the applied issue family, not an accidental omission of the old Birth Sex value set.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "build.fhir.org and hl7.org/fhir valueset-birth-sex URLs",
+    "command": "curl -LfsS https://build.fhir.org/valueset-birth-sex.json; curl -LfsS https://build.fhir.org/valueset-birth-sex.xml; curl -LfsS https://hl7.org/fhir/valueset-birth-sex.json",
+    "summary": "All checked current/published valueset-birth-sex URLs returned 404.",
+    "learned": "No current build-surface Birth Sex artifact was found that would need a source correction for this issue.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Jira, Zulip, and Confluence context searches",
+    "command": "bun run jira:search snapshot FHIR-20393; bun run jira:search snapshot FHIR-19716; bun run jira:search snapshot FHIR-43360; bun run zulip:search snapshot implementers 'Birthsex on FamilyMemberHistory'; bun run zulip:search fts '\"FHIR-18848\" \"birth sex\" FamilyMemberHistory'; bun run confluence:search refs jira FHIR-18848",
+    "summary": "Related Jira/Zulip evidence supports the existing administrative-gender binding, and no directly relevant FHIR-18848 Confluence or Zulip conflict was found.",
+    "learned": "No later or community evidence requires changing the current source for FHIR-18848.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

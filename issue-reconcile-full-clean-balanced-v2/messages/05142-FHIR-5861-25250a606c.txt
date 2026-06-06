@@ -1,0 +1,107 @@
+FHIR-5861: Align QUICK medication dosage timing
+
+Issue request:
+FHIR-5861 is a Published/Persuasive with Modification Pharmacy issue from the DSTU1 ballot. It reported that MedicationPrescription.dosageInstruction.scheduled[x] and MedicationDispense.dosageInstruction.schedule[x] had the same meaning but inconsistent names; the final resolution was to change prescription, dispense, and statement dosage schedule elements to timing and make them datatype Timing.
+
+Initial application:
+The Jira comment says this would be resolved as part of FHIR-8180. Historical #8180 commits a2fbf41966, 33ed8e5b84, and 102f3de87b applied the change to the DSTU-era MedicationPrescription, MedicationDispense, and MedicationStatement source spreadsheets/examples by renaming the schedule/scheduled elements to timing and reducing the prescription/dispense choice types to Timing. Later refactoring migrated MedicationPrescription to MedicationRequest and moved dosage timing into the shared Dosage/DosageDetails model; the current active medication StructureDefinitions no longer expose the old scheduled[x] or schedule[x] dosage paths.
+
+Additional context:
+source/fhir.ini lists MedicationDispense, MedicationRequest, MedicationStatement, and Library as active build resources, while documenting that MedicationPrescription became MedicationRequest. The active medication resource source now points dosageInstruction/dosage to DosageDetails, and the current Dosage datatype defines Dosage.timing as Timing. The build-visible QUICK model-definition Library content, however, still exposed the stale DSTU medication dosage names: QUICK.MedicationDispense.Dosage had scheduleDateTime/schedulePeriod/scheduleTiming, QUICK.MedicationStatement.Dosage had schedule, and QUICK.MedicationPrescription.Dosage had scheduledDateTime/scheduledPeriod/scheduledTiming. No relevant Zulip or Confluence evidence was found that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+Changed source/library/library-quick-model-definition-content.xml so the three QUICK medication dosage classes each expose a single timing element of type QUICK.Timing. Left the active medication resource definitions, the current Dosage datatype, the FHIR model-definition Library content, and unrelated QUICK schedule/scheduled elements unchanged because they already reflect current source or are outside the medication dosage issue scope.
+
+Recommendation:
+Keep this source fix. If the QUICK model-definition example is regenerated, ensure medication dosage schedule metadata continues to follow the historical FHIR-5861/FHIR-8180 resolution by using timing with datatype Timing.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5861
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-8180: same-change-family - The seed's Jira comment says FHIR-5861 would be resolved as part of FHIR-8180, and FHIR-8180 carries the same accepted resolution plus the historical implementation commits for prescription, dispense, and statement dosage timing.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5861: Published/Persuasive with Modification issue identifying inconsistent MedicationPrescription scheduled[x] and MedicationDispense schedule[x] dosage names, resolved to use timing with datatype Timing for prescription, dispense, and statement. Learned: establishes the seed's final Pharmacy decision.
+- E2 Jira FHIR-8180: Published/Persuasive with Modification issue asking to collapse schedule[x] to Timing, with the same resolution as FHIR-5861. Learned: explains why the historical application was committed under #8180 rather than the seed key.
+- E3 Git a2fbf41966, 33ed8e5b84, 102f3de87b: 2015 #8180 commits renamed MedicationPrescription.scheduled[x], MedicationDispense.schedule[x], and MedicationStatement.schedule to timing and updated examples. Learned: the authoritative medication resource change was applied historically.
+- E4 Source source/fhir.ini:201-203,265,1467; source/medicationrequest/structuredefinition-MedicationRequest.xml:869-876; source/medicationdispense/structuredefinition-MedicationDispense.xml:736-743; source/medicationstatement/structuredefinition-MedicationStatement.xml:478-485; source/datatypes/dosage.xml:1019-1034. Learned: current active medication resources and the shared Dosage datatype already carry the intended timing representation.
+- E5 Source source/library/library-examples-header.xml:35-37 and source/library/library-quick-model-definition-content.xml:248-250,2382-2384,2839-2842. Learned: the QUICK model-definition example is build-visible Library content and was the remaining stale medication dosage metadata surface fixed by this commit.
+- E6 Community search for FHIR-5861/FHIR-8180 plus medication dosage schedule/timing terms in Zulip and Confluence. Learned: no directly relevant or conflicting community record was found.
+- E7 Verification command: xmllint --noout on the edited QUICK model content, CRLF-aware git diff --check, and targeted ripgrep/awk stale-name checks passed. Learned: the XML remains parseable and the targeted old medication dosage schedule names were removed without broadening the edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5861",
+    "url": "https://jira.hl7.org/browse/FHIR-5861",
+    "snapshot_path": "contexts/FHIR-5861/jira/FHIR-5861.md",
+    "ref": { "jira_key": "FHIR-5861" },
+    "summary": "Published/Persuasive with Modification issue identifying inconsistent MedicationPrescription scheduled[x] and MedicationDispense schedule[x] dosage names, resolved to use timing with datatype Timing for prescription, dispense, and statement.",
+    "learned": "This establishes the final Pharmacy decision for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-8180",
+    "url": "https://jira.hl7.org/browse/FHIR-8180",
+    "ref": { "jira_key": "FHIR-8180" },
+    "summary": "Published/Persuasive with Modification issue asking to collapse schedule[x] to Timing, with the same resolution as FHIR-5861.",
+    "learned": "The seed was historically applied through this tightly related tracker and its #8180 commits.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "a2fbf41966, 33ed8e5b84, 102f3de87b",
+    "ref": { "commits": "a2fbf41966 33ed8e5b84 102f3de87b" },
+    "summary": "2015 #8180 commits renamed MedicationPrescription.scheduled[x], MedicationDispense.schedule[x], and MedicationStatement.schedule to timing and updated examples.",
+    "learned": "The authoritative medication resource change was applied historically.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini and active medication/Dosage source",
+    "ref": { "paths": "source/fhir.ini; source/medicationrequest/structuredefinition-MedicationRequest.xml; source/medicationdispense/structuredefinition-MedicationDispense.xml; source/medicationstatement/structuredefinition-MedicationStatement.xml; source/datatypes/dosage.xml" },
+    "summary": "fhir.ini lists MedicationDispense, MedicationRequest, MedicationStatement, and Library as active resources and notes MedicationPrescription became MedicationRequest; current medication dosage fields point to DosageDetails and Dosage.timing is Timing.",
+    "learned": "The primary current medication definitions already carry the intended timing representation.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/library/library-quick-model-definition-content.xml",
+    "ref": { "path": "source/library/library-quick-model-definition-content.xml" },
+    "summary": "The build-visible QUICK model-definition Library content still exposed stale medication dosage schedule/scheduled names before this commit; this commit changes the three medication dosage classes to timing: QUICK.Timing.",
+    "learned": "This was the remaining current-build source surface requiring a correction for the seed decision.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-5861/FHIR-8180 medication dosage timing",
+    "command": "bun run confluence:search refs jira FHIR-5861; bun run confluence:search refs jira FHIR-8180; bun run zulip:search fts 'FHIR-5861 MedicationPrescription dosageInstruction schedule scheduled Timing' --limit 10; bun run zulip:search fts 'FHIR-8180 MedicationDispense schedule Timing dosageInstruction' --limit 10",
+    "query": "FHIR-5861 FHIR-8180 medication dosage schedule timing",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML, whitespace, and stale-name verification",
+    "command": "xmllint --noout source/library/library-quick-model-definition-content.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; targeted git grep/awk checks for old medication dosage schedule names",
+    "summary": "The edited XML parsed successfully, diff whitespace checks passed, and targeted checks found no old medication dosage schedule/scheduled names in active medication source or QUICK medication dosage classes.",
+    "learned": "The source fix is syntactically safe and limited to the intended stale metadata.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,95 @@
+FHIR-5513: Audit ValueSet validate-code rename
+
+Issue request:
+FHIR-5513 was a Published/Persuasive FHIR-core BaseResource correction raised for DSTU1. It reported that ValueSet `$validate` URLs overlapped Resource `$validate` URLs while meaning terminology code validation rather than resource validation, and the approved resolution was to add an error check and rename the ValueSet operation to `$validate-code`.
+
+Initial application:
+The issue was applied in git-svn commit e967b66272a8b4598ddc8bc818d20f283c2d8500, whose message cites `#5513 - catch and fix duplicate operation names` and SVN revision 4548. That commit renamed the ValueSet operation spreadsheet rows from `validate.*` to `validate-code.*` and added an old build-time duplicate operation-name check. The later 2021 source rework moved the operation from the spreadsheet into the current XML OperationDefinition without reverting the name.
+
+Additional context:
+The current build-scoped ValueSet resource is active in `source/fhir.ini`, its operations list references `OperationDefinition/ValueSet-validate-code`, and the ValueSet OperationDefinition has id `ValueSet-validate-code` and code `validate-code`. The Resource validation operation remains a separate `Resource-validate` operation with code `validate`. The old Java build validator changed by SVN revision 4548 is not present in the current spec checkout after tooling/source refactors, so this reconciliation is limited to the current FHIR source surface.
+
+AutoFHIR reconciliation:
+No source change was made. The current source already resolves the ambiguity by using `$validate-code` for ValueSet code validation and `$validate` for resource validation, and searches did not find a remaining build-scoped `ValueSet-validate` operation definition or directly conflicting community evidence.
+
+Recommendation:
+Keep this audit commit as-is. No core spec source follow-up is needed for FHIR-5513; any future desire for duplicate operation-name validation should be handled in the current publisher/tooling repository rather than by changing the FHIR source checkout.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5513
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5513: Published/Persuasive issue asked to disambiguate ValueSet `$validate` from Resource `$validate` by changing the ValueSet operation to `$validate-code` and adding an error check. Learned: the final approved request is a rename plus duplicate-operation guardrail.
+- E2 Git e967b66272a8b4598ddc8bc818d20f283c2d8500: commit `#5513 - catch and fix duplicate operation names`, git-svn SVN revision 4548, renamed ValueSet operation spreadsheet entries from `validate.*` to `validate-code.*` and added the old duplicate operation-name validator check. Learned: the Jira was explicitly applied in source/history.
+- E3 Source source/fhir.ini:169,226 and source/valueset/operationdefinition-ValueSet-validate-code.xml:4,42,62: ValueSet is an active build resource and its operation definition is `ValueSet-validate-code` with code `validate-code`. Learned: the current authoritative ValueSet operation source preserves the requested disambiguating name.
+- E4 Source source/resource/operationdefinition-Resource-validate.xml:4,62 and source/valueset/list-ValueSet-operations.xml:14: Resource validation remains `Resource-validate` with code `validate`, while the ValueSet operations list references only `OperationDefinition/ValueSet-validate-code`. Learned: the two operation meanings are now separated in current source.
+- E5 Command `rg -n "operationdefinition-ValueSet-validate|valueset-operation-validate|OperationDefinition/ValueSet-validate" source`: no stale build-scoped ValueSet `$validate` operation references were found outside `$validate-code` links. Learned: there is no obvious remaining source location carrying the old ambiguous operation name.
+- E6 Command `bun run jira:search fts '"FHIR-5513"'; bun run zulip:search fts '"FHIR-5513"'; bun run confluence:search refs jira FHIR-5513; bun run confluence:search fts '"validate-code" "ValueSet" "validate" collision'`: Jira returned only FHIR-5513, Zulip had no FHIR-5513 hits, Confluence had no Jira references or relevant validate-code collision hits. Learned: no discovered community or minutes record changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5513",
+    "url": "https://jira.hl7.org/browse/FHIR-5513",
+    "snapshot_path": "contexts/FHIR-5513/jira/FHIR-5513.md",
+    "ref": { "jira_key": "FHIR-5513" },
+    "summary": "Published/Persuasive issue reported that ValueSet `$validate` overlapped Resource `$validate` while meaning code validation.",
+    "learned": "The approved correction was to rename the ValueSet operation to `$validate-code` and add an operation-name collision error check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e967b66272a8b4598ddc8bc818d20f283c2d8500",
+    "ref": { "commit": "e967b66272a8b4598ddc8bc818d20f283c2d8500", "svn_revision": "4548" },
+    "summary": "Commit `#5513 - catch and fix duplicate operation names` renamed ValueSet operation spreadsheet entries from `validate.*` to `validate-code.*` and added the old duplicate operation-name validator check.",
+    "learned": "The Jira resolution was explicitly applied in the historical source and build tooling available at the time.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,226; source/valueset/operationdefinition-ValueSet-validate-code.xml:4,42,62",
+    "ref": { "path": "source/valueset/operationdefinition-ValueSet-validate-code.xml" },
+    "summary": "ValueSet is active in `source/fhir.ini`, and the current ValueSet operation definition uses id `ValueSet-validate-code` and code `validate-code`.",
+    "learned": "The current build-scoped source preserves the disambiguating ValueSet operation name requested by FHIR-5513.",
+    "supports": ["source_current_state", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/resource/operationdefinition-Resource-validate.xml:4,62; source/valueset/list-ValueSet-operations.xml:14",
+    "ref": { "path": "source/resource/operationdefinition-Resource-validate.xml" },
+    "summary": "Resource validation remains `Resource-validate` with code `validate`, and the ValueSet operations list references `OperationDefinition/ValueSet-validate-code`.",
+    "learned": "Current source separates resource validation from ValueSet code validation and does not retain the reported overlap.",
+    "supports": ["source_current_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current source stale ValueSet validate search",
+    "command": "rg -n \"operationdefinition-ValueSet-validate|valueset-operation-validate|OperationDefinition/ValueSet-validate\" source",
+    "summary": "No stale build-scoped ValueSet `$validate` operation definition or operation-list reference was found; matches point to `$validate-code`.",
+    "learned": "There is no obvious remaining source artifact still using the ambiguous ValueSet `$validate` operation name.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-5513 and validate-code collision",
+    "command": "bun run jira:search fts '\"FHIR-5513\"' --limit 10; bun run zulip:search fts '\"FHIR-5513\"' --limit 10; bun run confluence:search refs jira FHIR-5513; bun run confluence:search fts '\"validate-code\" \"ValueSet\" \"validate\" collision' --limit 10",
+    "query": "FHIR-5513; validate-code ValueSet validate collision",
+    "result_count": 1,
+    "summary": "Jira returned only FHIR-5513; Zulip and Confluence had no directly relevant FHIR-5513 or validate-code collision records.",
+    "learned": "No discovered community or minutes evidence conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

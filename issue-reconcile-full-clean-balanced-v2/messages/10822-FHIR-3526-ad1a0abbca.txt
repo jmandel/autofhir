@@ -1,0 +1,124 @@
+FHIR-3526: Audit slicing discriminator reference paths
+
+Issue request:
+FHIR-3526 was a Published/Persuasive with Modification FHIR-core StructureDefinition issue asking that slice discriminator syntax stop implicitly jumping through ResourceReference to the referenced resource, so profiles could discriminate on elements or extensions carried on the reference itself. The approved DSTU-era resolution was to make the reference traversal explicit while allowing extension-based discriminator paths on the reference element.
+
+Initial application:
+The Jira comments say the issue was already applied in October 2014. No commit explicitly names FHIR-3526, but the same historical window includes commit 365400a19a, which updated discriminator documentation and examples to distinguish reference-target paths such as item.reference.name from reference-entry extension paths such as item.extension.url.
+
+Additional context:
+The current specification has since replaced the old ResourceReference wording with Reference and expresses discriminator paths as a restricted FHIRPath subset. Later related work, including FHIR-23035 and FHIR-27532, refined the same discriminator-path documentation by clarifying resolve() and aligning the simple FHIRPath function list, rather than restoring implicit reference traversal.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current build-scope source already supports the requested distinction: ElementDefinition.slicing.discriminator.path points to the simple FHIRPath subset; profiling.html lists extension(url) for selecting an extension and resolve() for slicing across resource boundaries; the examples show item.extension('http://acme.org/extensions/test').value for an extension on the sliced item separately from item.resolve().code for a referenced target resource; and fhirpath.html lists .extension("url") and .resolve() as allowed simple FHIRPath functions.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR-core source edit is needed for FHIR-3526 unless a future work group decision changes the restricted FHIRPath discriminator model; adding duplicate local prose would risk drifting from the authoritative ElementDefinition, Profiling, and FHIRPath sections.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3526
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-23035: later-change - clarified how resolve() in discriminator paths refers to targetProfile-constrained referenced resources, reinforcing the explicit reference traversal model.
+FHIR-27532: later-change - aligned the simple FHIRPath and ElementDefinition discriminator path documentation, reinforcing that discriminator paths use the restricted FHIRPath subset.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3526: Published/Persuasive with Modification issue requiring discriminator syntax to distinguish reference-target traversal from elements or extensions on the ResourceReference itself. Learned: this establishes the final seed request and approved DSTU-era direction.
+- E2 Source source/fhir.ini:88,258: elementdefinition and structuredefinition are active build-scope artifacts. Learned: the checked ElementDefinition and StructureDefinition/profiling source areas feed the current build.
+- E3 Source source/datatypes/elementdefinition.xml:1118-1132: ElementDefinition.slicing.discriminator.path is defined as a simple-subset FHIRPath expression identifying the element used for discrimination. Learned: current discriminator paths are not old implicit ResourceReference paths.
+- E4 Source source/profiling.html:638-646,767-771,791-802: discriminator documentation allows extension(url) for extensions and resolve() for crossing resource boundaries, with examples separating item.extension(...) from item.resolve().code. Learned: current guidance preserves the distinction FHIR-3526 requested.
+- E5 Source source/fhirpath.html:547-563,572-575: the restricted FHIRPath subset used by ElementDefinition.slicing.discriminator.path allows .resolve() and .extension("url"). Learned: the cross-reference to simple FHIRPath supports both reference-local extension slicing and explicit dereference.
+- E6 Git 365400a19a: October 2014 discriminator documentation/examples update distinguished item.reference.name target-resource paths from item.extension.url extension paths. Learned: this matches Jira's comment that the issue had already been applied during the DSTU-era window.
+- E7 Git 3253654af7 and 97dac7c066: later discriminator documentation was reworked into typed restricted-FHIRPath paths and then clarified for resolve(). Learned: later history refined but did not reverse the FHIR-3526 distinction.
+- E8 Jira FHIR-23035 and FHIR-27532: Published related issues clarified resolve() behavior and simple FHIRPath consistency for discriminator paths. Learned: later final decisions support the current no-change interpretation.
+- E9 Command community/source search: Jira term search found only FHIR-3526; Zulip and Confluence searches for discriminator ResourceReference slicing found no relevant conflicting records; rg confirmed current extension/resolve guidance. Learned: no discovered later community evidence requires a source change.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3526",
+    "url": "https://jira.hl7.org/browse/FHIR-3526",
+    "snapshot_path": "contexts/FHIR-3526/jira/FHIR-3526.md",
+    "ref": { "jira_key": "FHIR-3526" },
+    "summary": "Published/Persuasive with Modification issue asking for discriminator syntax that can distinguish reference target traversal from elements or extensions on ResourceReference itself.",
+    "learned": "This is the final seed request and establishes that explicit reference traversal plus reference-local extension discrimination is the intended outcome.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:88,258",
+    "summary": "fhir.ini actively lists elementdefinition as a datatype page and structuredefinition as a resource.",
+    "learned": "The ElementDefinition and StructureDefinition/profiling source areas checked for this decision are in current build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:1118-1132",
+    "summary": "ElementDefinition.slicing.discriminator.path is a simple-subset FHIRPath expression identifying the discriminator element.",
+    "learned": "Current discriminator paths use restricted FHIRPath rather than the old implicit ResourceReference traversal model.",
+    "supports": ["reconciliation", "source_current_state"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/profiling.html:638-646,767-771,791-802",
+    "summary": "Profiling documentation allows extension(url), allows resolve(), and gives separate examples for item.extension(...) and item.resolve().code.",
+    "learned": "The current profiling guidance distinguishes extensions on the sliced item from explicit traversal to a referenced target resource.",
+    "supports": ["reconciliation", "source_current_state"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhirpath.html:547-563,572-575",
+    "summary": "The restricted FHIRPath subset used by discriminator.path allows .resolve() and .extension(\"url\").",
+    "learned": "The shared FHIRPath rules support both explicit dereference and extension selection for discriminator paths.",
+    "supports": ["reconciliation", "source_current_state"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "365400a19a",
+    "ref": { "commit": "365400a19abab61100f9250f8c83fbf239334f05" },
+    "summary": "October 2014 discriminator documentation/examples update distinguished item.reference.name from item.extension.url paths.",
+    "learned": "This historical change is consistent with the Jira comment that FHIR-3526 was already applied in the DSTU-era window.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "3253654af7 and 97dac7c066",
+    "ref": { "commit_1": "3253654af7787e9b738b15f4618a2b9d02d56f7f", "commit_2": "97dac7c066ececda81f3d3176017fb0f307e6ad4" },
+    "summary": "Later commits reworked discriminator paths into typed restricted-FHIRPath form and clarified resolve() behavior.",
+    "learned": "Later source history refined the representation without reversing the explicit traversal/reference-local extension distinction.",
+    "supports": ["additional_context", "history"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-23035 and FHIR-27532",
+    "url": "https://jira.hl7.org/browse/FHIR-23035",
+    "ref": { "jira_key_1": "FHIR-23035", "jira_key_2": "FHIR-27532" },
+    "summary": "Published related issues clarified resolve() behavior and simple FHIRPath consistency for discriminator paths.",
+    "learned": "Later final decisions support the current restricted-FHIRPath no-change interpretation.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Negative community search and source confirmation",
+    "command": "bun run jira:search fts 'discriminator ResourceReference slicing' --limit 20; bun run zulip:search fts 'discriminator ResourceReference slicing' --limit 20; bun run confluence:search fts 'discriminator ResourceReference slicing' --limit 10; rg -n 'extension\\(|resolve\\(\\)|slicing.discriminator.path' source/profiling.html source/fhirpath.html source/datatypes/elementdefinition.xml",
+    "query": "discriminator ResourceReference slicing",
+    "result_count": 1,
+    "summary": "Jira term search found only FHIR-3526; Zulip and Confluence found no relevant conflicting records; source grep confirmed current extension/resolve guidance.",
+    "learned": "No discovered community or source evidence contradicts the no-change decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

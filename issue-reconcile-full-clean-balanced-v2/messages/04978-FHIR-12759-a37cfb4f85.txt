@@ -1,0 +1,116 @@
+FHIR-12759: Audit Timing offset reconciliation
+
+Issue request:
+FHIR-12759 was a Published DSTU2 MnM change request asking to change Timing.repeat.offset from unsignedInt to a signed number so offsets could be negative or positive. The final Not Persuasive with Modification resolution rejected negative offsets as confusing with event codes such as before lunch and after dinner, and instead directed adding PHS, adding an invariant that offset is only permitted when when is present and not C, CM, CD, or CV, and updating the examples.
+
+Initial application:
+The Jira comment says the change was applied in svn revision 11175. Git commit 275544940db8c103d6e53cbd607e8dfc0edb38f3 (#12759) is that application: it added Timing event code PHS, strengthened the Timing.repeat offset invariant text and FHIRPath expression, and changed the meal Timing example from period/periodUnit to a positive offset with ACM.
+
+Additional context:
+Timing is an active normative datatype in source/fhir.ini. The current Timing source keeps Timing.repeat.offset as unsignedInt, defines it as minutes from the event with before/after determined by the event code, includes PHS as after the subject goes to sleep, and retains the FHIRPath invariant excluding C, CM, CD, and CV when offset is used. The current datatype examples still show the corrected ACM plus offset=30 pattern. The linked Zulip thread explains the original negative-offset debate and shows why the final Jira resolution chose event-code semantics instead. A direct Zulip key search and Confluence Jira-reference search did not reveal later community evidence changing the decision.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Changing offset to a signed type would contradict the final Jira resolution, and the current authoritative source already carries the requested PHS code, invariant, and corrected example semantics. The remaining legacy XPath text in the spreadsheet source is weaker than the FHIRPath expression, but current generated R5 history uses the FHIRPath expression for this constraint, so that legacy column does not justify a current-build source fix for this issue.
+
+Recommendation:
+Keep this no-change audit for FHIR-12759. No follow-up is needed for the current core build unless a separate work item explicitly reopens legacy XPath or old-release schematron maintenance.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12759
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12759: Published/Not Persuasive with Modification issue requesting signed Timing offsets but resolving to keep unsigned offsets, add PHS, add the non-C/CM/CD/CV offset invariant, and update examples. Learned: the final accepted behavior is positive unsigned offset plus event-code semantics, not negative offsets.
+- E2 Git 275544940db8c103d6e53cbd607e8dfc0edb38f3: #12759 applied svn revision 11175 by adding PHS, updating the Timing.repeat invariant expression, and correcting the datatype example. Learned: the requested modification was historically applied in source.
+- E3 Source source/fhir.ini:38,995: Timing is listed as an active normative datatype. Learned: source/datatypes/timing.xml is current build scope.
+- E4 Source source/datatypes/timing.xml:1306-1319,3700-3705,6658-6663: offset is unsignedInt with before/after semantics from the event code, tim-9 enforces when and excludes C/CM/CD/CV in FHIRPath, and PHS is present. Learned: current authoritative Timing source matches the final Jira resolution.
+- E5 Source source/datatypes-examples.html:2628-2651: the breakfast example uses ACM with offset 30. Learned: the example aligns with the final choice to use positive offsets with event codes that encode before/after.
+- E6 Zulip #implementers > Diabetes 7-point profile self-monitoring and terminology: the linked thread records the signed-offset debate, terminology concern, and Arianne raising GF#12759. Learned: community context supports the Jira resolution's concern about mixing signs with before/after event codes.
+- E7 Command search: exact Zulip search for "FHIR-12759" Timing offset PHS found no hits, and Confluence refs jira FHIR-12759 found no references. Learned: no later discovered community record changes the Jira/source conclusion.
+- E8 Command/source check: rg and git history checks for PHS, offset invariant, Timing.repeat.offset, and the corrected example found the expected current source and no duplicate reconcile commit on the combined branch. Learned: this issue is safe to close as no-change.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12759",
+    "url": "https://jira.hl7.org/browse/FHIR-12759",
+    "snapshot_path": "contexts/FHIR-12759/jira/FHIR-12759.md",
+    "ref": { "jira_key": "FHIR-12759" },
+    "summary": "Published/Not Persuasive with Modification DSTU2 MnM issue requesting signed Timing offsets but resolving to keep unsigned offsets, add PHS, add an offset invariant, and update examples.",
+    "learned": "The final accepted behavior is positive unsigned offset plus event-code semantics, not negative offsets.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "275544940db8c103d6e53cbd607e8dfc0edb38f3",
+    "ref": { "commit": "275544940db8c103d6e53cbd607e8dfc0edb38f3" },
+    "summary": "Historical #12759 commit applied svn revision 11175 by adding PHS, strengthening the Timing.repeat offset invariant, and correcting the datatype example.",
+    "learned": "The requested modification was historically applied in source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:38,995",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "Timing is listed as an active normative datatype.",
+    "learned": "source/datatypes/timing.xml is current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/timing.xml:1306-1319,3700-3705,6658-6663",
+    "ref": { "path": "source/datatypes/timing.xml" },
+    "summary": "Timing.repeat.offset is unsignedInt with event-code before/after semantics, tim-9 excludes C/CM/CD/CV in FHIRPath when offset is used, and PHS is present.",
+    "learned": "Current authoritative Timing source matches the final Jira resolution.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes-examples.html:2628-2651",
+    "ref": { "path": "source/datatypes-examples.html" },
+    "summary": "The breakfast Timing example uses ACM with offset 30.",
+    "learned": "The example aligns with the final choice to use positive offsets with event codes that encode before/after.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Diabetes 7-point profile self-monitoring and terminology",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Diabetes%207-point%20profile%20self-monitoring%20and%20terminology",
+    "ref": { "stream": "implementers", "topic": "Diabetes 7-point profile self-monitoring and terminology" },
+    "summary": "The linked thread records the signed-offset debate, terminology concern, and Arianne raising GF#12759.",
+    "learned": "Community context supports the Jira resolution's concern about mixing signs with before/after event codes.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-12759",
+    "command": "bun run zulip:search fts '\"FHIR-12759\" Timing offset PHS' --limit 10; bun run confluence:search refs jira FHIR-12759",
+    "query": "FHIR-12759 Timing offset PHS",
+    "result_count": 0,
+    "summary": "No exact Zulip key hits or Confluence Jira references were found beyond the Jira-linked thread inspected separately.",
+    "learned": "No later discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Source and duplicate checks for FHIR-12759",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-12759' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg for PHS, Timing.repeat.offset, tim-9, and ACM offset example; git log/show 275544940d",
+    "summary": "The combined branch had no prior FHIR-12759 reconcile commit, and source/history checks found the expected applied Timing content.",
+    "learned": "The issue can be safely closed with a no-change audit commit.",
+    "supports": ["confidence", "reconciliation"]
+  }
+]
+</evidence-manifest>

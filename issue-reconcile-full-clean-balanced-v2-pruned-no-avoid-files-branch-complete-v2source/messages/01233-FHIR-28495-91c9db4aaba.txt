@@ -1,0 +1,105 @@
+FHIR-28495: Correct If-None-Match update guidance
+
+Issue request:
+FHIR-28495 was Published with a Persuasive with Modification resolution. It asked the HTTP page to support `If-None-Match: *` on `PUT [type]/[id]` so a client can create a resource with a client-specified id while ensuring an existing resource is not replaced. The approved resolution also noted that servers may support only the wildcard form for this use case; later Jira/meeting notes deferred the separate discovery mechanism to CapabilityStatement2 work.
+
+Initial application:
+The issue was initially applied by git commit 22e27816418f62634685e937808236683070c101, which added `If-None-Match` prose to `source/http.html`. That application placed the rule under the conditional update interaction and described an ETag-specific `W/"[ETag]"` example before the wildcard case. Later source edits corrected nearby wording but left the guidance attached to conditional update instead of the approved `PUT [type]/[id]` update-as-create use case.
+
+Additional context:
+The original Zulip thread and FHIR-I minutes both frame the change as an idempotent client-assigned-id create using `PUT Patient/123` with `If-None-Match: *`. `source/http.html` is in the current build through `publish.ini`. A 2022 FHIR-I note and the Jira comment say CapabilityStatement discovery should be handled by a new CapabilityStatement2 tracker rather than by reopening FHIR-28495. Later transaction-Bundle questions about `Bundle.entry.request.ifNoneMatch` did not surface a final Jira decision, so this reconciliation keeps the source change bounded to the approved HTTP interaction text.
+
+AutoFHIR reconciliation:
+This commit moves the substantive guidance to the Update as Create section of `source/http.html`, states the `If-None-Match: *` precondition and 412 failure behavior when the resource already exists, records that servers may support only the wildcard variant for update-as-create, removes the misplaced conditional-update ETag paragraph, and updates the HTTP header and request summary tables to point to and list the update usage.
+
+Recommendation:
+Keep this commit as the core FHIR reconciliation for FHIR-28495. If the work group wants transaction Bundle `ifNoneMatch` behavior or explicit CapabilityStatement2 discovery for wildcard-only update support, handle that as a separate scoped tracker because the available evidence does not show a final decision for those surfaces under FHIR-28495.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-28495
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-42728: background - later Applied issue added conditional interaction codes to the RESTful interaction value set, but it did not define If-None-Match update-as-create discovery and does not change the FHIR-28495 source fix scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-28495: Published/Persuasive with Modification issue requested `If-None-Match: *` support for `PUT [type]/[id]` and deferred discovery work. Learned: final WG intent targets update-as-create with a client-specified id, not search-based conditional update.
+- E2 Zulip #implementers > HTTP, Idempotency, and FHIR: the cited discussion repeatedly describes `PUT` with `If-None-Match: *` as idempotent create for client-assigned ids. Learned: community rationale matches the Jira use case.
+- E3 Confluence FHIR-I Minutes 2020-12-14 page 97471326: minutes compare `PUT Patient/123` using `If-None-Match: *`, state the client-specific Resource.id use case, and record the persuasive-with-modification vote. Learned: meeting evidence confirms the approved scope and wildcard-only allowance.
+- E4 Git 22e27816418f62634685e937808236683070c101: historical application added If-None-Match prose under conditional update with an ETag-specific example. Learned: the issue was applied, but to the wrong HTTP subsection and with misleading emphasis.
+- E5 Source publish.ini:295 and source/http.html:327,800-810,2474: `http.html` is a built page and now lists If-None-Match for update-as-create. Learned: the edited source is in build scope and addresses the implementer-facing gap.
+- E6 Confluence FHIR-I Minutes 2022-05 page 101355607 and Jira FHIR-28495 comment: both say CapabilityStatement discovery should be handled through a new CapabilityStatement2 tracker rather than reopening this issue. Learned: discovery is not safely fixed as part of this core HTTP-page reconciliation.
+- E7 Verification command: `git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/http.html` completed with no findings. Learned: the CRLF HTML edit does not introduce whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-28495",
+    "url": "https://jira.hl7.org/browse/FHIR-28495",
+    "snapshot_path": "contexts/FHIR-28495/jira/FHIR-28495.md",
+    "ref": { "jira_key": "FHIR-28495" },
+    "summary": "Published/Persuasive with Modification issue requiring If-None-Match support for PUT [type]/[id] when creating a client-specified id only if absent.",
+    "learned": "The final decision targets update-as-create with If-None-Match: * and defers discovery details to later CapabilityStatement2 work.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > HTTP, Idempotency, and FHIR",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/HTTP%2C%20Idempotency%2C%20and%20FHIR",
+    "summary": "The discussion cited by Jira describes PUT with If-None-Match: * as the desired idempotent create mechanism for client-assigned ids.",
+    "learned": "The community rationale supports placing the rule under Update as Create rather than search-based conditional update.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2020-12-14 page 97471326",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/97471326/FHIR+Infrastructure+Minutes+CC+20201214",
+    "ref": { "confluence_page_id": 97471326 },
+    "summary": "Minutes record comparison of PUT Patient/123 with If-None-Match: * and the persuasive-with-modification vote for FHIR-28495.",
+    "learned": "Meeting evidence confirms the approved behavior and wildcard-only option.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "22e27816418f62634685e937808236683070c101",
+    "ref": { "commit": "22e27816418f62634685e937808236683070c101" },
+    "summary": "Historical commit added If-None-Match prose to source/http.html under conditional update with an ETag-specific example.",
+    "learned": "The original application existed but did not align with the Jira and minutes scope.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "publish.ini:295; source/http.html:327,800-810,2474",
+    "summary": "publish.ini includes http.html in the build; source/http.html now documents If-None-Match: * in Update as Create and lists it in the update summary row.",
+    "learned": "The source-changing hunk is in build scope and changes the implementer-facing HTTP page needed for the issue.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2022-05 page 101355607",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/101355607/FHIR+Infrastructure+Minutes+WGM+202205",
+    "ref": { "confluence_page_id": 101355607 },
+    "summary": "Minutes say a new tracker should handle the CapabilityStatement update and FHIR-28495 should not be reopened.",
+    "learned": "Discovery-mechanism work is not part of the safe source edit for this reconciliation.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Whitespace validation for source/http.html",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/http.html",
+    "summary": "The command completed with no findings.",
+    "learned": "The CRLF-preserving HTML edit did not introduce whitespace errors.",
+    "supports": ["confidence"]
+  }
+]
+</evidence-manifest>

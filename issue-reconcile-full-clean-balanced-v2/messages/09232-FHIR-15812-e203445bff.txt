@@ -1,0 +1,125 @@
+FHIR-15812: Audit Device component hierarchy
+
+Issue request:
+FHIR-15812 was a Published, Persuasive with Modification STU3 Device issue asking whether merging Device and DeviceComponent would solve modeling for multi-part devices. The request described sub-component devices that can also be standalone devices with their own UDI, type, version, production specification, and other data, and proposed using only Device resources linked by a parent relationship so the top device is the one without a parent. The final resolution said this had already been done and includes UDI and other information whether represented as a parent or a sub-component.
+
+Initial application:
+No source commit in the local history explicitly mentions FHIR-15812. The issue appears to have been applied through the broader R4 Device rework: commit 10fb28b796d9747f22d741bdee57bad72337b880 changed Device and added DeviceDefinition, commit 1834c25435b71a9069172abf5cc96b0b6d6f79de removed DeviceComponent from active build/navigation listings, and commit a7f2575daa updated Device narrative to say Device can represent a whole device or a component that points to its parent. OO minutes from 2018-07-17 record the same implementation path: DeviceDefinition, UDI carrier naming, and a core Device parent 0..1 relationship for the DeviceComponent merge.
+
+Additional context:
+Device and DeviceDefinition are active OO-owned resources in source/fhir.ini, while DeviceComponent is commented out. Current Device narrative says Device is for actual instances, DeviceDefinition is for device kind/model definitions, and Device can represent either the device in total or a component of an encapsulating device that points to its parent. The authoritative Device StructureDefinition includes instance identifiers, repeatable UDI carriers, type, version/property data, and Device.parent as a 0..1 Reference(Device) with a hierarchy extension and vital-signs-monitor-module example. DeviceDefinition now covers the kind/model side and explains that complex point-of-care devices can be represented by a hierarchy of Device resources. Related Published issues FHIR-13965 and FHIR-16960 are the same change family; FHIR-16960 is already represented on the combined branch.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current build-scoped source already implements the seed resolution: DeviceComponent's component-hierarchy role was refactored into Device with a parent reference, while kind/model information is separated into DeviceDefinition and instance/UDI details remain on Device.
+
+Recommendation:
+Keep this no-change audit as-is. Future work should address only specific later Device, DeviceDefinition, or UDI trackers; FHIR-15812 itself does not identify a remaining current-spec source defect.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15812
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13965: same-change-family - Published STU3 issue about multiple UDIs for complex devices; its resolution says the Device/DeviceDefinition UDI model and Device parent option satisfied the concern.
+FHIR-16960: same-change-family - Published STU3 UDI collaboration issue that cites FHIR-15812 as part of the same Device kind/instance/component work and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15812: Published/Persuasive with Modification Device issue requesting Device/DeviceComponent merge support for hierarchical sub-component devices with UDI and instance data. Learned: this establishes the seed request and its final no-further-edit resolution.
+- E2 Source source/fhir.ini:185,246,297,523,526,527: Device and DeviceDefinition are active OO-owned resources, while DeviceComponent is commented out. Learned: current Device and DeviceDefinition source files are in build scope and DeviceComponent is not.
+- E3 Source source/device/device-introduction.xml:54-60,82-99: Device is for actual instances, DeviceDefinition is for device kinds, and Device may represent a whole device or a component that points to its parent. Learned: current narrative conveys the requested kind/instance/component model.
+- E4 Source source/device/structuredefinition-Device.xml:137-197,842-888,1063-1067,1551-1564: Device carries instance identifiers, repeatable UDI carriers, type/version/property data, and Device.parent as a 0..1 Reference(Device). Learned: authoritative Device structure supports the requested sub-component hierarchy with device-specific data.
+- E5 Source source/devicedefinition/devicedefinition-introduction.xml:25,68-69: DeviceDefinition describes a kind/model, while complex point-of-care devices can use a hierarchy of Device resources for subsystems. Learned: the kind/model side is represented separately without undermining Device component hierarchies.
+- E6 Git 10fb28b796d9747f22d741bdee57bad72337b880, 1834c25435b71a9069172abf5cc96b0b6d6f79de, a7f2575daa: DeviceDefinition was added, DeviceComponent was removed from active listings, and Device narrative was updated for whole-device/component parent modeling; no FHIR-15812-tagged source commit was found. Learned: initial application was implicit in the broader 2018 Device rework.
+- E7 Confluence OO 2018-07-17 minutes page 21856385: OO confirmed DeviceDefinition, UDI carrier naming, and a core Device parent 0..1 relationship for the DeviceComponent merge. Learned: WG minutes match the current source model.
+- E8 Zulip #implementers DeviceComponent removed and Changes to Device Resource: participants explained that DeviceComponent and Device were merged for R4 and components are represented by Device resources linked through Device.parent. Learned: community discussion supports the no-change conclusion and reveals no conflicting current requirement.
+- E9 Verification commands: combined-branch grep found no existing FHIR-15812 reconcile commit; source/history/community searches found no direct conflicting evidence. Learned: an audit commit is needed and no source edit is justified.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15812",
+    "url": "https://jira.hl7.org/browse/FHIR-15812",
+    "snapshot_path": "contexts/FHIR-15812/jira/FHIR-15812.md",
+    "ref": { "jira_key": "FHIR-15812" },
+    "summary": "Published/Persuasive with Modification Device issue requesting support for hierarchical sub-component devices after merging Device and DeviceComponent.",
+    "learned": "The final resolution says the requested capability had already been done with UDI and other information available on parent or sub-component Device representations.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:185,246,297,523,526,527",
+    "summary": "Device and DeviceDefinition are active OO resources; DeviceComponent is commented out.",
+    "learned": "Device and DeviceDefinition are the build-scoped current sources for this decision, while DeviceComponent is no longer an active current-spec resource.",
+    "supports": ["build_scope", "source_check"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/device/device-introduction.xml:54-60,82-99",
+    "summary": "Device narrative distinguishes instance Device from kind/model DeviceDefinition and says a Device can be a component that points to its parent.",
+    "learned": "The current narrative conveys the requested kind/instance/component model without a source change.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:137-197,842-888,1063-1067,1551-1564",
+    "summary": "Device includes instance identifiers, repeatable UDI carriers, type/version/property data, and Device.parent as a 0..1 Reference(Device).",
+    "learned": "The authoritative current Device definition supports hierarchical sub-components while retaining relevant UDI and device-specific data.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/devicedefinition/devicedefinition-introduction.xml:25,68-69",
+    "summary": "DeviceDefinition describes device kind/model information, and complex point-of-care devices can use hierarchies of Device resources for subsystems.",
+    "learned": "The kind/model part of the old concern is represented without replacing Device component hierarchies.",
+    "supports": ["source_check", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "10fb28b796d9747f22d741bdee57bad72337b880; 1834c25435b71a9069172abf5cc96b0b6d6f79de; a7f2575daa",
+    "ref": { "commit": "10fb28b796d9747f22d741bdee57bad72337b880" },
+    "summary": "2018 Device rework added DeviceDefinition, removed DeviceComponent from the active build, and updated Device narrative for parent-linked components; no FHIR-15812-tagged source commit was found.",
+    "learned": "FHIR-15812 was applied implicitly through the broader Device/DeviceComponent merge work rather than through an explicitly tagged commit.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "OO Conf Call Minutes - Devices - 20180717 page 21856385",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/21856385/OO+Conf+Call+Minutes+-+Devices+-+20180717",
+    "ref": { "confluence_page_id": 21856385 },
+    "summary": "OO minutes record DeviceDefinition, UDI carrier naming, and a core Device parent 0..1 relationship for the DeviceComponent merge.",
+    "learned": "The work-group implementation plan matches the current source and supports no further FHIR-15812 edit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#implementers > DeviceComponent removed; #implementers > Changes to Device Resource",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/DeviceComponent.20removed",
+    "ref": { "stream": "implementers", "topic": "DeviceComponent removed" },
+    "summary": "FHIR community participants explained that DeviceComponent and Device were merged for R4 and components are represented by Device resources linked by Device.parent.",
+    "learned": "Community discussion corroborates the current model and shows no conflicting current requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "FHIR-15812 idempotency and search checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-15812' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git log --all --fixed-strings --grep='FHIR-15812' -- source/device source/devicecomponent source/fhir.ini; bun run zulip:search fts '\"FHIR-15812\"' --limit 10; bun run confluence:search refs jira FHIR-15812",
+    "query": "FHIR-15812",
+    "result_count": 0,
+    "summary": "No existing combined-branch reconcile commit, no explicit source-history commit, and no direct Zulip or Confluence references for FHIR-15812 were found.",
+    "learned": "A new audit commit is required, and there is no discovered direct evidence that changes the source-based no-change conclusion.",
+    "supports": ["idempotency", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

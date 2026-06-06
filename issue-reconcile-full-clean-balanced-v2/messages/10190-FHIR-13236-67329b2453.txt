@@ -1,0 +1,130 @@
+FHIR-13236: Audit Observation obs-7 invariant correction
+
+Issue request:
+FHIR-13236 was a Published OO change request for STU3 with a Persuasive with Modification resolution. It reported that the XPath/Schematron implementation of Observation invariant obs-7 produced false negatives when Observation.value[x] was present and no component shared the Observation.code coding; the final comments replaced the double-negative XPath with a rule that fails only when a value is present and a component code matches the Observation code.
+
+Initial application:
+No current git commit explicitly mentioning FHIR-13236 was found. The same obs-7 source area was updated in the historical Observation spreadsheet in 2017 by commit 311839957674a44444b3876d8e7a24662b624742 for GF#14073, changing the FHIRPath expression from the older code!=component.code form to a coding-level component-code comparison and carrying an XPath expression equivalent to "not(value exists and matching component code exists)". The source was later migrated to structuredefinition-Observation.xml, and commit 88a1f3d6bd60f7618ae140179b008ac5686e8a08 removed checked-in XPath constraints from ElementDefinition altogether.
+
+Additional context:
+Observation is an active current-build resource in source/fhir.ini. The current Observation StructureDefinition contains obs-7 as FHIRPath only: value.empty() or component.code.where(coding.intersect(%resource.code.coding).exists()).empty(). That expression allows an Observation with a value and no matching component code, and disallows only the case the invariant describes: Observation.value[x] together with a component whose code coding intersects Observation.code.coding. Later related issues clarified the human wording (FHIR-38955) and flagged the affected elements with condition references (FHIR-20521). The directly relevant Zulip thread confirms the STU3 Schematron problem was an R3/STU3 artifact; no Confluence reference or direct FHIR-13236 community record was found that changes the current-source conclusion.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change. The current build no longer uses the obsolete XPath assertion that FHIR-13236 challenged, and the active FHIRPath expression already implements the intended truth table.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce XPath or make a current core source edit for FHIR-13236; any concern about the historical STU3 published Schematron belongs to a versioned technical-correction process rather than the current FHIR source build.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13236
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-14073: same-change-family - published STU3 issue that changed the obs-7 FHIRPath expression in the same historical source area.
+FHIR-14019: same-change-family - published STU3 issue that clarified the ambiguous obs-7 human wording.
+FHIR-38955: later-change - published R5 issue that further clarified the current obs-7 description without changing the expression.
+FHIR-20521: later-change - applied issue that added missing obs-7 condition flags to affected Observation elements.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13236: Published/Persuasive with Modification STU3 issue reporting a broken obs-7 XPath/Schematron check and recording the intended truth table. Learned: the target behavior is to fail only when Observation.value[x] is present and an Observation.component.code coding matches Observation.code.
+- E2 Source source/fhir.ini:169,208: Observation is listed in the active resources section as observation=Observation. Learned: source/observation/structuredefinition-Observation.xml is in current build scope.
+- E3 Source source/observation/structuredefinition-Observation.xml:104-108: current obs-7 has expression value.empty() or component.code.where(coding.intersect(%resource.code.coding).exists()).empty() and no xpath child. Learned: the current source implements the intended rule using FHIRPath and does not retain the broken XPath.
+- E4 Git 311839957674a44444b3876d8e7a24662b624742: historical Observation spreadsheet commit "GF#14073 fix obs-7 fhirpath expression" replaced value.empty() or code!=component.code with a coding-level component-code comparison. Learned: the same invariant was corrected in historical source before the current StructureDefinition source format.
+- E5 Git 88a1f3d6bd60f7618ae140179b008ac5686e8a08: "ElementDefinition updates - remove XPath usage" deleted the obs-7 xpath element from structuredefinition-Observation.xml. Learned: the obsolete XPath surface that FHIR-13236 challenged is no longer a current source artifact.
+- E6 Jira FHIR-38955 and FHIR-20521: later published/applied Observation obs-7 issues clarified the human description and condition flags. Learned: later decisions refine presentation of the same invariant but do not require changing the current expression for FHIR-13236.
+- E7 Zulip #conformance > STU3: Observation invariant obs-7 broken: 2018 discussion confirms the STU3 Schematron double-negative problem and that R4/current source was already different. Learned: community evidence supports treating the problem as historical XPath/Schematron, not a current-build source defect.
+- E8 Community search: quoted Zulip and Confluence searches for FHIR-13236 plus Observation obs-7 terms found no direct FHIR-13236 hits and no Confluence references. Learned: no discovered community or meeting evidence conflicts with the source/history conclusion.
+- E9 Verification commands: git log on the combined branch found no existing Issue-Reconcile-Key: FHIR-13236; source searches found obs-7 only in current Observation source/example comments and no old FHIR-13236 XPath in source. Learned: publishing this audit commit is idempotent and no current source hunk is required.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13236",
+    "url": "https://jira.hl7.org/browse/FHIR-13236",
+    "snapshot_path": "contexts/FHIR-13236/jira/FHIR-13236.md",
+    "ref": { "jira_key": "FHIR-13236" },
+    "summary": "Published/Persuasive with Modification STU3 issue reporting that the obs-7 XPath/Schematron assertion produced false negatives and recording the intended truth table.",
+    "learned": "The correct rule fails only when Observation.value[x] is present and a component code coding matches Observation.code.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,208",
+    "ref": { "path": "source/fhir.ini", "lines": "169,208" },
+    "summary": "Observation is listed as an active resource in the current build configuration.",
+    "learned": "The Observation StructureDefinition source is in build scope for this reconciliation.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-Observation.xml:104-108",
+    "ref": { "path": "source/observation/structuredefinition-Observation.xml", "lines": "104-108" },
+    "summary": "Current obs-7 uses FHIRPath value.empty() or component.code.where(coding.intersect(%resource.code.coding).exists()).empty() and has no xpath element.",
+    "learned": "The current source implements the intended invariant and no longer contains the broken XPath surface.",
+    "supports": ["reconciliation", "no_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "311839957674a44444b3876d8e7a24662b624742",
+    "ref": { "commit": "311839957674a44444b3876d8e7a24662b624742" },
+    "summary": "Historical commit 'GF#14073 fix obs-7 fhirpath expression' changed the Observation spreadsheet obs-7 expression to compare matching code/system codings.",
+    "learned": "The invariant was corrected in the historical source line before migration to StructureDefinition XML.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "88a1f3d6bd60f7618ae140179b008ac5686e8a08",
+    "ref": { "commit": "88a1f3d6bd60f7618ae140179b008ac5686e8a08" },
+    "summary": "Commit 'ElementDefinition updates - remove XPath usage' deleted the obs-7 xpath element from structuredefinition-Observation.xml.",
+    "learned": "The XPath assertion challenged by FHIR-13236 is not part of the current source build.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-38955; FHIR-20521",
+    "url": "https://jira.hl7.org/browse/FHIR-38955",
+    "snapshot_path": "contexts/FHIR-38955/jira/FHIR-38955.md",
+    "ref": { "jira_keys": "FHIR-38955,FHIR-20521" },
+    "summary": "Later Observation obs-7 issues clarified the human wording and missing condition flags without changing the current expression.",
+    "learned": "Later decisions support leaving the expression unchanged while recognizing related presentation fixes.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#conformance > STU3: Observation invariant obs-7 broken",
+    "url": "https://chat.fhir.org/#narrow/stream/conformance/topic/STU3%3A%20Observation%20invariant%20obs-7%20broken",
+    "summary": "2018 discussion confirms the STU3 Schematron obs-7 double-negative problem and notes that R4 was already fixed/different.",
+    "learned": "The community evidence frames the defect as a historical STU3 XPath/Schematron issue rather than a current source defect.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Quoted community searches for FHIR-13236 and Observation obs-7",
+    "command": "bun run zulip:search fts '\"FHIR-13236\" Observation invariant' --limit 10; bun run confluence:search refs jira FHIR-13236; bun run confluence:search fts '\"FHIR-13236\" Observation invariant' --limit 10",
+    "query": "FHIR-13236 Observation invariant; Observation obs-7 component code value",
+    "summary": "No direct Zulip hit for FHIR-13236 and no Confluence references or full-text hits were found; broader obs-7 Zulip hits led to the STU3 Schematron discussion.",
+    "learned": "No discovered community or meeting evidence contradicts the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Idempotency and source searches",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13236' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg 'obs-7|for \\$coding|starts-with\\(local-name' source/observation source/fhir.ini",
+    "summary": "No existing FHIR-13236 reconcile commit was present on the combined branch, and source inspection found the current FHIRPath-only obs-7 definition.",
+    "learned": "An empty audit commit is needed and sufficient for this issue.",
+    "supports": ["idempotency", "verification"]
+  }
+]
+</evidence-manifest>

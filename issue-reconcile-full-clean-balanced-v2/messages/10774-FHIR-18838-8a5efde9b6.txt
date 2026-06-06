@@ -1,0 +1,115 @@
+FHIR-18838: Audit ServiceRequest instructional material support
+
+Issue request:
+FHIR-18838 was a Published FHIR-core ServiceRequest change request resolved Persuasive with Modification for R5. It asked to add support for instructional material by replacing the single string patientInstruction with a repeating patient-instruction structure that could carry either markdown or a reference to DocumentReference.
+
+Initial application:
+The change was applied before this reconciliation in the PR #2600 history. Commit 54d590c4141f492cba55736b75f98cd05adef687 first changed ServiceRequest.patientInstruction to a repeating markdown-or-DocumentReference choice named patientInstructions[x]; commit 9a3ecaeb96723757430685c56710131351afae20 then made it a repeating BackboneElement with a single instructions[x] child; commit a056425bd1cda209e84ec099f2999919746ab055 immediately normalized the names to ServiceRequest.patientInstruction and ServiceRequest.patientInstruction.instruction[x]. The Jira application comment points to the PR branch merge/application commit 82a5e11548ca38466674c55e3f4dcfd39f533d46.
+
+Additional context:
+ServiceRequest is an active current-build resource in source/fhir.ini. The current authoritative StructureDefinition source has ServiceRequest.patientInstruction as 0..* BackboneElement and ServiceRequest.patientInstruction.instruction[x] as 0..1 markdown or Reference(DocumentReference); the example uses the same shape. Later issue FHIR-54623 directly challenged the BackboneElement/single-child model and was Resolved - No Change, with the resolution stating that the choice element must be a child in order to allow multiple patient instructions.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already preserves the implementer-significant outcome of FHIR-18838: multiple patient/consumer instructions can be represented, and each instruction can be markdown or a DocumentReference. Renaming the element back to the plural Jira wording or flattening it into a direct choice would be a new breaking model change and would conflict with the later no-change decision.
+
+Recommendation:
+Keep this audit commit as-is. If OO wants to revisit the singular element name, child optionality, or BackboneElement shape, that should be handled as a new work-group decision because the current R6 source and the later FHIR-54623 disposition support leaving the model unchanged.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-18838
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-54623: supporting-decision - Later R6 no-change issue rejected flattening ServiceRequest.patientInstruction back to a direct choice and supports the current BackboneElement shape.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-18838: Published/Persuasive with Modification; requested support for ServiceRequest instructional material using markdown or DocumentReference with repeatability. Learned: this establishes the approved R5 change being audited.
+- E2 Confluence 156533152: 2023-02-03 OO minutes record the motion and intended ServiceRequest patientInstructions[x] 0..* markdown/reference(DocumentReference) disposition. Learned: the meeting evidence matches the Jira resolution and confirms OO approval.
+- E3 Source source/fhir.ini:213,613,757,897: ServiceRequest is active as a current-build resource. Learned: source/servicerequest/structuredefinition-ServiceRequest.xml is in build scope.
+- E4 Source source/servicerequest/structuredefinition-ServiceRequest.xml:1238-1268 and source/servicerequest/servicerequest-example4.xml:28-30: current source defines ServiceRequest.patientInstruction 0..* BackboneElement with instruction[x] markdown or Reference(DocumentReference), and the example uses it. Learned: the substantive instructional-material support is already present.
+- E5 Git 54d590c, 9a3eca, a056425, 82a5e11: the FHIR-18838 PR history first implemented a plural/direct choice, then changed it to the current singular BackboneElement with instruction[x]. Learned: the current spelling/shape arose during application rather than being an unreviewed omission.
+- E6 Jira FHIR-54623: Resolved - No Change/Not Persuasive in 2026; the resolution says the choice element must be a child to allow multiple patient instructions. Learned: later WG disposition supports leaving the BackboneElement model unchanged.
+- E7 Command community searches: Zulip searches for FHIR-18838 and patientInstruction/BackboneElement found no relevant conflicting discussion; Confluence refs found the OO minutes. Learned: no discovered community record contradicts the Jira/source conclusion.
+- E8 Verification command: rg checks confirmed the current XML contains the repeating parent, markdown type, and DocumentReference target profile. Learned: the audit decision was checked against current source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-18838",
+    "url": "https://jira.hl7.org/browse/FHIR-18838",
+    "snapshot_path": "contexts/FHIR-18838/jira/FHIR-18838.md",
+    "ref": { "jira_key": "FHIR-18838" },
+    "summary": "Published/Persuasive with Modification issue requesting ServiceRequest instructional material support via repeatable markdown or DocumentReference instructions.",
+    "learned": "This establishes the final approved R5 change to audit in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "2023-02-03 OO - Catalog page 156533152",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/156533152/2023-02-03+OO+-+Catalog",
+    "ref": { "confluence_page_id": 156533152 },
+    "summary": "OO minutes record the FHIR-18838 motion for ServiceRequest patientInstructions[x] 0..* with markdown and Reference(DocumentReference) choices, passed 5-0-0.",
+    "learned": "The work-group minutes confirm the Jira disposition and approved scope.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:213,613,757,897",
+    "summary": "ServiceRequest is listed as an active resource with OO work group and patient compartment/build metadata.",
+    "learned": "The ServiceRequest StructureDefinition source is in current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:1238-1268; source/servicerequest/servicerequest-example4.xml:28-30",
+    "summary": "Current source defines ServiceRequest.patientInstruction as 0..* BackboneElement and instruction[x] as 0..1 markdown or Reference(DocumentReference), with the example using instructionMarkdown.",
+    "learned": "The current spec already supports multiple patient instructions and DocumentReference instructional material.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "54d590c, 9a3eca, a056425, 82a5e11",
+    "ref": { "commits": "54d590c4141f492cba55736b75f98cd05adef687 9a3ecaeb96723757430685c56710131351afae20 a056425bd1cda209e84ec099f2999919746ab055 82a5e11548ca38466674c55e3f4dcfd39f533d46" },
+    "summary": "FHIR-18838 application history changed the old string to a repeating instruction structure, then normalized it to the current singular parent and instruction[x] child.",
+    "learned": "The current naming and BackboneElement shape came from the application sequence, not from an unapplied Jira request.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-54623",
+    "url": "https://jira.hl7.org/browse/FHIR-54623",
+    "ref": { "jira_key": "FHIR-54623" },
+    "summary": "Resolved - No Change/Not Persuasive R6 issue proposing to simplify patientInstruction back to a direct markdown-or-Reference choice.",
+    "learned": "Later work-group disposition supports retaining the child choice inside the repeating parent.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-18838 and ServiceRequest patientInstruction",
+    "command": "bun run confluence:search refs jira FHIR-18838; bun run confluence:search snapshot 156533152; bun run zulip:search fts '\"FHIR-18838\" ServiceRequest patientInstruction' --limit 10; bun run zulip:search fts 'ServiceRequest patientInstruction BackboneElement' --limit 10",
+    "query": "FHIR-18838 ServiceRequest patientInstruction BackboneElement",
+    "summary": "Confluence found the OO minutes; Zulip searches found no directly relevant or conflicting discussion.",
+    "learned": "No discovered community record changes the Jira, source, and git conclusion.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Current source rg verification",
+    "command": "rg -n 'id=\"ServiceRequest\\.patientInstruction\"|id=\"ServiceRequest\\.patientInstruction\\.instruction\\[x\\]\"|targetProfile value=\"http://hl7.org/fhir/StructureDefinition/DocumentReference\"|<max value=\"\\*\"/>|<code value=\"markdown\"/>' source/servicerequest/structuredefinition-ServiceRequest.xml source/servicerequest/servicerequest-example4.xml",
+    "summary": "The current source contains the repeating parent, markdown type, and DocumentReference target profile required by the issue family.",
+    "learned": "The no-change decision is grounded in the current authoritative XML source.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

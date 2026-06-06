@@ -1,0 +1,94 @@
+FHIR-16001: Audit Observation composite component references
+
+Issue request:
+FHIR-16001 was a Published/Persuasive STU3 FHIR-core search-parameter-registry correction. It reported that Observation.code-value-concept, Observation.code-value-date, Observation.code-value-quantity, and Observation.code-value-string component definitions referenced the removed canonical Observation-code search parameter and should instead use the common clinical-code search parameter after cross-resource search parameters were introduced.
+
+Initial application:
+Jira records the intended application as "update generator for this change" with svn revision 14532. The local Git history does not contain an explicit FHIR-16001 commit, but later checked-in R4 search-parameter history contains the four Observation composite component definitions using http://hl7.org/fhir/SearchParameter/clinical-code. The current source rework stores the Observation composite component definitions as the local code component, which the current generator resolves to the common clinical-code canonical in the built registry.
+
+Additional context:
+FHIR-17588 is a duplicate report of the same broken STU3 generated references, and the related Zulip thread confirms implementers hit the missing Observation-code canonical and identified clinical-code as the working replacement. The checked-in tools/history/release3/search-parameters.xml file and the frozen hl7.org STU3 artifact still show the old Observation-code references, but searches found no active current-build source reference to tools/history/release3, and the current active build output at build.fhir.org/search-parameters.json emits clinical-code for all four affected composite components and no Observation-code registry entry.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scope source under source/observation and source/searchparameter is already generating the correct clinical-code component references, and editing the historical generated STU3 release copy would not be a current-spec source fix.
+
+Recommendation:
+Keep this audit commit as-is for current FHIR core. If HL7 wants to correct frozen STU3 downloadable artifacts or checked-in historical release data, that should be a separate human-reviewed publication/history-maintenance decision rather than a current build source edit.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-16001
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17588: duplicate - duplicate STU3 report of the same missing Observation-code canonical references in Observation composite search parameters.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-16001: Published/Persuasive STU3 correction asks to change four Observation composite component references from Observation-code to clinical-code and records "update generator" / svn revision 14532. Learned: this is the final issue request and intended implementation path.
+- E2 Source source/observation/bundle-Observation-search-params.xml:65-149 and source/searchparameter/common-search-parameters.xml:171-196: current active source defines the affected composites using component definition "code" and defines clinical-code as a common search parameter including Observation. Learned: active source is positioned for generator resolution to the common clinical-code canonical.
+- E3 Published spec https://build.fhir.org/search-parameters.json: current build emits clinical-code definitions for all four affected Observation composites and has no Observation-code registry entry. Learned: the current built registry has the correction requested by FHIR-16001.
+- E4 Git 5c0494aacfd0b8bd52bc72c587aa89d0a64246f8 and 33b409a4b6d544598262f2f074ebb4b6dc466157: checked-in R4 history contains clinical-code component definitions, and the later source rework introduced the current local code component representation. Learned: the correction survived source refactoring and is represented in the current generator/source model.
+- E5 Command build-scope search: rg found no active source/fhir.ini or build source references to tools/history/release3/search-parameters.xml beyond generic generated-download references. Learned: the stale STU3 history copy is not an active current-build source location to edit for this reconciliation.
+- E6 Jira/Zulip command: Jira FHIR-17588 and Zulip #implementers > missing search param? duplicate the same implementer-facing missing Observation-code problem and point back to FHIR-16001. Learned: related community evidence supports the same interpretation and reveals no conflicting current-source requirement.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-16001",
+    "url": "https://jira.hl7.org/browse/FHIR-16001",
+    "snapshot_path": "contexts/FHIR-16001/jira/FHIR-16001.md",
+    "ref": { "jira_key": "FHIR-16001" },
+    "summary": "Published/Persuasive STU3 issue requiring Observation composite search parameter components to stop referencing the removed Observation-code canonical and use clinical-code instead.",
+    "learned": "This establishes the final issue request and the generator-focused implementation expectation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/observation/bundle-Observation-search-params.xml:65-149; source/searchparameter/common-search-parameters.xml:171-196",
+    "summary": "The active Observation composite source uses component definition code, and the common clinical-code search parameter includes Observation.",
+    "learned": "The current source model is set up for the generator to resolve the affected components to the common clinical-code canonical.",
+    "supports": ["current_source", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/search-parameters.json",
+    "url": "https://build.fhir.org/search-parameters.json",
+    "command": "curl -fsSL https://build.fhir.org/search-parameters.json | jq -r '.entry[].resource | select(.id|test(\"Observation-code-value-(concept|date|quantity|string)$\")) | .component[] | [.id, .definition, .expression] | @tsv'",
+    "summary": "The current build emits clinical-code for all four affected Observation composite code components and no Observation-code registry entry.",
+    "learned": "The implementer-facing current registry already has the FHIR-16001 correction.",
+    "supports": ["verification", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "5c0494aacfd0b8bd52bc72c587aa89d0a64246f8; 33b409a4b6d544598262f2f074ebb4b6dc466157",
+    "ref": { "commit_1": "5c0494aacfd0b8bd52bc72c587aa89d0a64246f8", "commit_2": "33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "R4 history contains clinical-code component definitions, and the source rework introduced the current component-code representation for Observation search parameters.",
+    "learned": "The correction is present after later source refactoring even without an explicit Git commit named FHIR-16001.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Build-scope search for release3 history references",
+    "command": "rg -n 'tools/history|history/release|release3/search-parameters|search-parameters\\.xml' <worktree>; rg -n 'release3|R3|STU3|history' source/fhir.ini",
+    "summary": "No active source/fhir.ini or build source reference to tools/history/release3/search-parameters.xml was found beyond generic generated search-parameter download references.",
+    "learned": "The stale STU3 history file is not a current-build source input that should be edited for this issue.",
+    "supports": ["build_scope", "no_source_change"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "FHIR-17588 and Zulip #implementers missing search param?",
+    "command": "bun run jira:search snapshot FHIR-17588; bun run zulip:search snapshot implementers 'missing search param?'",
+    "summary": "FHIR-17588 duplicates the same broken Observation-code references, and the Zulip thread identifies clinical-code as the working replacement while pointing back to FHIR-16001.",
+    "learned": "Community and duplicate-issue evidence confirms the same problem statement and provides no conflicting current-source requirement.",
+    "supports": ["additional_context", "confidence"]
+  }
+]
+</evidence-manifest>

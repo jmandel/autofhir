@@ -1,0 +1,119 @@
+FHIR-18284: Audit Bundle bdl-7 history exception
+
+Issue request:
+FHIR-18284 was a Published/Persuasive FHIR-I change request raised against STU3 and applied for STU3. It reported that Bundle invariant bdl-7 failed history Bundles containing multiple delete entries because deleted entries do not contain entry.resource and therefore have no resource.meta.versionId. The proposed and accepted direction was to correct bdl-7 so it reflected the Bundle uniqueness text allowing history duplicate fullUrls.
+
+Initial application:
+The issue was initially applied by git commit dc4a4436ac41450dcf83c005b99929aa1a2db1f8, which updated the then-authoritative Bundle spreadsheet bdl-7 human text to add "except in history bundles" and changed the FHIRPath to start with `(type = 'history') or ...`. The current source has since moved the authoritative invariant to source/bundle/structuredefinition-Bundle.xml.
+
+Additional context:
+Bundle is an active current-build resource in source/fhir.ini, and the current Bundle notes say a given version of a resource SHALL appear only once while multiple versions of the same resource may appear, especially in history Bundles. Later Published issue FHIR-31986 clarified that the history exception was really about entries with no resource body, such as history deletes, and also applies to batch HEAD cases; it directed bdl-7 to filter to entries where resource is present and to compare fullUrl plus meta.versionId with a delimiter. Later Published issue FHIR-39476 corrected the absent meta.versionId case by adding an empty-string fallback. The current bdl-7 source incorporates both later refinements.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change. Current source/bundle/structuredefinition-Bundle.xml already excludes entries without resource from bdl-7, so history delete entries no longer cause the failure reported by FHIR-18284. It also intentionally does not exempt all history Bundles, because the later FHIR-31986 resolution and current Bundle narrative preserve the rule that the same resource version should not appear twice.
+
+Recommendation:
+Keep this audit commit as-is. Do not restore the broad `(type = 'history') or ...` exemption for current builds; that would regress the later, more precise FHIR-31986/FHIR-39476 bdl-7 behavior. Any future relaxation of Bundle uniqueness for resource-bearing history entries should go through a new work-group decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-18284
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-31986: later-change - later Published FHIR-I decision narrowed the broad history exception to entries where resource is present and added a fullUrl/version delimiter; the current source follows that refinement.
+FHIR-39476: later-change - later Published FHIR-I decision added the iif(..., '') fallback for absent meta.versionId; the current source preserves that correction.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-18284: Published/Persuasive, voted 22-0-1, reported bdl-7 failure for history Bundles with multiple delete entries lacking resources. Learned: this establishes the seed issue and the defect the current source must avoid.
+- E2 Git dc4a4436ac41450dcf83c005b99929aa1a2db1f8: original GF#18284 application changed the Bundle spreadsheet bdl-7 expression to include a whole-history exception. Learned: the issue was historically applied before source refactors.
+- E3 Source source/bundle/structuredefinition-Bundle.xml:129-132: current bdl-7 filters to entries with fullUrl and resource, then compares fullUrl plus meta.versionId with an empty-version fallback. Learned: current source already prevents history delete entries from failing bdl-7.
+- E4 Source source/bundle/bundle-notes.xml:193-205: Bundle narrative says a given resource version SHALL appear only once, while multiple versions may appear, especially in history Bundles. Learned: current source should not exempt duplicate resource-bearing history entries with the same version.
+- E5 Jira FHIR-31986: Published/Not Persuasive with Modification issue states the history exclusion was really about missing resource bodies and directs the resource.exists() bdl-7 rewrite. Learned: this later decision narrows the seed's broad original expression.
+- E6 Jira FHIR-39476: Published/Persuasive issue directs the absent meta.versionId fallback. Learned: the current iif(..., '') fallback is an intentional later correction to preserve.
+- E7 Zulip #conformance > Bundle's bdl-7 and type=history and #implementers > bdl-8 when no "fullUrl": threads discuss history delete entries with no resource causing bdl-7 trouble and ask Richard Ettema to file a task. Learned: community context matches the seed defect and does not conflict with the current narrowed fix.
+- E8 Command checks: combined-branch trailer check, Confluence refs/FTS search for FHIR-18284, xmllint on source/bundle/structuredefinition-Bundle.xml, and git diff --check completed. Learned: there was no duplicate FHIR-18284 audit, no conflicting Confluence evidence was found, and the current source remains syntactically valid.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-18284",
+    "url": "https://jira.hl7.org/browse/FHIR-18284",
+    "snapshot_path": "contexts/FHIR-18284/jira/FHIR-18284.md",
+    "ref": { "jira_key": "FHIR-18284" },
+    "summary": "Published/Persuasive FHIR-I issue reporting that bdl-7 failed history Bundles with multiple delete entries lacking resources.",
+    "learned": "This establishes the seed defect and the accepted need to make bdl-7 tolerate history delete entries without resources.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "dc4a4436ac41450dcf83c005b99929aa1a2db1f8",
+    "ref": { "commit": "dc4a4436ac41450dcf83c005b99929aa1a2db1f8" },
+    "summary": "The original GF#18284 application updated source/bundle/bundle-spreadsheet.xml to add a whole-history bdl-7 exception.",
+    "learned": "The issue was historically applied, though current source has since been refactored and refined by later decisions.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/bundle/structuredefinition-Bundle.xml:129-132",
+    "ref": { "path": "source/bundle/structuredefinition-Bundle.xml", "lines": "129-132" },
+    "summary": "Current bdl-7 applies only to entries with both fullUrl and resource, then compares fullUrl, a delimiter, and meta.versionId with an empty-version fallback.",
+    "learned": "History delete entries without resource are excluded, so the seed defect is already fixed in current source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/bundle/bundle-notes.xml:193-205",
+    "ref": { "path": "source/bundle/bundle-notes.xml", "lines": "193-205" },
+    "summary": "Bundle narrative permits multiple versions of a resource in a Bundle but says a given version SHALL appear only once.",
+    "learned": "The current narrowed bdl-7 behavior is consistent with the narrative and should not become a blanket history exemption.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-31986",
+    "url": "https://jira.hl7.org/browse/FHIR-31986",
+    "snapshot_path": "contexts/FHIR-31986/jira/FHIR-31986.md",
+    "ref": { "jira_key": "FHIR-31986" },
+    "summary": "Published/Not Persuasive with Modification issue clarifying that bdl-7 should filter to entries where resource is present and compare fullUrl plus meta.versionId.",
+    "learned": "This later final decision narrows the original history exception and is reflected in current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-39476",
+    "url": "https://jira.hl7.org/browse/FHIR-39476",
+    "snapshot_path": "contexts/FHIR-39476/jira/FHIR-39476.md",
+    "ref": { "jira_key": "FHIR-39476" },
+    "summary": "Published/Persuasive issue directing bdl-7 to handle resources with no meta.versionId using an empty-string fallback.",
+    "learned": "The current iif(..., '') expression is an intentional later correction and should be preserved.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#conformance > Bundle's bdl-7 and type=history; #implementers > bdl-8 when no fullUrl",
+    "url": "https://chat.fhir.org/#narrow/stream/conformance/topic/Bundle's%20bdl-7%20and%20type%3Dhistory",
+    "summary": "2018 threads discuss bdl-7 failures for history delete entries without resources and ask for a tracker item.",
+    "learned": "The community discussion confirms the seed's problem statement and does not add a conflicting broader requirement.",
+    "supports": ["issue_request", "additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Verification and negative conflict checks",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-18284' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run confluence:search refs jira FHIR-18284; bun run confluence:search fts 'FHIR 18284 history Bundle fullUrl versionId' --limit 10; xmllint --noout source/bundle/structuredefinition-Bundle.xml; git diff --check",
+    "summary": "No existing FHIR-18284 combined-branch commit or conflicting Confluence evidence was found, and current Bundle XML/whitespace checks passed.",
+    "learned": "The no-change audit is non-duplicative and supported by valid current source.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

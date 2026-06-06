@@ -1,0 +1,98 @@
+FHIR-17172: Require host segment in RESTful reference regex
+
+Issue request:
+FHIR-17172 was Published/Persuasive for STU3 and reported that http://Patient/1 was invalid but passed the RESTful reference regex on the References page. The accepted resolution said the regex should be fixed because a URL with a scheme must have a host, while http://example.com////////Patient/1 remains valid.
+
+Initial application:
+The issue was initially applied in svn revision 14232, represented in git by 075cd55564e68888a3325e4c90f920d74aa5fe53, which changed the optional absolute URL prefix from zero-or-more slash-delimited segments to one-or-more segments. The same-day FHIR-14079 follow-up added '-' to the host/path character class. That application rejected http://Patient/1 in a full-string match, but the current source still allowed an empty first segment after the scheme, such as http:///Patient/1, because each repeated segment could be empty.
+
+Additional context:
+source/references.html is the active References page source and is linked by current Bundle source when explaining URLs that look like RESTful server URLs. Later Published issue FHIR-34405 only appended an optional fragment suffix and added cautionary prose; it did not change the scheme/host rule. Searches for FHIR-17172 and the reported URL/regex terms in Zulip and Confluence found no conflicting community decision.
+
+AutoFHIR reconciliation:
+This commit changes the optional absolute RESTful prefix so the first segment after http:// or https:// must contain at least one allowed character before its slash, while subsequent segments may still be empty. This preserves the accepted repeated-slash example after a host and prevents the regex from accepting an empty-host absolute URL.
+
+Recommendation:
+Keep this source fix. It completes the host requirement from FHIR-17172 without broadening the regex or revisiting separate historical questions about anchoring and other URL grammar details.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17172
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-14079: same-change-family - Same References-page regex family; its applied hyphen allowance is preserved, but this commit does not decide its separate anchoring wording.
+FHIR-34405: later-change - Later Published issue appended the optional fragment suffix to this same regex and did not alter the scheme/host interpretation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17172: Published/Persuasive STU3 issue requested fixing the REST URL regex because http://Patient/1 is invalid and a scheme requires a host, while repeated slashes after a host are valid. Learned: the current regex must require a non-empty host segment when a scheme is present.
+- E2 Source source/references.html:152: the active References page source carries the RESTful-reference regex. Learned: this is the authoritative current source location for the fix.
+- E3 Git 075cd55564e68888a3325e4c90f920d74aa5fe53 and c51bffe9cbffd3b25097ebd472f9162262027e5d: the original application changed zero-or-more URL segments to one-or-more and then added '-' to the character class. Learned: FHIR-17172 was applied, but the segment pattern still permitted an empty first segment.
+- E4 Jira FHIR-34405 / Git 9af4169b9d53037cd7d966019b5ed326d6dc1ac2: the later Published regex change added an optional fragment suffix and cautionary prose. Learned: later history does not supersede the FHIR-17172 host requirement.
+- E5 Command search: quoted Zulip and Confluence searches for FHIR-17172 and http://Patient/1 regex terms returned no results. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+- E6 Verification command: CRLF-aware git diff check passed, and a local full-match regex check accepts Patient/1, http://example.com/Patient/1, http://example.com////////Patient/1, and rejects http://Patient/1 and http:///Patient/1. Learned: the edited regex preserves the accepted case and fixes the empty-host case.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17172",
+    "url": "https://jira.hl7.org/browse/FHIR-17172",
+    "snapshot_path": "contexts/FHIR-17172/jira/FHIR-17172.md",
+    "ref": { "jira_key": "FHIR-17172" },
+    "summary": "Published/Persuasive STU3 issue reported that http://Patient/1 was invalid but passed the REST URL regex, and resolved that a scheme requires a host while repeated slashes after a host are valid.",
+    "learned": "The regex should require a non-empty host segment whenever an http or https scheme is present.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/references.html:152",
+    "ref": { "path": "source/references.html", "line": 152 },
+    "summary": "The active References page source contains the RESTful-reference regex shown to implementers.",
+    "learned": "This is the current build-scope source location that needed the regex correction.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "075cd55564e68888a3325e4c90f920d74aa5fe53; c51bffe9cbffd3b25097ebd472f9162262027e5d",
+    "ref": { "commits": "075cd55564e68888a3325e4c90f920d74aa5fe53,c51bffe9cbffd3b25097ebd472f9162262027e5d" },
+    "summary": "The original application changed the URL-prefix segment repetition from * to +, and the same-day follow-up added '-' to the character class.",
+    "learned": "The exact reported http://Patient/1 case was addressed, but the current repeated empty segment form still allowed an empty authority such as http:///Patient/1.",
+    "supports": ["initial_application", "source_change_reason"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-34405 and git 9af4169b9d53037cd7d966019b5ed326d6dc1ac2",
+    "url": "https://jira.hl7.org/browse/FHIR-34405",
+    "ref": { "jira_key": "FHIR-34405", "commit": "9af4169b9d53037cd7d966019b5ed326d6dc1ac2" },
+    "summary": "Later Published issue FHIR-34405 appended an optional fragment suffix to the same regex and added cautionary prose.",
+    "learned": "Later history did not supersede or loosen FHIR-17172's requirement for a host when a scheme is present.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-17172 and reported regex terms",
+    "command": "bun run zulip:search fts '\"FHIR-17172\"' --limit 10; bun run zulip:search fts '\"http://Patient/1\" regex' --limit 10; bun run confluence:search fts '\"FHIR-17172\"' --limit 10; bun run confluence:search fts '\"http://Patient/1\" regex' --limit 10",
+    "query": "FHIR-17172; http://Patient/1 regex",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "CRLF-aware diff check and local regex behavior check",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; python3 regex full-match examples",
+    "summary": "The whitespace check passed, and the edited regex accepts Patient/1 plus valid hosted absolute URLs while rejecting http://Patient/1 and http:///Patient/1.",
+    "learned": "The source change preserves the accepted repeated-slash case and fixes the empty-host behavior targeted by the issue.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

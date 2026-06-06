@@ -1,0 +1,86 @@
+FHIR-13058: Audit Questionnaire ResourceType binding rendering
+
+Issue request:
+FHIR-13058 was a Published/Persuasive FHIR-core correction for DSTU2. It reported that the Binding table for Questionnaire.subjectType rendered two binding links, one for the value set URL and one for the ResourceType name, and requested that only the named binding link be shown.
+
+Initial application:
+The Jira issue was auto-approved and Grahame Grieve commented on 2017-03-24 that it was already fixed. No current git commit mentioning FHIR-13058 was found in the FHIR source history, so the original application appears to have been a pre-existing renderer/tooling fix or an unkeyed historical source/build change rather than a current source defect.
+
+Additional context:
+Questionnaire is an active current-build resource in source/fhir.ini. The current Questionnaire.subjectType StructureDefinition source carries a single required binding with bindingName ResourceType and valueSet http://hl7.org/fhir/ValueSet/resource-types. Current public CI output renders the binding table row as a single row for Questionnaire.subjectType / ResourceType / Required / Concrete FHIR Resource Types. A 2023 Zulip thread about Questionnaire.subjectType confirmed that ResourceType is the intended bound code enumeration for schema/rendering purposes and did not identify the duplicate-link rendering problem as current.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The authoritative current source already has the intended binding metadata, and the current generated binding table no longer shows the duplicate URL-plus-name link pattern described by the issue.
+
+Recommendation:
+Keep this no-change audit commit. No FHIR source edit is needed for FHIR-13058 unless a future renderer regression again emits duplicate binding links for bindingName/valueSet pairs.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13058
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13058: Published/Persuasive correction saying the Questionnaire.subjectType binding table showed both URL and ResourceType name links, with a 2017 comment that it was already fixed. Learned: the final issue request was a non-substantive rendering correction rather than a model change.
+- E2 Source source/fhir.ini:219: Questionnaire is listed as an active resource. Learned: source/questionnaire/structuredefinition-Questionnaire.xml is in current build scope.
+- E3 Source source/questionnaire/structuredefinition-Questionnaire.xml:366-388: Questionnaire.subjectType has bindingName ResourceType and a single required valueSet canonical http://hl7.org/fhir/ValueSet/resource-types. Learned: the current source carries the intended binding metadata and does not need a conformance edit.
+- E4 Published-spec https://build.fhir.org/questionnaire.profile.json and https://build.fhir.org/questionnaire.html: the CI profile exposes one subjectType binding and the binding row renders once as Questionnaire.subjectType / ResourceType / Required / Concrete FHIR Resource Types. Learned: the duplicate URL-plus-name rendering defect is not present on the current public build surface.
+- E5 Git/source/community searches: no FHIR-13058 source commit was found; Zulip exact-key search and Confluence refs found no issue-specific discussion; the only subjectType Zulip hit confirmed ResourceType-as-bound-code behavior. Learned: no later or conflicting evidence requires a source change.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13058",
+    "url": "https://jira.hl7.org/browse/FHIR-13058",
+    "snapshot_path": "contexts/FHIR-13058/jira/FHIR-13058.md",
+    "ref": { "jira_key": "FHIR-13058" },
+    "summary": "Published/Persuasive DSTU2 correction reporting duplicate URL and ResourceType name links in the Questionnaire.subjectType binding table, with a 2017 comment that it was already fixed.",
+    "learned": "The final request was a non-substantive rendering correction, not a requested change to Questionnaire.subjectType semantics.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:219",
+    "ref": { "path": "source/fhir.ini", "line": 219 },
+    "summary": "Questionnaire is listed as an active resource in the current build configuration.",
+    "learned": "The Questionnaire StructureDefinition source is in current FHIR build scope.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/questionnaire/structuredefinition-Questionnaire.xml:366-388",
+    "ref": { "path": "source/questionnaire/structuredefinition-Questionnaire.xml", "line": 366 },
+    "summary": "Questionnaire.subjectType has bindingName ResourceType, required strength, and valueSet http://hl7.org/fhir/ValueSet/resource-types.",
+    "learned": "The authoritative source already contains the intended single binding metadata for the ResourceType binding.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "build.fhir.org Questionnaire profile and page",
+    "url": "https://build.fhir.org/questionnaire.html",
+    "command": "curl -fsSL https://build.fhir.org/questionnaire.profile.json | jq -r '.snapshot.element[] | select(.id==\"Questionnaire.subjectType\") | {id,path,binding}'; curl -fsSL https://build.fhir.org/questionnaire.html -o /tmp/fhir-questionnaire.html; python row extractor",
+    "summary": "The CI profile exposes one Questionnaire.subjectType binding, and the rendered binding row appears once as Questionnaire.subjectType / ResourceType / Required / Concrete FHIR Resource Types.",
+    "learned": "The duplicate URL-plus-name binding link problem described by FHIR-13058 is not present in the current public build output.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Git, Zulip, and Confluence searches for FHIR-13058 and Questionnaire.subjectType ResourceType binding",
+    "command": "git log --all --grep='FHIR-13058'; bun run zulip:search fts '\"FHIR-13058\"' --limit 10; bun run confluence:search refs jira FHIR-13058; bun run zulip:search snapshot implementers 'R5 questionnaire.xsd error?'",
+    "query": "FHIR-13058 Questionnaire.subjectType ResourceType binding",
+    "result_count": 1,
+    "summary": "No FHIR-13058 source commit or issue-specific Zulip/Confluence discussion was found; the one related Zulip thread confirmed ResourceType is the expected constrained code binding for Questionnaire.subjectType.",
+    "learned": "No discovered history or community evidence conflicts with the no-change conclusion.",
+    "supports": ["initial_application", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

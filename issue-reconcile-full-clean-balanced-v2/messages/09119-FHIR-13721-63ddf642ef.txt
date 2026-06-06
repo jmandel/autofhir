@@ -1,0 +1,100 @@
+FHIR-13721: Audit sdf-9 root-path invariant
+
+Issue request:
+Published/Persuasive STU3 issue FHIR-13721 reported that sdf-9 used children().element.first(), which can select the first differential element rather than the root when the root element is omitted, and requested selecting ElementDefinition entries whose path has no dot.
+
+Initial application:
+The Jira application note says the fix was made in svn revision 12783. The available Git history has no FHIR-13721-tagged commit, but the imported StructureDefinition source already contains the requested path.contains('.').not() root selector by commit 129c9fa6f5, and source/fhir.ini actively builds StructureDefinition from source/structuredefinition/structuredefinition-StructureDefinition.xml.
+
+Additional context:
+Later issue FHIR-48326 was Applied/Persuasive for R6 and deliberately removed label and code from sdf-9, leaving only requirements because StructureDefinition.purpose overlaps with root ElementDefinition.requirements. Its implementation commit 7775de0901 retained the FHIR-13721 root-path selector while narrowing the invariant text and expression.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change. Current active source already evaluates sdf-9 against children().element.where(path.contains('.').not()) and therefore no longer has the seed issue's first-element FHIRPath defect.
+
+Recommendation:
+Keep this no-change audit as-is for FHIR-13721. Do not reintroduce label/code checks while FHIR-48326 remains the later applied decision; any future change to sdf-9 scope should be handled under a new or later tracker.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13721
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-48326: later-change - narrowed sdf-9 to requirements only while preserving the FHIR-13721 root selector.
+FHIR-15803: background - corrected the same invariant's wording after the seed was applied.
+FHIR-8839: background - earlier sdf-9 interpretation-table issue confirms the invariant has a longer change history but does not change the seed decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13721: Published/Persuasive STU3 correction for invalid sdf-9 FHIRPath, with svn revision 12783 application note. Learned: the final request was to replace first-element selection with root path selection.
+- E2 Source source/structuredefinition/structuredefinition-StructureDefinition.xml:106-110 and source/fhir.ini:94: active StructureDefinition source contains sdf-9 with children().element.where(path.contains('.').not()).requirements.empty(). Learned: the current build source has the requested root selector.
+- E3 Git 129c9fa6f5 and 7775de0901: available history first shows the corrected where(path.contains('.').not()) expression, and later FHIR-48326 narrows sdf-9 while retaining it. Learned: current differences from the seed's three-field wording are explained by later applied source history.
+- E4 Jira FHIR-48326 and Zulip #implementers > Why no root label/code/requirements?: Applied/Persuasive R6 decision and discussion concluded sdf-9 should retain requirements only. Learned: no source edit should restore label/code checks for this seed.
+- E5 Community search: quoted FHIR-13721 search found no substantive Zulip or Confluence discussion beyond a tracker bot, while quoted sdf-9 search found the later FHIR-48326 thread. Learned: no discovered community evidence conflicts with the no-change conclusion.
+- E6 Verification commands: git log on the combined branch found no prior Issue-Reconcile-Key for FHIR-13721; rg/view confirmed current sdf-9 source and active fhir.ini entry. Learned: an empty audit commit is necessary and sufficient for this reconciliation.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13721",
+    "url": "https://jira.hl7.org/browse/FHIR-13721",
+    "snapshot_path": "contexts/FHIR-13721/jira/FHIR-13721.md",
+    "ref": { "jira_key": "FHIR-13721" },
+    "summary": "Published/Persuasive STU3 issue requiring sdf-9 to select root elements by path rather than children().element.first().",
+    "learned": "This establishes the seed's final requested correction and the svn revision 12783 application note.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/structuredefinition/structuredefinition-StructureDefinition.xml:106-110; source/fhir.ini:94",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml", "start_line": 106, "end_line": 110 },
+    "summary": "The active StructureDefinition source defines sdf-9 with children().element.where(path.contains('.').not()).requirements.empty().",
+    "learned": "The current build source has the FHIR-13721 root selector and no longer uses first().",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "129c9fa6f5; 7775de0901",
+    "ref": { "commits": "129c9fa6f5,7775de0901" },
+    "summary": "Available Git history shows the corrected where(path.contains('.').not()) expression, and FHIR-48326 later narrowed sdf-9 to requirements only while retaining that selector.",
+    "learned": "The current requirements-only expression is compatible with the seed because the root-selection defect remains fixed.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-48326",
+    "url": "https://jira.hl7.org/browse/FHIR-48326",
+    "snapshot_path": "contexts/FHIR-48326/jira/FHIR-48326.md",
+    "ref": { "jira_key": "FHIR-48326" },
+    "summary": "Applied/Persuasive R6 issue removing label and code from sdf-9 and retaining only requirements.",
+    "learned": "Later final intent explains why current sdf-9 no longer has the seed issue's three separate label/code/requirements checks.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-13721 and sdf-9",
+    "command": "bun run zulip:search fts '\"FHIR-13721\"' --limit 10; bun run zulip:search fts '\"sdf-9\" StructureDefinition' --limit 10; bun run confluence:search refs jira FHIR-13721; bun run confluence:search fts '\"FHIR-13721\" \"sdf-9\" StructureDefinition' --limit 10",
+    "query": "FHIR-13721; sdf-9 StructureDefinition",
+    "result_count": 2,
+    "summary": "Direct FHIR-13721 searches found no substantive community discussion; the sdf-9 search found the later implementers thread that led to FHIR-48326.",
+    "learned": "No discovered community record changes the Jira/source conclusion for the seed.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Combined branch idempotency and current source checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13721' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n 'sdf-9|path.contains' source/structuredefinition/structuredefinition-StructureDefinition.xml source/fhir.ini",
+    "summary": "No existing combined-branch FHIR-13721 audit commit was found, and the active source contains the corrected sdf-9 expression.",
+    "learned": "Publishing one empty no-change audit commit is required and sufficient.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

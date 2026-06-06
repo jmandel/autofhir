@@ -1,0 +1,121 @@
+FHIR-5643: Audit body-site choice reconciliation
+
+Issue request:
+FHIR-5643 was a Published Patient Care change request with resolution Persuasive. It followed FHIR-3600 and asked to change Procedure.bodySite and Condition.location to a bodySite choice of CodeableConcept or Reference(BodySite).
+
+Initial application:
+The Jira comments record svn 4981. The git-svn import is f734eb20e9cea5803c519475780be919724f148f, whose subject cites {#5643}; it changed Condition.location.code to Condition.location.site[x] with type CodeableConcept | Reference(BodySite), removed the old location.detail row, and updated the Condition location search path. Procedure already had Procedure.bodySite.site[x] CodeableConcept|Reference(BodySite) before and after that commit, while the same commit's Procedure change was Procedure.used.
+
+Additional context:
+FHIR-3600 established the broader cross-resource body-site harmonization intent. Later source history moved Condition away from Condition.location to Condition.bodySite, renamed BodySite to BodyStructure, and added separate Condition.bodyStructure and Procedure.bodyStructure Reference(BodyStructure) elements. The later Applied Patient Care issues FHIR-39630 and FHIR-39288 explicitly chose the separate bodyStructure element pattern rather than a choice/CodeableReference in order to preserve compatibility. The sibling follow-up issues FHIR-5644 and FHIR-5645, plus the Procedure target-site clarification FHIR-7630, are already represented on the combined branch.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Condition and Procedure are active in source/fhir.ini, and the current authoritative StructureDefinitions no longer contain Condition.location. They expose bodySite as CodeableConcept and the BodyStructure reference path as bodyStructure with mutual-exclusion invariants, which is the current compatible form of the body-site choice requested by the DSTU1 issue family after later decisions.
+
+Recommendation:
+Keep this audit commit as-is. Do not convert these elements to CodeableReference or a literal choice unless a later triaged issue is resolved to make that breaking model change.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5643
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-3600: supporting-decision - parent harmonization issue that established the BodySite resource/reference direction for existing body-site elements.
+FHIR-39630: later-change - Applied Condition decision added Condition.bodyStructure Reference(BodyStructure) as a compatible alternative to coded Condition.bodySite.
+FHIR-39288: later-change - Applied Procedure decision added Procedure.bodyStructure Reference(BodyStructure) as a compatible alternative to coded Procedure.bodySite.
+FHIR-7630: same-change-family - Procedure target body-site wording has already been reconciled on the combined branch.
+FHIR-5644: same-change-family - MedicationAdministration sibling follow-up is already represented on the combined branch.
+FHIR-5645: same-change-family - ImagingStudy sibling follow-up is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5643: Published/Persuasive PC issue asked to change Procedure.bodySite and Condition.location to a CodeableConcept-or-BodySite-reference bodySite choice. Learned: this establishes the seed request and final workflow state.
+- E2 Jira FHIR-3600: Published/Persuasive with Modification parent issue approved a consistent model where existing resources could use site code and site reference pointing to a new BodySite resource. Learned: FHIR-5643 was one follow-up in a broader harmonization family.
+- E3 Git f734eb20e9cea5803c519475780be919724f148f: svn 4981 commit cited {#5643} and changed Condition.location.code to Condition.location.site[x] CodeableConcept | Reference(BodySite). Learned: the historical seed application was made in source history.
+- E4 Source source/fhir.ini:1119,1214,1345,1418 and source/condition/structuredefinition-Condition.xml:348-398; source/procedure/structuredefinition-Procedure.xml:768-817: Condition and Procedure are active/approved, and current source has coded bodySite plus bodyStructure Reference(BodyStructure) with no Condition.location. Learned: the current authoritative build source already carries the modern compatible model.
+- E5 Jira FHIR-39630 and Git 93bb6d5c9aa5c7d4db3b9cead0ca76f8d91f24c6: Applied Condition decision added a separate bodyStructure reference and removed the old bodySite extension comment. Learned: later final guidance supersedes a literal choice representation for Condition.
+- E6 Jira FHIR-39288 and Git e333c37d3548da36080722466fca490beefd3a42: Applied Procedure decision added a separate bodyStructure reference and removed the old targetBodyStructure extension guidance. Learned: later final guidance supersedes a literal choice representation for Procedure.
+- E7 Community/neighbor search: Confluence refs for FHIR-39630/FHIR-39288 were checked and targeted Zulip searches for FHIR-5643, FHIR-39630, FHIR-39288, Condition.bodySite, Procedure.bodySite, and CodeableReference found no conflicting discussion. Learned: no discovered community record changes the Jira/source/history conclusion.
+- E8 Combined-branch idempotency checks: FHIR-5643 was absent, while FHIR-5644, FHIR-5645, and FHIR-7630 already had Issue-Reconcile-Key commits. Learned: only the seed needed a new audit commit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5643",
+    "url": "https://jira.hl7.org/browse/FHIR-5643",
+    "snapshot_path": "contexts/FHIR-5643/jira/FHIR-5643.md",
+    "ref": { "jira_key": "FHIR-5643" },
+    "summary": "Published/Persuasive Patient Care issue requesting Procedure.bodySite and Condition.location to become bodySite choices of CodeableConcept or Reference(BodySite).",
+    "learned": "This establishes the seed request and final workflow state.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-3600",
+    "url": "https://jira.hl7.org/browse/FHIR-3600",
+    "ref": { "jira_key": "FHIR-3600" },
+    "summary": "Published/Persuasive with Modification parent issue approving a consistent body-site model with codeable concepts and references to a BodySite resource.",
+    "learned": "FHIR-5643 was a Patient Care follow-up within this harmonization family.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "f734eb20e9cea5803c519475780be919724f148f",
+    "ref": { "commit": "f734eb20e9cea5803c519475780be919724f148f" },
+    "summary": "git-svn svn 4981 commit cited {#5643} and changed Condition.location.code to Condition.location.site[x] CodeableConcept | Reference(BodySite).",
+    "learned": "The historical seed application was made in the source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:1119,1214,1345,1418; source/condition/structuredefinition-Condition.xml:348-398; source/procedure/structuredefinition-Procedure.xml:768-817",
+    "summary": "Condition and Procedure are active/approved, and current definitions use bodySite CodeableConcept plus bodyStructure Reference(BodyStructure) rather than obsolete Condition.location.",
+    "learned": "The current build source already contains the modern compatible representation of the requested model.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-39630",
+    "url": "https://jira.hl7.org/browse/FHIR-39630",
+    "ref": { "jira_key": "FHIR-39630" },
+    "summary": "Applied Condition issue added Condition.bodyStructure Reference(BodyStructure) as a separate compatible element and explicitly discussed why a choice/CodeableReference was not preferred.",
+    "learned": "Later final guidance supersedes a literal choice representation for Condition.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-39288",
+    "url": "https://jira.hl7.org/browse/FHIR-39288",
+    "ref": { "jira_key": "FHIR-39288" },
+    "summary": "Applied Procedure issue added Procedure.bodyStructure Reference(BodyStructure) as a separate compatible element.",
+    "learned": "Later final guidance supersedes a literal choice representation for Procedure.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and neighborhood searches for FHIR-5643 bodySite Condition Procedure and later BodyStructure issues",
+    "command": "bun run confluence:search refs jira FHIR-39630; bun run confluence:search refs jira FHIR-39288; bun run zulip:search fts '\"FHIR-5643\" bodySite Condition Procedure' --limit 10; bun run zulip:search fts '\"FHIR-39630\" \"Condition.bodySite\" BodyStructure' --limit 10; bun run zulip:search fts '\"FHIR-39288\" \"Procedure.bodySite\" BodyStructure' --limit 10",
+    "summary": "Confluence showed Patient Care meeting references for the later issues, and targeted Zulip searches found no conflicting discussion.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Combined branch Issue-Reconcile-Key checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-5643' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-5644' --format='%H %s' -n 3 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-5645' --format='%H %s' -n 3 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-7630' --format='%H %s' -n 3 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "FHIR-5643 was not already represented, while sibling/related FHIR-5644, FHIR-5645, and FHIR-7630 already had audit/fix commits.",
+    "learned": "Only FHIR-5643 needed a new audit commit from this worker.",
+    "supports": ["idempotency", "scope"]
+  }
+]
+</evidence-manifest>

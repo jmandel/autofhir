@@ -1,0 +1,128 @@
+FHIR-31986: Fix Bundle bdl-7 uniqueness invariant
+
+Issue request:
+FHIR-31986 was a Published/Not Persuasive with Modification FHIR-I change request raised against R4 and applied for R5. The reporter asked how search include results could legitimately contain the same resource more than once when Bundle fullUrl uniqueness appeared to forbid it. The final resolution kept the rule that a given resource version appears only once, but directed bdl-7 to be clearer: entries with the same fullUrl where a resource is present must have different meta.versionId values.
+
+Initial application:
+Git history contains commit d1672bb7c204f7fd6aa18a944692982e02fba3e7, whose subject mentions FHIR-31986, but that commit did not change bdl-7. The current Bundle notes already say that a given version of a resource SHALL only appear once and multiple versions can appear, but the authoritative bdl-7 constraint still used the older whole-history-bundle exception and concatenated fullUrl directly with versionId.
+
+Additional context:
+Bundle is an active current-build resource in source/fhir.ini, so source/bundle/structuredefinition-Bundle.xml is in scope. Earlier FHIR-18284 added the broad history exception because deleted history entries lack resource bodies; FHIR-31986 later narrowed that rationale to entries where resource is absent, including history deletes and batch HEAD cases. Later FHIR-39476 corrected missing meta.versionId handling by adding the iif(..., '') fallback, and that issue is already represented on the combined branch, so this reconciliation preserves that later behavior while applying the still-missing FHIR-31986 scope and delimiter fix.
+
+AutoFHIR reconciliation:
+This commit updates bdl-7 in source/bundle/structuredefinition-Bundle.xml. The human text now describes entries with the same fullUrl where resource is present, and the FHIRPath now filters to entries with both fullUrl and resource, separates fullUrl from meta.versionId with '|', and keeps the later empty-versionId fallback.
+
+Recommendation:
+Keep this commit as-is. It completes the published FHIR-31986 bdl-7 resolution without reopening the already-audited FHIR-39476 correction; future changes to broader Bundle uniqueness semantics should be handled through a new work-group decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-31986
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-18284: same-change-family - earlier Published issue added the broad history-bundle exception for deleted entries without resource bodies; FHIR-31986 narrows that rationale to entries where resource is present.
+FHIR-39476: later-change - later Published issue fixed absent meta.versionId handling in bdl-7; this commit preserves its iif(..., '') fallback and does not duplicate its existing AutoFHIR audit commit.
+FHIR-15649: same-change-family - earlier Published bdl-7 correction added the fullUrl.exists() filter, useful as background for the invariant history.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-31986: Published/Not Persuasive with Modification, voted 8-0-0, directed bdl-7 text and expression to consider entries with the same fullUrl where resource is present and compare fullUrl plus meta.versionId. Learned: this is the final WG request and establishes the required source change.
+- E2 Source source/bundle/structuredefinition-Bundle.xml:129-132: bdl-7 is the authoritative Bundle invariant and previously still used the whole-history exception plus direct fullUrl/version concatenation. Learned: the current source was missing the FHIR-31986 resolution.
+- E3 Source source/fhir.ini:245 and source/fhir.ini:935: Bundle is listed as an active resource and assigned to the infrastructure work group. Learned: the edited StructureDefinition is in current build scope.
+- E4 Source source/bundle/bundle-notes.xml:193-205: the Bundle uniqueness narrative says a given version of a resource SHALL only appear once, while multiple versions may appear. Learned: the bdl-7 fix aligns the machine-readable invariant with existing narrative semantics.
+- E5 Git d1672bb7c204f7fd6aa18a944692982e02fba3e7: commit subject mentions FHIR-31986 but does not modify bdl-7. Learned: prior application was incomplete for the resolved invariant change.
+- E6 Git 4a5d9b44614a286ad703b525a850b8464f4978b1 and combined commit 454674479a00b1e6a0da756b66aedafb1a932a48: FHIR-39476 changed bdl-7 to use iif(..., '') and was already audited on the combined branch. Learned: this fix must preserve the later absent-versionId correction and not republish FHIR-39476.
+- E7 Zulip #conformance > Include existing resource in bundle: the originating thread shows the include/search duplicate-resource question and the request to raise a tracker item. Learned: community context matches the Jira problem and does not broaden the required change beyond bdl-7 clarification.
+- E8 Confluence FHIR Infrastructure Minutes WGM 202109 page 77365771: minutes record FHIR-31986 as Persuasive with Mod, note that current bdl-7 should be made clearer about type=history, and show an 8-0-0 motion. Learned: meeting evidence corroborates the Jira disposition and narrowed history rationale.
+- E9 Verification command/query: XML parsing, whitespace diff check, Jira/Zulip/Confluence searches, git history inspection, and combined-branch trailer checks completed. Learned: the changed source is syntactically valid, no duplicate FHIR-31986 commit existed, and no later conflicting final decision was found.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-31986",
+    "url": "https://jira.hl7.org/browse/FHIR-31986",
+    "snapshot_path": "contexts/FHIR-31986/jira/FHIR-31986.md",
+    "ref": { "jira_key": "FHIR-31986" },
+    "summary": "Published/Not Persuasive with Modification FHIR-I issue directing bdl-7 to compare entries with the same fullUrl where resource is present by meta.versionId.",
+    "learned": "This establishes the final WG request and the required Bundle invariant semantics.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/bundle/structuredefinition-Bundle.xml:129-132",
+    "ref": { "path": "source/bundle/structuredefinition-Bundle.xml", "lines": "129-132" },
+    "summary": "The bdl-7 constraint is the authoritative machine-readable Bundle uniqueness invariant and still used the old whole-history exception before this commit.",
+    "learned": "The current source needed a bdl-7 change to implement FHIR-31986.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:245 and source/fhir.ini:935",
+    "ref": { "path": "source/fhir.ini", "lines": "245,935" },
+    "summary": "Bundle is listed as an active resource and assigned to the infrastructure work group.",
+    "learned": "The edited Bundle StructureDefinition is in current build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/bundle/bundle-notes.xml:193-205",
+    "ref": { "path": "source/bundle/bundle-notes.xml", "lines": "193-205" },
+    "summary": "The Bundle notes say a given resource version SHALL only appear once, while multiple versions may appear in a Bundle.",
+    "learned": "The source narrative supports aligning bdl-7 to compare fullUrl plus versionId for resource-bearing entries.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "d1672bb7c204f7fd6aa18a944692982e02fba3e7",
+    "ref": { "commit": "d1672bb7c204f7fd6aa18a944692982e02fba3e7" },
+    "summary": "The explicit FHIR-31986 source commit subject mentions the issue but its patch does not modify bdl-7.",
+    "learned": "The resolved invariant change was not fully applied before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "4a5d9b44614a286ad703b525a850b8464f4978b1 and 454674479a00b1e6a0da756b66aedafb1a932a48",
+    "ref": { "commit": "4a5d9b44614a286ad703b525a850b8464f4978b1", "audit_commit": "454674479a00b1e6a0da756b66aedafb1a932a48", "jira_key": "FHIR-39476" },
+    "summary": "FHIR-39476 later changed bdl-7 to use an iif(..., '') fallback for absent meta.versionId and already has a combined-branch AutoFHIR audit.",
+    "learned": "FHIR-31986 should be fixed without duplicating FHIR-39476 or losing its later correction.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#conformance > Include existing resource in bundle",
+    "url": "https://chat.fhir.org/#narrow/stream/conformance/topic/Include%20existing%20resource%20in%20bundle",
+    "ref": { "stream": "conformance", "topic": "Include existing resource in bundle" },
+    "summary": "The thread shows the original include/search duplicate-resource question and Lloyd McKenzie asking for a tracker item.",
+    "learned": "Community context confirms the Jira origin and does not change the bdl-7-focused resolution.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes WGM 202109 page 77365771",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/77365771/FHIR+Infrastructure+Minutes+WGM+202109",
+    "ref": { "confluence_page_id": 77365771 },
+    "summary": "Minutes record FHIR-31986 as Persuasive with Mod, say bdl-7 should be made clearer about type=history, and show an 8-0-0 motion.",
+    "learned": "Meeting evidence corroborates the Jira vote and the intended narrowing of the history exception.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Reconciliation verification commands",
+    "command": "git log --grep='Issue-Reconcile-Key: FHIR-31986' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git show d1672bb7c2; git show 4a5d9b4461; xmllint --noout source/bundle/structuredefinition-Bundle.xml; git diff --check; bun run jira:search fts '\"bdl-7\" \"fullUrl\" \"versionId\"'; bun run zulip:search snapshot conformance 'Include existing resource in bundle'; bun run confluence:search refs jira FHIR-31986",
+    "summary": "No prior FHIR-31986 audit commit existed, source history and related searches were checked, and the edited XML passed parsing and whitespace checks.",
+    "learned": "The source-changing commit is non-duplicative and implements the final issue request without a discovered conflicting later decision.",
+    "supports": ["absence_of_conflict", "reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

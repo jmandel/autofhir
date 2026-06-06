@@ -1,0 +1,92 @@
+FHIR-12382: Audit extension value/children validation
+
+Issue request:
+FHIR-12382 was a Published/Persuasive FHIR-core Encounter issue raised against DSTU2. It reported that the encounter-relatedCondition extension definition showed both a root valueReference and child extensions, which should not be allowed, and asked for automated validation to detect that pattern.
+
+Initial application:
+The Jira comments cite svn revision 11399. In git history, the directly matching application is 035362eee26ecc29f555fa60b2e02191aedcb77e, "#12382 - validate extensions", which added ExtensionDefinitionValidator and invoked it from SpreadsheetParser when extension definitions are generated. That validator failed extension definitions that had both a root value and sub-extensions, and otherwise set Extension.extension max to 0 for simple extensions.
+
+Additional context:
+The historical DSTU2 encounter-relatedCondition definition still exists only under tools/history/release2, where it demonstrates the original problem by combining child extension slices with a root Extension.valueReference. The current build source does not define encounter-relatedCondition in source/ or in the FHIR Extension Pack checkout, and source/fhir.ini has no release2/tools-history references. The old source/release2 conformance artifacts were removed from the active core build by 5c0494aacfd0b8bd52bc72c587aa89d0a64246f8. Current authoritative source states the general rule both in Extension's invariant and in extensibility narrative, and a current source scan found no active core or extension-pack extension StructureDefinitions with both a non-zero root value and non-zero child extension slices.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The applied issue is already reflected in the current specification rule, the current active extension definitions satisfy the rule, and the only encountered old violation is a historical DSTU2 snapshot outside the current build source.
+
+Recommendation:
+Keep this audit commit as-is. No current core source change is needed for FHIR-12382; do not edit the historical tools/history snapshot unless a separate human-reviewed task decides those archived artifacts are in current maintenance scope.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12382
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12382: Published/Persuasive issue reported encounter-relatedCondition had both valueReference and child extensions and asked for validation. Learned: this establishes the final request being audited.
+- E2 Git 035362eee26e: #12382 - validate extensions added ExtensionDefinitionValidator and wired it into SpreadsheetParser. Learned: the issue was historically applied as build/tooling validation rather than a current source wording change.
+- E3 Source source/datatypes/extension.xml:3341 and source/extensibility.html:57,70: Extension invariant and narrative say an extension has either value[x] or sub-extensions, not both. Learned: the current authoritative source carries the rule.
+- E4 Source tools/history/release2/extension-definitions.xml:49595 and :49885 plus source/fhir.ini: no release2/tools-history references. Learned: the original invalid DSTU2 artifact is present only as historical data outside current build scope.
+- E5 Command current extension-definition scan: zero active core or extension-pack StructureDefinitions had both non-zero root value[x] and non-zero child extension slices. Learned: no current source fix is needed.
+- E6 Community search: Zulip/Confluence searches for FHIR-12382 and related terms found no relevant human discussion or conflicting decision beyond bot/commit notifications. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12382",
+    "url": "https://jira.hl7.org/browse/FHIR-12382",
+    "snapshot_path": "contexts/FHIR-12382/jira/FHIR-12382.md",
+    "ref": { "jira_key": "FHIR-12382" },
+    "summary": "Published/Persuasive Encounter issue reported that encounter-relatedCondition had both a root valueReference and child extensions and asked for validation.",
+    "learned": "This establishes the final issue request and that it was accepted/applied for DSTU2.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "035362eee26ecc29f555fa60b2e02191aedcb77e",
+    "ref": { "commit": "035362eee26ecc29f555fa60b2e02191aedcb77e" },
+    "summary": "Commit '#12382 - validate extensions' added ExtensionDefinitionValidator and invoked it from SpreadsheetParser.",
+    "learned": "The historical application was build/tooling validation for extension definitions with both root values and child extensions.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/extension.xml:3341; source/extensibility.html:57,70",
+    "summary": "The current Extension datatype invariant and extensibility narrative require either value[x] or sub-extensions, but not both.",
+    "learned": "The current active specification source expresses the intended rule.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "tools/history/release2/extension-definitions.xml:49595; source/fhir.ini",
+    "summary": "The old encounter-relatedCondition artifact remains only under tools/history/release2, while source/fhir.ini has no release2/tools-history build references.",
+    "learned": "The remaining old violation is historical evidence rather than active current-build source needing correction.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current core and extension-pack extension-definition scan",
+    "command": "python3 scan of source/**/structuredefinition-*.xml and /home/jmandel/work/fhir-extensions/**/structuredefinition-*.xml for non-zero root Extension.value[x] plus non-zero child Extension.extension slices",
+    "result_count": 0,
+    "summary": "No current core or extension-pack extension StructureDefinitions with both a non-zero root value and non-zero child extension slices were found.",
+    "learned": "There is no active source defect matching FHIR-12382 to fix now.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-12382 and related terms",
+    "command": "bun run zulip:search sql \"... content LIKE '%FHIR-12382%' OR content LIKE '%12382%' ...\"; bun run zulip:search fts 'encounter relatedCondition extension value children'; bun run confluence:search refs jira FHIR-12382; bun run confluence:search fts 'encounter relatedCondition extension value children'",
+    "summary": "No relevant human discussion or conflicting work-group evidence was found; hits were absent or bot/noise notifications.",
+    "learned": "No discovered community record changes the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

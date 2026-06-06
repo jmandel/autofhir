@@ -1,0 +1,106 @@
+FHIR-3845: Audit repeated invariant handling
+
+Issue request:
+FHIR-3845 was a Published/Persuasive DSTU1 FHIR-I change request reporting repeated invariants on profiles and asking whether a profile could define an invariant with the same id as its parent, redefine it more tightly, or whether that was illegal. The decisive Jira comment says that using the same id is an error.
+
+Initial application:
+No explicit FHIR-3845-tagged source commit was found. The active ElementDefinition source already contains the relevant invariant, eld-14, with human text "Constraints must be unique by key" and FHIRPath "constraint.select(key).isDistinct()". That invariant was already present when ElementDefinition was split into source/datatypes/elementdefinition.xml in ee49751f230a4a4b753e9aaa603eaab0743271ff and was later carried forward into the current FHIRPath form by e6b7e7387b566458f155dfb402fd78a8d04a0af1.
+
+Additional context:
+source/fhir.ini lists ElementDefinition as an active type with its own type page, so source/datatypes/elementdefinition.xml and source/elementdefinition.html are in current build scope. The ElementDefinition guidance says additional constraints can be defined but do not replace constraints from the base definition, while mappings are the separate case where same identity replacement is allowed. Later Zulip discussion confirms the current practical rule is more nuanced than global uniqueness: keys are not globally unique across an IG, duplicate keys in an inheritance path can be errors, and any future relaxation for identical expressions would need its own resolved specification decision.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. The target combined branch already carries the active constraint-key uniqueness invariant and related profiling guidance needed for FHIR-3845, and adding redundant prose here would risk overstating global key uniqueness or preempting later unresolved tooling-policy questions.
+
+Recommendation:
+Keep this audit commit as-is for FHIR-3845. If the work group wants to change or document cross-element reuse of the same constraint key, especially reuse with identical expressions, handle that as a separate issue because FHIR-3845 only supports the existing no-redefinition/error rule.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3845
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-34434: background - this later mapping issue changed same-identity replacement semantics for ElementDefinition.mapping and helps distinguish mappings from constraints, but it did not alter invariant key handling.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3845: Published/Persuasive DSTU1 issue says repeated invariants were appearing and Grahame's comment says using the same invariant id is an error. Learned: this establishes the final request being audited.
+- E2 Source source/fhir.ini:61,85,88: ElementDefinition is an active type and type page in the current build. Learned: the ElementDefinition spreadsheet and page are build-scope evidence.
+- E3 Source source/datatypes/elementdefinition.xml:4720-4723: eld-14 says constraints must be unique by key and defines constraint.select(key).isDistinct(). Learned: the active conformance source already enforces the key uniqueness rule at the ElementDefinition constraint array.
+- E4 Source source/elementdefinition.html:341: additional constraints do not replace base constraints, while same-identity mapping replacement is called out separately. Learned: current profiling guidance is consistent with not redefining inherited constraints by reusing a key.
+- E5 Git ee49751f230a and e6b7e7387b56: no FHIR-3845-tagged commit was found, but the uniqueness invariant was present when ElementDefinition was split out and later converted to FHIRPath. Learned: the current rule was carried forward through source refactors rather than needing a new edit.
+- E6 Zulip #conformance > Uniqueness of constraint keys and #IG creation > Constraint error when used in parent and child profiles: later discussion confirms keys are not globally unique, inherited duplicate keys are treated as errors, and possible identical-expression reuse is a separate future question. Learned: no later community evidence requires changing the current source for FHIR-3845.
+- E7 Command community/source search: Jira/Zulip/Confluence searches found FHIR-3845, relevant constraint-key discussion, no Confluence reference for FHIR-3845, and no resolved source-change issue superseding this rule. Learned: the audit is not contradicted by discovered related evidence.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3845",
+    "url": "https://jira.hl7.org/browse/FHIR-3845",
+    "snapshot_path": "contexts/FHIR-3845/jira/FHIR-3845.md",
+    "ref": { "jira_key": "FHIR-3845" },
+    "summary": "Published/Persuasive DSTU1 issue reporting repeated invariants on profiles and asking whether duplicate invariant ids in derived profiles are legal.",
+    "learned": "The final Jira comment establishes that reusing the same invariant id is an error.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:61,85,88",
+    "ref": { "path": "source/fhir.ini", "lines": "61,85,88" },
+    "summary": "ElementDefinition is listed as an active type and routed to the elementdefinition type page.",
+    "learned": "The ElementDefinition source files checked for the invariant rule are in current build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:4720-4723",
+    "ref": { "path": "source/datatypes/elementdefinition.xml", "lines": "4720-4723" },
+    "summary": "eld-14 states 'Constraints must be unique by key' and uses constraint.select(key).isDistinct().",
+    "learned": "The current active source already carries the invariant-key uniqueness rule requested by FHIR-3845.",
+    "supports": ["reconciliation", "source_state"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/elementdefinition.html:341",
+    "ref": { "path": "source/elementdefinition.html", "line": 341 },
+    "summary": "The profiling guidance says additional constraints can be defined but do not replace base constraints; mapping replacement is the separate same-identity exception.",
+    "learned": "The current text is consistent with treating duplicate inherited constraint ids as errors rather than redefinitions.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "ee49751f230a4a4b753e9aaa603eaab0743271ff; e6b7e7387b566458f155dfb402fd78a8d04a0af1",
+    "command": "git log --all --grep='FHIR-3845'; git log --all -S 'Constraints must be unique by key' -- source/datatypes/elementdefinition.xml; git log --all -S 'constraint.select(key).isDistinct()' -- source/datatypes/elementdefinition.xml",
+    "summary": "No FHIR-3845-tagged source commit was found; the uniqueness invariant was present in the ElementDefinition split commit and later converted to FHIRPath.",
+    "learned": "The current rule was preserved through refactors and does not require another source edit.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#conformance > Uniqueness of constraint keys; #IG creation > Constraint error when used in parent and child profiles",
+    "url": "https://chat.fhir.org/#narrow/stream/IG.20creation/topic/Constraint.20error.20when.20used.20in.20parent.20and.20child.20profiles",
+    "snapshot_path": "worker command output from bun run zulip:search snapshot",
+    "ref": { "streams": "conformance; IG creation", "topics": "Uniqueness of constraint keys; Constraint error when used in parent and child profiles" },
+    "summary": "Later discussion distinguishes local ElementDefinition uniqueness from global uniqueness and confirms duplicate inherited keys are treated as errors while possible identical-expression reuse is a separate unresolved question.",
+    "learned": "Community evidence supports avoiding a broader source edit for FHIR-3845.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and source searches for FHIR-3845 and duplicate invariant keys",
+    "command": "bun run jira:search snapshot FHIR-3845; bun run zulip:search fts 'invariant profile constraint duplicate id'; bun run confluence:search refs jira FHIR-3845; rg -n 'Constraints must be unique by key|constraint.select(key).isDistinct()' source",
+    "summary": "Searches found the Jira snapshot, relevant Zulip discussion, no Confluence reference for FHIR-3845, and the active source invariant on the target branch.",
+    "learned": "No discovered source or community evidence contradicts the no-change decision.",
+    "supports": ["confidence", "absence_of_conflict"]
+  }
+]
+</evidence-manifest>

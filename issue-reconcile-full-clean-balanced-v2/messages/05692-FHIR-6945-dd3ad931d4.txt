@@ -1,0 +1,109 @@
+FHIR-6945: Audit CarePlan activity reasons
+
+Issue request:
+FHIR-6945 is a Published/Persuasive Patient Care DSTU1 change request for FHIR-core CarePlan. It asked to change CarePlan.Activity.detail.reasonReference from 0..1 to 0..* because a single activity can have multiple reason references, such as obesity and diabetes both justifying diet modification.
+
+Initial application:
+The Jira comment cites SVN #6766. The corresponding git-svn commit d6c4981fa8fe7d58cc3e1cc393aa8cc0b6a83c54 updated source/careplan/careplan-spreadsheet.xml and includes CarePlan.activity.detail.reasonReference with cardinality 0..*. The later R4B XML import in c69d71aa213de86d55e0261339c15e4bacd509e6 preserved the active CarePlan.activity.detail.reasonReference element with max="*".
+
+Additional context:
+CarePlan is still an active resource in source/fhir.ini, but the current StructureDefinition no longer has an active CarePlan.activity.detail.reasonReference element. The old activity.detail path is mapped to CarePlan.activity.plannedActivityReference, and the legacy plannedActivityDetail subtree in source/careplan/structuredefinition-CarePlan.xml is commented out. Later Patient Care decisions, especially FHIR-26064 and FHIR-39101, renamed/refactored the activity model and then removed CarePlan.activity.plannedActivityDetail from the active resource. FHIR-28546 is a later no-change decision confirming that the inline detail reasonReference is no longer applicable in R5 and that reasons for referenced activities belong on the referenced request resources.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The original cardinality change was applied, no active current source still has a stale 0..1 CarePlan activity reasonReference, and the current absence of that active element is explained by later published Patient Care refactoring decisions rather than by a missed FHIR-6945 application.
+
+Recommendation:
+Keep this audit commit as-is. No core FHIR follow-up is needed for FHIR-6945; future concerns about reasons on activities represented through CarePlan.activity.plannedActivityReference should be handled on the referenced request resource or through a new Patient Care decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6945
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-26064: later-change - renamed CarePlan.activity.reference/detail into plannedActivityReference/plannedActivityDetail and introduced performedActivity, establishing the R5 activity-model refactor context.
+FHIR-39101: later-change - removed CarePlan.activity.plannedActivityDetail from the active CarePlan model and shifted inline activity representation to contained or referenced request resources.
+FHIR-28546: supporting-decision - later no-change decision states that CarePlan.activity.detail.reasonReference is no longer applicable in R5 and reasons belong on referenced request resources.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6945: Published/Persuasive, voted 6-0-0, requested CarePlan.Activity.detail.reasonReference cardinality 0..*. Learned: this establishes the final seed request.
+- E2 Git d6c4981fa8fe7d58cc3e1cc393aa8cc0b6a83c54: SVN #6766 CarePlan tracker commit includes CarePlan.activity.detail.reasonReference at 0..*. Learned: the Jira-cited application made the requested change.
+- E3 Git c69d71aa213de86d55e0261339c15e4bacd509e6: R4B XML import contains active CarePlan.activity.detail.reasonReference with max="*". Learned: the applied cardinality survived into the later StructureDefinition source.
+- E4 Source source/fhir.ini and source/careplan/structuredefinition-CarePlan.xml: CarePlan is active, old activity.detail maps to plannedActivityReference, and the current active XML has no CarePlan.activity detail reasonReference element. Learned: there is no current stale 0..1 element to fix.
+- E5 Jira FHIR-39101 and FHIR-28546: later Patient Care decisions removed plannedActivityDetail and rejected adding a parallel activity reasonReference for referenced activities. Learned: the current model change is intentional and supersedes the old element shape.
+- E6 Zulip #implementers > Care Plans unfolding: Patient Care participants discussed deleting CarePlan.activity.plannedActivityDetail and using plannedActivityReference/contained request resources instead. Learned: community discussion aligns with the later Jira refactor.
+- E7 Verification command/query: parsed the current CarePlan StructureDefinition as XML and found no active CarePlan.activity reason element; direct Zulip and Confluence searches for FHIR-6945 found no conflicting community evidence. Learned: the no-change decision is consistent with current source and community evidence found.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6945",
+    "url": "https://jira.hl7.org/browse/FHIR-6945",
+    "snapshot_path": "contexts/FHIR-6945/jira/FHIR-6945.md",
+    "ref": { "jira_key": "FHIR-6945" },
+    "summary": "Published/Persuasive Patient Care DSTU1 issue requesting CarePlan.Activity.detail.reasonReference cardinality 0..*.",
+    "learned": "This is the final seed request and establishes the desired cardinality for the historical element.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "d6c4981fa8fe7d58cc3e1cc393aa8cc0b6a83c54 source/careplan/careplan-spreadsheet.xml",
+    "ref": { "commit": "d6c4981fa8fe7d58cc3e1cc393aa8cc0b6a83c54", "svn_revision": 6766 },
+    "summary": "Jira-cited SVN #6766 CarePlan tracker commit includes CarePlan.activity.detail.reasonReference with cardinality 0..*.",
+    "learned": "The original requested cardinality change was applied in source history.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "c69d71aa213de86d55e0261339c15e4bacd509e6 source/careplan/structuredefinition-CarePlan.xml:903-917",
+    "ref": { "commit": "c69d71aa213de86d55e0261339c15e4bacd509e6" },
+    "summary": "The R4B XML import contains active CarePlan.activity.detail.reasonReference with max=\"*\".",
+    "learned": "The applied change was not lost when the StructureDefinition XML source was introduced.",
+    "supports": ["initial_application", "source_history"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-178, source/fhir.ini:1601, source/careplan/structuredefinition-CarePlan.xml:685-719 and 719-1187",
+    "summary": "CarePlan is active, old CarePlan.activity.detail maps to plannedActivityReference, and the current active StructureDefinition has no CarePlan.activity.detail.reasonReference element; plannedActivityDetail is only present in a commented legacy block.",
+    "learned": "There is no active current 0..1 cardinality defect for FHIR-6945 to fix.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-39101 and FHIR-28546",
+    "url": "https://jira.hl7.org/browse/FHIR-39101",
+    "ref": { "jira_key": "FHIR-39101" },
+    "summary": "FHIR-39101 removed CarePlan.activity.plannedActivityDetail; FHIR-28546 later says detail.reasonReference is no longer applicable in R5 and reasons should be on referenced request resources.",
+    "learned": "Later Patient Care decisions explain why the old element is absent from current active source.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Care Plans unfolding",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Care%20Plans%20unfolding",
+    "ref": { "stream": "implementers", "topic": "Care Plans unfolding" },
+    "summary": "The 2022 thread discusses removing CarePlan.activity.plannedActivityDetail and using plannedActivityReference or contained request resources instead.",
+    "learned": "Community discussion is consistent with the later formal FHIR-39101 refactor.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current XML parse and negative seed community search",
+    "command": "python3 - <<'PY' ... parse source/careplan/structuredefinition-CarePlan.xml active elements ... PY; bun run zulip:search fts '\"FHIR-6945\"' --limit 10; bun run confluence:search refs jira FHIR-6945",
+    "query": "FHIR-6945 CarePlan reasonReference",
+    "result_count": 0,
+    "summary": "The current active XML parse found no CarePlan.activity reason element, and direct community searches found no seed-specific conflicting evidence.",
+    "learned": "The audit conclusion depends on Jira/source/git history and is not contradicted by discovered community records.",
+    "supports": ["reconciliation", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

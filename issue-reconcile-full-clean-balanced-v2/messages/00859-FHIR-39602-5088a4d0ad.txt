@@ -1,0 +1,86 @@
+FHIR-39602: Audit Condition participant reversion
+
+Issue request:
+FHIR-39602 was Applied/Persuasive with Modification for Condition. It requested replacing the Condition.participant backbone with Condition.recorder and Condition.asserter to align with R4, adding Device as a Condition.asserter target with the updated description, and not supporting Organization as a direct Condition recorder target.
+
+Initial application:
+The issue appears to have been applied by git commit ed99dff49083a274e14bef2e2db9dcb3b39913b9 in PR 3141, alongside AllergyIntolerance reversions for FHIR-39513 and FHIR-44517. The commit restored Condition recorder/asserter examples and source definitions while commenting out the participant search parameters and participant elements.
+
+Additional context:
+FHIR-39602 explicitly cites FHIR-34395 as the issue that introduced Condition.participant. It is the later final Patient Care decision that supersedes the Condition structural part of FHIR-34395. Follow-up combined-branch audit/fix commits already exist for the related AllergyIntolerance issues and for FHIR-34479's recorder search parameter adjustment.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Current active Condition source has recordedDate, recorder, and asserter; Condition.participant is not active XML, Condition.asserter includes Device, Condition.recorder does not include Organization, and current active search parameters include asserter and recorder rather than participant-actor/participant-function.
+
+Recommendation:
+Keep this audit as-is. The current source already implements FHIR-39602; any future change should be a new Patient Care decision rather than a reconciliation of this issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-39602
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-34395: supersedes - FHIR-39602 reverses the Condition participant structure introduced by FHIR-34395 while leaving unrelated recordedDate cleanup intact.
+FHIR-39513: same-change-family - parallel Applied AllergyIntolerance anti-pattern decision already represented on the combined branch.
+FHIR-44517: same-change-family - parallel Applied AllergyIntolerance participant-removal decision already represented on the combined branch.
+FHIR-34479: later-change - Condition recorder search parameter now aligns with restored recorder and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-39602: Applied/Persuasive with Modification issue requested reverting Condition.participant to recorder/asserter, adding Device to asserter, and excluding Organization as recorder. Learned: this establishes the later final Condition decision.
+- E2 Git ed99dff49083a274e14bef2e2db9dcb3b39913b9: PR 3141 source commit restored Condition recorder/asserter and commented participant-related source. Learned: the issue was applied in source history.
+- E3 Source source/condition/structuredefinition-Condition.xml:562-621: recorder and asserter are active; asserter targets Device; recorder targets do not include Organization. Learned: current Condition StructureDefinition matches the FHIR-39602 resolution.
+- E4 Source source/condition/bundle-Condition-search-params.xml:62-117 and 366-385: asserter and recorder search parameters are active while participant-actor/function are commented out. Learned: current search parameter source aligns with the restored elements.
+- E5 Command perl active-element scan: active affected Condition elements are recordedDate, recorder, and asserter, with no active participant element. Learned: XML comments prevent the retained participant block from entering the current build.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-39602",
+    "url": "https://jira.hl7.org/browse/FHIR-39602",
+    "ref": { "jira_key": "FHIR-39602" },
+    "summary": "Applied/Persuasive with Modification issue requesting Condition.participant removal and restoration of Condition.recorder and Condition.asserter.",
+    "learned": "This is the later final Patient Care decision governing Condition's current participant/recorder/asserter structure.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "ed99dff49083a274e14bef2e2db9dcb3b39913b9",
+    "ref": { "commit": "ed99dff49083a274e14bef2e2db9dcb3b39913b9" },
+    "summary": "PR 3141 commit restored Condition recorder/asserter and reversed participant-related source for FHIR-39602.",
+    "learned": "The issue was applied in the relevant source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/condition/structuredefinition-Condition.xml:562-621",
+    "ref": { "path": "source/condition/structuredefinition-Condition.xml" },
+    "summary": "Current active Condition.recorder and Condition.asserter definitions are present; asserter includes Device and recorder excludes Organization.",
+    "learned": "The current StructureDefinition matches the FHIR-39602 resolution.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/condition/bundle-Condition-search-params.xml:62-117,366-385",
+    "ref": { "path": "source/condition/bundle-Condition-search-params.xml" },
+    "summary": "Current active search parameters include asserter and recorder; participant-actor and participant-function are commented out.",
+    "learned": "Search parameter source is consistent with the restored Condition elements.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Active XML element scan for Condition",
+    "command": "perl -ne 'BEGIN{$c=0} $c++ if /<!--/; $c-- if /-->/; print $. . \":\" . $_ if !$c && /<element id=\"Condition\\.(recordedDate|recorder|asserter|participant)/' source/condition/structuredefinition-Condition.xml",
+    "summary": "The scan reported active Condition.recordedDate, Condition.recorder, and Condition.asserter only.",
+    "learned": "The retained Condition.participant block is not active XML for the current build.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

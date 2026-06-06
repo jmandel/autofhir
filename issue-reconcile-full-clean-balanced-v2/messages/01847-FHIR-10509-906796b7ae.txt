@@ -1,0 +1,96 @@
+FHIR-10509: Audit document category LOINC part validity
+
+Issue request:
+FHIR-10509 was Published/Persuasive for DSTU2 and reported that the example Composition document class value set at http://hl7.org/fhir/ValueSet/doc-classcodes appeared invalid because LOINC search did not find LP173387-4 and similar LOINC Part codes, causing validation concerns. The recorded resolution was that the links to LOINC now resolve.
+
+Initial application:
+No git commit explicitly mentioning FHIR-10509 was found. The Jira comments show the issue was initially a LOINC publication/search-server problem rather than a FHIR source defect: Daniel Vreeman confirmed LP173387-4 was a valid LOINC Part from the Document Ontology File and later reported that loinc.org detail pages for the Document Ontology and Radiology Part codes had been fixed.
+
+Additional context:
+The historical LP-code value set was introduced by #8057 and later renamed from doc-classcodes to doc-categorycodes when Composition.class became Composition.category. Current build-scope Composition source is active in source/fhir.ini, but the current authoritative Composition.category binding is now http://hl7.org/fhir/ValueSet/referenced-item-category rather than the old doc-categorycodes list. A related FHIR-11907 audit is already on the combined branch and explains the later replacement of the old LP-code category value set family; FHIR-19873 later considered but retracted a request to revert to LOINC Part category bindings.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The seed issue's stated resolution is satisfied externally because the cited LOINC Part URLs now return successful HTTP responses, and the current FHIR source no longer actively binds Composition.category to the old doc-classcodes/doc-categorycodes list that triggered the original report.
+
+Recommendation:
+Keep this audit commit as-is for FHIR-10509. No current FHIR source fix is needed; if future work removes unused legacy value set source files, it should be handled as a separate cleanup rather than as this DSTU2 LOINC-link issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-10509
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-11907: same-change-family - later Published issue about the same doc-classcodes LP-code list; already represented on the combined branch by d99412e03d14e875cfe1c650e81b5f9e4fd79704.
+FHIR-19873: background - later Resolved - No Change/Retracted request to revert Composition.category and DocumentReference.category to LOINC Document Ontology Part bindings.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-10509: Published/Persuasive issue says LP173387-4 was not found by LOINC search, but comments confirm it is a valid LOINC Part and that loinc.org detail pages were fixed. Learned: the final accepted resolution was external link resolution, not a required FHIR source replacement.
+- E2 Source source/composition/valueset-doc-categorycodes.xml:15-22: legacy value set still lists LP173387-4 as a LOINC concept. Learned: the original code family is identifiable in current source, but this alone does not prove a current active binding problem.
+- E3 Source source/fhir.ini:189 and source/composition/structuredefinition-Composition.xml:323-340 plus source/documentreference/valueset-referenced-item-category.xml:28-40: Composition is active, Composition.category now binds to referenced-item-category, and that value set uses media-category plus a LOINC DOC-scale filter. Learned: the current authoritative Composition category binding has moved away from the original doc-classcodes LP enumeration.
+- E4 Git 995666d69f5f472f2f493a231edee9c2be1c967e and 2270586d3e58addd91c5ba5b3fa2bdf949760ef9: #8057 introduced valueset-doc-classcodes.xml with LP173387-4, and GF#17555 renamed it to valueset-doc-categorycodes.xml. Learned: source history explains why the legacy LP-code file remains under the Composition folder.
+- E5 Command curl -I -L https://loinc.org/LP173387-4 and https://loinc.org/LP199956-6: both returned HTTP 200. Learned: the Jira resolution statement that the LOINC links now resolve holds for the cited examples.
+- E6 Command searches for FHIR-10509, LP173387-4, and document class terms in Zulip/Confluence plus combined-branch grep for FHIR-11907. Learned: no conflicting community evidence was found, and the closely related FHIR-11907 decision is already represented on the combined branch.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-10509",
+    "url": "https://jira.hl7.org/browse/FHIR-10509",
+    "snapshot_path": "contexts/FHIR-10509/jira/FHIR-10509.md",
+    "ref": { "jira_key": "FHIR-10509" },
+    "summary": "Published/Persuasive issue reporting that example Composition doc-classcodes LOINC Part codes such as LP173387-4 did not resolve in LOINC search; comments confirm the codes are valid LOINC Parts and loinc.org pages were fixed.",
+    "learned": "The final issue resolution was that the LOINC links now resolve, so the accepted fix was not a FHIR source code replacement.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/composition/valueset-doc-categorycodes.xml:15-22",
+    "summary": "The legacy Composition document category value set lists LP173387-4 from http://loinc.org with display Administrative note.",
+    "learned": "This identifies the current-source successor of the historical value set mentioned by FHIR-10509.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:189; source/composition/structuredefinition-Composition.xml:323-340; source/documentreference/valueset-referenced-item-category.xml:28-40",
+    "summary": "Composition is an active resource; Composition.category binds to http://hl7.org/fhir/ValueSet/referenced-item-category, whose compose uses media-category plus LOINC codes filtered by SCALE_TYP = LP32888-7.",
+    "learned": "The current authoritative category binding no longer depends on the old doc-classcodes/doc-categorycodes LP-code enumeration.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "995666d69f5f472f2f493a231edee9c2be1c967e; 2270586d3e58addd91c5ba5b3fa2bdf949760ef9",
+    "ref": { "commits": "995666d69f5f472f2f493a231edee9c2be1c967e,2270586d3e58addd91c5ba5b3fa2bdf949760ef9" },
+    "summary": "#8057 introduced the LP-code doc-classcodes value set, and GF#17555 later renamed that source file to valueset-doc-categorycodes.xml when Composition.class became Composition.category.",
+    "learned": "The source history explains the legacy file and shows no FHIR-10509-specific source application was needed.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "LOINC HTTP checks for cited Part URLs",
+    "command": "curl -I -L --max-time 20 -o /dev/null -s -w '%{http_code} %{url_effective}\\n' https://loinc.org/LP173387-4 https://loinc.org/LP199956-6",
+    "query": "https://loinc.org/LP173387-4 and https://loinc.org/LP199956-6",
+    "result_count": 2,
+    "summary": "Both cited LOINC Part detail URLs returned HTTP 200.",
+    "learned": "This directly verifies the Jira resolution statement that the LOINC links now resolve for the examples cited in the issue thread.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search and related combined-branch check",
+    "command": "bun run zulip:search fts '\"FHIR-10509\"' --limit 10; bun run zulip:search fts '\"LP173387-4\"' --limit 10; bun run confluence:search refs jira FHIR-10509; bun run confluence:search fts '\"FHIR-10509\"' --limit 10; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-11907' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "query": "FHIR-10509 LP173387-4 document class LOINC Composition",
+    "summary": "No directly relevant Zulip or Confluence records were found for the seed or cited LP code, and FHIR-11907 is already represented on the combined branch by d99412e03d14e875cfe1c650e81b5f9e4fd79704.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion, and the closest later value set issue should not be republished by this worker.",
+    "supports": ["absence_of_conflict", "recommendation"]
+  }
+]
+</evidence-manifest>

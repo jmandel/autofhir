@@ -1,0 +1,114 @@
+FHIR-22483: Use DICOM-published CID-29 value set
+
+Issue request:
+FHIR-22483 was a Published/Persuasive FHIR-I change request asking the core build to use DICOM-published FHIR CodeSystems and ValueSets, with DICOM CID-29 as the example, instead of relying on FHIR-maintained copies or stale fhir.ini handling.
+
+Initial application:
+The issue itself does not appear in a source commit message. The closest applied implementation is the DICOM terminology family work represented by FHIR-24908 and commit 26f1439636ec3a00a96ffe742b9f5cba1ac1a8ba, which switched ImagingStudy and AuditEvent-related terminology to DICOM-authored value sets and removed several local hand-written DICOM value set files. That application did not cover source/composition/valueset-doc-event-code.xml, which still imported the old FHIR-hosted http://hl7.org/fhir/ValueSet/dicom-cid29 value set in the current branch.
+
+Additional context:
+The linked Zulip topic records John Moehrke asking on 2019-05-20 whether fhir.ini should point to DICOM-published FHIR resources, Grahame Grieve asking him to file a task, and later discussion confirming that DICOM uses the chtml CID page URLs as the ValueSet canonicals. FHIR-I minutes on 2022-08-22 record FHIR-22483 as Persuasive 13-0-0. Current fhir.ini lists Composition as an active resource, so source/composition/valueset-doc-event-code.xml is in current build scope. The parallel source/media/valueset-media-modality.xml occurrence is in the dropped Media resource folder, with Media absent from the active [resources] list and present only as a commented dropped FMG entry, so it is not a current-spec hunk for this reconciliation. The remaining valueset-dicom-dcim fixup entry has no current source definition or local DICOM value set file to update.
+
+AutoFHIR reconciliation:
+This commit replaces the active Composition example value set's stale FHIR-owned dicom-cid29 import with DICOM's published CID-29 canonical URL, matching the DICOM package artifact for Acquisition Modality and the earlier unlanded broken-link fix pattern.
+
+Recommendation:
+Keep this source fix. If future work removes the dropped Media source folder or the historical valueset-dicom-dcim fixup, handle that as cleanup under a separate build-configuration or retired-resource task rather than broadening this active Composition terminology correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22483
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-24908: same-change-family - applied the broader AuditEvent and ImagingStudy shift from local DICOM-derived value sets to DICOM-published vocabulary, but did not cover the active Composition value set fixed here.
+FHIR-12946: same-change-family - earlier DICOM CID-29 URL issue confirming the current chtml CID-29 page is the intended DICOM URL for this terminology family.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22483: Published/Persuasive FHIR-I issue asking to use DICOM-published FHIR CodeSystems and ValueSets, with CID-29 as the example. Learned: this establishes the final seed request and target DICOM-published canonical.
+- E2 Zulip #terminology > DICOM providing FHIR CodeSystems and ValueSets: John Moehrke asked whether fhir.ini should point at DICOM-published FHIR resources; Grahame asked for a task; later messages confirmed the DICOM chtml page URL is the ValueSet canonical. Learned: this is the community thread linked from the issue and supports using the DICOM URL literally.
+- E3 Confluence FHIR-I Minutes 2022-08-22: minutes record FHIR-22483 Persuasive Motion Grahame Grieve/Rick Geimer 13-0-0. Learned: this corroborates the published Jira disposition.
+- E4 Jira FHIR-24908 and Git 26f1439636: related published technical correction switched ImagingStudy and AuditEvent-related terminology to DICOM-authored value sets and removed duplicate local DICOM value sets. Learned: the issue family was partially applied, but not to the active Composition value set.
+- E5 Source source/fhir.ini:169-195 and 1489-1491: Composition is active in [resources], while Media is only a commented dropped FMG entry and absent from active [resources]. Learned: the Composition hunk is current build scope and the parallel Media source copy is not.
+- E6 Source source/composition/valueset-doc-event-code.xml:19: before this commit, the active value set imported http://hl7.org/fhir/ValueSet/dicom-cid29; after this commit it imports http://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_29.html. Learned: this is the stale current source location corrected by the reconciliation.
+- E7 Local DICOM package fhir.dicom#2025.3.20250714: ValueSet-dicom-cid-29-AcquisitionModality.json uses the same DICOM CID-29 URL and CodeSystem-DCM.json uses http://dicom.nema.org/resources/ontology/DCM. Learned: the replacement URL is present in the DICOM-published FHIR package available to the build environment.
+- E8 Verification command: XML parsing, whitespace check, and active-source grep passed after the edit. Learned: the edited XML remains well formed and no active source occurrence of the stale FHIR dicom-cid29 ValueSet URL remains in the inspected active DICOM terminology locations.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22483",
+    "url": "https://jira.hl7.org/browse/FHIR-22483",
+    "snapshot_path": "contexts/FHIR-22483/jira/FHIR-22483.md",
+    "ref": { "jira_key": "FHIR-22483" },
+    "summary": "Published/Persuasive FHIR-I change request asking core to use DICOM-published FHIR CodeSystems and ValueSets, with CID-29 as the example.",
+    "learned": "This establishes the final seed request and target DICOM-published terminology source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#terminology > DICOM providing FHIR CodeSystems and ValueSets",
+    "url": "https://chat.fhir.org/#narrow/stream/179202-terminology/topic/DICOM.20providing.20FHIR.20CodeSystems.20and.20ValueSets",
+    "summary": "The issue-linked thread starts with the request to use DICOM-published FHIR resources and later confirms DICOM's chtml CID URLs are the ValueSet canonicals.",
+    "learned": "The DICOM chtml CID-29 URL should be used literally rather than the stale FHIR-hosted dicom-cid29 URL.",
+    "supports": ["issue_request", "additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2022-08-22 page 108303407",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/108303407/FHIR+Infrastructure+Minutes+CC+2022-08-22",
+    "ref": { "confluence_page_id": 108303407 },
+    "summary": "Minutes record FHIR-22483 as Persuasive with a Grahame Grieve/Rick Geimer 13-0-0 motion.",
+    "learned": "This corroborates the final work-group decision reflected in Jira.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "26f1439636ec3a00a96ffe742b9f5cba1ac1a8ba",
+    "ref": { "commit": "26f1439636ec3a00a96ffe742b9f5cba1ac1a8ba", "jira_key": "FHIR-24908" },
+    "summary": "Related DICOM terminology commit switched ImagingStudy and AuditEvent-related content to DICOM-authored value sets and removed several local hand-written DICOM value set files.",
+    "learned": "The issue family was partially applied, but the active Composition value set still retained the old FHIR dicom-cid29 import.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-195 and source/fhir.ini:1489-1491",
+    "summary": "Composition is listed as an active resource, while Media is absent from active resources and appears only as a commented dropped FMG entry.",
+    "learned": "The Composition value set is in current build scope; the parallel Media value set source copy is not a current-spec edit target.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/composition/valueset-doc-event-code.xml:19",
+    "summary": "The active Composition value set imported http://hl7.org/fhir/ValueSet/dicom-cid29 and now imports http://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_29.html.",
+    "learned": "This source hunk directly implements the seed request for an active value set.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local fhir.dicom package check",
+    "command": "python3 - <<'PY' ... inspect /home/jmandel/.fhir/packages/fhir.dicom#2025.3.20250714/package/ValueSet-dicom-cid-29-AcquisitionModality.json and CodeSystem-DCM.json ... PY",
+    "summary": "The local fhir.dicom package contains CID-29 with URL http://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_29.html and DCM with URL http://dicom.nema.org/resources/ontology/DCM.",
+    "learned": "The replacement URL matches the DICOM-published FHIR package artifact available locally.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Post-edit validation",
+    "command": "git grep -n -F 'http://hl7.org/fhir/ValueSet/dicom-cid29' -- source/composition source/auditevent source/imagingstudy source/imagingselection source/documentreference source/terminologies source/fhir.ini || true; python3 -c 'import xml.etree.ElementTree as ET; ET.parse(\"source/composition/valueset-doc-event-code.xml\")'; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/composition/valueset-doc-event-code.xml",
+    "summary": "The edited XML parsed successfully, whitespace check passed, and the stale FHIR dicom-cid29 URL was absent from the inspected active DICOM terminology locations.",
+    "learned": "The source change is syntactically safe and removes the active stale reference targeted by the reconciliation.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,88 @@
+FHIR-12180: Audit primitive extension base paths
+
+Issue request:
+FHIR-12180 was Published/Persuasive for DSTU2 and asked the build to correct primitive type profile ElementDefinition.base.path values. The cited example was string.profile.xml, where string.extension had an incorrect base.path of string.extension and should instead have Element.extension.
+
+Initial application:
+Jira records svn revision 10025 as the application. In this Git history that is commit 82e1ca4af69d33f527a180c7bfa003e811feb4c0, whose subject names Tasks 12180, 12182, and 12179. The relevant generator hunk in ProfileGenerator.makeExtensionSlice changed generated extension slice base paths from path + ".extension" to the shared Element.extension base, which directly addresses this issue's request. That historical Java generator source is no longer present in the current checkout after later build-tool refactoring.
+
+Additional context:
+Current build scope still includes the primitive/datatype inputs through source/fhir.ini and source/datatypes/primitives.xml, but the per-primitive StructureDefinition profile files are generated rather than checked in as string.profile.xml-style source files. A current CI-build check of representative primitive StructureDefinition JSON files, including string.profile.json and the other primitive profile filenames, showed each primitive extension element has base.path Element.extension. Related FHIR-12179 and FHIR-12182 were applied by the same historical commit, but they concern snapshot constraint inheritance and element.id behavior and are not decided by this seed audit.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical build-generator fix was applied, the current source inputs remain in build scope, and the current generated primitive profiles already carry the requested Element.extension base path.
+
+Recommendation:
+Keep this audit commit as-is. Revisit only if a future publisher/build regression again emits primitive extension elements whose base.path points to the primitive-specific extension path instead of Element.extension.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12180
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12179: background - applied by the same svn revision 10025/Git commit but concerns snapshot constraint inheritance, not the primitive extension base.path request audited here.
+FHIR-12182: background - applied by the same svn revision 10025/Git commit but concerns element.id format/location, not the primitive extension base.path request audited here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12180: Published/Persuasive request to correct primitive type profile base.path values, with string.extension needing Element.extension. Learned: establishes the final issue scope and target behavior.
+- E2 Git 82e1ca4af69d33f527a180c7bfa003e811feb4c0: svn revision 10025 commit for Tasks 12180/12182/12179 changed ProfileGenerator.makeExtensionSlice to set extension slice base.path to Element.extension. Learned: confirms the historical application mechanism.
+- E3 Source source/fhir.ini:75 and source/fhir.ini:112 plus source/datatypes/primitives.xml:98-333: current build configuration and primitive datatype spreadsheet inputs remain active, while per-primitive profile XML files are generated. Learned: identifies the current build-scope inputs relevant to primitive profiles.
+- E4 Published-spec/current CI check: curl of build.fhir.org primitive profile JSON files found string.extension and other primitive extension elements with base.path Element.extension and no primitive-specific extension base paths. Learned: verifies the current generated specification already matches the requested correction.
+- E5 Community/Jira search commands: related Jira SQL found same-commit FHIR-12179/FHIR-12182 background; quoted Zulip and Confluence searches for FHIR-12180/base.path found no relevant discussion or conflicting decision. Learned: no discovered later/community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12180",
+    "url": "https://jira.hl7.org/browse/FHIR-12180",
+    "snapshot_path": "contexts/FHIR-12180/jira/FHIR-12180.md",
+    "ref": { "jira_key": "FHIR-12180" },
+    "summary": "Published/Persuasive issue requiring the build to correct primitive type profile base.path values such as string.extension to Element.extension.",
+    "learned": "This establishes the final requested behavior for the current source and generated-output check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "82e1ca4af69d33f527a180c7bfa003e811feb4c0",
+    "ref": { "commit": "82e1ca4af69d33f527a180c7bfa003e811feb4c0" },
+    "summary": "Git import of svn revision 10025 for Tasks 12180/12182/12179 changed ProfileGenerator.makeExtensionSlice to set base.path to Element.extension.",
+    "learned": "The historical application directly implemented the primitive extension base path correction.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:75-112; source/datatypes/primitives.xml:98-333",
+    "ref": { "path": "source/datatypes/primitives.xml" },
+    "summary": "Current source keeps primitive/datatype build inputs active and lists the primitive types in the datatype spreadsheet source.",
+    "learned": "The primitive profiles are generated from active build inputs rather than edited as checked-in string.profile.xml files.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current CI primitive profile base.path check",
+    "command": "curl -fsSL https://build.fhir.org/string.profile.json | jq '.snapshot.element[] | select(.id==\"string.extension\") | .base.path'; repeated for other primitive profile filenames",
+    "result_count": 0,
+    "summary": "The checked current CI primitive profiles report base.path Element.extension for primitive extension elements, with no bad primitive-specific extension base paths found.",
+    "learned": "The current generated specification already carries the requested correction.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Related Jira and negative community search for FHIR-12180/base.path",
+    "command": "bun run jira:search sql \"SELECT key, summary/status/resolution for FHIR-12179,FHIR-12180,FHIR-12182\"; bun run zulip:search fts '\"FHIR-12180\" \"base.path\" primitive' --limit 10; bun run confluence:search refs jira FHIR-12180; bun run confluence:search fts '\"FHIR-12180\" \"base.path\"' --limit 10",
+    "query": "FHIR-12180 base.path primitive profiles",
+    "result_count": 0,
+    "summary": "Related Jira issues FHIR-12179 and FHIR-12182 were same-commit background; Zulip and Confluence searches found no relevant or conflicting community evidence.",
+    "learned": "No discovered later or community record changes the conclusion that the historical fix remains correctly represented.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

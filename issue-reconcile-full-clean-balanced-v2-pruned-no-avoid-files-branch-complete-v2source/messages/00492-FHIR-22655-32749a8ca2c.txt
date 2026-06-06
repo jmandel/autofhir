@@ -1,0 +1,97 @@
+FHIR-22655: Enforce decimal mantissa digit limit
+
+Issue request:
+FHIR-22655 was Published with a Persuasive resolution for FHIR-core datatypes. It asked whether FHIR decimal values were otherwise unbounded outside the XML and JSON representation notes, and the approved resolution was to change the decimal description and regex to say a decimal cannot have more than 18 digits and a decimal point.
+
+Initial application:
+The issue was partially applied by d621ab0bda, which added the 18-digit statement to source/datatypes.html. Commit baee733e3e then attempted to update the decimal regex in source/datatypes/primitives.xml, but it introduced an extra closing brace and still allowed up to 18 digits before the decimal point plus up to 17 after it. FHIR-53492 later removed the extra brace but intentionally left the leading-zero requirement in place.
+
+Additional context:
+source/datatypes.html is the active datatypes narrative page, source/datatypes/primitives.xml is the active primitive datatype spreadsheet source used for generated primitive metadata and regex substitution, source/xml.html gives the decimal pattern for implementers who choose an xs:string schema override, and source/datatypes-examples.html is linked from the datatypes page and navigation. Current source still had a high-precision pi example with far more than 18 mantissa digits and an XML pattern/example regex that matched decimals exceeding the approved limit.
+
+AutoFHIR reconciliation:
+This commit clarifies the decimal narrative as an 18-digit mantissa limit, updates the primitive spreadsheet definition and regex so the regex permits no more than 18 mantissa digits while preserving the existing exponent branch and leading-zero requirement, aligns the XML schema override pattern with that regex, and shortens the primitive decimal examples so they remain valid high-precision examples under the limit.
+
+Recommendation:
+Keep this commit. It completes the published FHIR-22655 change in the active datatype sources and examples while preserving the later FHIR-53492 decision not to allow decimals such as .5.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22655
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-53492: later-change - corrected the extra closing brace in the FHIR-22655 regex application and confirmed the leading zero before a fractional decimal remains required.
+FHIR-5653: same-change-family - separately audited decimal primitive wording and BigDecimal guidance; this commit preserves that clarification while adding the FHIR-22655 digit limit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22655: Published/Persuasive MnM issue resolved to change decimal description and regex so decimal cannot have more than 18 digits and a decimal point. Learned: this is final WG intent for a bounded decimal value domain.
+- E2 Confluence MnM Minutes WGM 202109 Virtual: records FHIR-22655 as Persuasive with an 8-0-0 vote. Learned: meeting minutes corroborate the Jira disposition.
+- E3 Git d621ab0bda, baee733e3e, and 2a1360e087: d621 added the description, baee attempted the regex with an extra brace, and 2a1360 removed that brace under FHIR-53492. Learned: history explains why current source was only partially aligned with the approved limit.
+- E4 Source source/datatypes.html:191,410-411; source/datatypes/primitives.xml:130,134; source/xml.html:318; source/datatypes-examples.html:59,74: active datatype sources now state, regex-check, and exemplify the 18-digit mantissa limit. Learned: all checked current build-scope surfaces that described or demonstrated decimal precision are consistent.
+- E5 Zulip #implementers > Decimal Precision Limitations and #conformance > Primitive Validation Questions: 2019 discussion around GF#22655 considered formalizing decimal digit limits and noted validator warnings around more than 18 digits. Learned: community context supports the issue's focus on making implicit precision/range limits explicit.
+- E6 Verification command: XML parsing of source/datatypes/primitives.xml, full-match tests for valid and invalid decimal examples, CRLF-aware git diff whitespace checks, and source grep for stale high-precision examples/old regex all succeeded. Learned: the edited primitive source is well-formed and the targeted stale source patterns were removed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22655",
+    "url": "https://jira.hl7.org/browse/FHIR-22655",
+    "snapshot_path": "contexts/FHIR-22655/jira/FHIR-22655.md",
+    "ref": { "jira_key": "FHIR-22655" },
+    "summary": "Published/Persuasive issue asking to define decimal's range and precision, resolved by limiting decimal to no more than 18 digits and a decimal point in the description and regex.",
+    "learned": "This establishes final WG intent for a bounded decimal value domain in the current datatype source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "MnM Minutes WGM 202109 Virtual page 79502299",
+    "url": "https://confluence.hl7.org/spaces/MnM/pages/79502299/MnM+Minutes+WGM+202109+Virtual",
+    "ref": { "confluence_page_id": 79502299 },
+    "summary": "MnM minutes list FHIR-22655 as Persuasive with a Grahame/Ron 8-0-0 vote.",
+    "learned": "The minutes corroborate the Jira status and vote for applying the decimal limit change.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "d621ab0bda, baee733e3e, 2a1360e087",
+    "ref": { "commits": "d621ab0bda61832d87d16ee8fa98261bf403a9da,baee733e3e91dbb37809feeb66f9142344daac76,2a1360e08725bc95341e925aabb48232ff583e8d" },
+    "summary": "Prior commits added the decimal description, attempted a regex change with an extra brace, and later removed that syntax error under FHIR-53492.",
+    "learned": "The issue had been applied in history, but the current regex and examples still did not consistently enforce or demonstrate the approved limit.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes.html:191,410-411; source/datatypes/primitives.xml:130,134; source/xml.html:318; source/datatypes-examples.html:59,74",
+    "ref": { "paths": "source/datatypes.html,source/datatypes/primitives.xml,source/xml.html,source/datatypes-examples.html" },
+    "summary": "The active datatype narrative, primitive spreadsheet regex, XML schema override pattern, and primitive examples now consistently describe or demonstrate an 18-digit decimal mantissa limit.",
+    "learned": "These are the current build-scope source surfaces needed to complete the FHIR-22655 reconciliation.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > Decimal Precision Limitations; #conformance > Primitive Validation Questions",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Decimal%20Precision%20Limitations",
+    "ref": { "stream": "implementers", "topic": "Decimal Precision Limitations" },
+    "summary": "2019 community discussion around GF#22655 considered formalizing decimal digit limits and noted validator warnings for values with more than 18 digits.",
+    "learned": "No conflicting community rationale was found; the discussion supports making the implicit decimal limits explicit.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Decimal source validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/datatypes.html source/datatypes-examples.html source/datatypes/primitives.xml source/xml.html; python regex/XML validation; rg stale decimal patterns source",
+    "summary": "Whitespace checks passed with CRLF handling, the primitive XML parsed, representative valid and invalid decimals matched as expected, and stale high-precision examples/old regex text were not found in active source HTML.",
+    "learned": "The source change is syntactically safe and removes the targeted inconsistent decimal-limit surfaces.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

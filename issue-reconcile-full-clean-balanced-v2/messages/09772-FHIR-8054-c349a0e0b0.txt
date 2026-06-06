@@ -1,0 +1,106 @@
+FHIR-8054: Audit patient-subject naming convention
+
+Issue request:
+FHIR-8054 was a Published FHIR-core change request from the DSTU1 ballot asking why patient references were named `patient` in some resources and `subject` in others, and asking for consistency where possible. The accepted resolution was that elements should be named `patient` when they can only reference Patient, and `subject` when they can be more than Patient, with a build-tool rule to enforce this convention.
+
+Initial application:
+The issue was applied in svn revision 5822, represented in this Git history by commit 6f6f154d40ee7e6c03501ce974812eb7751cf8b5, which added ResourceValidator checks warning when `subject` was only `Reference(Patient)` and requiring `patient` to be only `Reference(Patient)`. That historical validator file was later deleted when the old Java build tooling was refactored out of this checkout, so there is no current source file containing the original rule text.
+
+Additional context:
+Later Jira decisions confirm the same naming policy rather than reversing it. FHIR-19421 rejected a request to rename AllergyIntolerance.patient and FamilyMemberHistory.patient because `patient` is used for `Reference(Patient)` only while `subject` is used for broader choices. FHIR-12630 is an example of applying the policy to Encounter by renaming Encounter.patient to Encounter.subject while broadening the target type to Patient or Group. Exact FHIR-8054 community searches found no relevant Zulip or Confluence discussion that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. A scan of the active resources listed under source/fhir.ini found 127 active resource definitions and zero current violations of the FHIR-8054 convention: all active `patient` elements are `Reference(Patient)` only, and no active `subject` element is only `Reference(Patient)`. Representative current source shows AllergyIntolerance.patient as Patient-only, while Encounter.subject and DetectedIssue.subject allow Patient plus other target resources.
+
+Recommendation:
+Keep this no-change audit commit as-is. No current FHIR-core source edit is needed for FHIR-8054; future patient/subject naming changes should continue to follow the same convention when resource target types are narrowed or broadened.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8054
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-19421: supporting-decision - later Resolved - No Change request explicitly reaffirmed that Patient-only elements should remain named `patient` rather than being renamed to `subject`.
+FHIR-12630: later-change - Encounter was broadened from Patient-only to Patient or Group and renamed from patient to subject, illustrating the convention in a concrete resource.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8054: Published/Persuasive with Modification; resolution says use `patient` when it is just Patient and `subject` when it can be more than Patient, and add a tool rule. Learned: establishes the final accepted naming convention for this audit.
+- E2 Git 6f6f154d40ee7e6c03501ce974812eb7751cf8b5: svn revision 5822 added ResourceValidator warnings/rules for `subject` and `patient` element names. Learned: confirms how the issue was initially applied.
+- E3 Source source/fhir.ini:169 and scan command over active resource StructureDefinitions: 127 active resources checked with zero patient/subject naming violations. Learned: current build-scope resource definitions already satisfy the convention.
+- E4 Source source/allergyintolerance/structuredefinition-AllergyIntolerance.xml:331 and source/encounter/structuredefinition-Encounter.xml:378: AllergyIntolerance.patient is Reference(Patient), while Encounter.subject is Reference(Patient|Group). Learned: representative current definitions align with both sides of the convention.
+- E5 Git ba096263615784cdef548fd62c10ba25623c995d plus current text search: the old ResourceValidator.java file containing the historical rule was deleted during Java tooling refactoring, and no current checkout file contains the original rule text. Learned: there is no obsolete in-tree validator source to edit for this old tool-rule application.
+- E6 Jira FHIR-19421 and FHIR-12630: later decisions respectively reaffirm patient-only naming and broaden/rename Encounter to subject. Learned: later Jira history supports the same policy rather than superseding it.
+- E7 Community search: `bun run zulip:search fts '"FHIR-8054" OR "#8054"' --limit 10`; `bun run confluence:search refs jira FHIR-8054`; `bun run confluence:search fts '"FHIR-8054" OR "#8054"' --limit 10`. Learned: no directly relevant community record was found that conflicts with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8054",
+    "url": "https://jira.hl7.org/browse/FHIR-8054",
+    "snapshot_path": "contexts/FHIR-8054/jira/FHIR-8054.md",
+    "ref": { "jira_key": "FHIR-8054" },
+    "summary": "Published/Persuasive with Modification issue requiring patient references to be named `patient` only when Patient-only, and `subject` when broader than Patient.",
+    "learned": "This establishes the final accepted naming convention and that the original application was a build-tool enforcement rule.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "6f6f154d40ee7e6c03501ce974812eb7751cf8b5",
+    "ref": { "commit": "6f6f154d40ee7e6c03501ce974812eb7751cf8b5", "svn_revision": "5822" },
+    "summary": "Historical commit `#8054 - add warning about field name for 'subject'` added ResourceValidator checks for subject and patient element names.",
+    "learned": "This confirms the issue was initially applied as a validator rule rather than resource prose or StructureDefinition edits.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "command",
+    "locator": "Active resource patient/subject scan",
+    "command": "python3 scan of source/fhir.ini [resources] and source/*/structuredefinition-*.xml for .patient/.subject elements",
+    "result_count": 0,
+    "summary": "The scan checked 127 active resource definitions and found zero FHIR-8054 naming-rule violations.",
+    "learned": "The current build-scope resource definitions already conform to the accepted convention.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/allergyintolerance/structuredefinition-AllergyIntolerance.xml:331; source/encounter/structuredefinition-Encounter.xml:378; source/detectedissue/structuredefinition-DetectedIssue.xml:272",
+    "summary": "Representative current definitions show AllergyIntolerance.patient as Reference(Patient), Encounter.subject as Reference(Patient|Group), and DetectedIssue.subject as Reference(Patient plus other targets).",
+    "learned": "Concrete active resources demonstrate both sides of the convention are represented correctly in current source.",
+    "supports": ["source_state", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "ba096263615784cdef548fd62c10ba25623c995d and current rule-text search",
+    "ref": { "commit": "ba096263615784cdef548fd62c10ba25623c995d" },
+    "summary": "The old tools/java ResourceValidator.java file was deleted during Java tooling refactoring, and current source contains no match for the original warning text.",
+    "learned": "There is no current in-tree validator file needing a source edit for this historical tool-rule application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-19421 and FHIR-12630",
+    "url": "https://jira.hl7.org/browse/FHIR-19421",
+    "summary": "FHIR-19421 reaffirmed patient-only naming as `patient`; FHIR-12630 broadened Encounter from Patient-only to Patient|Group and renamed it to subject.",
+    "learned": "Later Jira decisions support the same naming policy and do not require a new FHIR-8054 source change.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Exact community search for FHIR-8054",
+    "command": "bun run zulip:search fts '\"FHIR-8054\" OR \"#8054\"' --limit 10; bun run confluence:search refs jira FHIR-8054; bun run confluence:search fts '\"FHIR-8054\" OR \"#8054\"' --limit 10",
+    "query": "FHIR-8054 OR #8054",
+    "summary": "No directly relevant Zulip or Confluence record for FHIR-8054 was found; Zulip #8054 hits were unrelated numeric references.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

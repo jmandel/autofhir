@@ -1,0 +1,116 @@
+FHIR-5673: Audit Timing meal event support
+
+Issue request:
+FHIR-5673 was a Published FHIR-core datatypes change request, resolved Persuasive with Modification, asking that the Timing datatype support instructions such as "with meals". The request proposed making duration/unit elements optional with an invariant and adding meal-related event timing codes; the final Jira resolution says to use the resolution to FHIR-3841.
+
+Initial application:
+FHIR-3841 was Published/Persuasive with Modification and its Jira comments cite svn revision 4758. In the git-svn history, commit db55db7414cc49a9bd93c668c9fd19c3de26fccf, dated 2015-03-20, has subject "#3841: restructure timing + fix improper system references" and introduced the meal EventTiming rows into source/datatypes/timing.xml. The current source still has Timing.repeat.duration and Timing.repeat.durationUnit as 0..1, the durationUnit-required invariant, Timing.repeat.when bound to EventTiming, and the meal codes C, CM, CD, and CV.
+
+Additional context:
+source/fhir.ini lists Timing as an active datatype and marks it normative, so source/datatypes/timing.xml is current build-scope source. Later FHIR-8697 added Timing.repeat.offset and before/after-meal event codes for cases such as "30 minutes before meals"; it did not remove or narrow the FHIR-5673 meal support. A 2023 Zulip implementers thread clarified that Timing meal codes are for scheduled meal-time timing, while "with every meal" without a fixed frequency may be an as-needed/precondition pattern rather than a defect in the original FHIR-5673 application.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current build-scope Timing source already satisfies FHIR-5673: repeat.when can carry EventTiming code C for "at a meal" and specific meal codes CM, CD, and CV, and the duration/unit cardinality and invariant from the referenced Timing restructure are present.
+
+Recommendation:
+Keep this no-change audit as-is. No core FHIR source follow-up is needed for FHIR-5673; any future distinction between scheduled meal-time dosing and truly "every meal" trigger/precondition semantics should be handled by a separate work-group decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5673
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-3841: supporting-decision - FHIR-5673's final resolution explicitly points to this broader Timing restructure, which introduced the relevant current Timing.repeat.when and EventTiming support.
+FHIR-8697: later-change - Later Published Timing issue added offset and before/after-meal handling for related meal timing cases without reversing the base meal codes.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5673: Published/Persuasive with Modification datatypes issue requesting "with meals" support and resolving by reference to FHIR-3841. Learned: establishes the seed request and final disposition.
+- E2 Jira FHIR-3841: Published/Persuasive with Modification Timing restructure with duration, durationUnit, period, periodUnit, and when elements. Learned: this is the referenced approved change family for the seed.
+- E3 Source source/fhir.ini:38 and source/fhir.ini:995: Timing is listed as an active datatype and normative. Learned: source/datatypes/timing.xml is current build-scope source.
+- E4 Source source/datatypes/timing.xml:981,1031,1281,1288,1294,6405-6443: Timing duration/durationUnit are optional, repeat.when binds to EventTiming, and C/CM/CD/CV represent meal, breakfast, lunch, and dinner. Learned: the current source already supports the requested meal timing expression.
+- E5 Source source/datatypes/timing.xml:3635-3636: invariant duration.empty() or durationUnit.exists() is present. Learned: the cardinality/invariant portion of the referenced Timing change is also applied.
+- E6 Git db55db7414cc49a9bd93c668c9fd19c3de26fccf: historical implementation commit for #3841 restructured Timing and introduced the meal EventTiming rows. Learned: the Jira-cited application is traceable in source history.
+- E7 Jira FHIR-8697 and Zulip #implementers > Timing.repeat.when with a Meal clarification: later context discusses before/after-meal offset and every-meal semantics. Learned: later evidence refines usage guidance but does not require a FHIR-5673 source edit.
+- E8 Verification command/query: combined-branch idempotency grep for Issue-Reconcile-Key: FHIR-5673 returned no existing commit, and current combined source grep still finds Timing.repeat.when, durationUnit invariant, and meal EventTiming rows. Learned: this audit is not a duplicate and the latest combined branch has the same relevant source state.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5673",
+    "url": "https://jira.hl7.org/browse/FHIR-5673",
+    "snapshot_path": "contexts/FHIR-5673/jira/FHIR-5673.md",
+    "ref": { "jira_key": "FHIR-5673" },
+    "summary": "Published/Persuasive with Modification issue asking for Timing to express \"with meals\" and resolving by reference to FHIR-3841.",
+    "learned": "This establishes the seed request and directs reconciliation to the broader Timing restructure.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-3841",
+    "url": "https://jira.hl7.org/browse/FHIR-3841",
+    "ref": { "jira_key": "FHIR-3841" },
+    "summary": "Published/Persuasive with Modification issue revising Timing.repeat to include optional duration, durationUnit, period, periodUnit, and when elements.",
+    "learned": "This is the final approved change family cited by FHIR-5673.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:38; source/fhir.ini:995",
+    "ref": { "path": "source/fhir.ini", "line": 38 },
+    "summary": "Timing is listed under active datatypes and marked normative in fhir.ini.",
+    "learned": "The inspected Timing spreadsheet is current build-scope source.",
+    "supports": ["source_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/timing.xml:981,1031,1281,1288,1294,6405-6443",
+    "ref": { "path": "source/datatypes/timing.xml", "line": 1281 },
+    "summary": "Timing has optional duration and durationUnit, repeat.when is bound to EventTiming, and the EventTiming table defines C, CM, CD, and CV for meal, breakfast, lunch, and dinner.",
+    "learned": "The current authoritative source already supports the requested meal timing expression.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/timing.xml:3635-3636",
+    "ref": { "path": "source/datatypes/timing.xml", "line": 3635 },
+    "summary": "The Timing invariant duration.empty() or durationUnit.exists() is present.",
+    "learned": "The duration-unit invariant requested through the referenced Timing restructure is already applied.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "db55db7414cc49a9bd93c668c9fd19c3de26fccf",
+    "ref": { "commit": "db55db7414cc49a9bd93c668c9fd19c3de26fccf" },
+    "summary": "Commit '#3841: restructure timing + fix improper system references' changed source/datatypes/timing.xml and introduced the meal EventTiming rows.",
+    "learned": "The Jira-cited historical application is traceable in git history and still reflected in current source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > Timing.repeat.when with a Meal clarification",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Timing.repeat.when%20with%20a%20Meal%20clarification",
+    "summary": "A 2023 implementers thread discusses meal Timing codes, clarifying scheduled meal-time use versus every-meal trigger/precondition semantics and confirming AC/PC offset usage.",
+    "learned": "Later community discussion does not conflict with leaving FHIR-5673 as already applied.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Idempotency and latest combined source checks for FHIR-5673",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-5673' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git grep -n 'event occurs at a meal' robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/datatypes/timing.xml; git grep -n 'duration.empty() or durationUnit.exists()' robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/datatypes/timing.xml",
+    "summary": "No existing combined-branch FHIR-5673 audit was found, and the latest combined branch contains the meal code and durationUnit invariant source evidence.",
+    "learned": "Publishing this empty audit is not a duplicate and the latest combined branch remains correct for the seed.",
+    "supports": ["idempotency", "confidence"]
+  }
+]
+</evidence-manifest>

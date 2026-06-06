@@ -1,0 +1,120 @@
+FHIR-19279: Audit Coding display validation warning
+
+Issue request:
+FHIR-19279 was a Published/Persuasive FHIR-I issue for R5 asking that the validator not warn, when validating an instance against a profile, merely because an instance Coding.display differs from a ValueSet concept display. The decisive Jira comments say display/designation handling cannot be determined from the ValueSet alone, and the final 2021 comment marked the issue fixed because the remaining warning case was base-resource validation without the profile value set binding, where a warning was appropriate and unavoidable.
+
+Initial application:
+No current git history entry in this FHIR source checkout explicitly mentions FHIR-19279. The issue appears to have been applied as validator/tooling behavior rather than as a source edit: Jira records it as fixed, while current build-scope source has no rule requiring validators to warn on ValueSet.include.concept.display mismatches. Current source instead carries the related $validate-code display-language caveat and later display-validation controls.
+
+Additional context:
+Later and more specific terminology decisions govern the current source. FHIR-37603 clarified Coding.display in datatypes.html: populated Coding.display SHALL be one of the code-system display strings, including CodeSystem.concept.display or CodeSystem.concept.designation.value, and displays defined in value sets are not allowed in Coding.display. FHIR-17218 preserved a caveat that ValueSet $validate-code language behavior for Coding.display was undefined at that time. FHIR-40770 and FHIR-41229 later added displayLanguage and lenient-display-validation semantics for CodeSystem/ValueSet $validate-code. ValueSet and CodeSystem are active resources in source/fhir.ini, and their operation lists include the validate-code OperationDefinitions, so those current-source checks are in build scope.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source changes. Adding new prose to suppress warnings against ValueSet concept displays would be redundant at best and could conflict with the later current rule that Coding.display is based on code-system displays/designations, not ValueSet include displays. The current source already separates profile/terminology validation caveats from $validate-code display severity controls.
+
+Recommendation:
+Keep this no-change audit. If validator users still see unwanted warnings when a profile-specific binding is available, that should be handled as validator/tooling behavior with a concrete reproduction; the current FHIR core source should not be changed to re-open the older ValueSet-display matching ambiguity.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19279
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17218: same-change-family - earlier Published issue about whether ValueSet $validate-code invalid supplied displays should affect result status; already audited on the combined branch.
+FHIR-37603: later-change - later Published issue clarified that Coding.display may use CodeSystem display/designation values, not ValueSet include display/designation values.
+FHIR-40770: later-change - later Applied issue refined repeated displayLanguage semantics for validate-code display validation; already represented on the combined branch.
+FHIR-41229: later-change - later Applied issue added lenient-display-validation to govern whether invalid displays fail validate-code; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19279: Published/Persuasive issue asks the validator not to warn solely because Coding.display differs from a ValueSet display, and its final comment says the remaining base-resource warning is appropriate/unavoidable. Learned: the seed is final, but its own resolution does not require a new spec-source edit now.
+- E2 Source source/validation.html:30,172-174: validation includes Coding/CodeableConcept codes/displays but validators depend on terminology definitions and human/spec inspection is the final arbiter. Learned: the validation overview does not mandate ValueSet-display mismatch warnings and already frames validator caveats.
+- E3 Source source/datatypes.html:696-704: Coding.display SHALL be one of the code-system display strings, while ValueSet.include.concept.display and ValueSet.include.concept.designation.value are not allowed in Coding.display. Learned: current normative datatype text directly prevents treating ValueSet concept display mismatch as a Coding.display error.
+- E4 Source source/valueset/operationdefinition-ValueSet-validate-code.xml:39-63,127-188 and source/codesystem/operationdefinition-CodeSystem-validate-code.xml:99-153: current validate-code definitions include display/displayLanguage behavior and lenient-display-validation controls. Learned: later display-validation behavior is already represented in active operation sources.
+- E5 Source source/fhir.ini:169-226,269 and source/valueset/list-ValueSet-operations.xml:12-15; source/codesystem/list-CodeSystem-operations.xml:12-15: ValueSet and CodeSystem are active resources and their validate-code OperationDefinitions are listed. Learned: the inspected operation sources feed the current build.
+- E6 Git 5c78e432eb and combined commits 154a3cec75, a0f10b1f20, ffad6112b2: current branch already includes FHIR-37603 source clarification and AutoFHIR audits/fixes for the related display-validation issues. Learned: later current-source decisions should govern instead of reapplying FHIR-19279 as broader prose.
+- E7 Jira FHIR-37603/FHIR-41229/FHIR-40770: later final issues clarify legal Coding.display values and validate-code display-language/severity behavior. Learned: the seed sits in a settled issue family whose current source is already aligned.
+- E8 Community/command search: direct Zulip and Confluence searches for FHIR-19279 found no relevant hits; Confluence page 104765403 records the 2022 WGM discussion of FHIR-37603. Learned: no discovered community record contradicts the no-change conclusion, while meeting evidence supports the later datatype clarification.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19279",
+    "url": "https://jira.hl7.org/browse/FHIR-19279",
+    "snapshot_path": "contexts/FHIR-19279/jira/FHIR-19279.md",
+    "ref": { "jira_key": "FHIR-19279" },
+    "summary": "Published/Persuasive issue asks that validators not warn solely because an instance Coding.display differs from a ValueSet concept display; final Jira comment says only base-resource validation still warned and that warning was appropriate/unavoidable.",
+    "learned": "The final issue disposition supports no current spec-source change when profile-specific value set context is available and does not require suppressing all code-system display checks.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/validation.html:30,172-174",
+    "ref": { "path": "source/validation.html" },
+    "summary": "The validation overview lists Coding/CodeableConcept code/display validation but says validator quality depends on terminology definitions and human/spec inspection remains the final arbiter.",
+    "learned": "The current validation page does not create a mandatory ValueSet-display mismatch warning and already describes validator caveats.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes.html:696-704",
+    "ref": { "path": "source/datatypes.html", "line": 696 },
+    "summary": "Current Coding.display rules allow code-system displays/designations and explicitly exclude ValueSet.include.concept.display and ValueSet.include.concept.designation.value from Coding.display.",
+    "learned": "This later datatype clarification directly explains why a ValueSet concept display mismatch should not itself drive a Coding.display warning.",
+    "supports": ["current_source", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/valueset/operationdefinition-ValueSet-validate-code.xml:39-63,127-188; source/codesystem/operationdefinition-CodeSystem-validate-code.xml:99-153",
+    "ref": { "path": "source/valueset/operationdefinition-ValueSet-validate-code.xml" },
+    "summary": "ValueSet and CodeSystem $validate-code definitions include display/displayLanguage behavior and lenient-display-validation controls.",
+    "learned": "Current build-scope operation definitions already contain the later display-validation mechanics relevant to warning-versus-error behavior.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-226,269; source/valueset/list-ValueSet-operations.xml:12-15; source/codesystem/list-CodeSystem-operations.xml:12-15",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "ValueSet and CodeSystem are active resources and their operation lists reference the validate-code OperationDefinitions.",
+    "learned": "The inspected sources are in current build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "5c78e432eb; 154a3cec75; a0f10b1f20; ffad6112b2",
+    "ref": { "commit": "5c78e432eb5fa14e7d93718641c1cb6b4c882296" },
+    "summary": "FHIR-37603 changed datatypes.html to exclude ValueSet displays from Coding.display; combined branch already contains audits/fixes for FHIR-17218, FHIR-40770, and FHIR-41229.",
+    "learned": "The related issue family has already been reconciled in current source/history, so a new FHIR-19279 source edit would be duplicative or conflicting.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-37603, FHIR-40770, FHIR-41229",
+    "url": "https://jira.hl7.org/browse/FHIR-37603",
+    "snapshot_path": "contexts/FHIR-37603/jira/FHIR-37603.md",
+    "summary": "Later final issues clarify legal Coding.display values and validate-code display-language/severity behavior.",
+    "learned": "These final decisions provide the current interpretation that should govern FHIR-19279 rather than the older ValueSet-display warning wording alone.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community and idempotency searches for FHIR-19279 display validation",
+    "command": "bun run zulip:search fts 'FHIR 19279' --limit 10; bun run confluence:search refs jira FHIR-19279; bun run confluence:search snapshot 104765403; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-19279' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "query": "FHIR-19279 Coding.display ValueSet display validator warning",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence records for FHIR-19279 and no existing combined-branch FHIR-19279 audit were found; the 2022 Vocabulary WGM minutes reference FHIR-37603.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion, and the later meeting record supports the datatype clarification used here.",
+    "supports": ["absence_of_conflict", "idempotency", "confidence"]
+  }
+]
+</evidence-manifest>

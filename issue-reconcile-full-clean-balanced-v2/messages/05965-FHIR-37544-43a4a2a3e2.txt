@@ -1,0 +1,109 @@
+FHIR-37544: Audit Resource.id rendered type
+
+Issue request:
+FHIR-37544 was a Published/Persuasive with Modification FHIR-I change request raised against R4B because the HTML presentation for Resource.id on the Resource page rendered the type as string even though the underlying definition carried the id constraints. The resolution treated this as a rendering issue: Resource.id is a simple FHIRPath System.String with structuredefinition-fhir-type=id, and HL7/kindling#78 was filed so the renderer would display the constrained FHIR type.
+
+Initial application:
+No FHIR core source commit mentioning FHIR-37544 was found. The current core Resource source was already in the expected shape for this issue: the active Resource definition uses code http://hl7.org/fhirpath/System.String with structuredefinition-fhir-type valueUrl id. Related prior source work for FHIR-25274 added ElementDefinition documentation explaining how these simple FHIRPath string types and fhir-type constraints are meant to be interpreted.
+
+Additional context:
+The R4B published HTML still demonstrates the historic rendering problem by linking Resource.id to datatypes.html#string, while the R4B conformance JSON has structuredefinition-fhir-type=id. The current CI build now renders Resource.id as id in both resource-definitions.html and resource.html. The FHIR-I 2022-07-25 minutes record the vote for FHIR-37544, and the Zulip thread linked from Jira records Grahame's clarification that R4B's underlying structures were correct while the presentation was wrong. HL7/kindling#78 remains the external tooling issue for the renderer behavior.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current FHIR source and generated CI presentation already convey the correct Resource.id type to implementers, and a source edit would either duplicate the existing fhir-type mechanism or misrepresent why the underlying code remains FHIRPath System.String.
+
+Recommendation:
+Keep this no-change audit for the current FHIR core branch. If HL7 still wants a historical R4B technical correction, handle that through the publication/rendering tooling path rather than by changing the current Resource StructureDefinition source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37544
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25274: supporting-decision - explains and documents the System.String plus structuredefinition-fhir-type pattern that makes Resource.id carry id constraints without primitive child elements.
+FHIR-36036: background - nearby tooling decision about fhir-type values on Element/BackboneElement ids, but not the Resource.id R4B rendering defect decided here.
+FHIR-37465: background - nearby primitive snapshot-generation discussion mentioned in the Zulip thread, but it concerns other primitive datatypes and is not needed to decide FHIR-37544.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37544: Published/Persuasive with Modification; Resource.id rendered as string in R4B HTML while the underlying definition was correct, with HL7/kindling#78 filed for rendering. Learned: the issue is a tooling/presentation problem, not a request to change the core Resource source type semantics.
+- E2 Source source/fhir.ini:128-134 and source/resource/structuredefinition-Resource.xml:67-79: Resource is an active abstract resource and Resource.id has structuredefinition-fhir-type id plus FHIRPath System.String. Learned: the authoritative current source is in build scope and already expresses the intended constrained simple string pattern.
+- E3 Source source/elementdefinition.html:346-353 and Git a60a9ee277bb: FHIR-25274 added documentation for FHIRPath System.String plus structuredefinition-fhir-type constraints. Learned: the adjacent documentation already explains the mechanism that FHIR-37544 depends on.
+- E4 Published/current web check: R4B HTML shows Resource.id as string, while build.fhir.org renders Resource.id as id. Learned: the historic R4B problem is real, but the current build output is corrected.
+- E5 Zulip #implementers > Resource.id Data Type: Grahame stated that in R4B the underlying structures were correct but the presentation said string instead of id, and Ken created FHIR-37544. Learned: community discussion matches the Jira resolution and source reading.
+- E6 Confluence FHIR-I Minutes 2022-07-25 page 134943876: FHIR-37544 was voted Persuasive 10-0-0. Learned: the work group approved the issue as a final decision.
+- E7 Git/query checks: git log --grep FHIR-37544 found no core source commit, and HL7/kindling#78 is an approved external bug saying not to render simple string types as links to the FHIR string datatype. Learned: there is no missing current core source commit to replay; the implementation trail is in rendering/tooling.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37544",
+    "url": "https://jira.hl7.org/browse/FHIR-37544",
+    "snapshot_path": "contexts/FHIR-37544/jira/FHIR-37544.md",
+    "ref": { "jira_key": "FHIR-37544" },
+    "summary": "Published/Persuasive with Modification issue saying R4B Resource.id rendered as string in HTML though the underlying definition carried id constraints.",
+    "learned": "This establishes that the requested change was to correct rendering/tooling interpretation, not to change the current Resource StructureDefinition source semantics.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:128-134; source/resource/structuredefinition-Resource.xml:67-79",
+    "ref": { "path": "source/resource/structuredefinition-Resource.xml", "start_line": 67, "end_line": 79 },
+    "summary": "Resource is active in fhir.ini, and Resource.id uses FHIRPath System.String with structuredefinition-fhir-type valueUrl id.",
+    "learned": "The authoritative current source is in build scope and already conveys that Resource.id is a constrained id-valued simple string.",
+    "supports": ["source_state", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/elementdefinition.html:346-353; git a60a9ee277bbd8c4b2be9b0686c37f0bdfe6bf37",
+    "ref": { "commit": "a60a9ee277bbd8c4b2be9b0686c37f0bdfe6bf37", "path": "source/elementdefinition.html" },
+    "summary": "FHIR-25274 documentation explains FHIRPath System.String plus structuredefinition-fhir-type constraints for simple elements.",
+    "learned": "The current specification already documents the mechanism that prevents Resource.id from being understood as an unconstrained FHIR string.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "web",
+    "locator": "R4B and current CI Resource.id rendered pages",
+    "url": "https://build.fhir.org/resource-definitions.html#Resource.id",
+    "summary": "R4B resource-definitions.html still links Resource.id to string, while the current CI page and resource hierarchy render Resource.id as id.",
+    "learned": "The historic publication defect is reproducible, but the current build output is already corrected.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > Resource.id Data Type",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Resource.id%20Data%20Type",
+    "ref": { "stream": "implementers", "topic": "Resource.id Data Type" },
+    "summary": "The thread records that R4B underlying structures were correct but the presentation said string instead of id, after which FHIR-37544 was created.",
+    "learned": "Community evidence aligns with Jira: this was a rendering discrepancy around an otherwise-correct StructureDefinition.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2022-07-25 page 134943876",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/134943876/FHIR+Infrastructure+Minutes+CC+2022-07-25",
+    "ref": { "confluence_page_id": 134943876 },
+    "summary": "FHIR-I minutes record FHIR-37544 as Persuasive with a 10-0-0 motion.",
+    "learned": "This confirms the final work group approval reflected in Jira.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "web",
+    "locator": "HL7/kindling#78",
+    "url": "https://github.com/HL7/kindling/issues/78",
+    "ref": { "repo": "HL7/kindling", "issue_number": 78 },
+    "summary": "Kindling issue 78 asks the renderer not to show simple string types such as Resource.id as hyperlinks to the FHIR string datatype and references FHIR-37544.",
+    "learned": "The implementation target for the original defect is external rendering tooling, so no current core source hunk is missing.",
+    "supports": ["initial_application", "recommendation"]
+  }
+]
+</evidence-manifest>

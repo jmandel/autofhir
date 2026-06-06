@@ -1,0 +1,120 @@
+FHIR-22995: Clarify AdverseEvent severity handling
+
+Issue request:
+FHIR-22995 was Published/Persuasive with Modification for the Patient Care AdverseEvent resource. It asked to remove the event-level AdverseEvent.severity element because severity belongs on signs, symptoms, or resulting conditions rather than on the adverse event itself, and to clarify AdverseEvent.seriousness with examples contrasting severity and seriousness.
+
+Initial application:
+The issue was partially applied in 2019 by 05acdd8, which removed AdverseEvent.severity from the then-authoritative AdverseEvent spreadsheet/example and updated the AdverseEvent.seriousness definition/comment, and by 26b3f60, which removed the severity search parameter. The current source no longer defines an AdverseEvent.severity element or search parameter, and source/fhir.ini actively builds AdverseEvent while mapping the removed R4 severity element to Condition.severity via AdverseEvent.resultingEffect.
+
+Additional context:
+Later AdverseEvent changes renamed resultingCondition to resultingEffect (FHIR-34316) and then changed resultingEffect to CodeableReference (FHIR-48833). After those changes, the current seriousness comment referred to a non-existent AdverseEvent.resultingEffect.severity path, and the active Scope and Usage narrative still said adverse events are characterized by capturing unqualified severity, preserving the ambiguity FHIR-22995 intended to remove.
+
+AutoFHIR reconciliation:
+This commit updates the active AdverseEvent StructureDefinition source so the seriousness comment says AdverseEvent.resultingEffect can reference a Condition that has Condition.severity, rather than implying resultingEffect itself has a severity child. It also updates the active AdverseEvent introduction to describe capturing resulting effects on the subject, rather than unqualified event severity. The remaining references to severity are either unrelated contributing-factor wording, legacy unused terminology artifacts, or the intended Condition.severity contrast.
+
+Recommendation:
+Keep this source change as-is. It preserves the published FHIR-22995 decision, aligns the examples with the current resultingEffect model, and avoids reopening broader questions about unused legacy adverse-event-severity terminology that is no longer bound by AdverseEvent.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22995
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-22994: same-change-family - the same 2019 application commit updated the related AdverseEvent.seriousness value set and helps explain the seriousness terminology context.
+FHIR-34316: later-change - renamed AdverseEvent.resultingCondition to AdverseEvent.resultingEffect, requiring the FHIR-22995 comment to be interpreted against the new element name.
+FHIR-48833: later-change - changed AdverseEvent.resultingEffect to CodeableReference, making the stale AdverseEvent.resultingEffect.severity wording inaccurate.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22995: Published/Persuasive with Modification, voted 11-0-0 on 2019-08-01, requiring removal of AdverseEvent.severity and clarification of seriousness. Learned: this establishes final WG intent for the seed issue.
+- E2 Source source/fhir.ini:138 and source/fhir.ini:1569: AdverseEvent is active in the current build and maps removed AdverseEvent.severity to Condition.severity via AdverseEvent.resultingEffect. Learned: the edited AdverseEvent source is in current build scope and the old element is intentionally removed.
+- E3 Source source/adverseevent/structuredefinition-AdverseEvent.xml:385-392: current AdverseEvent.seriousness definition/comment carried the FHIR-22995 examples but used a stale resultingEffect.severity path. Learned: the authoritative element text needed correction after later model changes.
+- E4 Source source/adverseevent/adverseevent-introduction.xml:37-38: the active narrative still described capturing unqualified severity for adverse events. Learned: the narrative preserved the ambiguity that FHIR-22995 intended to remove.
+- E5 Git 05acdd8 and 26b3f60: the original application removed AdverseEvent.severity from the spreadsheet/example and removed its search parameter. Learned: the core structural removal was already applied, but later source still needed wording reconciliation.
+- E6 Jira/Git FHIR-34316, FHIR-48833, cd56c64, d30b111: later applied changes renamed resultingCondition to resultingEffect and made it CodeableReference. Learned: the current examples should refer to a referenced Condition.severity, not a child of resultingEffect.
+- E7 Confluence 58655551 and command searches: Patient Care minutes list GF#22995 with the AdverseEvent severity discussion; quoted Zulip and Confluence searches found no conflicting community rationale. Learned: community evidence supports the Jira/source conclusion and did not reveal a contrary decision.
+- E8 Verification command: XML parsing of the edited files, stale phrase rg checks, and CRLF-aware git diff --check passed. Learned: the source edit is syntactically valid and removes the targeted stale wording.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22995",
+    "url": "https://jira.hl7.org/browse/FHIR-22995",
+    "snapshot_path": "contexts/FHIR-22995/jira/FHIR-22995.md",
+    "ref": { "jira_key": "FHIR-22995" },
+    "summary": "Published/Persuasive with Modification AdverseEvent issue requiring removal of AdverseEvent.severity and a clarified seriousness definition/comment.",
+    "learned": "This is the final WG decision that severity belongs on resulting signs, symptoms, or conditions rather than directly on the adverse event.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:138, source/fhir.ini:1569",
+    "ref": { "path": "source/fhir.ini", "lines": "138,1569" },
+    "summary": "AdverseEvent is an active current-build resource, and the R4/R5 mapping records AdverseEvent.severity as redundant with Condition.severity referenced via AdverseEvent.resultingEffect.",
+    "learned": "The edited AdverseEvent source is in scope, and the removed element is intentionally represented through resulting Condition severity instead of event-level severity.",
+    "supports": ["source_change_scope", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/adverseevent/structuredefinition-AdverseEvent.xml:385-392",
+    "ref": { "path": "source/adverseevent/structuredefinition-AdverseEvent.xml", "lines": "385-392" },
+    "summary": "The AdverseEvent.seriousness comment carried the FHIR-22995 examples but referred to AdverseEvent.resultingEffect.severity.",
+    "learned": "After later model changes, the comment needed to point to a referenced Condition.severity rather than a non-existent resultingEffect child.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/adverseevent/adverseevent-introduction.xml:37-38",
+    "ref": { "path": "source/adverseevent/adverseevent-introduction.xml", "lines": "37-38" },
+    "summary": "The active Scope and Usage narrative still said adverse events are characterized by capturing unqualified severity.",
+    "learned": "That wording could still imply event-level severity, so it needed to be aligned with resulting effects on the subject.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "05acdd8f2cbeb3944e8cd114d28f7c7a3d2f5cb3; 26b3f60430afffffa05d0689165cfb4235cd2fa4",
+    "ref": { "commits": "05acdd8f2cbeb3944e8cd114d28f7c7a3d2f5cb3,26b3f60430afffffa05d0689165cfb4235cd2fa4" },
+    "summary": "The original application removed AdverseEvent.severity from the spreadsheet/example, clarified seriousness, and removed the severity search parameter.",
+    "learned": "The structural removal was implemented, leaving only current-source wording to reconcile.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-34316 and FHIR-48833",
+    "url": "https://jira.hl7.org/browse/FHIR-34316",
+    "ref": { "jira_keys": "FHIR-34316,FHIR-48833", "commits": "cd56c64aad2d9729209bf8268b4d6d9ee494714e,d30b11118f2fafe00deae85e2c460402be30089f" },
+    "summary": "Later final AdverseEvent issues renamed resultingCondition to resultingEffect and changed resultingEffect to CodeableReference.",
+    "learned": "Those changes require the FHIR-22995 examples to refer to a referenced Condition.severity instead of a resultingEffect.severity path.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "Patient Care FHIR Conference Call 2019-08-01 page 58655551",
+    "url": "https://confluence.hl7.org/spaces/PC/pages/58655551/2019-08-01+Patient+Care+FHIR+Conference+Call",
+    "ref": { "confluence_page_id": 58655551 },
+    "summary": "Patient Care minutes list GF#22995, AdverseEvent.severity - confusing, among the adverse event tracker discussions for that call.",
+    "learned": "The meeting trail is consistent with the Jira vote and does not narrow the source change differently.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Validation and negative community searches",
+    "command": "rg -n 'AdverseEvent\\.resultingEffect\\.severity|adverseEvent\\.seriousness|cause-and-effect.*severity' source/adverseevent/structuredefinition-AdverseEvent.xml source/adverseevent/adverseevent-introduction.xml; python3 XML parse; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; bun run zulip:search fts '\"FHIR-22995\" AdverseEvent severity seriousness' --limit 10; bun run confluence:search fts '\"FHIR-22995\" AdverseEvent severity seriousness' --limit 10",
+    "query": "FHIR-22995 AdverseEvent severity seriousness",
+    "result_count": 0,
+    "summary": "The targeted stale phrases were absent after editing, XML parsing and diff checks passed, and quoted community searches found no conflicting Zulip or Confluence records.",
+    "learned": "The source edit is valid and no discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["verification", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,121 @@
+FHIR-44746: Fix stale AuditEvent category names
+
+Attribution note: surfaced while reviewing FHIR-32443, but direct Jira backing for this change is FHIR-44746.
+
+Issue request:
+FHIR-32443 was Published/Persuasive with Modification for the Security work group. It asked why AuditEvent.type was required while AuditEvent.subtype/code-level detail was optional, and the approved R5 resolution changed AuditEvent.type to category 0..* and AuditEvent.subtype to code 1..1 with example bindings and updated DICOM mapping intent.
+
+Initial application:
+The issue was applied by a4a8e4475ffed8a639ac458dba61b68da343891e together with FHIR-32440 and FHIR-32451. That commit renamed AuditEvent.type/subtype to AuditEvent.category/code, updated the AuditEvent search parameters, and changed the Provenance.activity mapping from AuditEvent.subtype to AuditEvent.code. Security minutes from 2021-08-09 and 2021-11-15 record the planned and built type/subtype to code/category change.
+
+Additional context:
+FHIR-44746 is a later Applied/Persuasive with Modification Security decision that explicitly reversed the R5 category/code model back to type/subtype for compatibility with the historic ASTM/IETF/DICOM/IHE audit model. The current branch already contains the FHIR-44746 reconciliation that restores AuditEvent.type/subtype DICOM aliases and mappings in the active AuditEvent StructureDefinition. AuditEvent and Provenance are active resources in source/fhir.ini, so their source files are in build scope. After the reversal, two non-generated source locations still used the obsolete category/code names: the AuditEvent notes page and the Provenance-to-AuditEvent mapping. The remaining category/code hits in source/fhir.ini are intentional cross-version mappings, and source/auditevent/auditevent.svg is a generated-looking diagram artifact that was not manually edited.
+
+AutoFHIR reconciliation:
+This commit updates source/auditevent/auditevent-notes.xml so the common scenario table and search-event guidance use the current type/subtype element names. It also updates source/provenance/structuredefinition-Provenance.xml so Provenance.activity maps to AuditEvent.subtype instead of the removed AuditEvent.code element.
+
+Recommendation:
+Keep this source fix. It reconciles the FHIR-32443 application with the later FHIR-44746 reversal while preserving the current type/subtype model; regenerate diagram artifacts through the normal build if the checked-in AuditEvent SVG is still consumed by publication tooling.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32443
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-32440: same-change-family - discussed merging or renaming AuditEvent type/subtype and was applied in the same source commit as FHIR-32443.
+FHIR-44746: superseded-by - later Applied decision that reversed the FHIR-32443 R5 category/code model back to type/subtype.
+FHIR-41877: later-change - corrected DICOM mappings while the category/code model existed, explaining the intervening mapping history before FHIR-44746 restored type/subtype.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32443: Published/Persuasive with Modification; requested changing AuditEvent type/subtype to category/code with adjusted cardinalities and bindings. Learned: this establishes the seed issue and original R5 target.
+- E2 Git a4a8e4475ffe: applied FHIR-32443 by renaming AuditEvent type/subtype to category/code and changing the Provenance mapping to AuditEvent.code. Learned: the stale locations fixed here came from the seed issue's original application.
+- E3 Jira FHIR-44746: Applied/Persuasive with Modification; requested reverting AuditEvent back to type/subtype for DICOM and other audit-standard compatibility. Learned: this later final decision supersedes the category/code model for the current build.
+- E4 Source source/fhir.ini:170,217,224: AuditEvent and Provenance are active resources. Learned: the edited source files are in current build scope.
+- E5 Source source/auditevent/structuredefinition-AuditEvent.xml:114-182: AuditEvent.type and AuditEvent.subtype are the current active elements. Learned: prose and mappings should refer to type/subtype, not category/code.
+- E6 Source source/auditevent/auditevent-notes.xml:29-33,128 and source/provenance/structuredefinition-Provenance.xml:348-350: updated stale category/code prose and mapping to type/subtype. Learned: the remaining non-generated source inconsistency is fixed.
+- E7 Confluence/Zulip search: Security minutes show the 2021 code/category plan and the 2024 FHIR-44746 approval; targeted Zulip searches for FHIR-32443 and AuditEvent type/subtype/category/code found no conflicting discussion. Learned: discovered community evidence supports the Jira/source-history conclusion.
+- E8 Verification command: XML parsing, CRLF-aware diff check, and focused source searches completed. Learned: the edited XML is well-formed and remaining category/code hits are intentional migration mappings or generated-looking SVG.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32443",
+    "url": "https://jira.hl7.org/browse/FHIR-32443",
+    "snapshot_path": "contexts/FHIR-32443/jira/FHIR-32443.md",
+    "ref": { "jira_key": "FHIR-32443" },
+    "summary": "Published/Persuasive with Modification issue requesting AuditEvent type/subtype be changed to category/code with adjusted cardinalities and example bindings.",
+    "learned": "This is the seed issue and establishes the original R5 category/code target.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "a4a8e4475ffed8a639ac458dba61b68da343891e",
+    "ref": { "commit": "a4a8e4475ffed8a639ac458dba61b68da343891e" },
+    "summary": "Applied FHIR-32443 by renaming AuditEvent type/subtype to category/code and changing the Provenance.activity mapping to AuditEvent.code.",
+    "learned": "The stale mapping and notes terminology came from the original FHIR-32443 application.",
+    "supports": ["initial_application", "source_change"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-44746",
+    "url": "https://jira.hl7.org/browse/FHIR-44746",
+    "snapshot_path": "contexts/FHIR-44746/jira/FHIR-44746.md",
+    "ref": { "jira_key": "FHIR-44746" },
+    "summary": "Applied/Persuasive with Modification issue requesting AuditEvent revert from category/code back to type/subtype for DICOM and historic audit-model compatibility.",
+    "learned": "This later final decision supersedes the category/code model in the current build.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,217,224",
+    "ref": { "path": "source/fhir.ini", "lines": "170,217,224" },
+    "summary": "The [resources] section includes provenance=Provenance and auditevent=AuditEvent.",
+    "learned": "The edited AuditEvent notes and Provenance StructureDefinition source files are in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:114-182",
+    "ref": { "path": "source/auditevent/structuredefinition-AuditEvent.xml", "lines": "114-182" },
+    "summary": "AuditEvent.type and AuditEvent.subtype are the active current elements after the FHIR-44746 reversal.",
+    "learned": "Current prose and cross-resource mappings should use type/subtype instead of removed category/code element names.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/auditevent/auditevent-notes.xml:29-33,128; source/provenance/structuredefinition-Provenance.xml:348-350",
+    "ref": { "path": "source/auditevent/auditevent-notes.xml; source/provenance/structuredefinition-Provenance.xml", "lines": "29-33,128; 348-350" },
+    "summary": "The AuditEvent notes now label common-event columns as type/subtype and Provenance.activity now maps to AuditEvent.subtype.",
+    "learned": "The remaining non-generated source inconsistency from the category/code era is corrected.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-32443 and AuditEvent type/subtype/category/code",
+    "command": "bun run confluence:search refs jira FHIR-32443; bun run confluence:search fts '\"FHIR-32443\" AuditEvent category code' --limit 10; bun run confluence:search refs jira FHIR-44746; bun run zulip:search fts '\"FHIR-32443\" AuditEvent category code' --limit 10; bun run zulip:search fts 'AuditEvent category code type subtype DICOM' --limit 10",
+    "query": "FHIR-32443 AuditEvent category code; AuditEvent category code type subtype DICOM",
+    "summary": "Confluence minutes record the 2021 category/code application path and the 2024 FHIR-44746 approval; targeted Zulip searches found no conflicting discussion.",
+    "learned": "Community evidence supports relying on the Jira decisions and source history, with no discovered conflicting rationale.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML parse, diff check, and focused source search",
+    "command": "python - <<'PY' ... ET.parse(...) ... PY; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/auditevent/auditevent-notes.xml source/provenance/structuredefinition-Provenance.xml; rg 'AuditEvent\\.(category|code)\\b|<b>(category|code)</b>|The category is|The code SHOULD|category/code|code/category' source/auditevent source/provenance/structuredefinition-Provenance.xml source/fhir.ini",
+    "summary": "Edited XML parsed and diff whitespace check passed; remaining category/code hits were only fhir.ini migration mappings and the generated-looking AuditEvent SVG.",
+    "learned": "The source change is syntactically safe and bounded to the authoritative non-generated stale references.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,108 @@
+FHIR-28593: Audit MedicationStatement status record semantics
+
+Issue request:
+FHIR-28593 was a Published/Persuasive Pharmacy issue for the R5 MedicationUsage resource. It asked whether MedicationUsage.status was still needed and whether its value set should be narrowed; the approved resolution kept the status attribute, clarified that it is the status of the record rather than clinical medication-use status, and initially chose completed, entered-in-error, and unknown.
+
+Initial application:
+The issue was applied by f351511a957fc178e55907a68ff1016e2387aa80, whose commit message explicitly cites FHIR-28593. That commit changed the then-active source/medicationusage StructureDefinition, status CodeSystem, examples, and related files so MedicationUsage.status used completed, entered-in-error, and unknown with record-status-oriented wording instead of the older broader medication-use status codes.
+
+Additional context:
+Later Published Pharmacy decisions changed the same status family. FHIR-32060 removed unknown, renamed completed to recorded, added draft, and required a note that the status meanings differ from prior MedicationStatement releases. FHIR-32858 confirmed that the missing medication-use scenarios are represented by effective[x] and adherence rather than by restoring old status codes. FHIR-39271 later renamed MedicationUsage back to MedicationStatement while preserving the record-status model and stating that MedicationStatement.adherence carries taking/not-taking meaning. Those related issues are already represented on the combined branch, including FHIR-32060 as 6d07ea813b80a81dc3c3040e9e078ddd95df49ee, FHIR-32858 as d23bc1561f2919b1feeaad8baae92334beb40992, and FHIR-39271 as d5e940beb286ab92d70095420b10a3ad7a643d06.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active build uses source/medicationstatement and source/fhir.ini lists MedicationStatement as an active resource. MedicationStatement.status is defined as recorded | entered-in-error | draft, its definition says it represents the status of recording the medication statement, and its comment directs medication taking/adherence semantics to MedicationStatement.adherence. That is the correct current state after FHIR-28593 plus the later published decisions; reverting to completed/entered-in-error/unknown would contradict FHIR-32060 and FHIR-39271.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-28593 unless Pharmacy reopens the later MedicationStatement status/adherence model; any future reconsideration should start from FHIR-32060, FHIR-32858, and FHIR-39271 rather than the superseded initial FHIR-28593 value list alone.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-28593
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32060: later-change - replaced the initially applied completed/unknown status values with recorded/draft and confirmed the status-value redesign.
+FHIR-32858: supporting-decision - confirmed that medication-use scenarios should be represented through effective[x] and adherence rather than restoring old status codes.
+FHIR-39271: later-change - renamed MedicationUsage back to MedicationStatement while preserving record-status semantics and adherence for taking/not-taking meaning.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-28593: Published/Persuasive; keep status, clarify it is record status rather than medication-use clinical status, and initially use completed, entered-in-error, and unknown. Learned: this establishes the seed request and the original target semantics.
+- E2 Git f351511a957fc178e55907a68ff1016e2387aa80: changed MedicationUsage for FHIR-19468, FHIR-19470, and FHIR-28593, including status CodeSystem and StructureDefinition changes. Learned: the seed was explicitly applied before this reconciliation.
+- E3 Source source/fhir.ini:204 and source/medicationstatement/structuredefinition-MedicationStatement.xml:140-144: MedicationStatement is active and status is recorded | entered-in-error | draft with text limiting status to recording the medication statement and directing adherence semantics to MedicationStatement.adherence. Learned: the current build-scope source preserves FHIR-28593's record-status principle under later value-set decisions.
+- E4 Source source/medicationstatement/codesystem-medication-statement-status.xml:24-38 and valueset-medication-statement-status.xml:28-31: the current status terminology contains recorded, entered-in-error, and draft via the active CodeSystem/ValueSet. Learned: completed and unknown are intentionally absent after later decisions.
+- E5 Jira/Git FHIR-32060, FHIR-32858, FHIR-39271; combined commits 6d07ea813b80a81dc3c3040e9e078ddd95df49ee, d23bc1561f2919b1feeaad8baae92334beb40992, and d5e940beb286ab92d70095420b10a3ad7a643d06: later Published decisions retained record-status semantics while revising the values and rename-back wording. Learned: these decisions supersede the initial FHIR-28593 value list without reversing its core semantic clarification.
+- E6 Community Zulip #Medication > MedicationUsage.status and PHAR September 2020 WGM minutes page 86978002: Zulip records Jean Duteau tying the completed/entered-in-error/unknown state to FHIR-28593 and the later discussion leading to FHIR-32060; minutes reference FHIR-28593 in the Pharmacy WGM context. Learned: community evidence aligns with Jira/source history and revealed no conflicting current decision.
+- E7 Verification command/query: git log grep/pickaxe, current source rg checks, and combined-branch Issue-Reconcile-Key checks. Learned: the historical application, current source state, and already-published related audit commits support no additional source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-28593",
+    "url": "https://jira.hl7.org/browse/FHIR-28593",
+    "snapshot_path": "contexts/FHIR-28593/jira/FHIR-28593.md",
+    "ref": { "jira_key": "FHIR-28593" },
+    "summary": "Published/Persuasive issue keeping MedicationUsage.status, clarifying it is record status rather than clinical medication-use status, and initially selecting completed, entered-in-error, and unknown.",
+    "learned": "This establishes the original seed request and semantic intent to reconcile.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "f351511a957fc178e55907a68ff1016e2387aa80",
+    "ref": { "commit": "f351511a957fc178e55907a68ff1016e2387aa80" },
+    "summary": "Commit explicitly citing FHIR-28593 changed the then-active MedicationUsage status StructureDefinition, CodeSystem, and examples to the narrowed record-status model.",
+    "learned": "The seed had a substantive historical source application.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:204; source/medicationstatement/structuredefinition-MedicationStatement.xml:140-144",
+    "ref": { "path": "source/medicationstatement/structuredefinition-MedicationStatement.xml", "line": 140 },
+    "summary": "MedicationStatement is active in the build, and status is recorded | entered-in-error | draft with a record-status definition and adherence comment.",
+    "learned": "The active StructureDefinition retains FHIR-28593's record-status clarification under the later MedicationStatement name and value-set model.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationstatement/codesystem-medication-statement-status.xml:24-38; source/medicationstatement/valueset-medication-statement-status.xml:28-31",
+    "ref": { "path": "source/medicationstatement/codesystem-medication-statement-status.xml", "line": 24 },
+    "summary": "The active MedicationStatement status CodeSystem contains recorded, entered-in-error, and draft, and the ValueSet includes that CodeSystem.",
+    "learned": "The terminology surface intentionally reflects later published status decisions rather than the initial completed/unknown list.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-32060; FHIR-32858; FHIR-39271",
+    "url": "https://jira.hl7.org/browse/FHIR-39271",
+    "ref": { "jira_key": "FHIR-39271" },
+    "summary": "Later Published Pharmacy decisions removed unknown, renamed completed to recorded, added draft, kept status as record status, and assigned medication taking/not-taking semantics to adherence.",
+    "learned": "These later decisions supersede FHIR-28593's initial value list while preserving its record-status principle.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#Medication > MedicationUsage.status",
+    "url": "https://chat.fhir.org/#narrow/stream/Medication/topic/MedicationUsage.status",
+    "summary": "The thread records Jean Duteau tying the initial completed/entered-in-error/unknown state to FHIR-28593, followed by discussion that led to FHIR-32060's recorded/draft redesign.",
+    "learned": "Community discussion supports the Jira chronology and shows why the current value set differs from the initial FHIR-28593 list.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source and combined-branch checks",
+    "command": "git log --grep=FHIR-28593; rg -n 'recorded|entered-in-error|draft|status of recording|adherence should be used' source/medicationstatement/structuredefinition-MedicationStatement.xml source/medicationstatement/codesystem-medication-statement-status.xml source/medicationstatement/valueset-medication-statement-status.xml; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-28593' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "query": "FHIR-28593 MedicationStatement.status record status",
+    "summary": "History shows the explicit application commit, current source shows the record-status/adherence model, and the combined branch had no prior FHIR-28593 audit commit before this one.",
+    "learned": "A no-change audit commit is sufficient and non-duplicative.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

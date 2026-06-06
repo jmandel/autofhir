@@ -1,0 +1,119 @@
+FHIR-5731: Audit BodySite location collapse
+
+Issue request:
+FHIR-5731 was Published with a Persuasive with Modification OO decision for the DSTU1 BodySite resource. It asked to collapse the prior split between specific sites and relative sites, remove the need to choose between specificLocation and relativeLocation, change BodySite.name to BodySite.code, and collapse side, aspect, anatomical plane, and number into one repeating modifier CodeableConcept.
+
+Initial application:
+The issue appears to have been applied before this reconciliation in commit 30f165af9ed7458068df3a2b54b7b6b474f9772d, whose subject explicitly says it pre-applied #5716, #5731, and #5852 for the BodySite resource. In the BodySite spreadsheet patch, BodySite.specificLocation was marked deleted, BodySite.code was introduced as a CodeableConcept, and BodySite.modifier 0..* CodeableConcept was introduced with a definition covering laterality, relative location, directionality, number, and plane.
+
+Additional context:
+FHIR-5852 is the same-change-family issue from the same OO call and is audited separately in this reconciliation. Later current-build history changed names and shape without reversing the collapse: FHIR-11194 renamed BodySite.modifier to BodySite.qualifier, FHIR-13396 renamed BodySite to BodyStructure, FHIR-33129 restructured BodyStructure into includedStructure/excludedStructure backbones with structure/laterality/qualifier children, and FHIR-45256 split laterality from the general qualifier value set. source/fhir.ini confirms BodyStructure is active while BodySite is removed.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current authoritative BodyStructure source no longer has separate specificLocation or relativeLocation choices; it has includedStructure.structure as the coded anatomical structure, includedStructure.laterality as the separated laterality qualifier, and includedStructure.qualifier 0..* for other relative-location qualifiers. Current examples and value sets use this collapsed model, and the remaining BodySite.modifier reference is only a legacy rename map.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce retired BodySite location-choice source or edit current BodyStructure under FHIR-5731; any future modeling changes should be handled under current BodyStructure issues rather than reopening this DSTU1 disposition.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5731
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-5852: same-change-family - same OO call asked how to represent upper/lower/deep and pre-coordinated body-site concepts; audited separately in this reconciliation.
+FHIR-11194: later-change - renamed BodySite.modifier to BodySite.qualifier and is already represented on the combined branch.
+FHIR-13396: later-change - renamed BodySite to BodyStructure, explaining the current resource name.
+FHIR-33129: later-change - restructured BodyStructure into includedStructure/excludedStructure with laterality and qualifier children and is already represented on the combined branch.
+FHIR-45256: later-change - split laterality from the general qualifier value set and is already represented on the combined branch.
+FHIR-5716: background - was applied by the same historical commit but concerns the separate patient-association question, not the location/qualifier collapse decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5731: Published/Persuasive with Modification; requested removal of specificLocation/relativeLocation, name-to-code change, and collapse of side/aspect/plane/number into modifier. Learned: this establishes the issue request and approved target model.
+- E2 Git 30f165af9e: pre-applied #5716, #5731, and #5852 by deleting BodySite.specificLocation and adding BodySite.code plus BodySite.modifier 0..*. Learned: the issue was explicitly applied in historical BodySite source.
+- E3 Source source/fhir.ini:177,324,1449,2739: BodyStructure is active, BodySite is removed, BodySite became BodyStructure, and BodySite.modifier maps to BodySite.qualifier. Learned: current review belongs on BodyStructure and the old modifier name only survives in migration metadata.
+- E4 Source source/bodystructure/structuredefinition-BodyStructure.xml:149-154,166-185,208-223,394-409,459-465. Learned: current BodyStructure uses included/excluded structures with coded structure, laterality, and qualifier rather than old specific/relative choices.
+- E5 Source source/bodystructure/bodystructure-example.xml:15-48 and source/bodystructure/valueset-bodystructure-relative-location.xml:34-80. Learned: examples and value sets use the collapsed code plus laterality/qualifier model and include relative-location qualifiers.
+- E6 Jira/Git FHIR-11194, FHIR-13396, FHIR-33129, and FHIR-45256: later decisions renamed modifier to qualifier, renamed BodySite to BodyStructure, restructured BodyStructure, and separated laterality. Learned: current wording/shape differences are later intentional changes, not missed FHIR-5731 application.
+- E7 Community search: quoted Zulip search for FHIR-5731 BodySite modifier/relative location and Confluence refs search found no directly relevant hits. Learned: no discovered community evidence conflicts with the Jira/source/history conclusion.
+- E8 Verification command: git diff --check with CRLF-aware whitespace settings completed without output before the empty audit commit. Learned: there were no source edits or whitespace issues to publish for this audit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5731",
+    "url": "https://jira.hl7.org/browse/FHIR-5731",
+    "snapshot_path": "contexts/FHIR-5731/jira/FHIR-5731.md",
+    "ref": { "jira_key": "FHIR-5731" },
+    "summary": "Published/Persuasive with Modification OO issue requiring BodySite specific/relative location options to collapse into code plus modifier.",
+    "learned": "This establishes the final approved BodySite location-collapse target.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "30f165af9ed7458068df3a2b54b7b6b474f9772d",
+    "ref": { "commit": "30f165af9ed7458068df3a2b54b7b6b474f9772d" },
+    "summary": "Historical commit explicitly pre-applied #5716, #5731, and #5852 by deleting BodySite.specificLocation and adding BodySite.code plus BodySite.modifier 0..*.",
+    "learned": "The issue was applied in source history before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:177,324,1449,2739",
+    "ref": { "path": "source/fhir.ini", "lines": "177,324,1449,2739" },
+    "summary": "Current configuration builds BodyStructure, lists BodySite as removed, notes BodySite became BodyStructure, and maps BodySite.modifier to BodySite.qualifier.",
+    "learned": "The current active resource is BodyStructure and the legacy modifier path remains only as conversion metadata.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/bodystructure/structuredefinition-BodyStructure.xml:149-154,166-185,208-223,394-409,459-465",
+    "ref": { "path": "source/bodystructure/structuredefinition-BodyStructure.xml", "lines": "149-154,166-185,208-223,394-409,459-465" },
+    "summary": "Current BodyStructure uses included/excluded structures with coded structure, separated laterality, and repeating qualifier.",
+    "learned": "The active source implements the collapsed model rather than the obsolete specific/relative choice model.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/bodystructure/bodystructure-example.xml:15-48; source/bodystructure/valueset-bodystructure-relative-location.xml:34-80",
+    "summary": "Current example and qualifier value set use the collapsed code plus laterality/qualifier model and include relative-location concepts.",
+    "learned": "Parallel BodyStructure artifacts are aligned with the FHIR-5731 intent.",
+    "supports": ["current_source", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-11194, FHIR-13396, FHIR-33129, FHIR-45256",
+    "ref": { "jira_keys": "FHIR-11194,FHIR-13396,FHIR-33129,FHIR-45256" },
+    "summary": "Later final BodySite/BodyStructure decisions renamed modifier to qualifier, renamed BodySite to BodyStructure, restructured BodyStructure, and split laterality value sets.",
+    "learned": "Current source differences from the 2015 wording reflect later applied decisions rather than an incomplete FHIR-5731 application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community searches for FHIR-5731 BodySite modifier relative location",
+    "command": "bun run zulip:search fts '\"FHIR-5731\" BodySite modifier relative location' --limit 10; bun run confluence:search refs jira FHIR-5731",
+    "query": "FHIR-5731 BodySite modifier relative location",
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community evidence conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Worker diff check",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The command completed without output before creating the empty audit commit.",
+    "learned": "There were no source edits or whitespace issues to publish for FHIR-5731.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

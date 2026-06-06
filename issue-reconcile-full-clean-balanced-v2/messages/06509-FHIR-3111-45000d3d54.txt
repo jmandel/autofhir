@@ -1,0 +1,118 @@
+FHIR-3111: Audit Condition relationship split
+
+Issue request:
+FHIR-3111 was a Published FHIR-core Patient Care change request for Condition from the Initial Draft, resolved Persuasive with Modification for DSTU1. It asked to replace Condition.relatedItem, whose type code distinguished due-to from following relationships, with two separate associations: dueTo and occurredFollowing. The recorded decision was to drop the ConditionRelationshipType attribute, create two associations instead of one, and use extensions for any future relationship types.
+
+Initial application:
+The relevant historical source change appears in commit a7d4372eee6bc082995cfca0a3028c8f3afc48c9, which changed the Condition spreadsheet and examples from Condition.relatedItem to Condition.dueTo and Condition.occurredFollowing. The commit subject cross-labels two old tracker numbers, but its patch directly implements the relationship split requested by FHIR-3111 by removing Condition.relatedItem and ConditionRelationshipType rows and adding dueTo/occurredFollowing rows and search parameters.
+
+Additional context:
+Later published Patient Care decisions FHIR-7620 and FHIR-7621 refined the same relationship family: Condition.stage and Condition.evidence stayed in core, while dueTo and occurredFollowing moved from core Condition elements to standard extensions, with their target/detail representation normalized. Commit d9e60bf0bbf8924afe37bac0b3187b05d498573c applied that later decision. The current build actively includes Condition, no current core Condition source contains Condition.relatedItem, dueTo, or occurredFollowing elements, and the maintained Extension Pack contains active condition-dueTo and condition-occurredFollowing definitions for use on Condition.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current core Condition source already reflects the FHIR-3111 semantic outcome when later decisions are considered: the original combined relatedItem/type model is gone, the core resource is not supposed to carry dueTo/occurredFollowing as native elements anymore, and the relationship concepts remain available as standard extensions outside the core checkout.
+
+Recommendation:
+Keep this audit commit as-is. Reintroducing core Condition.dueTo or Condition.occurredFollowing would reverse later published Patient Care decisions, and adding redundant core narrative would not materially improve implementer understanding because the current Condition.evidence comment links causality to the condition-dueTo extension and the extension definitions are maintained in the Extension Pack.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3111
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7620: later-change - Published Patient Care decision that retained Condition.stage/evidence but moved dueTo and occurredFollowing out of core into extensions.
+FHIR-7621: later-change - Published Patient Care decision that normalized the moved dueTo/occurredFollowing extension target/detail naming.
+FHIR-13783: later-change - Published Patient Care decision that kept condition-dueTo and condition-occurredFollowing and added condition-related for unspecified Condition relationships.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3111: Published/Persuasive with Modification request to split Condition.relatedItem into dueTo and occurredFollowing and drop ConditionRelationshipType. Learned: this establishes the seed issue's final requested semantic change.
+- E2 Source source/fhir.ini:169-180: Condition is listed as an active resource in the current build. Learned: current Condition source is in scope for reconciliation.
+- E3 Source source/condition/structuredefinition-Condition.xml:796-806 and current-source search: Condition.evidence comments route causality to condition-dueTo, and no relatedItem/dueTo/occurredFollowing core elements remain in source/condition. Learned: the current core resource no longer exposes the obsolete combined relationship model.
+- E4 Git a7d4372eee6bc082995cfca0a3028c8f3afc48c9: historical patch replaced Condition.relatedItem/type/code/target and ConditionRelationshipType with Condition.dueTo and Condition.occurredFollowing rows and examples. Learned: the FHIR-3111 split was applied in the historical Condition source.
+- E5 Jira FHIR-7620 and FHIR-7621 plus Git d9e60bf0bbf8924afe37bac0b3187b05d498573c: later published decisions moved dueTo/following from core Condition elements to standard extensions. Learned: the absence of native core elements in the current build is intentional, not a missed FHIR-3111 application.
+- E6 Extension Pack input/definitions/Condition/StructureDefinition-condition-dueTo.xml:14-32,69-82 and StructureDefinition-condition-occurredFollowing.xml:14-32,68-80: active standard extensions apply to Condition and carry the due-to and occurred-following semantics. Learned: the relationship concepts remain maintained outside the core source checkout.
+- E7 Community search: direct Zulip and Confluence searches for FHIR-3111 with Condition.relatedItem/dueTo/occurredFollowing found no direct conflicting discussion; broader Zulip hits discuss the current extensions. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3111",
+    "url": "https://jira.hl7.org/browse/FHIR-3111",
+    "snapshot_path": "contexts/FHIR-3111/jira/FHIR-3111.md",
+    "ref": { "jira_key": "FHIR-3111" },
+    "summary": "Published/Persuasive with Modification Patient Care issue requiring Condition.relatedItem to be split into dueTo and occurredFollowing and the relationship type attribute dropped.",
+    "learned": "This is the final WG request being reconciled for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-180",
+    "ref": { "path": "source/fhir.ini", "start_line": 169, "end_line": 180 },
+    "summary": "The current build's active resources list includes condition=Condition.",
+    "learned": "Condition is in current core build scope, so source/condition is the right reconciliation surface.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/condition/structuredefinition-Condition.xml:796-806 and source/condition grep",
+    "ref": { "path": "source/condition/structuredefinition-Condition.xml", "start_line": 796, "end_line": 806 },
+    "summary": "Current Condition.evidence text points causality users to condition-dueTo, and a current source search found no Condition.relatedItem, native dueTo, native occurredFollowing, or ConditionRelationshipType element definitions in source/condition.",
+    "learned": "The obsolete combined relatedItem model is absent from current core Condition source, and native dueTo/occurredFollowing elements are not currently intended there.",
+    "supports": ["reconciliation", "absence_of_conflict"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "a7d4372eee6bc082995cfca0a3028c8f3afc48c9",
+    "ref": { "commit": "a7d4372eee6bc082995cfca0a3028c8f3afc48c9" },
+    "summary": "Historical Condition patch replaced Condition.relatedItem rows with Condition.dueTo and Condition.occurredFollowing rows and updated examples/search parameters.",
+    "learned": "FHIR-3111's relationship split was applied in the historical source even though the commit subject cross-labels the old tracker numbers.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-7620 and FHIR-7621",
+    "url": "https://jira.hl7.org/browse/FHIR-7620",
+    "ref": { "jira_key": "FHIR-7620" },
+    "summary": "FHIR-7620 resolved to retain Condition.stage/evidence but make dueTo and occurredFollowing extensions; FHIR-7621 resolved naming details for those moved extensions.",
+    "learned": "Later final decisions supersede the temporary native-element representation created for FHIR-3111.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "d9e60bf0bbf8924afe37bac0b3187b05d498573c",
+    "ref": { "commit": "d9e60bf0bbf8924afe37bac0b3187b05d498573c" },
+    "summary": "Commit #7620/#7621 removed dueTo examples from Condition and moved dueTo/following to standard extensions.",
+    "learned": "The current absence of native dueTo/occurredFollowing elements is historically intentional.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/Condition/StructureDefinition-condition-dueTo.xml and StructureDefinition-condition-occurredFollowing.xml",
+    "ref": { "path": "/home/jmandel/work/fhir-extensions/input/definitions/Condition" },
+    "summary": "The Extension Pack contains active condition-dueTo and condition-occurredFollowing StructureDefinitions with context Condition and CodeableConcept/Reference values.",
+    "learned": "The split relationship semantics remain available through maintained standard extensions rather than core elements.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-3111 Condition relationship terms",
+    "command": "bun run zulip:search fts '\"FHIR-3111\" Condition relatedItem dueTo occurredFollowing' --limit 10; bun run confluence:search refs jira FHIR-3111; bun run confluence:search fts '\"FHIR-3111\" \"Condition.relatedItem\"' --limit 10",
+    "query": "FHIR-3111 Condition relatedItem dueTo occurredFollowing",
+    "result_count": 0,
+    "summary": "Direct community searches found no Zulip or Confluence records that conflict with the Jira/source/history conclusion.",
+    "learned": "No discovered community discussion changes the no-change reconciliation decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

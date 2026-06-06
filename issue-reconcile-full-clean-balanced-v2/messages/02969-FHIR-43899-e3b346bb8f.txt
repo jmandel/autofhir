@@ -1,0 +1,118 @@
+FHIR-43899: Audit actor capability inversion fix
+
+Issue request:
+FHIR-43899 was Applied/Persuasive for R6 by FHIR-I. It asked to correct the inverted ActorDefinition/CapabilityStatement relationship by removing ActorDefinition.capabilities and adding a core CapabilityStatement element that lets a CapabilityStatement assert compliance with one or more ActorDefinitions.
+
+Initial application:
+The issue was applied by HL7/fhir PR #3336. Commit db866c231910b3f472173d237ce125a64aa96da4 removed ActorDefinition.capabilities from source/actordefinition/structuredefinition-ActorDefinition.xml and added CapabilityStatement.actorDefinition to source/capabilitystatement/structuredefinition-CapabilityStatement.xml; commit 36baeea957b69428a397ec6c6de47e8a306ccc41 added isSummary to the new element; merge commit 3078027a407d7c5ea1b145b42d912fb340154353 landed the PR.
+
+Additional context:
+A Zulip implementation thread for FHIR-43899 records Gino Canessa confirming that CapabilityStatement.actorDefinition should be 0..* because one CapabilityStatement can support multiple actors. FHIR-I minutes from 2024-01-22 record the 15-0-0 persuasive motion, and 2024-04-22 minutes plus FHIR-42975 confirm that the intended solution is a CapabilityStatement-to-ActorDefinition pointer rather than an implementationGuide extension. FHIR-44471 had already aligned ActorDefinition introduction text with CapabilityStatement references.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current combined branch has ActorDefinition as an active resource, has no ActorDefinition.capabilities element in the current ActorDefinition StructureDefinition, has CapabilityStatement.actorDefinition as a 0..* canonical to ActorDefinition with isSummary=true, and records the R5-to-R6 removal/addition in source/fhir.ini.
+
+Recommendation:
+Keep this audit commit as-is. No further core source work is recommended for FHIR-43899 unless the work group later wants different wording for the CapabilityStatement.actorDefinition definition; current source implements the approved direction and the later 0..* clarification.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-43899
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-42975: supporting-decision - resolved No Change because FHIR-43899 supplies the needed CapabilityStatement-to-ActorDefinition pointer without an implementationGuide extension.
+FHIR-44471: same-change-family - earlier ActorDefinition scope-and-usage clarification includes CapabilityStatement as a place that can reference ActorDefinitions.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-43899: Applied/Persuasive R6 FHIR-core ActorDefinition issue with a 15-0-0 FHIR-I vote. Learned: establishes final WG intent to remove ActorDefinition.capabilities and add the inverse CapabilityStatement pointer.
+- E2 Git db866c2319/36baeea957/3078027a40: PR #3336 removed ActorDefinition.capabilities, added CapabilityStatement.actorDefinition, then added isSummary and merged. Learned: shows the original application path and exact source changes.
+- E3 Source source/capabilitystatement/structuredefinition-CapabilityStatement.xml:395: CapabilityStatement.actorDefinition is present as 0..* canonical to ActorDefinition with isSummary. Learned: the current authoritative CapabilityStatement definition implements the new element.
+- E4 Source source/actordefinition/structuredefinition-ActorDefinition.xml:443: ActorDefinition.reference is followed by ActorDefinition.baseDefinition with no ActorDefinition.capabilities element. Learned: the old inverse element is absent from the current authoritative ActorDefinition definition.
+- E5 Source source/fhir.ini:304,2088,2115: ActorDefinition is an active resource; the R5-R6 change list records ActorDefinition.capabilities removed and CapabilityStatement.actorDefinition added. Learned: the edited artifacts are in build scope and release-diff metadata matches the issue.
+- E6 Zulip #fhir/infrastructure-wg > FHIR-43899: Yunwei Wang asked how to define the new element; Gino Canessa confirmed 0..*. Learned: supports the current cardinality and wording direction.
+- E7 Confluence FHIR-I minutes 2024-01-22 and 2024-04-22: minutes record the persuasive vote for FHIR-43899 and later use it to close FHIR-42975 with no further change. Learned: no conflicting work-group decision was found.
+- E8 Verification command: git grep on the combined branch found CapabilityStatement.actorDefinition in current source and no current ActorDefinition.capabilities element outside release history. Learned: current source is already reconciled.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-43899",
+    "url": "https://jira.hl7.org/browse/FHIR-43899",
+    "snapshot_path": "contexts/FHIR-43899/jira/FHIR-43899.md",
+    "ref": { "jira_key": "FHIR-43899" },
+    "summary": "Applied/Persuasive R6 issue requiring removal of ActorDefinition.capabilities and addition of a CapabilityStatement element that points to ActorDefinitions.",
+    "learned": "This establishes the final work-group direction for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "db866c2319, 36baeea957, 3078027a40",
+    "url": "https://github.com/HL7/fhir/pull/3336",
+    "ref": { "commit": "db866c231910b3f472173d237ce125a64aa96da4", "pull_request": 3336 },
+    "summary": "PR #3336 removed ActorDefinition.capabilities, added CapabilityStatement.actorDefinition, added isSummary, and merged on 2025-03-03.",
+    "learned": "The issue was explicitly applied in the source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/capabilitystatement/structuredefinition-CapabilityStatement.xml:395-405",
+    "ref": { "path": "source/capabilitystatement/structuredefinition-CapabilityStatement.xml", "line": 395 },
+    "summary": "CapabilityStatement.actorDefinition is a 0..* canonical element targeting ActorDefinition and marked isSummary.",
+    "learned": "The current authoritative CapabilityStatement source has the new inverse pointer requested by the issue.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/actordefinition/structuredefinition-ActorDefinition.xml:443-453",
+    "ref": { "path": "source/actordefinition/structuredefinition-ActorDefinition.xml", "line": 443 },
+    "summary": "ActorDefinition.reference is followed by ActorDefinition.baseDefinition; the prior ActorDefinition.capabilities element is absent.",
+    "learned": "The current authoritative ActorDefinition source no longer contains the inverted pointer.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:304,2088,2115",
+    "ref": { "path": "source/fhir.ini", "line": 304 },
+    "summary": "ActorDefinition is active in the resource list, and R5-R6 changes record ActorDefinition.capabilities removed and CapabilityStatement.actorDefinition added.",
+    "learned": "The relevant source files are in build scope and the release-diff metadata agrees with the applied change.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#fhir/infrastructure-wg > FHIR-43899",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir%2Finfrastructure-wg/topic/FHIR-43899",
+    "ref": { "stream": "fhir/infrastructure-wg", "topic": "FHIR-43899" },
+    "summary": "Yunwei Wang proposed the CapabilityStatement.actorDefinition definition and Gino Canessa confirmed it should be 0..*.",
+    "learned": "This supports the current 0..* cardinality and confirms no missing 0..1 constraint is needed.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "FHIR-I minutes 2024-01-22 and 2024-04-22",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/216240953/FHIR+Infrastructure+Minutes+CC+2024-01-22",
+    "ref": { "confluence_page_id": 216240953 },
+    "summary": "Minutes record the FHIR-43899 persuasive motion and later closure of FHIR-42975 because FHIR-43899 covered the needed change.",
+    "learned": "Work-group minutes support the Jira decision and reveal no contrary later decision.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Combined branch source grep for actor capability relationship",
+    "command": "git grep -n -E 'ActorDefinition\\.capabilities|CapabilityStatement\\.actorDefinition|actorDefinition' robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source",
+    "summary": "The combined branch contains the current CapabilityStatement.actorDefinition source and R5-R6 diff metadata, with ActorDefinition.capabilities only in release history/generated-history contexts.",
+    "learned": "The combined branch already satisfies the issue without another source edit.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

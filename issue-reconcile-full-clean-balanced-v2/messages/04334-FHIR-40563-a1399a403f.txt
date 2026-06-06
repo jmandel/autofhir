@@ -1,0 +1,99 @@
+FHIR-40563: Audit string and markdown regex correction
+
+Issue request:
+FHIR-40563 was a Published FHIR-core datatypes issue resolved Persuasive with Modification for R5. It reported that the R5 string regex `[ \r\n\t\S]+` rejected a string made only of non-ASCII Unicode whitespace and resolved to simplify the regex and use the same regex for markdown.
+
+Initial application:
+No commit explicitly mentioning FHIR-40563 was found. The issue appears to have been applied implicitly by commit b4c3af0a97b6ef5d8db2c49745c9e98ff7ab0341, which replaced the active string regex `[ \r\n\t\S]+` and markdown regex `\s*(\S|\s)*` in `source/datatypes/primitives.xml` with the same `^[\s\S]+$` expression.
+
+Additional context:
+The active datatype source is in build scope through `source/fhir.ini` type-page routing to `datatypes`. FHIR-I minutes record the same-call persuasive-with-modification revote. A Zulip follow-up from Grahame Grieve explains that Java did not treat `.+` equivalently for the Unicode whitespace sample while `[\s\S]+` did, supporting the current implementation as the safer expression of the resolution's intended non-empty string/markdown rule. The previous `[ \r\n\t\S]+` regex remains only in historical release snapshots under `tools/history`, not in current active source.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active primitive datatype source already uses the same regex for string and markdown, accepts the all-whitespace Unicode sample that triggered the issue, and no current build-scoped source still uses the rejected R5 regex.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR core source follow-up is needed for FHIR-40563 unless the work group later chooses a different cross-language regex notation for primitive strings.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-40563
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-37368: same-change-family - prior primitive-type regex alignment introduced or preserved the `[ \r\n\t\S]+` string regex later corrected for FHIR-40563.
+FHIR-38714: background - markdown datatype clarification established markdown as a string and explains why FHIR-40563 also aligned the markdown regex.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-40563: Published/Persuasive with Modification datatypes issue requiring the R5 string regex problem to be corrected and the same regex used for markdown. Learned: final WG intent was to allow non-empty string/markdown content including Unicode whitespace rejected by the old regex.
+- E2 Source source/datatypes/primitives.xml:166 and :334: string and markdown both currently use `^[\s\S]+$`. Learned: the active source already reflects the intended shared non-empty-content regex.
+- E3 Git b4c3af0a97b6ef5d8db2c49745c9e98ff7ab0341: changed string from `[ \r\n\t\S]+` and markdown from `\s*(\S|\s)*` to `^[\s\S]+$`. Learned: FHIR-40563 was applied implicitly even though the commit did not mention the Jira key.
+- E4 Zulip #fhir/infrastructure-wg > String/markdown regex: Grahame noted that Java passed the Unicode whitespace sample with `[\s\S]+` but not with `.+`. Learned: the current regex is an intentional safer implementation of the resolution intent rather than a missed literal `^.+$` edit.
+- E5 Confluence FHIR Infrastructure Minutes CC 2023-03-06 page 161054954: minutes record FHIR-40563 reopening and persuasive-with-modification revote. Learned: the Jira disposition is confirmed by WG minutes.
+- E6 Verification command: Python regex check and git grep showed the issue sample fails the old regex, passes `^[\s\S]+$`, and the old regex is absent outside `tools/history`. Learned: no active current-source correction remains.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-40563",
+    "url": "https://jira.hl7.org/browse/FHIR-40563",
+    "snapshot_path": "contexts/FHIR-40563/jira/FHIR-40563.md",
+    "ref": { "jira_key": "FHIR-40563" },
+    "summary": "Published/Persuasive with Modification datatypes issue reporting that the R5 string regex `[ \\r\\n\\t\\S]+` rejected Unicode whitespace-only strings and requiring the same corrected regex for markdown.",
+    "learned": "This establishes final WG intent to allow non-empty string and markdown content including Unicode whitespace rejected by the old regex.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:166,334",
+    "ref": { "path": "source/datatypes/primitives.xml", "lines": "166,334" },
+    "summary": "The active primitive datatype spreadsheet source has `^[\\s\\S]+$` for both string and markdown.",
+    "learned": "The current source already implements a shared non-empty regex for both affected primitive types.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "b4c3af0a97b6ef5d8db2c49745c9e98ff7ab0341",
+    "ref": { "commit": "b4c3af0a97b6ef5d8db2c49745c9e98ff7ab0341" },
+    "summary": "Commit `fix string and markdown regex values` replaced the old string and markdown regexes with `^[\\s\\S]+$`.",
+    "learned": "This is the implementation event for FHIR-40563 even though the commit message lacks the Jira key.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "zulip",
+    "locator": "#fhir/infrastructure-wg > String/markdown regex",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir%2Finfrastructure-wg/topic/String%2Fmarkdown%20regex",
+    "snapshot_path": "contexts/FHIR-40563/zulip/fhir-infrastructure-wg--String-markdown-regex.md",
+    "ref": { "stream": "fhir/infrastructure-wg", "topic": "String/markdown regex" },
+    "summary": "Grahame Grieve explained that Java passed the Unicode whitespace sample with `[\\s\\S]+` but not with `.+`.",
+    "learned": "This supports treating the current regex as the correct implementation of the issue intent despite not using the literal `^.+$` text from the Jira resolution.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2023-03-06 page 161054954",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/161054954/FHIR+Infrastructure+Minutes+CC+2023-03-06",
+    "snapshot_path": "contexts/FHIR-40563/confluence/161054954.md",
+    "ref": { "confluence_page_id": 161054954 },
+    "summary": "Minutes record FHIR-40563 reopening and persuasive-with-modification revote on the same call.",
+    "learned": "The WG decision in Jira is corroborated by meeting minutes.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Regex verification and active-source grep",
+    "command": "python3 - <<'PY' ...; git grep -n -F '^[\\s\\S]+$' -- source/datatypes/primitives.xml; git grep -n -F '[ \\r\\n\\t\\S]+' -- . ':!tools/history' ':!publish' ':!temp' ':!tmp'",
+    "summary": "The issue sample failed the old regex, passed the current regex, and the old regex was absent outside historical release snapshots.",
+    "learned": "No build-scoped current source still needs a FHIR-40563 fix.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

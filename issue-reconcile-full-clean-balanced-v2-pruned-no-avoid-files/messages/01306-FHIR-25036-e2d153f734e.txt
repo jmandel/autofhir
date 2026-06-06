@@ -1,0 +1,98 @@
+FHIR-25036: Fix Device distributor path
+
+Issue request:
+FHIR-25036 was Published as Persuasive with Modification for FHIR-core Device. It asked whether Device.manufacturer really identifies the manufacturer versus a labeler or other legally responsible party; the final decision left Device.manufacturer as-is and added Device.distributor with name and organizationReference children.
+
+Initial application:
+The Jira application comment points to PR/commit 949e41e, whose underlying source commit c1f487b940 added Device.distributor to source/device/structuredefinition-Device.xml. That source application created the requested backbone and children, but accidentally placed the human description in the element path attribute instead of the canonical path, leaving Device.distributor without a valid path.
+
+Additional context:
+Device is an active resource in source/fhir.ini, so source/device/structuredefinition-Device.xml is in current build scope. Device.manufacturer already says it may be the manufacturer or entity legally responsible for the device. The related DeviceDefinition distributor discussion was handled separately: FHIR-29727 was withdrawn/duplicate, and FHIR-30503 later added DeviceDefinition.packaging.distributor while explicitly avoiding a top-level DeviceDefinition.distributor.
+
+AutoFHIR reconciliation:
+This commit corrects the Device.distributor path to Device.distributor and preserves the misplaced descriptive text as the element short description. It does not change DeviceDefinition or re-open the manufacturer naming decision.
+
+Recommendation:
+Keep this source fix as-is. It repairs the conformance source for the already-approved Device.distributor element without broadening FHIR-25036 beyond the published resolution or conflicting with the later DeviceDefinition packaging decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25036
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-29727: duplicate - requested DeviceDefinition.distributor but was withdrawn in favor of FHIR-30503, so it is context rather than a separate decision here.
+FHIR-30503: later-change - moved the DeviceDefinition distributor concept into DeviceDefinition.packaging.distributor and said not to apply a top-level DeviceDefinition.distributor.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25036: Published/Persuasive with Modification; resolution leaves Device.manufacturer as-is and adds Device.distributor with name and organizationReference. Learned: this establishes the final Device change being reconciled.
+- E2 Source source/fhir.ini:185 and source/device/structuredefinition-Device.xml:1403: Device is active and Device.distributor is in the active StructureDefinition. Learned: the edited source is in current build scope and directly controls the conformance artifact.
+- E3 Git c1f487b940 / 949e41e: Device.distributor was introduced for this issue, but the added element used the descriptive phrase as the path. Learned: the remaining problem is an implementation error in the original application, not a new policy change.
+- E4 Jira FHIR-29727 and FHIR-30503: DeviceDefinition distributor was withdrawn/superseded, and FHIR-30503 added packaging.distributor instead. Learned: no top-level DeviceDefinition edit should be made for FHIR-25036.
+- E5 Confluence 2020-12-18/2021-01-08 Catalog minutes and Zulip search: Catalog minutes discussed manufacturer/distributor/labeler in light of FHIR-25036; targeted Zulip searches found no conflicting discussion. Learned: community evidence supports the bounded Device/DeviceDefinition split and reveals no conflict with the fix.
+- E6 Verification command/query: xmllint parsed source/device/structuredefinition-Device.xml and XPath returned path=Device.distributor; rg found no remaining bad path phrase. Learned: the corrected source is well-formed and the specific defect is removed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25036",
+    "url": "https://jira.hl7.org/browse/FHIR-25036",
+    "snapshot_path": "contexts/FHIR-25036/jira/FHIR-25036.md",
+    "ref": { "jira_key": "FHIR-25036" },
+    "summary": "Published/Persuasive with Modification issue asking whether Device.manufacturer should represent labeler or another responsible party, resolved by leaving manufacturer as-is and adding Device.distributor.",
+    "learned": "This establishes the approved Device distributor change and the decision not to rename Device.manufacturer.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:185; source/device/structuredefinition-Device.xml:1403",
+    "ref": { "file": "source/device/structuredefinition-Device.xml", "line": 1403 },
+    "summary": "Device is active in fhir.ini and Device.distributor is defined in the active Device StructureDefinition source.",
+    "learned": "The edited file is in current build scope and is the authoritative source for the Device.distributor conformance element.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "c1f487b940d71626bfd3a804d5fdba6b50f816d0; 949e41e152017c242e769628995cd7b7280f1c53",
+    "ref": { "commit": "c1f487b940d71626bfd3a804d5fdba6b50f816d0" },
+    "summary": "The source commit adding Device.distributor placed the description text in the path value instead of using Device.distributor.",
+    "learned": "The reconciliation is correcting an original application defect in the approved element rather than changing the WG decision.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-30503 and FHIR-29727",
+    "url": "https://jira.hl7.org/browse/FHIR-30503",
+    "snapshot_path": "contexts/FHIR-30503/jira/FHIR-30503.md",
+    "ref": { "jira_key": "FHIR-30503" },
+    "summary": "FHIR-29727 requested DeviceDefinition.distributor but was withdrawn; FHIR-30503 added DeviceDefinition.packaging.distributor and said not to apply top-level DeviceDefinition.distributor.",
+    "learned": "The current reconciliation should stay limited to Device.distributor and should not add a separate top-level DeviceDefinition distributor.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Community search for FHIR-25036 Device manufacturer distributor labeler",
+    "command": "bun run zulip:search fts '\"FHIR-25036\" Device manufacturer distributor labeler' --limit 10; bun run confluence:search fts '\"FHIR-25036\" Device manufacturer distributor labeler' --limit 10",
+    "query": "FHIR-25036 Device manufacturer distributor labeler",
+    "summary": "Zulip returned no results; Confluence found Catalog minutes discussing manufacturer/distributor/labeler in light of FHIR-25036.",
+    "learned": "No discovered community discussion conflicts with the Jira/source conclusion, and meeting notes support treating DeviceDefinition distributor as a related but separate packaging discussion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Targeted XML and XPath verification",
+    "command": "xmllint --noout source/device/structuredefinition-Device.xml; xmllint --xpath 'string(//*[local-name()=\"element\"][@id=\"Device.distributor\"]/*[local-name()=\"path\"]/@value)' source/device/structuredefinition-Device.xml; rg '<path value=\"The distributor of the model of device\"' source",
+    "summary": "The XML is well-formed, XPath returns Device.distributor for the element path, and no remaining bad path value was found.",
+    "learned": "The specific conformance-source defect has been corrected without introducing XML or whitespace errors.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

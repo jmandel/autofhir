@@ -1,0 +1,106 @@
+FHIR-18991: Audit subscription payload MIME handling
+
+Issue request:
+FHIR-18991 was a Published / Persuasive with Modification STU3 Subscription issue. It asked to correct the SMS guidance that said payload could be set to false even though Subscription.channel.payload was a string, to change payload to a code bound to Mimetype, and to revise the SMS note so omitted channel.payload means no payload is sent without prohibiting SMS or SMTP payloads entirely.
+
+Initial application:
+The Jira comment cites git 80086b8f22b9b182c473fbb7b7a446d7aafbd37c, whose tree already contains the applied Subscription.channel.payload row as 0..1 code with a MimeType binding and the corrected SMS note. The direct source diff appears immediately before that in 7a2e56398d9cb0ad4541c35027c8e855c2b0b764, which changed the old spreadsheet row from string to code/MimeType and revised the SMS note from "payload should be set to false" to guidance that channel.payload will usually be omitted. Commit 80086b8f mainly added the companion FHIR-18989 tracking narrative, so it is relevant as the Jira-tagged application point but not the only payload-specific source change.
+
+Additional context:
+Later Subscription redesigns replaced the old Subscription.channel.payload element with Subscription.contentType for MIME selection and Subscription.content for the amount of notification content. The current Subscription resource is active in source/fhir.ini, and its Subscription.contentType element is a code with a required binding to ValueSet/mimetypes. Current Subscription narrative no longer has an SMS channel section; SMS was removed from the narrative in fb3fe3195848fb543677d2135c68a54c6a999a4b, while the current email channel guidance explains text/plain, text/html, FHIR attachments, and PHI limits. Related email/payload issues FHIR-18992 and FHIR-21286 are already represented on the combined branch and were not duplicated here.
+
+AutoFHIR reconciliation:
+This is an empty no-change audit commit. No source edit is needed because the current built Subscription source already preserves the FHIR-18991 semantics in its renamed/current elements, and the obsolete SMS prose that FHIR-18991 corrected is no longer in the current Subscription page.
+
+Recommendation:
+Keep this audit commit as-is. Future payload changes should be made against Subscription.contentType, Subscription.content, or channel-specific narrative rather than reintroducing Subscription.channel.payload or SMS-specific guidance in core.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-18991
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-18992: same-change-family - Follow-up SMS/email text/plain issue depended on FHIR-18991's payload-as-MIME-code decision; it is already represented on the combined branch by 46cce480c5.
+FHIR-21286: later-change - Later email delivery issue refined body/attachment MIME guidance now visible in the current email channel narrative; it is already represented on the combined branch by baa51831c8.
+FHIR-18989: background - Shares the Jira-commented historical commit 80086b8f but concerns removing Subscription.tag and tracking notifications, not the payload MIME/SMS issue decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-18991: Published / Persuasive with Modification issue requiring Subscription.channel.payload to become code-bound-to-Mimetype and replacing the invalid "set to false" SMS note with omitted-payload guidance. Learned: this is the final WG request being audited.
+- E2 Git 7a2e56398d9cb0ad4541c35027c8e855c2b0b764 and 80086b8f22b9b182c473fbb7b7a446d7aafbd37c: historical source showed the old row changed from string to code/MimeType and the SMS note changed to omitted-channel.payload wording, with 80086b8f cited by Jira as the application commit. Learned: the STU3-era source application existed even though the Jira-cited commit also covered neighboring work.
+- E3 Source source/fhir.ini:234 and source/subscription/structuredefinition-Subscription.xml:433: current build includes Subscription, and Subscription.contentType is a code with required ValueSet/mimetypes binding. Learned: the current authoritative source carries the MIME-as-code rule in the renamed/current element.
+- E4 Source source/subscription/subscription-notes.xml:291: current email channel narrative describes Subscription.contentType/Subscription.content, text/plain/text/html body content, FHIR attachments, and PHI limits. Learned: current email payload guidance is materially more specific than the original request and does not need another edit.
+- E5 Git fb3fe3195848fb543677d2135c68a54c6a999a4b and current source search: SMS was removed from Subscription narrative, and current source/subscription contains no active SMS guidance except an old proposal note. Learned: there is no stale SMS instruction in the current build to correct.
+- E6 Community search: Zulip and Confluence searches for FHIR-18991, Subscription.channel.payload, SMS, and email found no directly relevant or conflicting community records. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E7 Combined-branch idempotency checks: no FHIR-18991 Issue-Reconcile-Key existed before this commit, while FHIR-18992 and FHIR-21286 already had audit commits. Learned: publishing only FHIR-18991 avoids duplicate related-issue commits.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-18991",
+    "url": "https://jira.hl7.org/browse/FHIR-18991",
+    "snapshot_path": "contexts/FHIR-18991/jira/FHIR-18991.md",
+    "ref": { "jira_key": "FHIR-18991" },
+    "summary": "Published/Persuasive with Modification STU3 Subscription issue asking to change channel.payload from string to code bound to Mimetype and revise invalid SMS payload=false guidance.",
+    "learned": "This establishes the final request and the no-prohibition intent for SMS/SMTP payloads.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "7a2e56398d9cb0ad4541c35027c8e855c2b0b764 and 80086b8f22b9b182c473fbb7b7a446d7aafbd37c",
+    "ref": { "commit": "7a2e56398d9cb0ad4541c35027c8e855c2b0b764" },
+    "summary": "Historical Subscription source changed channel.payload from string to code with a MimeType binding and revised the SMS note to omitted-channel.payload wording; Jira cites the nearby 80086b8f application commit.",
+    "learned": "The old STU3-era request was applied before later model redesigns renamed the relevant elements.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:234; source/subscription/structuredefinition-Subscription.xml:433-457",
+    "summary": "Subscription is active in the current build, and Subscription.contentType is 0..1 code with required binding to http://hl7.org/fhir/ValueSet/mimetypes.",
+    "learned": "The current authoritative source still implements MIME selection as a code bound to mimetypes.",
+    "supports": ["reconciliation", "source_build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/subscription/subscription-notes.xml:291-333,370-376",
+    "summary": "Current email narrative explains Subscription.contentType and Subscription.content, human-readable body content, machine-readable attachments, text/plain/text/html examples, and PHI/security limits.",
+    "learned": "The remaining email side of the original SMS/email concern is covered without needing redundant text.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "fb3fe3195848fb543677d2135c68a54c6a999a4b; current source/subscription SMS search",
+    "ref": { "commit": "fb3fe3195848fb543677d2135c68a54c6a999a4b" },
+    "summary": "The SMS narrative section was removed in 2019, and current active Subscription source has no SMS channel guidance beyond an old proposal note.",
+    "learned": "There is no current stale SMS note that needs the FHIR-18991 wording re-applied.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-18991 and Subscription payload SMS/email",
+    "command": "bun run zulip:search fts '\"FHIR-18991\" Subscription payload SMS email' --limit 10; bun run zulip:search fts '\"Subscription.channel.payload\" SMS email' --limit 10; bun run confluence:search refs jira FHIR-18991; bun run confluence:search fts '\"FHIR-18991\" Subscription payload SMS email' --limit 10",
+    "query": "FHIR-18991 Subscription.channel.payload SMS email",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence records were found.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Combined branch Issue-Reconcile-Key checks",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-18991' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-18992' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-21286' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "No prior FHIR-18991 reconcile commit existed; related FHIR-18992 and FHIR-21286 audit commits already existed.",
+    "learned": "Only FHIR-18991 needed a new audit commit in this worker.",
+    "supports": ["idempotency", "related_scope"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,168 @@
+diff --git a/source/provenance/invariant-tests/prov-5.f1.fail.xml b/source/provenance/invariant-tests/prov-5.f1.fail.xml
+new file mode 100644
+index 00000000000..9de66f77981
+--- /dev/null
++++ b/source/provenance/invariant-tests/prov-5.f1.fail.xml
+@@ -0,0 +1,19 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<Provenance xmlns="http://hl7.org/fhir" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://hl7.org/fhir ../../../schema/provenance.xsd">
++  <id value="prov-5-fail"/>
++  <target>
++    <reference value="Patient/current"/>
++  </target>
++  <recorded value="2026-01-29T00:00:00Z"/>
++  <agent>
++    <who>
++      <reference value="Practitioner/example"/>
++    </who>
++  </agent>
++  <entity>
++    <role value="removal"/>
++    <what>
++      <reference value="Patient/removed"/>
++    </what>
++  </entity>
++</Provenance>
+diff --git a/source/provenance/provenance-event-mapping-exceptions.xml b/source/provenance/provenance-event-mapping-exceptions.xml
+index ca27567e5e1..429173554b0 100644
+--- a/source/provenance/provenance-event-mapping-exceptions.xml
++++ b/source/provenance/provenance-event-mapping-exceptions.xml
+@@ -26,7 +26,7 @@
+         <missingTypes _pattern="Reference(Group)" reason="Specific to Patient only"/>
+         <shortUnmatched reason="More specific description">
+             <_pattern value="Individual service was done for/to"/>
+-            <resource value="The patient is the subject of the data created/updated (.target) by the activity"/>
++            <resource value="The patient is the subject of the data created, updated, or removed (.target) by the activity"/>
+         </shortUnmatched>
+         <definitionUnmatched reason="More specific description">
+             <_pattern value="The individual or set of individuals the action is being or was performed on."/>
+@@ -34,7 +34,7 @@
+         </definitionUnmatched>
+         <requirementsUnmatched reason="More specific description">
+             <_pattern value="Links the provenance to the Patient context.  May also affect access control."/>
+-            <resource value="When the .patient is populated it SHALL be accurate to the subject of the target data. The .patient SHALL NOT be populated when the target data created/updated (.target) by the activity does not involve a subject. Note that when the patient is an agent, they will be recorded as an agent. When the Patient resource is Created, Updated, or Deleted it will be recorded as an entity.  May also affect access control."/>
++            <resource value="When the .patient is populated it SHALL be accurate to the subject of the target data. The .patient SHALL NOT be populated when the target data created, updated, or removed (.target) by the activity does not involve a subject. Note that when the patient is an agent, they will be recorded as an agent. When the Patient resource is Created, Updated, or Deleted it will be recorded as an entity.  May also affect access control."/>
+         </requirementsUnmatched>
+     </divergentElement>
+     <divergentElement patternPath="Event.encounter" resourcePath="Provenance.encounter">
+diff --git a/source/provenance/provenance-example-correction-replacement.xml b/source/provenance/provenance-example-correction-replacement.xml
+index 3c8a968850e..c1987bfdc36 100644
+--- a/source/provenance/provenance-example-correction-replacement.xml
++++ b/source/provenance/provenance-example-correction-replacement.xml
+@@ -2,6 +2,10 @@
+ 
+ <Provenance xmlns="http://hl7.org/fhir">
+   <id value="example-correction-replacement"/>
++  <target>
++    <reference value="Immunization/historical"/>
++    <display value="Historic Immunization Record with Errors"/>
++  </target>
+   <target>
+     <reference value="Immunization/example"/>
+   </target>
+diff --git a/source/provenance/provenance-notes.xml b/source/provenance/provenance-notes.xml
+index bb038511ed8..699077bb67e 100644
+--- a/source/provenance/provenance-notes.xml
++++ b/source/provenance/provenance-notes.xml
+@@ -77,7 +77,7 @@ was updated or created.
+ When a Provenance resource is used to record the removal of a resource, the Provenance.target references the removed resource, and the Provenance.entity indicates the removed resource as well. For example, <a href="provenance-example-delete.html">example delete</a> shows the use of Provenance to record the deletion of a resource. 
+ If versioning is supported, 
+ the version that was removed is referenced in Provenance.target; if versioning is not supported then 
+-Provenance.target contains the non-version reference. 
++Provenance.target contains the non-version reference. This is enforced by the <code>prov-5</code> invariant.
+ </p>
+ <p>
+ When replacing a Resource, and it is important to track which Resource replaces the removed Resource. One Provenance Resource SHOULD be used to indicate a replace. For a replace the Provenance.target points at both the removed resource and the new resource, and the Provenance.entity indicates the removed resource. For example, <a href="provenance-example-correction-replacement.html">example correction with replacement</a> shows the use of Provenance to record the replacement of an historic immunization with a new immunization resource.
+diff --git a/source/provenance/structuredefinition-Provenance.xml b/source/provenance/structuredefinition-Provenance.xml
+index ca3f8029ec4..4a46d9ca08e 100644
+--- a/source/provenance/structuredefinition-Provenance.xml
++++ b/source/provenance/structuredefinition-Provenance.xml
+@@ -92,6 +92,13 @@
+       <alias value="Activity"/>
+       <min value="0"/>
+       <max value="*"/>
++      <constraint>
++        <key value="prov-5"/>
++        <severity value="error"/>
++        <human value="An entity with a role of removal SHALL have a what.reference that is also referenced in target."/>
++        <expression value="entity.where(role = 'removal').all(what.reference.exists() and what.reference in %resource.target.reference)"/>
++        <source value="http://hl7.org/fhir/StructureDefinition/Provenance"/>
++      </constraint>
+       <mapping>
+         <identity value="workflow"/>
+         <map value="Event"/>
+@@ -112,7 +119,7 @@
+     <element id="Provenance.target">
+       <path value="Provenance.target"/>
+       <short value="Target Reference(s) (usually version specific)"/>
+-      <definition value="The Reference(s) that were generated or updated by  the activity described in this resource. A provenance can point to more than one target if multiple resources were created/updated by the same activity."/>
++      <definition value="The Reference(s) that were generated, updated, or removed by the activity described in this resource. A provenance can point to more than one target if multiple resources were created, updated, or removed by the same activity."/>
+       <comment value="Target references are usually version specific, but might not be, if a version has not been assigned or if the provenance information is part of the set of resources being maintained (i.e. a document). When using the RESTful API, the identity of the resource might not be known (especially not the version specific one); the client MAY either submit the resource first, and then the provenance, or it MAY submit both using a single transaction. See the notes on transaction for further discussion."/>
+       <min value="1"/>
+       <max value="*"/>
+@@ -120,6 +127,7 @@
+         <code value="Reference"/>
+         <targetProfile value="http://hl7.org/fhir/StructureDefinition/Resource"/>
+       </type>
++      <condition value="prov-5"/>
+       <isSummary value="true"/>
+       <mapping>
+         <identity value="w5"/>
+@@ -135,7 +143,7 @@
+       </mapping>
+       <mapping>
+         <identity value="w3c.prov"/>
+-        <map value="Entity Created/Updated"/>
++        <map value="Entity Created/Updated/Removed"/>
+       </mapping>
+     </element>
+     <element id="Provenance.occurred[x]">
+@@ -395,9 +403,9 @@
+     </element>
+     <element id="Provenance.patient">
+       <path value="Provenance.patient"/>
+-      <short value="The patient is the subject of the data created/updated (.target) by the activity"/>
++      <short value="The patient is the subject of the data created, updated, or removed (.target) by the activity"/>
+       <definition value="The patient element is available to enable deterministic tracking of activities that involve the patient as the subject of the data used in an activity."/>
+-      <requirements value="When the .patient is populated it SHALL be accurate to the subject of the target data. The .patient SHALL NOT be populated when the target data created/updated (.target) by the activity does not involve a subject. Note that when the patient is an agent, they will be recorded as an agent. When the Patient resource is Created, Updated, or Deleted it will be recorded as an entity.  May also affect access control."/>
++      <requirements value="When the .patient is populated it SHALL be accurate to the subject of the target data. The .patient SHALL NOT be populated when the target data created, updated, or removed (.target) by the activity does not involve a subject. Note that when the patient is an agent, they will be recorded as an agent. When the Patient resource is Created, Updated, or Deleted it will be recorded as an entity.  May also affect access control."/>
+       <min value="0"/>
+       <max value="1"/>
+       <type>
+@@ -654,6 +662,7 @@
+       <type>
+         <code value="BackboneElement"/>
+       </type>
++      <condition value="prov-5"/>
+       <isSummary value="true"/>
+       <mapping>
+         <identity value="rim"/>
+@@ -681,6 +690,7 @@
+         <code value="code"/>
+       </type>
+       <meaningWhenMissing value="No role declared or available."/>
++      <condition value="prov-5"/>
+       <isSummary value="true"/>
+       <binding>
+         <extension url="http://hl7.org/fhir/StructureDefinition/elementdefinition-bindingName">
+@@ -714,6 +724,7 @@
+         <code value="Reference"/>
+         <targetProfile value="http://hl7.org/fhir/StructureDefinition/Resource"/>
+       </type>
++      <condition value="prov-5"/>
+       <isSummary value="true"/>
+       <mapping>
+         <identity value="rim"/>
+diff --git a/source/provenance/structuredefinition-profile-provenance-relevant-history.xml b/source/provenance/structuredefinition-profile-provenance-relevant-history.xml
+index 92b785d6128..2d304e49b06 100644
+--- a/source/provenance/structuredefinition-profile-provenance-relevant-history.xml
++++ b/source/provenance/structuredefinition-profile-provenance-relevant-history.xml
+@@ -76,7 +76,7 @@
+     <element id="Provenance.target">
+       <path value="Provenance.target"/>
+       <short value="Resource version"/>
+-      <definition value="This points to the version of the resource that was created as a result of this historical record action.  Typically only a single resource will be referenced, but if the same action is performed to multiple resources in the context of a transaction, some systems MAY link multiple resource instances."/>
++      <definition value="This points to the version of the resource that was created, revised, or deleted as a result of this historical record action. Typically only a single resource will be referenced, but if the same action is performed to multiple resources in the context of a transaction, some systems MAY link multiple resource instances."/>
+       <comment value="The reference SHALL be version-specific."/>
+       <mustSupport value="true"/>
+     </element>

@@ -1,0 +1,104 @@
+FHIR-22687: Align scheduling service ModelInfo
+
+Issue request:
+FHIR-22687 was Published/Persuasive with Modification for R5 by Patient Administration. It requested that Appointment.serviceType, Slot.serviceType, Encounter.serviceType, and Schedule.serviceType become CodeableReference(HealthcareService), that HealthcareService.type remain CodeableConcept, that HealthcareService.offeredIn 0..* Reference(HealthcareService) be added, and that the administration and HealthcareService narrative explain schedulable services and catalogs.
+
+Initial application:
+The primary resource source was applied in 2022. Commit fb45d82237 changed Appointment, Slot, Encounter, and Schedule serviceType StructureDefinitions and service-type search parameters to support CodeableReference/HealthcareService. Commits dcd958adcb, 287cd1d15b, and 1bec67b865 added HealthcareService.offeredIn, the HealthcareService/catalog narrative and administration text, and the HealthcareService offered-in search parameter. The current combined branch already has the related FHIR-50073 fix that corrected the offeredIn definition's stale availableIn typo.
+
+Additional context:
+The current authoritative StructureDefinitions and search parameters already match the Jira resolution, and HealthcareService.type remains CodeableConcept. However, Library is an active current-build resource in source/fhir.ini, publish.ini copies source/library/library-fhir-model-definition-content.xml into the published build, and source/library/library-fhir-model-definition.xml embeds that same ModelInfo content. That checked-in ModelInfo surface still exposed the four serviceType elements as FHIR.CodeableConcept and omitted HealthcareService.offeredIn, which would mislead CQL/model-definition users even though the resource definitions were correct. Zulip and Confluence evidence confirms the issue's scheduling-service rationale and did not reveal a later reversal.
+
+AutoFHIR reconciliation:
+Updated the FHIR Model Definition content so Schedule.serviceType, Appointment.serviceType, Encounter.serviceType, and Slot.serviceType are list-valued FHIR.CodeableReference elements, added the FHIR.CodeableReference datatype with concept and reference members, and added HealthcareService.offeredIn as a list of FHIR.Reference. Regenerated the embedded base64 attachment in source/library/library-fhir-model-definition.xml from the edited content XML so the Library example and its linked content stay synchronized.
+
+Recommendation:
+Keep this commit as-is. It fixes the only remaining current-build source surface found for FHIR-22687 while preserving the already-applied StructureDefinition, search parameter, and narrative changes; no separate FHIR-50073 commit is needed because that related issue is already represented on the combined branch.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22687
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-50073: later-change - refined HealthcareService catalog/category wording and already landed a combined-branch fix for the stale offeredIn/availableIn definition wording.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22687: Published/Persuasive with Modification; requested CodeableReference(HealthcareService) serviceType on Appointment, Slot, Encounter, and Schedule plus HealthcareService.offeredIn and narrative updates. Learned: this is the final PA decision and establishes the target source behavior.
+- E2 Source source/appointment/structuredefinition-Appointment.xml:309, source/slot/structuredefinition-Slot.xml:128, source/schedule/structuredefinition-Schedule.xml:152, source/encounter/structuredefinition-Encounter.xml:346, source/healthcareservice/structuredefinition-HealthcareService.xml:164: current resource definitions already use CodeableReference/HealthcareService for the four serviceType elements and define HealthcareService.offeredIn. Learned: authoritative resource definitions already match the Jira request.
+- E3 Source source/fhir.ini:170 and source/fhir.ini:1385 plus publish.ini:206 and source/library/library-fhir-model-definition.xml:276: Library is active and the ModelInfo content file is copied and embedded. Learned: the edited ModelInfo files are current-build source surfaces, not out-of-build artifacts.
+- E4 Source source/library/library-fhir-model-definition-content.xml:3784,5952,7951,9179,4960,7604: before this reconciliation the ModelInfo content used CodeableConcept for the serviceType elements and lacked offeredIn/CodeableReference; after this commit it matches the resource definitions. Learned: the source change fixes a real model-definition inconsistency for CQL/model-definition users.
+- E5 Git fb45d82237, dcd958adcb, 287cd1d15b, 1bec67b865, a70b521d86: prior commits applied the main FHIR-22687 source changes and a related FHIR-50073 offeredIn wording correction. Learned: reconciliation should not duplicate those applications and should target the remaining ModelInfo gap.
+- E6 Community Zulip #implementers HealthcareService and Slot plus Scheduling Service Type Representation; Confluence PA minutes pages 86967303, 113674101, and 79500327: discussions/minutes show the original Slot/HealthcareService problem, consideration of CodeableReference, and no discovered reversal. Learned: community evidence supports the Jira/source interpretation.
+- E7 Verification command: CRLF-aware git diff --check, XML parsing of both ModelInfo XML files, embedded base64/content equality check, and assertions for the changed ModelInfo elements succeeded. Learned: the edited source is syntactically safe and the wrapper is synchronized with the content XML.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22687",
+    "url": "https://jira.hl7.org/browse/FHIR-22687",
+    "snapshot_path": "contexts/FHIR-22687/jira/FHIR-22687.md",
+    "ref": { "jira_key": "FHIR-22687" },
+    "summary": "Published/Persuasive with Modification PA issue requesting CodeableReference(HealthcareService) serviceType on Appointment, Slot, Encounter, and Schedule, HealthcareService.offeredIn, and related narrative updates.",
+    "learned": "This establishes the final target behavior for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/appointment/structuredefinition-Appointment.xml:309; source/slot/structuredefinition-Slot.xml:128; source/schedule/structuredefinition-Schedule.xml:152; source/encounter/structuredefinition-Encounter.xml:346; source/healthcareservice/structuredefinition-HealthcareService.xml:164",
+    "ref": { "path": "source/appointment/structuredefinition-Appointment.xml" },
+    "summary": "The current resource StructureDefinitions already expose the four serviceType elements as CodeableReference targeting HealthcareService and define HealthcareService.offeredIn.",
+    "learned": "The authoritative resource definitions already match the applied Jira decision.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,1385; publish.ini:206; source/library/library-fhir-model-definition.xml:276",
+    "ref": { "path": "source/library/library-fhir-model-definition-content.xml" },
+    "summary": "Library is active, the ModelInfo content XML is copied into the published build, and the Library example embeds that same XML as attachment data.",
+    "learned": "The ModelInfo content and wrapper are in current build scope and must remain synchronized.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:3784,4960,5952,7604,7951,9179",
+    "ref": { "path": "source/library/library-fhir-model-definition-content.xml" },
+    "summary": "The ModelInfo content now models the four serviceType elements as FHIR.CodeableReference, adds HealthcareService.offeredIn, and defines the CodeableReference datatype.",
+    "learned": "This closes the remaining CQL/model-definition inconsistency created by the FHIR-22687 resource changes.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "fb45d82237; dcd958adcb; 287cd1d15b; 1bec67b865; a70b521d86",
+    "summary": "Prior commits applied the main FHIR-22687 resource, search parameter, narrative, and HealthcareService.offeredIn changes; the related FHIR-50073 commit corrected stale offeredIn wording.",
+    "learned": "The current reconciliation should preserve those applications and fix only the remaining ModelInfo surface.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-22687 HealthcareService Slot serviceType CodeableReference",
+    "command": "bun run zulip:search snapshot implementers 'HealthcareService and Slot'; bun run zulip:search snapshot implementers 'Scheduling Service Type Representation'; bun run confluence:search refs jira FHIR-22687; bun run confluence:search snapshot 79500327; bun run confluence:search snapshot 113674101; bun run confluence:search snapshot 86967303",
+    "query": "FHIR-22687 HealthcareService Slot serviceType CodeableReference",
+    "summary": "Community discussions and PA minutes show the original scheduling-service problem and CodeableReference consideration, with no discovered conflicting later decision.",
+    "learned": "Community evidence supports the Jira/source conclusion and does not narrow the ModelInfo fix.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Changed-file validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/library/library-fhir-model-definition-content.xml source/library/library-fhir-model-definition.xml; python3 XML parse/base64 equality/target assertions",
+    "summary": "Whitespace checking, XML parsing, embedded attachment equality, and target ModelInfo assertions succeeded.",
+    "learned": "The changed source is syntactically valid and internally synchronized.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

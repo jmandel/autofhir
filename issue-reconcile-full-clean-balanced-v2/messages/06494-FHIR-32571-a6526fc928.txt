@@ -1,0 +1,96 @@
+FHIR-32571: Audit DeviceAssociation status cardinality
+
+Issue request:
+FHIR-32571 was Published with a Persuasive with Modification resolution for the R4 Device resource. It asked why associationStatus was not mandatory when a reason could be present, and OO resolved to make Device.associationStatus.value 1..1 while leaving the optional backbone/reason structure otherwise optional.
+
+Initial application:
+The issue was initially applied by git commit 57eb8685b7, which changed source/device/structuredefinition-Device.xml so Device.associationStatus.value moved from 0..1 to 1..1. The old Device.associationStatus backbone was later removed from Device as the model evolved, and DeviceAssociation became the active current resource for this area.
+
+Additional context:
+OO WGM minutes for 2021-05-24 list FHIR-32571 with the decision to make status values mandatory and leave reason optional. In the current build, source/fhir.ini actively includes deviceassociation=DeviceAssociation, and source/deviceassociation/structuredefinition-DeviceAssociation.xml has DeviceAssociation.status as 1..1 with DeviceAssociation.statusReason optional. A later Applied issue, FHIR-48532, intentionally split record/lifecycle status from association state by keeping DeviceAssociation.status required and adding DeviceAssociation.associationStatus as 0..1 CodeableConcept.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. The current required DeviceAssociation.status preserves the FHIR-32571 rule that a reason is not present without a status, while changing DeviceAssociation.associationStatus to mandatory would conflict with the later explicit FHIR-48532 decision that introduced it as optional.
+
+Recommendation:
+Keep this audit commit as-is. Do not make DeviceAssociation.associationStatus mandatory for FHIR-32571 without new OO review, because the current source already has a mandatory status for statusReason and later WG action deliberately made the separate associationStatus element optional.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32571
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-48532: later-change - Applied R6 issue that changed DeviceAssociation.status to required code status, made statusReason optional/extensible, and added DeviceAssociation.associationStatus as 0..1.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32571: Published/Persuasive with Modification for Device, resolving to make associationStatus.value 1..1 while the containing backbone and reason stayed optional. Learned: this establishes the original mandatory-status-with-optional-reason requirement.
+- E2 Confluence 113674053: OO 2021-05-24 WGM minutes reference FHIR-32571 and summarize “Make the status values mandatory, leave reason optional.” Learned: the WG minutes match the Jira resolution and confirm the intended cardinality pattern.
+- E3 Git 57eb8685b7: initial FHIR-32571 application changed Device.associationStatus.value min from 0 to 1 in source/device/structuredefinition-Device.xml. Learned: the original R5-era source application was not missed.
+- E4 Source source/fhir.ini:305 and source/deviceassociation/structuredefinition-DeviceAssociation.xml:120-149: DeviceAssociation is active in the current build, DeviceAssociation.status is 1..1, and DeviceAssociation.statusReason is 0..*. Learned: the current build still requires a status alongside any status reason.
+- E5 Jira FHIR-48532 and Git 2b906e8ba0: later Applied R6 decision changed DeviceAssociation.status/statusReason and explicitly added DeviceAssociation.associationStatus as 0..1. Learned: making the new associationStatus mandatory would contradict a later final WG decision.
+- E6 Community search: quoted Zulip searches for FHIR-32571 and associationStatus found no hits; Confluence refs found the OO minutes page and no additional high-signal FTS hits. Learned: no community evidence was found that changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32571",
+    "url": "https://jira.hl7.org/browse/FHIR-32571",
+    "snapshot_path": "contexts/FHIR-32571/jira/FHIR-32571.md",
+    "ref": { "jira_key": "FHIR-32571" },
+    "summary": "Published/Persuasive with Modification issue asking why associationStatus was optional when a reason could exist, resolved by making Device.associationStatus.value 1..1.",
+    "learned": "This establishes the original WG-approved requirement that a status value be mandatory when the optional status/reason structure is present.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "OO 2021-05-24-28 WGM page 113674053",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/113674053/2021-05-24-28+WGM",
+    "ref": { "confluence_page_id": 113674053 },
+    "summary": "OO WGM minutes reference FHIR-32571 and summarize the decision as making status values mandatory while leaving reason optional.",
+    "learned": "The minutes corroborate the Jira resolution and narrow the intended effect to mandatory status values, not mandatory reasons.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "57eb8685b7",
+    "ref": { "commit": "57eb8685b7d5cfb40a640bd72b7dcdb7e9ecd71a" },
+    "summary": "Initial FHIR-32571 source commit changed Device.associationStatus.value min from 0 to 1.",
+    "learned": "The R5-era Device source was applied according to the resolution before later Device/DeviceAssociation refactoring.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:305; source/deviceassociation/structuredefinition-DeviceAssociation.xml:120-149",
+    "summary": "DeviceAssociation is an active resource; current DeviceAssociation.status is 1..1 and DeviceAssociation.statusReason is 0..*.",
+    "learned": "The current build still prevents a status reason from existing without a required DeviceAssociation.status.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-48532 and commit 2b906e8ba0",
+    "url": "https://jira.hl7.org/browse/FHIR-48532",
+    "ref": { "jira_key": "FHIR-48532", "commit": "2b906e8ba0a68c9c750e4a1849d96e69dbce897e" },
+    "summary": "Applied R6 issue changed DeviceAssociation.status to required code, made statusReason optional/extensible, and added DeviceAssociation.associationStatus as 0..1.",
+    "learned": "The optional cardinality of the new associationStatus element is a later explicit WG decision and should not be overwritten by the older Device issue.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-32571 and Device associationStatus",
+    "command": "bun run zulip:search fts '\"FHIR-32571\" associationStatus Device' --limit 10; bun run confluence:search refs jira FHIR-32571; bun run confluence:search fts '\"FHIR-32571\" associationStatus Device' --limit 10",
+    "query": "FHIR-32571 associationStatus Device",
+    "summary": "Zulip found no matching discussion; Confluence refs found the OO WGM minutes page and FTS found no additional high-signal hits.",
+    "learned": "No discovered community evidence conflicts with the Jira, minutes, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,94 @@
+FHIR-8382: Audit Patient example identifier code
+
+Issue request:
+FHIR-8382 was a Published/Persuasive PA change request for DSTU1 reporting that patient-example.xml used the v2-0203 identifier type code "MRN" where Table 0203 uses "MR" for a medical record number. The recorded resolution says validation was tightened and many examples were fixed.
+
+Initial application:
+The Jira comment cites SVN revision 5745. In the git-svn history, commit 7db4a5ac4a (#8382 - fix up for invalid codes, build@5745) changed source/patient/patient-example.xml from <code value="MRN"/> to <code value="MR"/> and made the same invalid-code cleanup across multiple examples and terminology/service code paths.
+
+Additional context:
+Patient is an active resource in source/fhir.ini, and source/patient/list-Patient-examples.xml includes the Patient/example instance. Current source/patient/patient-example.xml uses http://terminology.hl7.org/CodeSystem/v2-0203 with code MR. A current-source scan found no v2-0203 MRN use under source/patient. The only remaining v2-0203 MRN match is in source/servicedefinition/evaluate-operation-request-example.xml; source/fhir.ini lists ServiceDefinition under [removed-resources] and has only a commented note saying it was dropped, so that stale folder is not a current core build fix for this Patient issue. Patient $merge text examples using code MRN use a local hospital code system, not v2-0203.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active Patient example and active Patient example list already reflect the Jira-required MR code, and editing the removed ServiceDefinition source would be outside the current build scope for this seed.
+
+Recommendation:
+Keep this audit commit as-is for FHIR-8382. If removed ServiceDefinition materials are ever revived or migrated, separately review source/servicedefinition/evaluate-operation-request-example.xml for the stale v2-0203 MRN code; it should not drive a current FHIR-core Patient reconciliation change.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8382
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8382: Published/Persuasive issue requests replacing patient-example.xml identifier type code MRN with MR. Learned: final WG disposition supports the correction and cites SVN revision 5745 as applied.
+- E2 Git 7db4a5ac4a: #8382 - fix up for invalid codes, git-svn build@5745, changes source/patient/patient-example.xml from MRN to MR. Learned: the Jira-cited application is present in source history and directly fixed the seed file.
+- E3 Source source/patient/patient-example.xml:9: current Patient/example identifier type uses v2-0203 code MR. Learned: the active example now has the requested code.
+- E4 Source source/fhir.ini:169,211 and source/patient/list-Patient-examples.xml:12: Patient is active and the Patient/example instance is listed among Patient examples. Learned: the checked source is in current build scope.
+- E5 Command rg v2-0203 MRN scan: no matches under source/patient; whole source only matches source/servicedefinition/evaluate-operation-request-example.xml, while source/fhir.ini lists ServiceDefinition under [removed-resources]. Learned: no active Patient source still has the invalid v2-0203 MRN code, and the residual match is out of current build scope.
+- E6 Community search: Jira/Zulip/Confluence searches for 8382, MRN, Patient, and v2-0203 found the seed issue and no relevant conflicting Zulip or Confluence evidence. Learned: no discovered later community record changes the source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8382",
+    "url": "https://jira.hl7.org/browse/FHIR-8382",
+    "snapshot_path": "contexts/FHIR-8382/jira/FHIR-8382.md",
+    "ref": { "jira_key": "FHIR-8382" },
+    "summary": "Published/Persuasive PA issue reporting that patient-example.xml used v2-0203 identifier type code MRN instead of MR.",
+    "learned": "This establishes the final requested correction and records SVN revision 5745 as the application point.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "7db4a5ac4a",
+    "ref": { "commit": "7db4a5ac4a1f513b5164fb802cfd4fa4b4bb8dc0" },
+    "summary": "Commit #8382 - fix up for invalid codes changed source/patient/patient-example.xml from MRN to MR and references git-svn build@5745.",
+    "learned": "The Jira-cited application is present and directly fixed the seed artifact.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/patient/patient-example.xml:9-10",
+    "ref": { "path": "source/patient/patient-example.xml", "line": 9 },
+    "summary": "Current Patient/example uses http://terminology.hl7.org/CodeSystem/v2-0203 with code MR for the identifier type.",
+    "learned": "The active source now carries the Jira-required medical-record-number type code.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,211; source/patient/list-Patient-examples.xml:12",
+    "ref": { "paths": "source/fhir.ini; source/patient/list-Patient-examples.xml" },
+    "summary": "The [resources] section maps patient=Patient, and the Patient examples list names patient-example/Patient/example.",
+    "learned": "The checked Patient example is part of the current build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "v2-0203 MRN source scan and ServiceDefinition scope check",
+    "command": "rg -n -U 'http://terminology.hl7.org/CodeSystem/v2-0203[\\s\\S]{0,200}<code value=\"MRN\"|<code value=\"MRN\"[\\s\\S]{0,200}http://terminology.hl7.org/CodeSystem/v2-0203' source/patient source; awk [resources] source/fhir.ini; sed -n '308,414p' source/fhir.ini",
+    "summary": "No v2-0203 MRN matches exist under source/patient; the only whole-source match is in source/servicedefinition/evaluate-operation-request-example.xml, and ServiceDefinition appears in [removed-resources].",
+    "learned": "There is no active Patient-source defect to fix for this seed, and the residual stale match is out of current build scope.",
+    "supports": ["current_source", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community searches for 8382 MRN Patient and patient example MRN v2 0203",
+    "command": "bun run jira:search fts '8382 MRN Patient' --limit 10; bun run zulip:search fts '8382 MRN Patient' --limit 10; bun run confluence:search refs jira FHIR-8382; bun run confluence:search fts '8382 MRN Patient' --limit 10",
+    "query": "8382 MRN Patient; patient example MRN v2 0203",
+    "summary": "The direct Jira search found FHIR-8382; Zulip and Confluence found no relevant FHIR-8382 discussion or conflicting minutes.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["additional_context", "confidence"]
+  }
+]
+</evidence-manifest>

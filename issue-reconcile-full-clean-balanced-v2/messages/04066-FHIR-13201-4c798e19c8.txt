@@ -1,0 +1,120 @@
+FHIR-13201: Audit Condition abatement invariant
+
+Issue request:
+FHIR-13201 was Published/Persuasive with Modification for STU3. It asked to correct the Condition con-4 XPath because the prior rule could reject a resolved clinicalStatus with no abatement value; the approved resolution removed abatementBoolean, required inactive/resolved/remission only when abatement is populated, and left clinicalStatus unconstrained by this invariant when abatement is absent.
+
+Initial application:
+The issue was applied in bac396f21d6dc845c746e29a9fb7c79e27ee6ff5, which updated the Condition spreadsheet invariant, removed the abatementBoolean datatype and abatement-boolean search parameter, and changed the f204 renal example to inactive. The spreadsheet content was later migrated into source/condition/structuredefinition-Condition.xml during the core source refactor.
+
+Additional context:
+Later Condition decisions refined the same area without reopening the FHIR-13201 rule. FHIR-22973 proposed allowing abated conditions with no clinicalStatus, but FHIR-29409 subsequently made Condition.clinicalStatus 1..1 and rendered that exception unnecessary. The 2022 ElementDefinition cleanup removed XPath rows from current StructureDefinition source. FHIR-39630 later reused key con-4 for an unrelated bodyStructure/bodySite invariant, so the current abatement invariant is key con-3.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Condition is active in source/fhir.ini; the current Condition StructureDefinition has no XPath entry, no abatementBoolean datatype, no abatement-boolean search parameter in the authoritative resource definition, and its abatement rule is `abatement.exists() implies (...)`, which matches the approved direction by constraining only populated abatement cases to inactive/resolved/remission clinical status codes.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-13201; any future change to the abatement/clinicalStatus policy should be handled as a new Patient Care decision because later applied issues have already superseded the STU3 XPath-specific concern.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13201
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-10554: same-change-family - created the original Condition abatement/clinicalStatus invariant that FHIR-13201 corrected.
+FHIR-22973: later-change - asked to allow abated conditions with clinicalStatus not valued; comments say FHIR-29409 made that exception irrelevant.
+FHIR-29409: later-change - made Condition.clinicalStatus required, added unknown status context, and reshaped the nearby invariants applied by commit 91c6eec.
+FHIR-25293: supporting-decision - later Not Persuasive R4 report concluded the abatement invariant itself was correct and the reported validation failure was likely tooling-specific.
+FHIR-39630: later-change - added the current con-4 bodyStructure/bodySite invariant, explaining why the old abatement rule is now numbered con-3.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13201: Published/Persuasive with Modification; remove abatementBoolean and constrain inactive/resolved/remission only when abatement is populated. Learned: this establishes the target behavior for the reconciliation.
+- E2 Source source/fhir.ini:170-181: Condition is listed as an active resource. Learned: source/condition/structuredefinition-Condition.xml is in current build scope.
+- E3 Source source/condition/structuredefinition-Condition.xml:91-96,499-525: current con-3 uses `abatement.exists() implies (...)` and abatement[x] datatypes are dateTime, Age, Period, Range, and string. Learned: current source implements the approved semantic rule and omits abatementBoolean.
+- E4 Git bac396f21d6dc845c746e29a9fb7c79e27ee6ff5: original #13201 application updated the spreadsheet invariant, removed abatementBoolean, removed the abatement-boolean search parameter, and fixed an example. Learned: the issue was explicitly applied before this audit.
+- E5 Jira FHIR-22973 and FHIR-29409: later decisions explain why the possible `clinicalStatus.empty()` exception was not retained after clinicalStatus became 1..1. Learned: current source should not be changed to reintroduce a not-valued branch.
+- E6 Git 88a1f3d6bd60f7618ae140179b008ac5686e8a08 and 93bb6d5c9aa5c7d4db3b9cead0ca76f8d91f24c6: XPath rows were removed, and current con-4 was assigned to bodyStructure/bodySite. Learned: the seed's old XPath con-4 no longer exists in current authoritative source.
+- E7 Zulip #implementers > Condition-example-f204-renal: Michelle Miller stated that the STU3 invariant was faulty, GF#13201 fixed it, and no build change was needed leading up to R4. Learned: community follow-up confirmed the original application path.
+- E8 Verification command/query: `rg -n '<xpath|abatementBoolean|<code value="boolean"' source/condition/structuredefinition-Condition.xml` found no matches, and direct Confluence refs for FHIR-13201 found none. Learned: no current source or community evidence contradicts the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13201",
+    "url": "https://jira.hl7.org/browse/FHIR-13201",
+    "snapshot_path": "contexts/FHIR-13201/jira/FHIR-13201.md",
+    "ref": { "jira_key": "FHIR-13201" },
+    "summary": "Published/Persuasive with Modification issue requiring the Condition con-4 XPath to drop abatementBoolean handling and constrain clinicalStatus only when abatement is populated.",
+    "learned": "This establishes the approved behavior that the current source must preserve.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-181",
+    "ref": { "path": "source/fhir.ini", "start_line": 170, "end_line": 181 },
+    "summary": "Condition is listed as an active resource in the current build configuration.",
+    "learned": "The Condition StructureDefinition source is in current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/condition/structuredefinition-Condition.xml:91-96,499-525",
+    "ref": { "path": "source/condition/structuredefinition-Condition.xml" },
+    "summary": "Current con-3 uses abatement.exists() implies an inactive/resolved/remission clinicalStatus coding, and abatement[x] has dateTime, Age, Period, Range, and string types only.",
+    "learned": "The current source implements the approved FHIR-13201 semantics and no longer includes abatementBoolean.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "bac396f21d6dc845c746e29a9fb7c79e27ee6ff5",
+    "ref": { "commit": "bac396f21d6dc845c746e29a9fb7c79e27ee6ff5" },
+    "summary": "Original #13201 commit updated the Condition spreadsheet invariant, removed abatementBoolean and the abatement-boolean search parameter, and fixed the f204 example clinicalStatus.",
+    "learned": "FHIR-13201 was explicitly applied in source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-22973 and FHIR-29409",
+    "url": "https://jira.hl7.org/browse/FHIR-29409",
+    "ref": { "jira_key": "FHIR-29409" },
+    "summary": "FHIR-22973 requested a not-valued clinicalStatus exception for abated conditions, but comments state FHIR-29409 made clinicalStatus 1..1 and largely made that request irrelevant.",
+    "learned": "Current source should not reintroduce a clinicalStatus.empty() branch for FHIR-13201.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "88a1f3d6bd60f7618ae140179b008ac5686e8a08; 93bb6d5c9aa5c7d4db3b9cead0ca76f8d91f24c6",
+    "ref": { "commit": "88a1f3d6bd60f7618ae140179b008ac5686e8a08" },
+    "summary": "ElementDefinition cleanup removed XPath rows; FHIR-39630 later added the current con-4 bodyStructure/bodySite invariant.",
+    "learned": "The old XPath con-4 targeted by the seed no longer exists in current authoritative source.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > Condition-example-f204-renal",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Condition-example-f204-renal",
+    "ref": { "stream": "implementers", "topic": "Condition-example-f204-renal" },
+    "summary": "A 2018 thread notes that the STU3 invariant was faulty, GF#13201 fixed it, and no build change was needed leading up to R4.",
+    "learned": "Community follow-up corroborates that the original issue was applied before R4.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Final source and community checks",
+    "command": "rg -n '<xpath|abatementBoolean|<code value=\"boolean\"' source/condition/structuredefinition-Condition.xml; bun run confluence:search refs jira FHIR-13201",
+    "summary": "No XPath, abatementBoolean, or boolean abatement type was found in the current Condition StructureDefinition, and Confluence had no direct FHIR-13201 references.",
+    "learned": "No current source or community evidence contradicts the no-change decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

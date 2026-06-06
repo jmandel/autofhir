@@ -1,0 +1,66 @@
+diff --git a/source/clinicalreasoning-quality-reporting.html b/source/clinicalreasoning-quality-reporting.html
+index c029417b6b1..a43d93f930e 100644
+--- a/source/clinicalreasoning-quality-reporting.html
++++ b/source/clinicalreasoning-quality-reporting.html
+@@ -594,7 +594,7 @@ The next example demonstrates how to obtain the results of evaluating the measur
+ <a name="bundles-organized-by-subject"> </a>
+ <h5>Bundles Organized by Subject</h5>
+ 	
+-<p>The Bundles used in the quality reporting operations enable the evaluation and exchange of data for multiple measures, while also constraining duplicate data. Bundles <b>SHOULD</b> be organized by subject, meaning that a Bundle <b>SHOULD</b> contain the resources, the including MeasureReport(s) and data of interest (in MeasureReport.evaluatedResources), for all of the measures that apply to a single subject. Resources that are not unique to the subject, such as Practitioner or Organization, may still be duplicated across Bundles.</p>
++<p>The Bundles used in the quality reporting operations enable the evaluation and exchange of data for multiple measures, while also constraining duplicate data. Bundles <b>SHOULD</b> be organized by subject, meaning that a Bundle <b>SHOULD</b> contain the MeasureReport(s) and data of interest referenced by MeasureReport.evaluatedResource for all of the measures that apply to a single subject. Resources that are not unique to the subject, such as Practitioner or Organization, may still be duplicated across Bundles.</p>
+ 
+ <a name="ad-hoc-organizations"> </a>
+ <h5>Ad-Hoc Organizations for Reporting Operations</h5>
+@@ -660,7 +660,7 @@ The organization provided in $evaluate, $care-gaps, or $collect-data, whether in
+ <a name="duplicate-data"> </a>
+ <h5>Duplicate Data</h5>
+ 	
+-<p>Implementations <b>SHOULD</b> avoid sending duplicate data (identical FHIR resources or identical resolvable references) in data exchanges ($collect-data or $submit-data) in MeasureReport.evaluatedResources.</p>
++<p>Implementations <b>SHOULD</b> avoid sending duplicate data (identical FHIR resources or identical resolvable references) through MeasureReport.evaluatedResource in data exchanges ($collect-data or $submit-data).</p>
+ 	
+ <p>Duplicate data is a concern in data exchanges because the operations support multiple measures per subject. The same resource instance could be referenced by multiple MeasureReports, or multiple measures may use different elements within the same resource. Another situation to consider when evaluating a measure is when multiple value sets have overlapping codes, then two different CQL retrieve operations can return the same resource instance because it matches two codes from the overlap.</p>
+ 	
+@@ -691,7 +691,7 @@ The organization provided in $evaluate, $care-gaps, or $collect-data, whether in
+ 
+ <img alt="Individual Measure Report" src="clinicalreasoning-measure-report-individual.png"/>
+ 
+-<p>See the MeasureReport <a href="measurereport-examples.html">examples</a> for a detailed illustration of how the data elements involved in the calculation of the measure are communicated through the <code>evaluatedResources</code> element.</p>
++<p>See the MeasureReport <a href="measurereport-examples.html">examples</a> for a detailed illustration of how the data elements involved in the calculation of the measure are communicated through the <code>evaluatedResource</code> element.</p>
+ 
+ <p>As with population-level reports, the <code>group</code>, <code>population</code>, and <code>stratifier</code> elements have a <code>linkId</code> element that defines a linking id that is used to correlate these elements in the MeasureReport back to the corresponding elements in the Measure.</p>
+ 
+diff --git a/source/measure/operationdefinition-Measure-data-requirements.xml b/source/measure/operationdefinition-Measure-data-requirements.xml
+index 3151b39fd75..348960b5aab 100644
+--- a/source/measure/operationdefinition-Measure-data-requirements.xml
++++ b/source/measure/operationdefinition-Measure-data-requirements.xml
+@@ -34,7 +34,7 @@
+     </extension>
+   </extension>
+   <extension url="http://hl7.org/fhir/build/StructureDefinition/footer">
+-    <valueMarkdown value="The effect of invoking this operation is to determine the aggregate set of data requirements and dependencies for the measure. The result is a Library resource with a type of module-definition that contains all the parameter definitions and data requirements of the libraries referenced by the measures. Implementations SHOULD aggregate data requirements intelligently (i.e. by collapsing overlapping data requirements). This operation defines what resources are subsequently referenced in the evaluatedResources element of the MeasureReport when submitting measure data"/>
++    <valueMarkdown value="The effect of invoking this operation is to determine the aggregate set of data requirements and dependencies for the measure. The result is a Library resource with a type of module-definition that contains all the parameter definitions and data requirements of the libraries referenced by the measures. Implementations SHOULD aggregate data requirements intelligently (i.e. by collapsing overlapping data requirements). This operation defines what resources are subsequently referenced in the evaluatedResource element of the MeasureReport when submitting measure data"/>
+   </extension>
+   <url value="http://hl7.org/fhir/build/OperationDefinition/Measure-data-requirements"/>
+   <version value="6.0.0"/>
+@@ -57,7 +57,7 @@
+   <description value="The data-requirements operation aggregates and returns the parameters and data requirements for the measure and all its dependencies as a single module definition"/>
+   <affectsState value="false"/>
+   <code value="data-requirements"/>
+-  <comment value="The effect of invoking this operation is to determine the aggregate set of data requirements and dependencies for the measure. The result is a Library resource with a type of module-definition that contains all the parameter definitions and data requirements of the libraries referenced by the measures. Implementations SHOULD aggregate data requirements intelligently (i.e. by collapsing overlapping data requirements). This operation defines what resources are subsequently referenced in the evaluatedResources element of the MeasureReport when submitting measure data"/>
++  <comment value="The effect of invoking this operation is to determine the aggregate set of data requirements and dependencies for the measure. The result is a Library resource with a type of module-definition that contains all the parameter definitions and data requirements of the libraries referenced by the measures. Implementations SHOULD aggregate data requirements intelligently (i.e. by collapsing overlapping data requirements). This operation defines what resources are subsequently referenced in the evaluatedResource element of the MeasureReport when submitting measure data"/>
+   <resource value="Measure"/>
+   <system value="false"/>
+   <type value="false"/>
+diff --git a/source/measure/structuredefinition-Measure.xml b/source/measure/structuredefinition-Measure.xml
+index c2bad7230c1..97a7d817383 100644
+--- a/source/measure/structuredefinition-Measure.xml
++++ b/source/measure/structuredefinition-Measure.xml
+@@ -1511,7 +1511,7 @@
+       <path value="Measure.group.population.criteria"/>
+       <short value="The criteria that defines this population"/>
+       <definition value="An expression that specifies the criteria for the population, typically the name of an expression in a library."/>
+-      <comment value="In the case of a continuous-variable or ratio measure, this may be the name of a function that calculates the value of the individual observation for each patient or event in the population. For these types of measures, individual observations are reported as observation resources included in the evaluatedResources bundle for each patient. See the MeasureReport resource or the Quality Reporting topic for more information. As with any expression-valued element, the cqf-alternativeExpression extension may be used to provide an expression in an alternate language."/>
++      <comment value="In the case of a continuous-variable or ratio measure, this may be the name of a function that calculates the value of the individual observation for each patient or event in the population. For these types of measures, individual observations are reported as Observation resources referenced by the MeasureReport.evaluatedResource element for each patient. See the MeasureReport resource or the Quality Reporting topic for more information. As with any expression-valued element, the cqf-alternativeExpression extension may be used to provide an expression in an alternate language."/>
+       <min value="0"/>
+       <max value="1"/>
+       <type>

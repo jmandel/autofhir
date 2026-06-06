@@ -1,0 +1,117 @@
+FHIR-32445: Document AuditEvent outcome DICOM mapping
+
+Issue request:
+FHIR-32445 was Published/Persuasive with Modification for R5 after asking why AuditEvent.outcome used unusual numeric outcome codes. The final resolution required the AuditEvent outcome value set to use OperationOutcome issue-severity codes, the old AuditEvent outcome code system to retain only success, and the AuditEvent.outcome comment to document the DICOM numeric mapping: 0 to success, 4 to warning, 8 to error, and 12 to fatal.
+
+Initial application:
+Commit 04aebbe0d4 was explicitly tagged FHIR-32445 and changed the old AuditEvent outcome code system/value set by removing the minor, serious, and major numeric concepts and adding issue-severity to the value set. That initial application did not update source/auditevent/structuredefinition-AuditEvent.xml with the requested DICOM EventOutcomeIndicator mapping note. Later FHIR-39622 commits added success to issue-severity and removed the remaining separate AuditEvent success-code include, so the active value set now depends only on issue-severity.
+
+Additional context:
+source/fhir.ini actively maps auditevent=AuditEvent, so the edited StructureDefinition and AuditEvent outcome value set are current build inputs. The combined branch already contains FHIR-32447, which corrected the current outcome backbone/code model and required binding, and FHIR-32446, which audited the related minor/serious definition issue as resolved by FHIR-32445. Those related decisions support using the current issue-severity codes, not restoring DICOM numeric codes. No conflicting Zulip or Confluence evidence was found; Security block-vote/minutes evidence lists FHIR-32445/FHIR-32446 as approved/persuasive.
+
+AutoFHIR reconciliation:
+Updated the active AuditEvent StructureDefinition comments for AuditEvent.outcome and AuditEvent.outcome.code to include the missing DICOM AuditMessage EventOutcomeIndicator mapping note. No terminology source was changed because the current outcome value set already composes issue-severity, which now includes success, and the old numeric AuditEvent outcome code system is no longer an active source file.
+
+Recommendation:
+Keep this commit as-is. It completes the only remaining FHIR-32445 source gap in the current build while preserving the later issue-severity/success terminology model; do not reintroduce the old numeric AuditEvent outcome codes.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32445
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-32446: same-change-family - challenged the old minor/serious outcome definitions and was resolved with FHIR-32445; already represented on the combined branch.
+FHIR-32447: same-change-family - changed AuditEvent.outcome to a backbone with required outcome.code binding; already represented on the combined branch.
+FHIR-39622: later-change - added success to issue-severity and allowed the AuditEvent outcome value set to drop the separate AuditEvent success code include.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32445: Published/Persuasive with Modification issue required replacing weird DICOM numeric outcome codes with issue-severity plus success and documenting DICOM mapping 0/4/8/12 to success/warning/error/fatal. Learned: this is the final WG intent and defines the missing comment content.
+- E2 Source source/fhir.ini:224: active auditevent=AuditEvent resource mapping. Learned: source/auditevent/structuredefinition-AuditEvent.xml is in current core build scope.
+- E3 Source source/auditevent/structuredefinition-AuditEvent.xml:349,370: AuditEvent.outcome and AuditEvent.outcome.code comments now include the DICOM EventOutcomeIndicator mapping. Learned: the requested mapping is present at the authoritative outcome elements.
+- E4 Source source/auditevent/valueset-audit-event-outcome.xml:48-52 and source/operationoutcome/codesystem-issue-severity.xml:50-73: the outcome value set composes issue-severity, whose concepts include fatal, error, warning, information, and success. Learned: the current terminology already reflects the FHIR-32445/FHIR-39622 model without old numeric outcome codes.
+- E5 Git 04aebbe0d4 and 37ac63c5f9/8f211ebdac: FHIR-32445 removed the old numeric outcome concepts and added issue-severity; FHIR-39622 added success to issue-severity and removed the separate success include. Learned: history explains why only the mapping comment still needed reconciliation.
+- E6 Related Jira/commits FHIR-32446 and FHIR-32447: combined branch commits d0eb4eed2f and dd76d3cd95 already represent the related definition and binding/model decisions. Learned: this seed should not duplicate those decisions and should preserve their current-source outcome model.
+- E7 Community Zulip/Confluence search for FHIR-32445 AuditEvent outcome: Security block-vote thread and minutes list FHIR-32445/FHIR-32446 as approved/persuasive; no conflicting community evidence was found. Learned: community evidence supports the Jira/source conclusion.
+- E8 Verification command: xmllint parsed the edited StructureDefinition and related terminology XML; whitespace diff check passed; targeted grep found the new mapping, issue-severity include, and no old minor/serious or HTTP 400/500 text in the active outcome source. Learned: the source edit is syntactically valid and targeted to the requested reconciliation.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32445",
+    "url": "https://jira.hl7.org/browse/FHIR-32445",
+    "snapshot_path": "contexts/FHIR-32445/jira/FHIR-32445.md",
+    "ref": { "jira_key": "FHIR-32445" },
+    "summary": "Published/Persuasive with Modification issue requiring AuditEvent outcome terminology to move away from DICOM numeric codes to issue-severity plus success, with a DICOM mapping note.",
+    "learned": "This establishes the final WG intent and the specific 0/4/8/12 to success/warning/error/fatal mapping that was missing from the current comments.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:224",
+    "ref": { "path": "source/fhir.ini", "line": 224 },
+    "summary": "The active resources section maps auditevent=AuditEvent.",
+    "learned": "AuditEvent StructureDefinition and terminology files are current core build inputs.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:349,370",
+    "ref": { "path": "source/auditevent/structuredefinition-AuditEvent.xml", "lines": "349,370" },
+    "summary": "AuditEvent.outcome and AuditEvent.outcome.code comments now state the DICOM AuditMessage EventOutcomeIndicator mapping.",
+    "learned": "The remaining FHIR-32445 source gap has been corrected in the authoritative StructureDefinition source.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/auditevent/valueset-audit-event-outcome.xml:48-52; source/operationoutcome/codesystem-issue-severity.xml:50-73",
+    "ref": { "paths": "source/auditevent/valueset-audit-event-outcome.xml,source/operationoutcome/codesystem-issue-severity.xml" },
+    "summary": "The Audit Event Outcome value set composes issue-severity, whose concepts include fatal, error, warning, information, and success.",
+    "learned": "The terminology portion of FHIR-32445 is already represented by the later current issue-severity model.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "04aebbe0d4; 37ac63c5f9; 8f211ebdac",
+    "ref": { "commits": "04aebbe0d4,37ac63c5f9,8f211ebdac" },
+    "summary": "FHIR-32445 history removed the old numeric AuditEvent outcome concepts and added issue-severity; FHIR-39622 history added success to issue-severity and removed the separate AuditEvent success include.",
+    "learned": "Only the requested mapping comment remained unapplied in current build source.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "d0eb4eed2f; dd76d3cd95",
+    "ref": { "commits": "d0eb4eed2f,dd76d3cd95", "jira_keys": "FHIR-32446,FHIR-32447" },
+    "summary": "The combined branch already has related reconciliation commits for the minor/serious definition issue and the required outcome.code model issue.",
+    "learned": "FHIR-32445 should be reconciled without duplicating already-published related decisions.",
+    "supports": ["additional_context", "scope_control"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-32445 AuditEvent outcome",
+    "command": "bun run zulip:search fts '\"FHIR-32445\" AuditEvent outcome' --limit 10; bun run zulip:search fts 'AuditEvent outcome DICOM success warning error fatal' --limit 10; bun run confluence:search refs jira FHIR-32445; bun run confluence:search snapshot 81009706; bun run zulip:search snapshot 'Security and Privacy' 'November block vote'",
+    "query": "FHIR-32445 AuditEvent outcome DICOM success warning error fatal",
+    "summary": "Security block-vote/thread evidence lists FHIR-32445/FHIR-32446 as approved or persuasive; no conflicting community discussion was found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted XML, grep, and whitespace validation",
+    "command": "xmllint --noout source/auditevent/structuredefinition-AuditEvent.xml source/auditevent/valueset-audit-event-outcome.xml source/operationoutcome/codesystem-issue-severity.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg -n 'EventOutcomeIndicator mapping|audit-event-outcome|issue-severity|terminology.hl7.org/CodeSystem/audit-event-outcome|Minor failure|Serious failure|HTTP 400 response|HTTP 500 response' source/auditevent/structuredefinition-AuditEvent.xml source/auditevent/valueset-audit-event-outcome.xml source/operationoutcome/codesystem-issue-severity.xml",
+    "summary": "Edited XML parsed successfully, whitespace checks passed, the new mapping was present, and stale old outcome-code text was absent from active outcome source.",
+    "learned": "The source change is syntactically valid and narrowly satisfies the issue.",
+    "supports": ["validation", "confidence"]
+  }
+]
+</evidence-manifest>

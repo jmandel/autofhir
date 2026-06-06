@@ -1,0 +1,100 @@
+FHIR-13915: Audit create Location version fallback
+
+Issue request:
+FHIR-13915 was a Published/Persuasive STU3 FHIR-core HTTP issue asking what Location header a create response should use when a server does not support version-specific retrieval. The resolution was to document that Location should be as specific as the server can supply: include the version when the server understands versioning, and allow [base]/[type]/[id] when it does not.
+
+Initial application:
+The Jira comment records svn revision 14043, and git commit fa063a9991eb8c08d9ca71ed51016822812eb338 is the corresponding git-svn application. It changed source/http.html to add the current rule that the Location header should be as specific as possible and that non-version-tracking servers return [base]/[type]/[id].
+
+Additional context:
+The current RESTful API source is still source/http.html, the Jira-related FHIR-core HTTP page. Later FHIR-17746 added that the Location MAY be absolute or relative in the same paragraph, and FHIR-26358 reused the same version-aware Location pattern for create-via-update and conditional interactions. A related 2022 Zulip discussion quoted the current text as the operative rule and did not identify a versioning problem. Direct FHIR-13915 Zulip and Confluence searches found no conflicting community evidence.
+
+AutoFHIR reconciliation:
+This audit makes no source change. Current source/http.html already says create returns Location: [base]/[type]/[id]/_history/[vid] when versioning is available, then explicitly says servers that do not track versions use [base]/[type]/[id]. The neighboring update and conditional-create text points back to the same behavior and does not require a separate FHIR-13915 correction.
+
+Recommendation:
+Keep this empty audit commit as-is. The issue's requested clarification is present in the active RESTful API source, and editing the current wording would be redundant unless a future work-group issue reopens the broader HTTP Location header rules.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13915
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17746: same-change-family - later clarified in the same Location paragraph that absolute and relative URLs are both allowed.
+FHIR-26358: later-change - extended mandatory Location header handling to update and conditional create/update while preserving the FHIR-13915 version fallback text.
+FHIR-31965: supporting-decision - later conditional-create decision expected Location, ETag, and Last-Modified headers to align with ordinary create behavior.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13915: Published/Persuasive issue requested a create Location fallback for servers without version-specific retrieval. Learned: final WG intent is the version-aware Location rule rather than always forcing _history/[vid].
+- E2 Source source/http.html:1267: current create interaction says Location includes _history/[vid] when possible and [base]/[type]/[id] when the server does not track versions. Learned: the active RESTful API source already satisfies the issue.
+- E3 Git fa063a9991: GF#13915 / svn revision 14043 added the as-specific-as-possible Location wording to source/http.html. Learned: the Jira application is traceable to source history.
+- E4 Git de09f7d5cd and c32a2adb07: later Location-header commits clarified absolute/relative URLs and reused the pattern for update/conditional interactions. Learned: later edits preserved rather than reversed the FHIR-13915 fallback.
+- E5 Zulip fhir/infrastructure-wg / Returning search URL as Location in create response: 2022 discussion quoted the current rule to reject a search URL as a create Location. Learned: community evidence supports the current text as the operative rule.
+- E6 Command searches for FHIR-13915 in Zulip and Confluence: quoted-key searches returned no direct hits and Confluence refs found no FHIR-13915 references. Learned: no discovered community record conflicts with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13915",
+    "url": "https://jira.hl7.org/browse/FHIR-13915",
+    "snapshot_path": "contexts/FHIR-13915/jira/FHIR-13915.md",
+    "ref": { "jira_key": "FHIR-13915" },
+    "summary": "Published/Persuasive STU3 issue requested a create Location fallback for servers that do not support version-specific retrieval.",
+    "learned": "The final decision requires a Location header as specific as the server can supply, not an unconditional _history/[vid] URL.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/http.html:1267-1278",
+    "ref": { "path": "source/http.html", "start_line": 1267, "end_line": 1278 },
+    "summary": "The current create interaction gives the version-specific Location form and then says non-version-tracking servers use [base]/[type]/[id].",
+    "learned": "The active RESTful API source already implements the FHIR-13915 resolution.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "fa063a9991eb8c08d9ca71ed51016822812eb338",
+    "command": "git --no-pager show --stat --patch fa063a9991 -- source/http.html",
+    "ref": { "commit": "fa063a9991eb8c08d9ca71ed51016822812eb338" },
+    "summary": "GF#13915 / git-svn build@14043 added the as-specific-as-possible Location wording to source/http.html.",
+    "learned": "The Jira comment's svn revision maps to an explicit source application commit.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "de09f7d5cdca1ecfbaecc553a82d19f233aff404 and c32a2adb0774d63553808f9e2b551292292e7fed",
+    "command": "git --no-pager show de09f7d5cd -- source/http.html; git --no-pager show c32a2adb07 -- source/http.html",
+    "summary": "Later Location-header commits added absolute/relative URL clarification and reused the version-aware Location pattern for update and conditional interactions.",
+    "learned": "Later same-page decisions preserved the FHIR-13915 fallback instead of superseding it.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#fhir/infrastructure-wg > Returning search URL as Location in create response",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir%2Finfrastructure-wg/topic/Returning%20search%20URL%20as%20Location%20in%20create%20response",
+    "ref": { "stream": "fhir/infrastructure-wg", "topic": "Returning search URL as Location in create response" },
+    "summary": "A 2022 discussion quoted the current create Location wording and used it to reject returning a search URL as Location.",
+    "learned": "The community discussion treats the current text as clear and does not introduce a conflict with FHIR-13915.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-13915",
+    "command": "bun run zulip:search fts '\"FHIR-13915\" \"Location header\" create' --limit 10; bun run confluence:search refs jira FHIR-13915; bun run confluence:search fts '\"FHIR-13915\" \"Location header\" create' --limit 10",
+    "query": "FHIR-13915 Location header create",
+    "result_count": 0,
+    "summary": "Quoted-key Zulip and Confluence searches found no direct FHIR-13915 hits, and Confluence refs found no references.",
+    "learned": "No discovered community evidence changes the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

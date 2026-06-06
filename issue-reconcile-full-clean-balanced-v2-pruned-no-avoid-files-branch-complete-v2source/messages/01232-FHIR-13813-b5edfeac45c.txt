@@ -1,0 +1,117 @@
+FHIR-13813: Align expansion identifier prose with optional cardinality
+
+Issue request:
+FHIR-13813 was Published/Persuasive for FHIR-core ValueSet after the Vocabulary WG accepted changing ValueSet.expansion.identifier from mandatory to 0..1 because terminology servers are not required to persist expansions and should not be forced to generate an identifier for transient $expand results.
+
+Initial application:
+The issue was applied in SVN revision 13317, represented in git as a1e1588a06e0b0faae02480aa5f109274ffb67fb, which changed source/valueset/valueset-spreadsheet.xml from 1..1 to 0..1. The current refactored active StructureDefinition source already carries min 0/max 1, but older ValueSet narrative still said every expansion has or SHALL have ValueSet.expansion.identifier.
+
+Additional context:
+source/fhir.ini has valueset=ValueSet in the active [resources] section and assigns ValueSet to vocab, so source/valueset narrative and StructureDefinition sources are in the current build scope. Related FHIR-5795 explains the earlier 1..1 rule, FHIR-16442 explains the current business-identifier short text, and later FHIR-55363 rejected repeating the identifier because the server performing the expansion assigns a single value. A 2021 terminology Zulip thread independently identified the same contradiction between the SHALL prose and the 0..1 cardinality from FHIR-13813.
+
+AutoFHIR reconciliation:
+Updated the active ValueSet introduction and expansion identifier notes to say that ValueSet.expansion.identifier can be included and is optional for transient expansions, while retaining the requirement that a populated identifier uniquely identifies the expansion and that reused identified expansions keep the same identifier.
+
+Recommendation:
+Keep this source change. It completes the original cardinality decision across the active narrative without changing the already-correct StructureDefinition cardinality or unrelated generated artifacts.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13813
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-5795: same-change-family - earlier published issue made expansion.identifier uri and 1..1, establishing the rule that FHIR-13813 later relaxed.
+FHIR-16442: same-change-family - later published clarification changed the element short text to the current business-identifier wording, which this reconciliation leaves intact.
+FHIR-55363: later-change - 2026 no-change decision rejected making expansion.identifier repeat and confirms the current max 1 shape.
+FHIR-10375: background - 2017 guidance issue introduced expansion identifier prose that was not fully aligned when FHIR-13813 made the element optional.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13813: Published/Persuasive; resolution says to change expansion.identifier cardinality to 0..1 and comment says applied SVN 13317. Learned: final WG intent is that the identifier is optional for non-persisted expansions.
+- E2 Source source/fhir.ini:169-226,640: valueset=ValueSet is active under [resources] and assigned to vocab. Learned: the ValueSet files edited here are in current build scope.
+- E3 Source source/valueset/structuredefinition-ValueSet.xml:1006-1012: ValueSet.expansion.identifier has min 0 and max 1. Learned: the formal conformance source already reflects FHIR-13813.
+- E4 Source source/valueset/valueset-introduction.xml:75 and source/valueset/valueset-notes.xml:568-576,660: current reconciliation changes stale required-identifier prose to optional wording. Learned: narrative needed correction to avoid contradicting the 0..1 element.
+- E5 Git a1e1588a06e0: GF#13813 changed source/valueset/valueset-spreadsheet.xml from 1..1 to 0..1 only. Learned: initial application was limited to cardinality source and left narrative guidance behind.
+- E6 Zulip #terminology > ValueSet.expansion.identifier SHALL or SHOULD?: implementer reported the exact SHALL-vs-0..1 conflict and linked it to FHIR-13813; Grahame replied that relaxation looked right. Learned: community evidence confirms the inconsistency was real for implementers.
+- E7 Jira FHIR-55363: Resolved - No Change; resolution says the expansion identifier is assigned by the server performing the operation and will not have more than one value. Learned: later WG context supports keeping max 1 while only fixing optionality language.
+- E8 Verification command/query: rg found no remaining active-source occurrences of "Each expansion SHALL have a unique identifier" and git diff --check passed. Learned: the stale mandatory prose was removed without whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13813",
+    "url": "https://jira.hl7.org/browse/FHIR-13813",
+    "snapshot_path": "contexts/FHIR-13813/jira/FHIR-13813.md",
+    "ref": { "jira_key": "FHIR-13813" },
+    "summary": "Published/Persuasive issue requiring ValueSet.expansion.identifier cardinality to be 0..1 because terminology servers need not persist expansions.",
+    "learned": "This establishes final WG intent that expansion identifiers are optional for transient expansions.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-226,640",
+    "summary": "The active [resources] list contains valueset=ValueSet and the work group map assigns valueset=vocab.",
+    "learned": "The ValueSet source files are part of the current FHIR build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/valueset/structuredefinition-ValueSet.xml:1006-1012",
+    "summary": "The current ValueSet.expansion.identifier element has min 0 and max 1.",
+    "learned": "The formal conformance source already reflects the FHIR-13813 cardinality decision.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/valueset/valueset-introduction.xml:75; source/valueset/valueset-notes.xml:568-576,660",
+    "summary": "The edited narrative now says an expansion can include ValueSet.expansion.identifier and that the identifier is optional for transient expansions.",
+    "learned": "The current reconciliation removes stale mandatory wording while preserving uniqueness rules for populated identifiers.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "a1e1588a06e0b0faae02480aa5f109274ffb67fb",
+    "ref": { "commit": "a1e1588a06e0b0faae02480aa5f109274ffb67fb" },
+    "summary": "GF#13813 / SVN 13317 changed source/valueset/valueset-spreadsheet.xml from 1..1 to 0..1.",
+    "learned": "The original application changed the formal cardinality but not the surrounding narrative guidance.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#terminology > ValueSet.expansion.identifier SHALL or SHOULD?",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/ValueSet.expansion.identifier%20SHALL%20or%20SHOULD%3F",
+    "summary": "A 2021 implementer reported systems omitting ValueSet.expansion.identifier and noted the spec prose conflicted with the 0..1 cardinality from FHIR-13813.",
+    "learned": "The stale narrative created real implementer confusion and should be aligned with the cardinality.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-55363",
+    "url": "https://jira.hl7.org/browse/FHIR-55363",
+    "ref": { "jira_key": "FHIR-55363" },
+    "summary": "Resolved - No Change issue requesting ValueSet.expansion.identifier to repeat; resolution says the server assigning the expansion identifier will not assign more than one value.",
+    "learned": "Later WG context supports retaining max 1 while fixing only the optionality contradiction.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Stale-prose and whitespace checks",
+    "command": "rg -n 'Each expansion SHALL have a unique identifier|expansion.identifier cardinality|ValueSet.expansion.identifier cardinality' source; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "query": "Each expansion SHALL have a unique identifier",
+    "result_count": 0,
+    "summary": "No active-source stale mandatory phrase remains and git diff --check passed.",
+    "learned": "The reconciliation removed the identified contradiction without whitespace errors.",
+    "supports": ["confidence"]
+  }
+]
+</evidence-manifest>

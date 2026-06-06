@@ -1,0 +1,104 @@
+FHIR-28174: Audit medicinal product ingredient searches
+
+Issue request:
+FHIR-28174 was a Published/Persuasive BRR change request approved for R5 to allow medicinal products to be searched by ingredient, Ingredient resources to be searched by substance or substance definition, the previous substance code search to be renamed to substance-code, and AdministrableProductDefinition to expose the related device and manufactured-item links.
+
+Initial application:
+No source commit explicitly mentions FHIR-28174, but the R5 medication-definition resource additions added the relevant search-parameter bundles. The product ingredient search parameters were originally reference searches while the product elements pointed at Ingredient, and the Ingredient substance, substance-code, and substance-definition search parameters are present in the Ingredient search bundle.
+
+Additional context:
+FHIR-31808 was later Published/Persuasive with Modification and changed the model so Ingredient points back to MedicinalProductDefinition, AdministrableProductDefinition, and ManufacturedItemDefinition through Ingredient.for. Its implementation commit fbfbf287b1 added the Ingredient.for reference search parameter and changed the product ingredient elements/search parameters from reference-to-Ingredient to CodeableConcept/token fallback ingredients. Current build-scope source retains Ingredient substance reference/code searches, Ingredient.for, product ingredient token searches, and AdministrableProductDefinition device and manufactured-item reference searches; v5.0.0 contains the same FHIR-31808-shaped search model.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Reintroducing product-level ingredient reference search parameters would contradict the later approved Ingredient.for linkage direction. The current source already supports the seed's search use cases through Ingredient substance/substance-code/substance-definition searches, Ingredient.for and reverse _has searches from product resources, direct product ingredient token searches for in-resource fallback coded ingredients, and the requested AdministrableProductDefinition device/manufactured-item references.
+
+Recommendation:
+Keep this no-change audit. If BRR wants a new derived product-level search parameter that traverses incoming Ingredient.for links without using _has, that should be raised as a fresh search semantics request rather than treated as an unapplied FHIR-28174 fix.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-28174
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-31808: later-change - reversed product-to-Ingredient references into Ingredient.for and therefore supersedes the literal reference-search-parameter shape requested by FHIR-28174 for product resources.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-28174: Published/Persuasive BRR request approved 19-0-0 to add medicinal product ingredient searches, Ingredient substance searches, the substance-code rename, and AdministrableProductDefinition device/manufactured-item searches. Learned: establishes the seed's approved R5 intent.
+- E2 Source source/fhir.ini:226,289,291-295: Substance, MedicinalProductDefinition, ManufacturedItemDefinition, AdministrableProductDefinition, Ingredient, and SubstanceDefinition are active current build resources. Learned: the inspected source files are in build scope.
+- E3 Source source/ingredient/bundle-Ingredient-search-params.xml:8-19,103-152 and source/ingredient/structuredefinition-Ingredient.xml:145-155,335-344: Ingredient has the for reference search to product resources and substance, substance-code, and substance-definition searches on Ingredient.substance.code. Learned: Ingredient-side searches requested by the issue and later linkage direction are present.
+- E4 Source product search bundles: AdministrableProductDefinition has ingredient token plus device and manufactured-item reference searches; ManufacturedItemDefinition and MedicinalProductDefinition have ingredient token searches. Learned: the remaining product-side searches match the post-FHIR-31808 model rather than the original reference shape.
+- E5 Git fbfbf287b1: FHIR#31808 swapped the direction of Ingredient links, added Ingredient.for, and changed product ingredient search parameters from reference to token. Learned: the literal FHIR-28174 product reference-search request was intentionally superseded by a later approved model change.
+- E6 Confluence BRR 2020-08-04 page 86978491: minutes record FHIR-28174 being moved by Rik, seconded by Peter, and approved 19-0-0. Learned: confirms the Jira vote context.
+- E7 Command checks: v5.0.0 source contains the same Ingredient.for and ingredient/substance search parameter shape; quoted Zulip search for FHIR-28174 found no results. Learned: current source remains aligned with the R5 published application and no contrary community discussion was found.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-28174",
+    "url": "https://jira.hl7.org/browse/FHIR-28174",
+    "snapshot_path": "contexts/FHIR-28174/jira/FHIR-28174.md",
+    "ref": { "jira_key": "FHIR-28174" },
+    "summary": "Published/Persuasive BRR request approved 19-0-0 to add medicinal product ingredient searches, Ingredient substance searches, a substance-code rename, and AdministrableProductDefinition device/manufactured-item searches.",
+    "learned": "This establishes the seed's approved R5 search-parameter intent.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:226,289,291-295",
+    "summary": "The resources Substance, MedicinalProductDefinition, ManufacturedItemDefinition, AdministrableProductDefinition, Ingredient, and SubstanceDefinition are active current build resources.",
+    "learned": "The inspected StructureDefinition and search-parameter source files are in current build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/ingredient/bundle-Ingredient-search-params.xml:8-19,103-152; source/ingredient/structuredefinition-Ingredient.xml:145-155,335-344",
+    "summary": "Ingredient has the for reference search to MedicinalProductDefinition, AdministrableProductDefinition, and ManufacturedItemDefinition, plus substance, substance-code, and substance-definition searches on Ingredient.substance.code.",
+    "learned": "The Ingredient-side search capability requested by FHIR-28174 and the later product-link direction are present.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/administrableproductdefinition/bundle-AdministrableProductDefinition-search-params.xml:8-19,65-95; source/manufactureditemdefinition/bundle-ManufacturedItemDefinition-search-params.xml:46-57; source/medicinalproductdefinition/bundle-MedicinalProductDefinition-search-params.xml:103-114",
+    "summary": "AdministrableProductDefinition has device and manufactured-item reference searches and a direct ingredient token search; ManufacturedItemDefinition and MedicinalProductDefinition also have direct ingredient token searches.",
+    "learned": "The current product-side search parameters match the post-FHIR-31808 model and include the additional AdministrableProductDefinition links requested by the seed.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "fbfbf287b1ed7a1add0a216ec02cd2d6daab062c",
+    "ref": { "commit": "fbfbf287b1ed7a1add0a216ec02cd2d6daab062c", "jira_key": "FHIR-31808" },
+    "summary": "The FHIR#31808 commit swapped Ingredient link direction, added Ingredient.for, and changed product ingredient search parameters from reference to token.",
+    "learned": "A later approved Jira decision intentionally superseded the literal product reference-search shape in FHIR-28174.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "BRR 2020-08-04 Conference Call page 86978491",
+    "url": "https://confluence.hl7.org/spaces/BRR/pages/86978491/2020-08-04+Conference+Call",
+    "ref": { "confluence_page_id": 86978491 },
+    "summary": "BRR minutes record FHIR-28174 being moved by Rik, seconded by Peter, with no abstentions or negatives and a 19-0-0 vote.",
+    "learned": "This confirms the formal vote context recorded in Jira.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "R5/current source comparison and negative Zulip search",
+    "command": "git show v5.0.0:source/ingredient/bundle-Ingredient-search-params.xml; git show v5.0.0:source/*/bundle-*-search-params.xml; bun run zulip:search fts '\"FHIR-28174\" ingredient substance medicinal product' --limit 10",
+    "query": "\"FHIR-28174\" ingredient substance medicinal product",
+    "result_count": 0,
+    "summary": "The v5.0.0 source contains the same Ingredient.for and ingredient/substance search-parameter shape as current source, and the quoted Zulip search found no hits.",
+    "learned": "Current source remains aligned with the R5 published application and no contrary community discussion was found.",
+    "supports": ["published_alignment", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

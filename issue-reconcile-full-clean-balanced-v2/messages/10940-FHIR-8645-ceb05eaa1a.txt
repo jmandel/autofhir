@@ -1,0 +1,110 @@
+FHIR-8645: Audit code-system binding enforcement
+
+Issue request:
+FHIR-8645 was Published/Persuasive for FHIR-core after FHIR-I accepted that value sets bound to elements whose data type is code should draw only from FHIR-defined code systems, aside from allowed mappings to v2, v3, or other systems. The requested change was to enforce that policy in the build tool.
+
+Initial application:
+The issue was applied in the historical in-repository Java publisher. Commit 0627be72fd128ab2fc79bc304e8dc143338976f8 added the ResourceValidator hint at svn revision 11401; commit c670df73aa60592935da71f718bb45ef0d06d112 immediately commented it out because of FMM-level impact; commit a30914f3e0a0628813eb2f730b25d901a4fc54f3 re-enabled the warning for STU4 at svn revision 14117.
+
+Additional context:
+The old tools/java publisher source was removed when HL7/fhir switched to the Gradle build with an org.hl7.fhir:kindling dependency. The current build.gradle.kts invokes org.hl7.fhir.tools.publisher.Publisher from Kindling, and current HL7/kindling ResourceValidator still checks simple code bindings with noExternals and emits the FHIR-8645-style message. The current core suppressed-messages.txt includes that message for CapabilityStatement.format, showing that the current build pipeline is receiving the validation output. Later Jira issues such as FHIR-24096 and FHIR-24097 used this QA message to fix resource-specific terminology, while FHIR-28285 is a separate later code-binding tooling rule already audited on the combined branch.
+
+AutoFHIR reconciliation:
+This is an empty external-repo audit commit. No HL7/fhir source file was changed because the requested enforcement now lives in the external HL7/kindling build tooling, and the current core checkout already delegates publishing and validation to Kindling.
+
+Recommendation:
+Keep this audit commit as-is for core source reconciliation. If this policy regresses, fix or version the Kindling/Publisher tooling rather than adding redundant core prose or editing generated artifacts; resource-specific QA warnings should be handled under their own Jira issues.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8645
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-28285: same-change-family - later Published/Persuasive tooling issue for code binding strength; it is already represented on the combined branch and does not duplicate FHIR-8645.
+FHIR-24096: background - MedicationAdministration QA issue whose description includes the FHIR-8645 warning and resolved the resource-specific source cleanup separately.
+FHIR-24097: background - MedicationDispense QA issue whose description includes the FHIR-8645 warning and resolved the resource-specific source cleanup separately.
+FHIR-24098: background - MedicationKnowledge QA issue includes the same warning but remains Resolved - change required and is outside this seed decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8645: Published/Persuasive issue requesting build-tool enforcement for code data type bindings. Learned: establishes the final FHIR-I request and that the target surface is tooling.
+- E2 Git 0627be72, c670df73, a30914f3: historical HL7/fhir ResourceValidator first added the hint, rolled it back for FMM impact, then re-enabled it at svn revision 14117. Learned: the issue was applied before this reconciliation.
+- E3 Git 9f549566 plus build.gradle.kts:46-48,132-149 and gradle.properties:2: the old in-repository Java publisher was removed and the current build consumes org.hl7.fhir:kindling to run org.hl7.fhir.tools.publisher.Publisher. Learned: current source-changing ownership is external tooling.
+- E4 Git HL7/kindling b6cb1f66 ResourceValidator.java:1236-1241,1280-1303: current Kindling checks simple code bindings with noExternals and emits the internally-defined-codes hint. Learned: the requested validation behavior exists in the active external build tool.
+- E5 Source suppressed-messages.txt:134 and source/capabilitystatement/structuredefinition-CapabilityStatement.xml:664-689: current core build output includes the FHIR-8645-style warning for a code element binding. Learned: the current build pipeline sees and reports this policy check.
+- E6 Jira FHIR-24096/FHIR-24097/FHIR-24098: later resource QA issues include the same validation message. Learned: the tooling warning has been used to drive resource-specific cleanup rather than needing a new core tooling edit here.
+- E7 Command community search: direct Zulip and Confluence searches for FHIR-8645 and the validation phrase found no relevant conflicting discussion. Learned: no discovered community record changes the Jira/source/tooling conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8645",
+    "url": "https://jira.hl7.org/browse/FHIR-8645",
+    "snapshot_path": "contexts/FHIR-8645/jira/FHIR-8645.md",
+    "ref": { "jira_key": "FHIR-8645" },
+    "summary": "Published/Persuasive issue requesting build-tool enforcement that code data type bindings use internally defined FHIR code systems.",
+    "learned": "This is the final FHIR-I request and establishes that the reconciliation target is build tooling, not normative prose.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "HL7/fhir commits 0627be72, c670df73, a30914f3",
+    "ref": { "commits": "0627be72fd128ab2fc79bc304e8dc143338976f8,c670df73aa60592935da71f718bb45ef0d06d112,a30914f3e0a0628813eb2f730b25d901a4fc54f3" },
+    "summary": "Historical ResourceValidator added the FHIR-8645 hint at svn 11401, rolled it back because of FMM impact, then re-enabled the warning at svn 14117.",
+    "learned": "The Jira comments map to concrete source history and show the issue was applied before the current reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "build.gradle.kts:46-48,132-149; gradle.properties:2; git 9f549566d1346cad7db6d2afca6080d7cebdfbbe",
+    "ref": { "commit": "9f549566d1346cad7db6d2afca6080d7cebdfbbe" },
+    "summary": "HL7/fhir removed the old tools/java publisher when switching to a Gradle build that depends on org.hl7.fhir:kindling and runs org.hl7.fhir.tools.publisher.Publisher.",
+    "learned": "Current publisher validation behavior belongs to the external Kindling dependency rather than editable source in this checkout.",
+    "supports": ["additional_context", "external_repo"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "HL7/kindling b6cb1f66 ResourceValidator.java:1236-1241,1280-1303",
+    "url": "https://github.com/HL7/kindling/blob/b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8/src/main/java/org/hl7/fhir/definitions/validation/ResourceValidator.java#L1236-L1303",
+    "ref": { "repo": "HL7/kindling", "commit": "b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8" },
+    "summary": "Current Kindling checks simple code bindings and emits the internally-defined-codes hint using noExternals, with explicit exceptions for allowed systems.",
+    "learned": "The requested enforcement is present in the active external build tool used by HL7/fhir.",
+    "supports": ["reconciliation", "external_repo", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "suppressed-messages.txt:134; source/capabilitystatement/structuredefinition-CapabilityStatement.xml:664-689",
+    "summary": "The current core checkout contains a suppressed QA message for CapabilityStatement.format: 'Bindings for code data types should only use internally defined codes'.",
+    "learned": "The current FHIR build pipeline is receiving this validation output for an active code element binding.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-24096, FHIR-24097, FHIR-24098",
+    "url": "https://jira.hl7.org/browse/FHIR-24096",
+    "ref": { "jira_keys": "FHIR-24096,FHIR-24097,FHIR-24098" },
+    "summary": "Later Pharmacy QA issues quote the same internally-defined-codes validation message on resource status bindings.",
+    "learned": "This confirms the FHIR-8645 warning was active and used for resource-specific cleanup after the tooling change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-8645 and validation phrase",
+    "command": "bun run zulip:search fts '\"FHIR-8645\"' --limit 10; bun run zulip:search fts '\"code datatypes\" \"internally defined codes\"' --limit 10; bun run confluence:search refs jira FHIR-8645; bun run confluence:search fts '\"code data types\" \"internally defined codes\"' --limit 10",
+    "query": "FHIR-8645; code datatypes internally defined codes; code data types internally defined codes",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence discussion was found that conflicts with the Jira and source-history evidence.",
+    "learned": "No discovered community record changes the conclusion that current enforcement belongs to Kindling and no core source edit is needed.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

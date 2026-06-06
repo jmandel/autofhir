@@ -1,0 +1,108 @@
+FHIR-19342: Redirect old registry page
+
+Issue request:
+FHIR-19342 was Published/Persuasive for FHIR-core as a non-substantive STU3 technical correction. It asked to create a redirect from the advertised old registry address, http://hl7.org/fhir/registry, to the actual registry address, https://registry.fhir.org/; the resolution was auto-approved.
+
+Initial application:
+No historical source commit explicitly applying FHIR-19342 was found. Current build-scoped source still published tools/html/registry/index.html as a registry landing page instead of a redirect, and a live check of http://hl7.org/fhir/registry showed it only canonicalized to the trailing-slash page and returned that landing page. Nearby history explains how the old address became advertised: git commit 00ab23e09b changed Defining Extensions from http://fhir.org/registry to http://hl7.org/fhir/registry, while later work added support for registry.fhir.org in tooling without changing the old registry page into a redirect.
+
+Additional context:
+The Zulip thread that prompted the Jira records Lloyd McKenzie identifying https://registry.fhir.org/ as the actual registry and asking Grahame Grieve to set up a redirect at the published location; Grahame agreed and asked for a task, after which Lloyd cited GF#19342. Confluence refs for FHIR-19342 found no directly relevant minutes. A separate AutoFHIR audit commit for FHIR-7542 already cites FHIR-19342 as later registry URL context, but it does not decide this issue or implement the old-address redirect.
+
+AutoFHIR reconciliation:
+This commit replaces the active tools/html/registry/index.html page with a small HTML redirect page that immediately refreshes to https://registry.fhir.org/, declares that URL as canonical, and leaves a fallback link for clients that do not follow the refresh. The file is in current build scope because publish.ini copies tools/html into the published output, so this is the source location that controls the /fhir/registry/ page.
+
+Recommendation:
+Keep this commit as-is. If HL7 web operations wants a true HTTP 301/302 for http://hl7.org/fhir/registry, that can still be added in deployment configuration, but the checked-in static source now implements the approved redirect behavior for the built page.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19342
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-7542: background - earlier Defining Extensions registry URL work explains how registry references evolved; its AutoFHIR audit cited FHIR-19342 but did not implement or decide this redirect.
+FHIR-16989: background - later extension-publishing clarification added registry.fhir.org wording near the same source area, confirming the current target registry URL.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19342: Published/Persuasive technical correction asking for a redirect from http://hl7.org/fhir/registry to https://registry.fhir.org/, auto-approved. Learned: this establishes final WG intent and the precise redirect target.
+- E2 Zulip #implementers > Publishing Extensions: Lloyd identified https://registry.fhir.org/ as the actual registry and asked for a redirect at the published http://hl7.org/fhir/registry location; Grahame agreed and Lloyd filed GF#19342. Learned: this confirms the user-visible problem and that a redirect, not just a link update, was requested.
+- E3 Source publish.ini:210-211 and tools/html/registry/index.html:1-11: publish.ini copies tools/html into the built output, and this commit changes the copied registry page to refresh to https://registry.fhir.org/ with a fallback link. Learned: the edited file is build-scoped and controls the current static /fhir/registry/ page.
+- E4 Git/history search: git log --grep=FHIR-19342 found no prior source-changing application; git history showed 00ab23e09b advertising http://hl7.org/fhir/registry and later registry.fhir.org-related changes without converting tools/html/registry/index.html to a redirect. Learned: the current source still needed the approved redirect fix.
+- E5 Live URL check: curl -I -L http://hl7.org/fhir/registry returned 200 at http://hl7.org/fhir/registry/ while https://registry.fhir.org/ returned 200 separately. Learned: before this source fix, the live old address did not redirect to the approved target.
+- E6 Verification command: git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check and grep of tools/html/registry/index.html succeeded. Learned: the edited source has no whitespace errors and contains the required redirect target.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19342",
+    "url": "https://jira.hl7.org/browse/FHIR-19342",
+    "snapshot_path": "contexts/FHIR-19342/jira/FHIR-19342.md",
+    "ref": { "jira_key": "FHIR-19342" },
+    "summary": "Published/Persuasive non-substantive technical correction asking for a redirect from http://hl7.org/fhir/registry to https://registry.fhir.org/.",
+    "learned": "This establishes the final issue request and exact redirect target for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Publishing Extensions",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Publishing%20Extensions",
+    "ref": { "stream": "implementers", "topic": "Publishing Extensions" },
+    "summary": "The 2018 discussion identifies https://registry.fhir.org/ as the actual registry and records the request to redirect the advertised http://hl7.org/fhir/registry page, followed by GF#19342.",
+    "learned": "This confirms that the intended application was a user-visible redirect at the old published location.",
+    "supports": ["additional_context", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "publish.ini:210-211; tools/html/registry/index.html:1-11",
+    "ref": { "paths": "publish.ini, tools/html/registry/index.html" },
+    "summary": "publish.ini copies tools/html into the published output, and the registry page now refreshes to https://registry.fhir.org/ with a canonical link and fallback anchor.",
+    "learned": "The source edit is in build scope and implements the requested old-address redirect for the static /fhir/registry/ page.",
+    "supports": ["build_scope", "source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "git log --grep=FHIR-19342 and registry URL pickaxe searches",
+    "command": "git log --all --oneline --grep='FHIR-19342'; git log --all --oneline -S'http://hl7.org/fhir/registry'; git log --all --oneline -S'registry.fhir.org'",
+    "ref": { "commit": "00ab23e09bf95dc3b04674095ff8d7478f553868" },
+    "summary": "History showed the old hl7.org/fhir/registry address being introduced and later registry.fhir.org-related changes, but no prior FHIR-19342 source-changing redirect application.",
+    "learned": "The current source state was not already reconciled for this issue.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Live old registry URL check",
+    "command": "curl -sS -I -L --max-redirs 5 http://hl7.org/fhir/registry; curl -sS -I -L --max-redirs 5 https://registry.fhir.org/",
+    "summary": "The old URL returned 200 at the old /fhir/registry/ page, while the target registry URL returned 200 separately.",
+    "learned": "The old published address was not redirecting to the approved target before this source fix.",
+    "supports": ["current_behavior", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Whitespace and target verification",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; grep -n 'registry.fhir.org' tools/html/registry/index.html",
+    "summary": "The edited file passed the CRLF-aware whitespace check and contains the requested registry.fhir.org target in the refresh, canonical link, and fallback anchor.",
+    "learned": "The committed source change is syntactically simple and points at the requested destination.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative Confluence search for FHIR-19342",
+    "command": "bun run confluence:search refs jira FHIR-19342; bun run confluence:search fts 'registry redirect' --limit 10",
+    "query": "FHIR-19342 registry redirect",
+    "result_count": 0,
+    "summary": "No directly relevant Confluence reference to FHIR-19342 was found; broader registry redirect hits were unrelated minutes/pages.",
+    "learned": "No discovered Confluence evidence changes the Jira, Zulip, source, and live-behavior conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

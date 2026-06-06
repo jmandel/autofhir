@@ -1,0 +1,115 @@
+FHIR-19422: Correct specimen container type value set
+
+Issue request:
+FHIR-19422 was a Published/Persuasive with Modification OO change request for R5 asking that SpecimenDefinition.typeTested.container.type use a specimen-container value set based on SNOMED CT descendants of 706041008 |Device for body fluid and tissue collection/transfer/processing (physical object)|, with title/name/definition corrected away from the old LOINC cholesterol example.
+
+Initial application:
+No explicit FHIR-19422-tagged source commit was found. Git history shows commit 0fe60a4236d65f04316982ed97e7c352497bbc57 replaced the original LOINC cholesterol example value set under source/specimendefinition with a SNOMED CT include rooted at 706041008, but it left the title/name generic and the definition partly copied from a patient-preparation value set. Later source also contained a second source/specimen copy of the same canonical ValueSet/specimen-container-type rooted at 434711009, and the current CI build was publishing that stale copy.
+
+Additional context:
+Specimen and SpecimenDefinition are both active resources in source/fhir.ini. The current SpecimenDefinition structure definition binds SpecimenDefinition.typeTested.container.type to http://hl7.org/fhir/ValueSet/specimen-container-type and describes the intended 706041008 descendants. OO minutes from 2021-04-12 record that the value set had already moved to SNOMED CT but needed its definition updated to the Jira-listed root, and the 2021-04-29 OO block vote accepted FHIR-19422 as persuasive with modification/pre-applied. The later FHIR-49741 R6 Specimen.container remodel removes Specimen.container.type from the active Specimen structure, but it does not change the SpecimenDefinition binding or the canonical value set definition.
+
+AutoFHIR reconciliation:
+This commit updates both build-scoped source copies of ValueSet/specimen-container-type so their name, title, description, and SNOMED CT filter agree with the FHIR-19422 decision. Updating both copies is necessary because build.fhir.org was selecting the source/specimen copy for the canonical page even though SpecimenDefinition binds to the same canonical URL.
+
+Recommendation:
+Keep this source fix as-is. A future cleanup may remove or consolidate the duplicate source/specimen value-set file if the publisher no longer needs it, but the current reconciliation should preserve both files and align their canonical content so the built specification is not dependent on source selection order.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19422
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-49741: later-change - R6 remodels Specimen.container to use a device element and removes the old Specimen.container.type element, explaining why the source/specimen copy is stale but not changing the SpecimenDefinition value-set requirement.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19422: Published/Persuasive with Modification OO issue requesting SpecimenDefinition.container.type value set title/name/definition/content be corrected from LOINC cholesterol to SNOMED CT descendants of 706041008. Learned: this is the final WG target for the value set.
+- E2 Source source/fhir.ini:224,280 and source/specimendefinition/structuredefinition-SpecimenDefinition.xml:611-629: Specimen and SpecimenDefinition are active resources, and SpecimenDefinition.typeTested.container.type binds to ValueSet/specimen-container-type with a 706041008-descendant description. Learned: the edited value-set sources are in current build scope and feed the bound canonical URL.
+- E3 Source source/specimendefinition/valueset-specimen-container-type.xml:27-46 and source/specimen/valueset-specimen-container-type.xml:27-46: both canonical source copies now have the requested SNOMED CT title/definition and include concept is-a 706041008. Learned: the reconciliation makes both possible publisher inputs agree with FHIR-19422.
+- E4 Git 0fe60a4236d65f04316982ed97e7c352497bbc57: 2018 source update replaced the original LOINC cholesterol example with SNOMED CT 706041008 content but kept stale title/name/definition text. Learned: the issue was only partially pre-applied in source history.
+- E5 Published spec https://build.fhir.org/valueset-specimen-container-type.json and https://hl7.org/fhir/R5/valueset-specimen-container-type.json: current CI build showed the source/specimen copy rooted at 434711009, while R5 showed 706041008 with stale title/definition. Learned: the current build still had a semantic value-set-root problem and a metadata problem.
+- E6 Confluence OO minutes 2021-04-12 page 109545420 and 2021-04-29 page 111117813: minutes say the value set had been moved to SNOMED CT but needed its definition updated to the Jira-listed root, then accepted FHIR-19422 in the April block vote 12-0-5. Learned: meeting evidence corroborates Jira's disposition and scope.
+- E7 Command community search: Zulip exact search for FHIR-19422 found no results, and broader SpecimenDefinition/container.type search found only a later container-device modeling thread with no conflicting value-set-root decision. Learned: no discovered community discussion changes the Jira/source conclusion.
+- E8 Verification command: parsed both edited XML files with Python ElementTree and ran git diff --check. Learned: the edited files are well-formed XML and introduce no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19422",
+    "url": "https://jira.hl7.org/browse/FHIR-19422",
+    "snapshot_path": "contexts/FHIR-19422/jira/FHIR-19422.md",
+    "ref": { "jira_key": "FHIR-19422" },
+    "summary": "Published/Persuasive with Modification OO issue requesting SpecimenDefinition.container.type value set title/name/definition/content be corrected from LOINC cholesterol to SNOMED CT descendants of 706041008.",
+    "learned": "This establishes the final target content and metadata for ValueSet/specimen-container-type.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:224,280; source/specimendefinition/structuredefinition-SpecimenDefinition.xml:611-629",
+    "summary": "Specimen and SpecimenDefinition are active resources, and SpecimenDefinition.typeTested.container.type binds to http://hl7.org/fhir/ValueSet/specimen-container-type with a 706041008-descendant description.",
+    "learned": "The value-set source is in current build scope and is the canonical binding target for the affected SpecimenDefinition element.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/specimendefinition/valueset-specimen-container-type.xml:27-46; source/specimen/valueset-specimen-container-type.xml:27-46",
+    "summary": "Both source copies of ValueSet/specimen-container-type now use the requested SNOMED CT title/definition and include concept is-a 706041008.",
+    "learned": "The fix aligns all current source copies that can publish the canonical value set.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "0fe60a4236d65f04316982ed97e7c352497bbc57",
+    "ref": { "commit": "0fe60a4236d65f04316982ed97e7c352497bbc57" },
+    "summary": "2018 SpecimenDefinition update replaced the original LOINC cholesterol example with SNOMED CT 706041008 content but left stale title/name/definition text.",
+    "learned": "This explains why the historical application was partial and why metadata still needed reconciliation.",
+    "supports": ["initial_application", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "build.fhir.org and R5 ValueSet/specimen-container-type JSON",
+    "url": "https://build.fhir.org/valueset-specimen-container-type.json",
+    "summary": "The current CI build published the source/specimen copy rooted at 434711009, while R5 published 706041008 with stale title/definition.",
+    "learned": "The present build still needed a source fix, and both duplicate source copies had to be aligned.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "OO minutes 2021-04-12 page 109545420; OO minutes 2021-04-29 page 111117813",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/111117813/2021-04-29+Main",
+    "ref": { "confluence_page_id": 111117813 },
+    "summary": "OO minutes record that the value set needed the Jira-listed SNOMED CT root definition and later accepted FHIR-19422 in the April block vote 12-0-5.",
+    "learned": "Meeting evidence corroborates the Jira disposition and the bounded scope of the fix.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip search for FHIR-19422 and SpecimenDefinition container.type",
+    "command": "bun run zulip:search fts '\"FHIR-19422\"' --limit 10; bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-19422%' OR (content LIKE '%SpecimenDefinition%' AND content LIKE '%container.type%') ...\"",
+    "query": "FHIR-19422; SpecimenDefinition container.type",
+    "result_count": 1,
+    "summary": "No exact FHIR-19422 Zulip hit was found; one broader 2025 container-device modeling thread did not conflict with the value-set-root decision.",
+    "learned": "No discovered community discussion changes the Jira, Confluence, source, and published-spec conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted XML and whitespace validation",
+    "command": "python - <<'PY' ... ElementTree.parse(...) ... PY; git diff --check",
+    "summary": "Both edited value-set XML files parsed successfully and git diff --check reported no whitespace errors.",
+    "learned": "The source edit is syntactically safe for the edited XML files.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,130 @@
+FHIR-20476: Fix Subscription admission channel type example
+
+Issue request:
+FHIR-20476 was Published/Persuasive for R5 and asked to make the Subscription.channel.type value set binding extensible so custom subscription delivery methods could be experimented with without non-conforming Subscription resources. The accepted resolution also changed the channel type element to Coding because translations/text were not needed.
+
+Initial application:
+Jira records a8762c404cabbf352bfaa710016d436b85b757b9 and d6b6a5e68bbfc8eb086c2bf82744432d6af9e788 as implementation commits. Those commits moved Subscription toward the Argonaut/R5 channel model and d6b6a5e made the admission JSON channel value a Coding-shaped object, but that JSON example retained the old channel property and used the value set URL as Coding.system.
+
+Additional context:
+FHIR-23738 is the same Subscription redesign family and explicitly lists FHIR-20476 among the Argonaut branch changes, including flattening Subscription.channel and changing Subscription.channelType to Coding. Current source/fhir.ini keeps Subscription active, and source/subscription/list-Subscription-examples.xml includes the Subscription/admission example. The authoritative StructureDefinition already has Subscription.channelType as Coding with an extensible binding to ValueSet/subscription-channel-type, and the XML admission/example sources already use channelType. FHIR-I minutes record the original 7-0-0 vote, and Zulip discussion around the model changes and later channel.type questions aligns with the R5 extensible-channel interpretation.
+
+AutoFHIR reconciliation:
+This commit updates source/subscription/subscription-admission.json from the obsolete channel object to channelType as a Coding object, matching the current Subscription StructureDefinition and the parallel XML examples. It removes the incorrect ValueSet URL from Coding.system rather than introducing a new system value, keeping the JSON example aligned with the existing XML examples that carry only the rest-hook code.
+
+Recommendation:
+Keep this commit as-is. It completes FHIR-20476 in a current-build example while preserving the already-correct authoritative Subscription.channelType definition; any broader decision to add CodeSystem.system values to all Subscription channel examples should be handled separately.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20476
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-23738: same-change-family - the R5 Subscription topic-based redesign flattened Subscription.channel to Subscription.channelType and explicitly included FHIR-20476 in the Argonaut branch change list.
+FHIR-30166: background - the subscriptions backport issue confirms R5 did not need a modifier extension because Subscription.channelType is already Coding with an extensible binding.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20476: Published/Persuasive with a 2019-03-11 vote; resolution changed the channel type to Coding and the binding to extensible. Learned: establishes the final source requirement for this reconciliation.
+- E2 Source source/fhir.ini:234 and source/subscription/list-Subscription-examples.xml:19-29: Subscription is active and Subscription/admission is listed as a current example. Learned: the edited JSON example is in current build scope.
+- E3 Source source/subscription/structuredefinition-Subscription.xml:349-365: Subscription.channelType is Coding with extensible binding to ValueSet/subscription-channel-type. Learned: the authoritative definition already satisfies the Jira decision.
+- E4 Source source/subscription/subscription-admission.json:15-17 and source/subscription/subscription-admission.xml:16-18: before reconciliation the JSON used obsolete channel while the XML used channelType; after reconciliation the JSON channel type is channelType Coding. Learned: a parallel current example still needed alignment.
+- E5 Git a8762c404cabbf352bfaa710016d436b85b757b9 and d6b6a5e68bbfc8eb086c2bf82744432d6af9e788: Jira-linked implementation commits introduced the R5 model and Coding-shaped JSON but left the admission JSON under channel. Learned: the initial application was incomplete in this example source.
+- E6 Jira FHIR-23738: Published/Persuasive Subscription redesign placeholder lists FHIR-20476 and the flattening to Subscription.channelType. Learned: later same-family context explains why the current element path is channelType rather than channel.type.
+- E7 Confluence FHIR-I Minutes CC 20190311 page 44500346: minutes record “Make Subscription.channel.type extensible” with Joshua Mandel/James Agnew 7-0-0. Learned: meeting evidence corroborates the Jira disposition.
+- E8 Zulip #subscriptions > Posted model changes and #implementers > Subscription channel.type: discussion notes flattening Subscription.channel, changing Subscription.channelType to Coding, and R5 channels being extensible. Learned: no community evidence conflicts with the source fix.
+- E9 Verification command: jq empty source/subscription/subscription-admission.json; git grep for old channel JSON in source/subscription; git diff --check. Learned: the edited JSON parses, the stale channel property is gone from Subscription examples, and the diff has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20476",
+    "url": "https://jira.hl7.org/browse/FHIR-20476",
+    "snapshot_path": "contexts/FHIR-20476/jira/FHIR-20476.md",
+    "ref": { "jira_key": "FHIR-20476" },
+    "summary": "Published/Persuasive issue asking to make Subscription.channel.type extensible and resolving to change the type to Coding with an extensible binding.",
+    "learned": "This is final work-group intent for the seed and establishes the Coding/extensible target state.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:234; source/subscription/list-Subscription-examples.xml:19-29",
+    "ref": { "paths": "source/fhir.ini; source/subscription/list-Subscription-examples.xml" },
+    "summary": "Subscription is an active current resource and the Subscription/admission example is listed in the Subscription examples list.",
+    "learned": "The edited admission JSON example is within current build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/subscription/structuredefinition-Subscription.xml:349-365",
+    "ref": { "path": "source/subscription/structuredefinition-Subscription.xml", "lines": "349-365" },
+    "summary": "The authoritative Subscription definition has channelType as Coding with an extensible binding to ValueSet/subscription-channel-type.",
+    "learned": "The main conformance definition already reflects FHIR-20476, so reconciliation should be limited to stale parallel source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/subscription/subscription-admission.json:15-17; source/subscription/subscription-admission.xml:16-18",
+    "ref": { "paths": "source/subscription/subscription-admission.json; source/subscription/subscription-admission.xml" },
+    "summary": "The admission JSON example used the obsolete channel shape while the XML admission example already used channelType Coding.",
+    "learned": "A current parallel example source still needed alignment with the FHIR-20476/R5 channelType model.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "a8762c404cabbf352bfaa710016d436b85b757b9; d6b6a5e68bbfc8eb086c2bf82744432d6af9e788",
+    "ref": { "commits": "a8762c404cabbf352bfaa710016d436b85b757b9; d6b6a5e68bbfc8eb086c2bf82744432d6af9e788" },
+    "summary": "Jira-linked implementation commits applied the Subscription model changes and made the admission JSON value Coding-shaped but left it under channel.",
+    "learned": "The initial application was incomplete for the current JSON example.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-23738",
+    "url": "https://jira.hl7.org/browse/FHIR-23738",
+    "ref": { "jira_key": "FHIR-23738" },
+    "summary": "Published/Persuasive Subscription redesign placeholder listing FHIR-20476 and the flattening of Subscription.channel plus channelType Coding among the Argonaut branch changes.",
+    "learned": "This same-family decision explains the current element path and prevents treating channel.type as the current R5/R6 path.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes CC 20190311 page 44500346",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/44500346/FHIR+Infrastructure+Minutes+CC+20190311",
+    "snapshot_path": "contexts/FHIR-20476/confluence/44500346.md",
+    "ref": { "confluence_page_id": 44500346 },
+    "summary": "Minutes record Tracker GF#20476, 'Make Subscription.channel.type extensible', with a Joshua Mandel/James Agnew 7-0-0 motion.",
+    "learned": "Meeting evidence corroborates the Jira vote and requested change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#subscriptions > Posted model changes; #implementers > Subscription channel.type",
+    "url": "https://chat.fhir.org/#narrow/stream/subscriptions/topic/Posted%20model%20changes",
+    "snapshot_path": "contexts/FHIR-20476/zulip/subscriptions--Posted-model-changes.md; contexts/FHIR-20476/zulip/implementers--Subscription-channel.type.md",
+    "ref": { "streams": "subscriptions; implementers" },
+    "summary": "Zulip discussion notes flattening Subscription.channel, changing Subscription.channelType to Coding, and that R5 channels are extensible.",
+    "learned": "Community discussion aligns with the Jira/source conclusion and reveals no conflicting interpretation.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Targeted source verification",
+    "command": "jq empty source/subscription/subscription-admission.json; git grep -n '\"channel\"\\s*:' -- source/subscription ':!publish'; git diff --check",
+    "summary": "The JSON parses, the old channel property no longer appears in Subscription examples except historical proposal text, and the diff has no whitespace errors.",
+    "learned": "The source fix is syntactically valid and removes the stale example shape from active Subscription examples.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,94 @@
+FHIR-41400: Align EpisodeOfCare summary with group subject
+
+Issue request:
+FHIR-41400 was Applied/Persuasive for R6 by Patient Administration. It asked for EpisodeOfCare to support family-oriented care by renaming the patient element to subject, allowing Reference(Patient | Group), and updating search parameters including a new subject search parameter, consistent with Encounter.
+
+Initial application:
+The issue was initially applied in 58df91709e, which renamed EpisodeOfCare.patient to EpisodeOfCare.subject, added Group as a target, and added/retargeted the subject and patient search parameters. The follow-up ad64f69d78 made QA wording updates in search parameters and narrative. Those commits left several current source summaries and the checked-in diagram using patient-only wording or the old EpisodeOfCare.patient anchor.
+
+Additional context:
+PA WGM minutes for September 2023 record that Encounter already supported groups and that PA would add the same support for EpisodeOfCare. Current fhir.ini actively includes EpisodeOfCare, and the patient-to-subject aliases in fhir.ini are intentional migration/diff mappings rather than live patient elements. The authoritative current XML and search parameter source already expose EpisodeOfCare.subject as Reference(Patient | Group), so the remaining problem was stale summary and display text that could mislead readers back to patient-only care.
+
+AutoFHIR reconciliation:
+This commit updates the active EpisodeOfCare StructureDefinition resource summary/root definition and careManager description to avoid patient-only language, keeps the Event mapping exception text synchronized, updates the checked-in EpisodeOfCare diagram to point at EpisodeOfCare.subject and show Patient|Group, and updates the resource guide's EpisodeOfCare summary to say patient or group. It does not remove the patient search parameter or fhir.ini aliases because they are the deliberate patient-only compatibility surface over EpisodeOfCare.subject.
+
+Recommendation:
+Keep this commit as-is. It completes the applied patient-to-subject/group change in the current core source while preserving the compatibility patient search parameter and historical alias mappings.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-41400
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-20479: supporting-decision - Encounter's subject wording was previously clarified to allow the subject to be related to an encounter without necessarily being present, informing the Encounter precedent cited by FHIR-41400.
+FHIR-22696: background - Earlier Appointment/Encounter work added Group among Encounter-related actor/subject patterns; it is context for the 'Encounter already supports groups' rationale but not part of this EpisodeOfCare fix.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-41400: Applied/Persuasive PA issue requiring EpisodeOfCare.patient to become subject with Patient and Group targets plus updated search parameters. Learned: this is the final work-group request being reconciled.
+- E2 Git 58df91709e and ad64f69d78: prior FHIR-41400 commits changed the element/search parameters and some narrative QA. Learned: the main application existed, but residual patient-only summary text and the diagram were not fully synchronized.
+- E3 Source source/fhir.ini:258 and source/episodeofcare/structuredefinition-EpisodeOfCare.xml:342: EpisodeOfCare is an active resource and the current subject element is Reference(Patient | Group). Learned: the edited XML and resource-folder files are in current build scope and the intended model is already subject/group.
+- E4 Source source/episodeofcare/structuredefinition-EpisodeOfCare.xml:49,77,78,419 and source/resourceguide.html:411: resource-level and guide summaries still described EpisodeOfCare/careManager in patient-only terms before this commit. Learned: these authoritative summaries needed correction to avoid contradicting the group subject change.
+- E5 Confluence PA minutes 2023 September WGM page 184924152: minutes state that Encounter already supports groups and PA would add that support for EpisodeOfCare, with a 4-0-0 motion. Learned: meeting evidence supports applying the change as Patient/Group support rather than a broader family-ticket sweep.
+- E6 Command validation: xmllint on touched XML/SVG and CRLF-aware git diff --check passed; targeted search found EpisodeOfCare.subject/search params and only intentional fhir.ini patient aliases. Learned: the source edits are well-formed and no direct EpisodeOfCare.patient anchor remains in the EpisodeOfCare source except intentional aliases/search compatibility.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-41400",
+    "url": "https://jira.hl7.org/browse/FHIR-41400",
+    "snapshot_path": "contexts/FHIR-41400/jira/FHIR-41400.md",
+    "ref": { "jira_key": "FHIR-41400" },
+    "summary": "Applied/Persuasive PA change request to rename EpisodeOfCare.patient to subject, allow Patient and Group, and update search parameters.",
+    "learned": "This establishes the final work-group intent and required EpisodeOfCare source behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "58df91709e; ad64f69d78",
+    "ref": { "commits": "58df91709e,ad64f69d78" },
+    "summary": "Prior FHIR-41400 commits renamed the element, added Group, updated search parameters, and made limited narrative QA updates.",
+    "learned": "The original application was mostly present but left stale summary/diagram text that still read patient-only.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:258; source/episodeofcare/structuredefinition-EpisodeOfCare.xml:342",
+    "summary": "fhir.ini actively lists EpisodeOfCare, and the current subject element is present in the active StructureDefinition source.",
+    "learned": "The edited EpisodeOfCare source is in current build scope and the intended active element is subject, not patient.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/episodeofcare/structuredefinition-EpisodeOfCare.xml:49,77,78,419; source/resourceguide.html:411",
+    "summary": "Authoritative summaries still used patient-only wording for EpisodeOfCare and careManager before this reconciliation.",
+    "learned": "These remaining source locations could mislead implementers despite the corrected subject element and search parameters.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "2023 September WGM (Phoenix) - Meeting Minutes page 184924152",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/184924152/2023+September+WGM+Phoenix+-+Meeting+Minutes",
+    "ref": { "confluence_page_id": 184924152 },
+    "summary": "PA minutes record that Encounter already supports groups and PA would add that support for EpisodeOfCare, with the FHIR-41400 motion passing 4-0-0.",
+    "learned": "This confirms the intended scope is EpisodeOfCare Patient/Group support, not unrelated family/group resource tickets.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Targeted validation for FHIR-41400 source changes",
+    "command": "xmllint --noout source/episodeofcare/structuredefinition-EpisodeOfCare.xml source/episodeofcare/episodeofcare-event-mapping-exceptions.xml source/episodeofcare/episodeofcare.svg; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg -n 'EpisodeOfCare\\.(patient|subject)|episodeofcare-definitions\\.html#EpisodeOfCare\\.(patient|subject)' source/episodeofcare source/resourceguide.html source/fhir.ini",
+    "summary": "Touched XML/SVG parsed, CRLF-aware diff check passed, and targeted search found the subject/search-parameter surface plus only intentional fhir.ini patient aliases.",
+    "learned": "The reconciliation is syntactically safe and did not leave an old EpisodeOfCare.patient diagram/source anchor in the EpisodeOfCare source.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

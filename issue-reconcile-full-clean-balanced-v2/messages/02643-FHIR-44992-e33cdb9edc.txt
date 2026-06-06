@@ -1,0 +1,122 @@
+FHIR-44992: Audit Reference(Request) build handling
+
+Issue request:
+FHIR-44992 was Applied with a Not Persuasive with Modification resolution after PR #3050 failed with "ERROR @ Communication.basedOn: Reference to invalid resource Request". The work group decided Reference(Request) should not be used in resource definitions because most elements should enumerate the appropriate current request resources rather than implicitly accept all current and future Request-pattern resources; mapping logic should tolerate those enumerated resources.
+
+Initial application:
+The immediate Communication.basedOn application path began with FHIR-38783 commit fa35c0d85e replacing the prior broad Resource target with Reference(Request). Before PR #3050 merged, commit 525068e04f changed Communication.basedOn back to an explicit list of request resources. Later commit a910985a9b, which cites FHIR-44992 and PR #3050, made the same style of correction for ServiceRequest.basedOn after a similar "Reference to invalid resource Request" build failure.
+
+Additional context:
+FHIR-38783 is the related change family that caused the Communication.basedOn experiment. The Jira-linked Zulip thread confirms the ambiguity: participants initially thought Request might work as shorthand, then identified that patterns are logical models and that mapping-exception handling needed to recognize enumerated concrete resource targets. The FHIR-I minutes for 2024-04-16 record FHIR-44992 as Not Persuasive with Modification. Communication and ServiceRequest are active resources in source/fhir.ini, so their StructureDefinition XML and mapping exception files are in current build scope.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current Communication.basedOn enumerates CarePlan, CommunicationRequest, DeviceRequest, MedicationRequest, NutritionOrder, ServiceRequest, Task, and VisionPrescription instead of targeting StructureDefinition/Request. Its Event mapping exception records Request as the pattern type and the concrete resource list as accepted extra types, which is the requested mapping-logic tolerance. Current ServiceRequest.basedOn and ServiceRequest.replaces likewise enumerate concrete request resources and have matching Request mapping exceptions.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-44992 unless the work group later chooses a broader policy allowing pattern names such as Request as Reference target shorthand in resource definitions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-44992
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-38783: same-change-family - its Communication.basedOn Reference(Request) edit in PR #3050 exposed the build/tooling problem resolved by FHIR-44992.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-44992: Applied/Not Persuasive with Modification issue saying Reference(Request) is inappropriate and enumerated resources should not trigger mapping complaints. Learned: this is the final work-group decision for the seed.
+- E2 Zulip #committers > Reference (Request): linked discussion shows PR #3050's Communication.basedOn build error and the conclusion that tooling needed either Reference(Request) support or enumerated-resource equivalence. Learned: the source/build symptom and intended tolerance are the same as the Jira request.
+- E3 Confluence FHIR IG Authoring Minutes CC 20240416 page 234785351: minutes record FHIR-44992 as Not Persuasive with Modification. Learned: meeting evidence corroborates the Jira disposition.
+- E4 Source source/fhir.ini:182 and source/fhir.ini:214: Communication and ServiceRequest are active resources. Learned: the checked StructureDefinition and mapping exception sources are in current build scope.
+- E5 Source source/communication/structuredefinition-Communication.xml:114: Communication.basedOn targets concrete request resources, not StructureDefinition/Request. Learned: the current Communication source follows the Jira resolution.
+- E6 Source source/communication/communication-event-mapping-exceptions.xml:17: Event.basedOn divergence lists missing Reference(Request) and the concrete extra resource references. Learned: the mapping exception source documents the enumerated-resource tolerance requested by the issue.
+- E7 Source source/servicerequest/structuredefinition-ServiceRequest.xml:162 and source/servicerequest/servicerequest-request-mapping-exceptions.xml:21: ServiceRequest.basedOn/replaces and their Request mapping exceptions also enumerate concrete request resources. Learned: the later FHIR-44992-citing ServiceRequest fix remains present.
+- E8 Git 525068e04f and a910985a9b: historical commits replaced Request targets with explicit resource lists for Communication and ServiceRequest. Learned: the source was already corrected before this reconciliation.
+- E9 Verification command: rg found no StructureDefinition/Request targetProfile or Reference(Request) target in the current Communication/ServiceRequest StructureDefinition XML. Learned: no remaining source edit is needed for the seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-44992",
+    "url": "https://jira.hl7.org/browse/FHIR-44992",
+    "snapshot_path": "contexts/FHIR-44992/jira/FHIR-44992.md",
+    "ref": { "jira_key": "FHIR-44992" },
+    "summary": "Applied/Not Persuasive with Modification issue for the PR #3050 build error when Communication.basedOn targeted Reference(Request).",
+    "learned": "The final decision rejects Reference(Request) for resource definitions and asks that enumerated resource targets not cause mapping complaints.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#committers > Reference (Request)",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/Reference%20(Request)",
+    "summary": "The Jira-linked thread records the Communication.basedOn build failure, discussion of Request as shorthand, and the mapping-exception problem with enumerated request resources.",
+    "learned": "It confirms the issue was about avoiding Reference(Request) while making concrete enumerations acceptable to the tooling.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "FHIR IG Authoring Minutes CC 20240416 page 234785351",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/234785351/FHIR+IG+Authoring+Minutes+CC+20240416",
+    "ref": { "confluence_page_id": 234785351 },
+    "summary": "FHIR-I minutes list FHIR-44992 as Not Persuasive with Modification.",
+    "learned": "The meeting record corroborates the Jira status and disposition.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:182 and source/fhir.ini:214",
+    "summary": "source/fhir.ini includes active resources communication=Communication and servicerequest=ServiceRequest.",
+    "learned": "The inspected Communication and ServiceRequest source files are in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/communication/structuredefinition-Communication.xml:114",
+    "summary": "Communication.basedOn enumerates CarePlan, CommunicationRequest, DeviceRequest, MedicationRequest, NutritionOrder, ServiceRequest, Task, and VisionPrescription targets.",
+    "learned": "The current Communication definition does not use Reference(Request) and matches the requested outcome.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/communication/communication-event-mapping-exceptions.xml:17",
+    "summary": "The Event mapping exception records missing Reference(Request) and the concrete extra resource target list for Communication.basedOn.",
+    "learned": "The mapping exception source captures the enumerated-resource tolerance requested by the issue.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:162 and source/servicerequest/servicerequest-request-mapping-exceptions.xml:21",
+    "summary": "ServiceRequest.basedOn and related Request mapping exceptions enumerate concrete request resource targets, including NutritionOrder.",
+    "learned": "The later FHIR-44992-citing ServiceRequest correction remains present and consistent with the seed decision.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "git",
+    "locator": "525068e04f; a910985a9b",
+    "ref": { "commits": "525068e04f,a910985a9b" },
+    "summary": "525068e04f replaced Communication.basedOn's Request target with explicit resources; a910985a9b cites FHIR-44992/PR #3050 and made an analogous ServiceRequest.basedOn fix.",
+    "learned": "The current source was already corrected before this reconciliation, so an empty audit commit is appropriate.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Current StructureDefinition Request-target check",
+    "command": "rg -n 'targetProfile value=\"http://hl7\\.org/fhir/StructureDefinition/Request\"|Reference\\(Request\\)' source/communication/structuredefinition-Communication.xml source/servicerequest/structuredefinition-ServiceRequest.xml",
+    "result_count": 0,
+    "summary": "No current Communication or ServiceRequest StructureDefinition target uses StructureDefinition/Request or Reference(Request).",
+    "learned": "There is no remaining source correction needed for FHIR-44992.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

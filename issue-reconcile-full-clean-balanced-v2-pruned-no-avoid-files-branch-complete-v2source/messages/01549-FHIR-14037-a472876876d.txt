@@ -1,0 +1,118 @@
+FHIR-14037: Restore BMI vital-signs example profile
+
+Issue request:
+FHIR-14037 is a Published/Persuasive OO change request for STU3 Observation. It asked to remove the old Observation.related type restriction from the base Vital Signs profile and put the grouping/member constraint on the Vital Signs Panel profile so the BMI example using related height and weight observations would be valid.
+
+Initial application:
+The source history explicitly applied GF#14037 in 1eb8db446d5aca682e107a14e5fbb3b4e22d606a, together with related vital-signs slicing work, by removing the base Vital Signs profile rows that fixed Observation.related.type to has-member and required related targets. Later GF#10118/R4 model work replaced Observation.related with explicit Observation.hasMember and Observation.derivedFrom. The current Vital Signs profile no longer has an Observation.related constraint, and the current Vital Signs Panel profile uses Observation.hasMember with a minimum member count.
+
+Additional context:
+Observation is an active current-build resource in source/fhir.ini, and source/observation/implementationguide-Observation-vitalsigns.xml includes both StructureDefinition/vitalsigns and StructureDefinition/vitalspanel. FHIR-44836 is already represented on the combined branch and updated the active Vital Signs Panel definition to use Observation.hasMember rather than obsolete related-link wording. The cited BMI example remained in the active Observation examples list, but its vital-signs meta.profile was still commented out with a stale note saying the vital signs fixed has-member value needed to be removed.
+
+AutoFHIR reconciliation:
+This commit restores the meta.profile declaration on source/observation/observation-example-bmi-using-related.xml and removes the stale pending-fix XML comment. The example now explicitly declares conformance to the current Vital Signs base profile while using Observation.derivedFrom for the independent height and weight observations.
+
+Recommendation:
+Keep this commit. It completes the seed issue's cited example cleanup in active source; the profile-level semantics are already correct after the historical GF#14037 application, later Observation.related replacement, and existing FHIR-44836 reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14037
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-10118: later-change - replaced Observation.related and relationship-type codes with explicit Observation.hasMember and Observation.derivedFrom elements, changing how the old FHIR-14037 rule appears in current source.
+FHIR-44836: later-change - already reconciled on the combined branch; clarified Vital Signs Panel wording to use Observation.hasMember and explains the current panel profile wording.
+FHIR-13796: same-change-family - related vital-signs supporting-observation issue whose audit commit cited FHIR-14037 as the old related/member constraint cleanup.
+FHIR-13240: same-change-family - stats operation wording had a separate stale related/type has-member reference and is handled in a separate opportunistic reconciliation commit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14037: Published/Persuasive OO issue requesting that the related/member constraint move from the base Vital Signs profile to the Vital Signs Panel profile. Learned: establishes final work group intent for the seed.
+- E2 Git 1eb8db446d5a: explicit GF#14037 vital-signs slicing commit removed base profile Observation.related.type has-member and related target rows. Learned: the profile-level application happened historically.
+- E3 Source source/observation/structuredefinition-profile-vitalsigns.xml:88-101,195-210 and source/observation/structuredefinition-profile-vitalspanel.xml:77-115: current profiles use value/component/hasMember logic and vitalspanel has Observation.hasMember min 2, with no Observation.related constraint. Learned: current profile semantics match the issue after later model changes.
+- E4 Source source/fhir.ini:169-208 and source/observation/implementationguide-Observation-vitalsigns.xml:28-36: Observation is active and the Vital Signs IG includes vitalsigns and vitalspanel. Learned: inspected profile and example sources are in current build scope.
+- E5 Source source/observation/list-Observation-examples.xml:103-113 and source/observation/observation-example-bmi-using-related.xml:3-40: the cited BMI example is an active example and now declares the vitalsigns meta.profile while using Observation.derivedFrom. Learned: the remaining stale example metadata was fixed in active source.
+- E6 Git 6ad657ef0a: existing combined-branch FHIR-44836 reconciliation updated Vital Signs Panel definition wording to Observation.hasMember. Learned: no duplicate FHIR-44836 commit is needed and current panel wording should be read with that later decision.
+- E7 Command community search: Zulip exact FHIR-14037 search and Confluence refs search found no direct or conflicting community record; broader Jira searches surfaced FHIR-44836 and FHIR-13240 as related context. Learned: no discovered community evidence changes the source-based decision.
+- E8 Verification command: CRLF-aware git diff check, Python XML parse of edited files and relevant profile/IG XML, and rg for stale related/type has-member phrases in Observation source. Learned: the edit is syntactically valid and removed the seed-specific stale comment.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14037",
+    "url": "https://jira.hl7.org/browse/FHIR-14037",
+    "snapshot_path": "contexts/FHIR-14037/jira/FHIR-14037.md",
+    "ref": { "jira_key": "FHIR-14037" },
+    "summary": "Published/Persuasive OO issue asking to remove the old related/member constraint from the base Vital Signs profile and add it to the Vital Signs Panel profile.",
+    "learned": "This establishes the seed request and final work group disposition.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "1eb8db446d5aca682e107a14e5fbb3b4e22d606a",
+    "ref": { "commit": "1eb8db446d5aca682e107a14e5fbb3b4e22d606a" },
+    "summary": "GF#13897/GF#13964/GF#14037 vital-signs slicing commit removed the base profile rows fixing Observation.related.type to has-member and requiring related targets.",
+    "learned": "The profile-level part of FHIR-14037 was applied historically.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-vitalsigns.xml:88-101,195-210; source/observation/structuredefinition-profile-vitalspanel.xml:77-115",
+    "ref": { "path": "source/observation/structuredefinition-profile-vitalsigns.xml", "start_line": 88, "end_line": 210 },
+    "summary": "Current Vital Signs uses value/component/hasMember logic and derivedFrom, while Vital Signs Panel derives from it and requires Observation.hasMember members.",
+    "learned": "Current profile semantics no longer impose the old base related has-member restriction and place grouping behavior on the panel profile.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-208; source/observation/implementationguide-Observation-vitalsigns.xml:28-36",
+    "summary": "Observation is active in source/fhir.ini and the Vital Signs IG includes StructureDefinition/vitalsigns and StructureDefinition/vitalspanel.",
+    "learned": "The inspected files are active current-build source inputs.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/observation/list-Observation-examples.xml:103-113; source/observation/observation-example-bmi-using-related.xml:3-40",
+    "ref": { "path": "source/observation/observation-example-bmi-using-related.xml", "start_line": 3, "end_line": 40 },
+    "summary": "The cited BMI example is listed as an Observation example and now declares the vitalsigns profile while linking height and weight through Observation.derivedFrom.",
+    "learned": "The remaining stale example metadata/comment from the old constraint has been corrected in active source.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "6ad657ef0ad5c39ef5fcdde73889ebd6c2fc3424",
+    "ref": { "commit": "6ad657ef0ad5c39ef5fcdde73889ebd6c2fc3424", "jira_key": "FHIR-44836" },
+    "summary": "Existing combined-branch reconciliation for FHIR-44836 updated the active Vital Signs Panel definition to use Observation.hasMember wording.",
+    "learned": "Later panel wording cleanup is already represented, so this seed commit should not duplicate it.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and related-issue search for FHIR-14037",
+    "command": "bun run zulip:search fts FHIR-14037 --limit 10; bun run confluence:search refs jira FHIR-14037; bun run jira:search fts 'vitals related member' --limit 20",
+    "query": "FHIR-14037; vitals related member",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence records for FHIR-14037 were found; broader Jira searches surfaced related Observation issues FHIR-44836 and FHIR-13240.",
+    "learned": "No discovered community evidence conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Post-edit validation for FHIR-14037",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; python3 XML parse; rg stale related phrases in source/observation",
+    "summary": "CRLF-aware whitespace check and XML parse passed, and only an unrelated historical spirometry comment still mentions .related after the edits.",
+    "learned": "The reconciliation edit is syntactically valid and removed the stale seed example comment.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

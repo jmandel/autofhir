@@ -1,0 +1,105 @@
+FHIR-34129: Correct doseAndRate example units
+
+Issue request:
+FHIR-34129 was Published with a Persuasive with Modification resolution for R5 Pharmacy work. It asked for guidance on repeated Dosage.doseAndRate, specifically an example showing "1800 mg (1000 mg/m2) orally twice daily from days 1-14 of cycle", and it asked whether the dose-rate-type binding should become required. The resolution was to add the example but not change the binding because Pharmacy did not know all needed codes and implementers may need their own codes.
+
+Initial application:
+Commit 7482aeda78 added source/medicationrequest/medicationrequestexample3.xml and linked it from the active MedicationRequest examples. Commit c0a117e508 then tried to correct the ordered/calculated values after a Jira comment said the 1800 value should be calculated and the 1000 value should be ordered, but it swapped only the numeric values and left the units attached to the wrong quantities.
+
+Additional context:
+MedicationRequest is active in source/fhir.ini, and the example is listed by source/medicationrequest/medicationrequest-examples-header.xml and source/medicationrequest/list-MedicationRequest-examples.xml, so the XML example is in current build scope. Dosage.doseAndRate.type remains bound to DoseAndRateType with example strength, matching the Jira resolution not to require the value set. The originating Zulip thread led to FHIR-34129, and a later Zulip follow-up explicitly confirmed that the published example still had the units backwards: ordered should be 1000 mg/m2 and calculated should be 1800 mg.
+
+AutoFHIR reconciliation:
+This commit corrects source/medicationrequest/medicationrequestexample3.xml so the calculated doseAndRate is 1800 mg and the ordered doseAndRate is 1000 mg/m2. It intentionally leaves the dose-rate-type binding as example strength.
+
+Recommendation:
+Keep this source fix. It completes the already-published Jira disposition by making the active example match the approved text and later WG/editor clarification without broadening the value set binding beyond the resolution.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34129
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-14212: background - established the repeated Dosage.doseAndRate backbone and type concept that FHIR-34129 sought to clarify with an example.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34129: Published/Persuasive with Modification; add a repeated doseAndRate example and do not change the binding to required. Learned: final WG intent requires an example but preserves example binding strength.
+- E2 Source source/fhir.ini:51,100,170,203 and source/medicationrequest/medicationrequest-examples-header.xml:91-94: Dosage and MedicationRequest are active build inputs and the example page is linked from the current examples list. Learned: the edited XML example is in current build scope.
+- E3 Source source/medicationrequest/medicationrequestexample3.xml:35-64: current example text says 1800 mg (1000 mg/m2), but before this commit calculated carried mg/m2 and ordered carried mg. Learned: the source had the known units inversion.
+- E4 Source source/datatypes/dosage.xml:5937-5941: DoseAndRateType binding remains example strength. Learned: the binding side of the Jira resolution is already correct and should not be changed.
+- E5 Git 7482aeda78 and c0a117e508: initial FHIR-34129 application added the example, then swapped numeric values without swapping units. Learned: the remaining defect came from incomplete prior application rather than a new policy decision.
+- E6 Zulip #implementers > MedicationRequest calcuated dose: Jean Duteau confirmed the units are backwards and should be ordered 1000 mg/m2, calculated 1800 mg. Learned: later community/editor evidence directly supports this unit correction.
+- E7 Command validation: xmllint --noout source/medicationrequest/medicationrequestexample3.xml and git diff --check passed. Learned: the XML remains well formed and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34129",
+    "url": "https://jira.hl7.org/browse/FHIR-34129",
+    "snapshot_path": "contexts/FHIR-34129/jira/FHIR-34129.md",
+    "ref": { "jira_key": "FHIR-34129" },
+    "summary": "Published/Persuasive with Modification issue requesting a repeated Dosage.doseAndRate example and declining to make dose-rate-type required.",
+    "learned": "The final disposition requires adding/correcting the example while preserving example binding strength.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini and MedicationRequest example indexes",
+    "ref": { "paths": "source/fhir.ini; source/medicationrequest/medicationrequest-examples-header.xml; source/medicationrequest/list-MedicationRequest-examples.xml" },
+    "summary": "MedicationRequest and Dosage are active build inputs, and medicationrequestexample3 is linked from the active MedicationRequest examples list.",
+    "learned": "The edited XML example is in current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationrequest/medicationrequestexample3.xml:35-64",
+    "ref": { "path": "source/medicationrequest/medicationrequestexample3.xml" },
+    "summary": "The example text is 1800 mg (1000 mg/m2), but the pre-reconciliation source attached mg/m2 to calculated 1800 and mg to ordered 1000.",
+    "learned": "The active source had the known unit inversion that would mislead implementers.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/dosage.xml:5937-5941",
+    "ref": { "path": "source/datatypes/dosage.xml" },
+    "summary": "DoseAndRateType remains bound to http://terminology.hl7.org/ValueSet/dose-rate-type with example strength.",
+    "learned": "The binding side of the Jira request already matches the no-required-binding resolution.",
+    "supports": ["additional_context", "no_binding_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "7482aeda78; c0a117e508",
+    "ref": { "commits": "7482aeda78,c0a117e508" },
+    "summary": "FHIR-34129 commits added medicationrequestexample3 and later swapped the numeric values in response to comments.",
+    "learned": "The current defect came from incomplete prior application that did not swap the units with the values.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > MedicationRequest calcuated dose",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/MedicationRequest.20calcuated.20dose",
+    "ref": { "stream": "implementers", "topic": "MedicationRequest calcuated dose" },
+    "summary": "Jean Duteau confirmed in April 2023 that the units were backwards: ordered should be 1000 mg/m2 and calculated should be 1800 mg.",
+    "learned": "The exact unit correction is directly confirmed by later community/editor discussion.",
+    "supports": ["additional_context", "source_change"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local XML and whitespace validation",
+    "command": "xmllint --noout source/medicationrequest/medicationrequestexample3.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The edited XML parsed successfully and the diff whitespace check passed.",
+    "learned": "The surgical source edit is syntactically safe.",
+    "supports": ["confidence", "verification"]
+  }
+]
+</evidence-manifest>

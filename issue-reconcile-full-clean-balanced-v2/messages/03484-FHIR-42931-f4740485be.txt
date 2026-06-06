@@ -1,0 +1,106 @@
+FHIR-42931: Audit SearchParameter multiples rendering
+
+Issue request:
+FHIR-42931 was Applied/Persuasive with Modification for R6. The issue reported that standard SearchParameter pages, such as Group search, rendered omitted multipleAnd/multipleOr values as "The parameter cannot repeat or have multiple values" even though the intended meaning was server discretion. The approved resolution was to render separate Multiple And and Multiple Or rows that explicitly convey the meaning-if-missing, and to leave core SearchParameter instances unset by default unless a work group has a specific reason to require true or false. The modifier discussion did not require a core source edit because the resource model still cannot distinguish "no modifiers allowed" from "no restrictions expressed" by absence alone.
+
+Initial application:
+No commit in this FHIR source checkout directly mentions FHIR-42931. The underlying SearchParameter definitions had already been clarified by FHIR-40328 in commit 3625f3cd1975c798b2051bf5216f946563265678, which added meaningWhenMissing text for SearchParameter.multipleOr and SearchParameter.multipleAnd. The remaining FHIR-42931 application appears to have been a publisher/rendering fix rather than a core source-data change: current CI output for Group search now renders distinct multipleAnd and multipleOr rows with server-discretion language when the source omits both elements.
+
+Additional context:
+FHIR-I minutes on 2023-10-30 record the 9-0-0 motion and the core conclusion that FHIR already defined the missing multipleAnd/multipleOr behavior. Zulip follow-up in November 2023 confirms that the definitions were correct, the rendering was oversimplified, and work groups should not mass-populate multipleAnd/multipleOr just to work around the rendering issue. The active fhir.ini entries include SearchParameter and Group, and the Group search parameter source still intentionally omits multipleAnd/multipleOr on representative standard search parameters.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current authoritative SearchParameter source already states the correct meaning when multipleAnd/multipleOr are missing, the active Group search parameter source preserves the intended unset defaults, and the current rendered build no longer displays the misleading "cannot repeat or have multiple values" sentence. Adding multipleAnd/multipleOr values to standard search parameter resources would change conformance semantics and contradict the Jira resolution.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-42931 unless the publisher rendering regresses; any such future regression should be fixed in the rendering/publisher path, not by populating default multipleAnd/multipleOr values across core SearchParameter instances.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-42931
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-40328: supporting-decision - previously added the meaningWhenMissing definitions that FHIR-42931 relied on when correcting the rendered search-parameter multiples text.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-42931: Applied/Persuasive with Modification issue requiring SearchParameter rendering to show separate Multiple And and Multiple Or meanings for omitted values. Learned: this establishes the final requested R6 behavior and that default values should generally remain omitted.
+- E2 Source source/searchparameter/structuredefinition-SearchParameter.xml:621-641: SearchParameter.multipleOr and multipleAnd each have meaningWhenMissing text saying support is up to server discretion. Learned: the authoritative resource definition already captures the required missing-value semantics.
+- E3 Source source/group/bundle-Group-search-params.xml:27-40 and 118-127 plus source/fhir.ini:249,1164: Group and SearchParameter are active build resources and representative Group search parameters omit multipleAnd/multipleOr. Learned: the source intentionally preserves unset defaults rather than asserting false.
+- E4 Published spec https://build.fhir.org/group-search.html: current Group search output renders Multiples as distinct multipleAnd and multipleOr bullets with server-discretion wording. Learned: the misleading rendered sentence that triggered the issue is no longer present in the current build.
+- E5 Confluence FHIR-I Minutes 2023-10-30 page 200148794: minutes record FHIR-42931 discussion and a 9-0-0 vote, noting that FHIR already defined the missing multipleAnd/multipleOr behavior. Learned: work-group minutes corroborate the Jira resolution.
+- E6 Zulip #fhir/infrastructure-wg > The parameter cannot repeat or have multiple values: Gino Canessa explained that the definition was correct and the rendering was oversimplified, and advised against updating core parameters solely for the rendering issue. Learned: community follow-up supports a rendering-only application and leaving source values missing by default.
+- E7 Git 3625f3cd1975c798b2051bf5216f946563265678 plus negative FHIR-42931 source search: FHIR-40328 added meaningWhenMissing for multipleAnd/multipleOr, while git grep/log found no core source commit directly tagged FHIR-42931. Learned: the source prerequisite is present and the remaining FHIR-42931 fix was outside this checkout's source data.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-42931",
+    "url": "https://jira.hl7.org/browse/FHIR-42931",
+    "snapshot_path": "contexts/FHIR-42931/jira/FHIR-42931.md",
+    "ref": { "jira_key": "FHIR-42931" },
+    "summary": "Applied/Persuasive with Modification issue requiring SearchParameter rendering to show separate Multiple And and Multiple Or meaning-if-missing rows instead of saying omitted values cannot repeat.",
+    "learned": "This establishes the final requested R6 rendering behavior and confirms that standard SearchParameter instances should generally leave multipleAnd and multipleOr unset by default.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/searchparameter/structuredefinition-SearchParameter.xml:621-641",
+    "ref": { "path": "source/searchparameter/structuredefinition-SearchParameter.xml", "lines": "621-641" },
+    "summary": "SearchParameter.multipleOr and SearchParameter.multipleAnd each define meaningWhenMissing as server discretion.",
+    "learned": "The authoritative resource definition already contains the missing-value semantics needed by the renderer.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/group/bundle-Group-search-params.xml:27-40,118-127; source/fhir.ini:249,1164",
+    "ref": { "path": "source/group/bundle-Group-search-params.xml", "lines": "27-40,118-127" },
+    "summary": "SearchParameter and Group are active build resources, and representative Group search parameters omit multipleAnd and multipleOr.",
+    "learned": "The current source remains in the intended state: unset defaults are not equivalent to false and should not be mass-populated.",
+    "supports": ["build_scope", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "build.fhir.org/group-search.html",
+    "url": "https://build.fhir.org/group-search.html",
+    "summary": "The current CI build renders Group search Multiples as separate multipleAnd and multipleOr bullets with server-discretion wording for omitted values.",
+    "learned": "The rendered page that triggered FHIR-42931 no longer shows the misleading 'cannot repeat or have multiple values' text.",
+    "supports": ["verification", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2023-10-30 page 200148794",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/200148794/FHIR+Infrastructure+Minutes+CC+2023-10-30",
+    "ref": { "confluence_page_id": 200148794 },
+    "summary": "FHIR-I minutes record FHIR-42931 discussion, the already-defined missing behavior for multipleAnd/multipleOr, and a 9-0-0 vote.",
+    "learned": "The work-group record supports the Jira resolution and does not call for populating source SearchParameter instances.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#fhir/infrastructure-wg > The parameter cannot repeat or have multiple values",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir%2Finfrastructure-wg/topic/The%20parameter%20cannot%20repeat%20or%20have%20multiple%20values",
+    "ref": { "stream": "fhir/infrastructure-wg", "topic": "The parameter cannot repeat or have multiple values" },
+    "summary": "Gino Canessa explained that the definition was correct, the rendering was oversimplified, and core parameters should generally stay missing unless a specific logical rule requires true or false.",
+    "learned": "This supports treating FHIR-42931 as a rendering correction and leaving the current source data unchanged.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "3625f3cd1975c798b2051bf5216f946563265678 and negative FHIR-42931 grep/log",
+    "ref": { "commit": "3625f3cd1975c798b2051bf5216f946563265678" },
+    "summary": "FHIR-40328 added meaningWhenMissing for SearchParameter.multipleAnd and multipleOr; no current-source commit or file directly mentions FHIR-42931.",
+    "learned": "The source prerequisite for the renderer is present, while the FHIR-42931 application itself appears outside this checkout's source files.",
+    "supports": ["initial_application", "confidence"]
+  }
+]
+</evidence-manifest>

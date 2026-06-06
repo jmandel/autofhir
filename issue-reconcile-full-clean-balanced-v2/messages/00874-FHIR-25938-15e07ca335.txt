@@ -1,0 +1,117 @@
+FHIR-25938: Audit official-address extension ownership
+
+Issue request:
+FHIR-25938 is a Published/Persuasive FHIR-core MnM change request for R5. It asked to revise the official address extension approved by FHIR-20743 so the extension can carry a required boolean assertion and an optional jurisdiction CodeableConcept, instead of mutually exclusive value choices, enabling assertions such as "not official in this country".
+
+Initial application:
+The request was applied in core by commit ce7674d793 ("fhir-25938"), which changed source/datatypes/address-extensions-spreadsheet.xml from a single officialAddress value choice to child rows officialAddress.valueBoolean 1..1 and officialAddress.valueCodeableConcept 0..*. That core spreadsheet is not a current build-scoped definition for this extension: current source/fhir.ini has no active address-extensions profile entry and current core source has no address-official or officialAddress definition. The old core row was also removed from the spreadsheet by dd468d4f17 ("remove extensions from R5 source") during the extension migration.
+
+Additional context:
+The canonical address-official definition now lives in the FHIR Extension Pack, not this FHIR core checkout. Related FHIR-extensions issues FHIR-43838 and FHIR-43840 reported that the approved extension was missing from the Extension Pack; extension-pack commits subsequently added input/definitions/datatypes/StructureDefinition-address-official.xml. However, the current Extension Pack source defines Extension.value[x]:valueBoolean and Extension.value[x]:valueCodeableConcept with min 0 rather than the FHIR-25938 complex-extension shape with a required boolean sub-extension. A 2024 Zulip implementers/shorthand thread confirms this current shape is interpreted as an exclusive choice, not as co-existing boolean plus jurisdiction components.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no core source change. Re-adding the extension to core would duplicate ownership that has moved to the FHIR Extension Pack, while the remaining semantic mismatch is in the Extension Pack definition.
+
+Recommendation:
+Keep this external-repo audit in core. Follow up in HL7/fhir-extensions by changing input/definitions/datatypes/StructureDefinition-address-official.xml to match FHIR-25938: a complex extension with a required boolean component and an optional, likely repeatable jurisdiction CodeableConcept component, with text preserving the note that repeating without jurisdiction is not useful.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25938
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-20743: same-change-family - approved the original official address extension as a boolean-or-jurisdiction value choice that FHIR-25938 refined.
+FHIR-43838: later-change - FHIR-extensions technical correction reporting that the approved official-address extension was missing from the Extension Pack.
+FHIR-43840: later-change - parallel FHIR-extensions published issue linked to PR 99 to add the missing official-address extension.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25938: Published/Persuasive MnM issue with vote 5-0-0 requested required boolean plus optional jurisdiction components for the official address extension. Learned: this is the final work-group intent for the seed issue.
+- E2 Git ce7674d793: changed source/datatypes/address-extensions-spreadsheet.xml to add officialAddress.valueBoolean 1..1 and officialAddress.valueCodeableConcept 0..*. Learned: the seed was initially applied in core as a complex-extension-style structure.
+- E3 Source source/fhir.ini:450: current active profile list has datatype extension spreadsheets but no address-extensions entry, and rg found no current core address-official definition. Learned: the authoritative current core build does not own this extension definition.
+- E4 Git dd468d4f17: removed the officialAddress rows from source/datatypes/address-extensions-spreadsheet.xml during "remove extensions from R5 source". Learned: the old core application was intentionally removed as part of extension migration rather than left as current source.
+- E5 Source /home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-address-official.xml:61: current Extension Pack source defines valueBoolean and valueCodeableConcept as value[x] type slices with min 0. Learned: the current external definition does not implement the required boolean sub-extension shape requested by FHIR-25938.
+- E6 Zulip #implementers > official address extension: Marc Duteau identified the September 2022 core commit and said the extension likely did not make it into the separate extensions IG during the move. Learned: community/editor evidence supports Extension Pack ownership after core removal.
+- E7 Zulip #shorthand > instance with extension incl. multiple value[x]: experts explained the current address-official definition allows either valueBoolean or valueCodeableConcept, never both. Learned: the current Extension Pack shape has the exact semantic limitation FHIR-25938 was meant to solve.
+- E8 Confluence MnM Minutes WGM 202109 Virtual: minutes record FHIR-25938 as Persuasive, Grahame/Ron 5-0-0. Learned: meeting evidence matches the Jira disposition.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25938",
+    "url": "https://jira.hl7.org/browse/FHIR-25938",
+    "snapshot_path": "contexts/FHIR-25938/jira/FHIR-25938.md",
+    "ref": { "jira_key": "FHIR-25938" },
+    "summary": "Published/Persuasive MnM issue requesting the official address extension use a required boolean and optional jurisdiction component rather than mutually exclusive choices.",
+    "learned": "This establishes the final seed issue intent and the expected extension shape.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "ce7674d793",
+    "ref": { "commit": "ce7674d793aa451e340d93bf6cf846369d90edf5", "path": "source/datatypes/address-extensions-spreadsheet.xml" },
+    "summary": "Core commit fhir-25938 added officialAddress.valueBoolean 1..1 and officialAddress.valueCodeableConcept 0..* rows.",
+    "learned": "The issue was initially applied in core with the complex-extension semantics requested by Jira.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:450-473 plus core rg search",
+    "ref": { "path": "source/fhir.ini", "lines": "450-473" },
+    "summary": "The current active profile list includes several datatype extension spreadsheets but not address-extensions, and current core source has no address-official definition.",
+    "learned": "There is no current build-scoped core source file to fix for this extension.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "dd468d4f17",
+    "ref": { "commit": "dd468d4f1799dd79819315b211588ef1cf4586e0", "path": "source/datatypes/address-extensions-spreadsheet.xml" },
+    "summary": "The remove extensions from R5 source commit deleted the officialAddress rows from the old core spreadsheet.",
+    "learned": "The old core application was removed during migration rather than remaining as current authoritative source.",
+    "supports": ["additional_context", "external_repo_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-address-official.xml:61-86",
+    "ref": { "path": "/home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-address-official.xml", "lines": "61-86" },
+    "summary": "The current Extension Pack definition uses Extension.value[x]:valueBoolean and Extension.value[x]:valueCodeableConcept slices, both with min 0.",
+    "learned": "The remaining mismatch with FHIR-25938 is in the Extension Pack definition, not in core.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > official address extension",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/official%20address%20extension",
+    "summary": "Marc Duteau pointed to the September 2022 core commit and said the extension likely did not make it into the separate extensions IG during the move.",
+    "learned": "This supports interpreting the current source ownership as Extension Pack, not core.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#shorthand > instance with extension incl. multiple value[x]",
+    "url": "https://chat.fhir.org/#narrow/stream/shorthand/topic/instance%20with%20extension%20incl.%20multiple%20value%5Bx%5D",
+    "summary": "Experts explained that the current address-official extension shape permits either valueBoolean or valueCodeableConcept, not both.",
+    "learned": "This confirms the current external definition still has the semantic limitation FHIR-25938 was intended to remove.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "MnM Minutes WGM 202109 Virtual page 79502299",
+    "url": "https://confluence.hl7.org/spaces/MnM/pages/79502299/MnM+Minutes+WGM+202109+Virtual",
+    "ref": { "confluence_page_id": 79502299 },
+    "summary": "Minutes record FHIR-25938 as Persuasive, Grahame/Ron 5-0-0.",
+    "learned": "This corroborates the Jira workflow disposition and vote.",
+    "supports": ["issue_request", "confidence"]
+  }
+]
+</evidence-manifest>

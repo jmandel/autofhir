@@ -1,0 +1,135 @@
+FHIR-7587: Audit Observation body site simplification
+
+Issue request:
+FHIR-7587 is a Published/Persuasive with Modification OO DSTU1 change request for Observation. It asked to remove the Observation.bodySite[x] choice between CodeableConcept and BodySite resource reference, handle BodySite resource references through a standard extension as part of FHIR-6253, and create a laterality extension for use where needed.
+
+Initial application:
+No current-source commit explicitly mentions FHIR-7587. Local history shows the preceding FHIR-3600/#3600 work added bodySite[x] as CodeableConcept|Reference(BodySite), then commit 4e55d97ce3 (#6253) removed Reference(BodySite) from Observation.bodySite and made the element a plain CodeableConcept for OO resources. Later published decisions such as FHIR-10735 and FHIR-16137 confirmed the intended pattern that a simple code remains core and more detailed BodySite/BodyStructure representation is handled by extension or later explicit elements.
+
+Additional context:
+Observation and BodyStructure are active current-build resources in source/fhir.ini. The current Observation source has Observation.bodySite as a deprecated 0..1 CodeableConcept, Observation.bodyStructure as a 0..1 CodeableReference(BodyStructure), and obs-8 enforcing that bodySite and bodyStructure are mutually exclusive. Observation search parameters also deprecate body-site and provide body-structure code/reference searches. The FHIR Extension Pack now owns the bodySite extension and the newer observation-structureLaterality extension; those external definitions are read-only evidence for this core reconciliation. Later applied core work FHIR-34894 and FHIR-53203 superseded the old extension-only implementation by adding bodyStructure directly and then converting it to CodeableReference while deprecating bodySite.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current core source no longer contains the BodySite reference choice FHIR-7587 objected to, and the current bodyStructure/extension-pack model preserves the intended ability to represent detailed body location and laterality without reintroducing Observation.bodySite[x].
+
+Recommendation:
+Keep this audit commit as-is. No FHIR core follow-up is needed for FHIR-7587; any future changes to the Extension Pack laterality extension or broader BodyStructure modeling should be tracked under their newer issue keys rather than reopening this DSTU1 Observation issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7587
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-6253: same-change-family - Broader BodySite issue whose #6253 application commit removed Reference(BodySite) from Observation.bodySite and moved detailed body site handling to extension/resource patterns.
+FHIR-3600: background - Earlier Published issue introduced the bodySite CodeableConcept|Reference(BodySite) choice that FHIR-7587 and FHIR-6253 later narrowed.
+FHIR-10735: supporting-decision - Later Published issue clarified that resources should use a CodeableConcept baseline and use the standard extension when a BodySite/BodyStructure resource is needed.
+FHIR-16137: supporting-decision - Resolved-No-Change Observation issue rejected adding a direct BodySite reference because Observation.bodySite guidance and extension support were considered sufficient at the time.
+FHIR-34894: later-change - Published R5 issue added Observation.bodyStructure and the mutual-exclusion invariant with bodySite.
+FHIR-53203: later-change - Applied R6 issue converted Observation.bodyStructure to CodeableReference and deprecated Observation.bodySite.
+FHIR-50083: later-change - Published Extension Pack issue created a laterality extension for Observation.bodySite, outside this core checkout.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7587: Published/Persuasive with Modification issue requested simplifying Observation.bodySite by removing the BodySite resource choice and creating extension support for detailed body site/laterality needs. Learned: this is the final seed issue request and scope.
+- E2 Jira FHIR-6253: Published/Persuasive with Modification BodySite issue recorded the Paris WGM decision to keep simple CodeableConcepts in core and handle BodySite resource references by extension. Learned: FHIR-7587 was part of the same accepted body-site modeling decision.
+- E3 Git 4e55d97ce3: #6253 commit changed Observation.bodySite from bodySite[x] CodeableConcept|Reference(BodySite) to Observation.bodySite CodeableConcept. Learned: the requested removal was applied historically even though the commit did not mention FHIR-7587.
+- E4 Source source/fhir.ini:177,208 and source/observation/structuredefinition-Observation.xml:117-121,901-946: BodyStructure and Observation are active resources; Observation.bodySite is deprecated CodeableConcept and Observation.bodyStructure is CodeableReference(BodyStructure) with obs-8 mutual exclusion. Learned: current core source no longer has the over-complicated choice and has a later explicit BodyStructure path.
+- E5 Source source/observation/bundle-Observation-search-params.xml:827-879: body-site search is deprecated and body-structure reference/code searches are present. Learned: the searchable conformance surface matches the current bodySite/bodyStructure model.
+- E6 Extension Pack input/definitions/Element/StructureDefinition-bodySite.xml:14,52,99 and input/definitions/Observation/StructureDefinition-observation-structureLaterality.xml:13,33,42: standard extension definitions exist outside core for BodyStructure references and Observation laterality. Learned: extension-related portions of the old request now belong to the Extension Pack rather than this core source edit.
+- E7 Jira FHIR-34894/FHIR-53203/FHIR-50083: later final issues added Observation.bodyStructure, made it CodeableReference while deprecating bodySite, and created the Observation laterality extension in the Extension Pack. Learned: later final decisions explain why current source differs from the original DSTU1 extension-only wording but remains semantically aligned.
+- E8 Community search: Zulip search for "FHIR-7587" plus BodySite/Observation found no direct hits; broader BodySite/Observation/laterality hits were later implementation discussions, and Confluence refs for FHIR-7587/FHIR-6253 found no direct pages. Learned: no discovered community evidence contradicts the Jira/source/history conclusion.
+- E9 Verification command: xmllint parsed the current Observation XML files, rg found no Observation.bodySite[x] or Reference(BodySite) in Observation source/search parameters, and git diff --check passed. Learned: the no-change decision was checked against the current authoritative source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7587",
+    "url": "https://jira.hl7.org/browse/FHIR-7587",
+    "snapshot_path": "contexts/FHIR-7587/jira/FHIR-7587.md",
+    "ref": { "jira_key": "FHIR-7587" },
+    "summary": "Published/Persuasive with Modification OO issue asking to remove Observation.bodySite's CodeableConcept-or-BodySite-resource choice and create extension support for BodySite/laterality use cases.",
+    "learned": "This establishes the seed issue's final request and scope.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-6253",
+    "url": "https://jira.hl7.org/browse/FHIR-6253",
+    "snapshot_path": "contexts/FHIR-6253/jira/FHIR-6253.md",
+    "ref": { "jira_key": "FHIR-6253" },
+    "summary": "Published/Persuasive with Modification BodySite issue documenting the WGM decision that BodySite references should be handled as extensions while simple CodeableConcepts are generally sufficient in core.",
+    "learned": "This is the broader accepted decision that implemented the FHIR-7587 Observation request.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "4e55d97ce3",
+    "ref": { "commit": "4e55d97ce3b0bb01ccdb24950a6ecabb9413db7e" },
+    "summary": "The #6253 commit removed Reference(BodySite) from Observation.bodySite and changed Observation.bodySite[x] to Observation.bodySite CodeableConcept.",
+    "learned": "The source change requested by FHIR-7587 was historically applied through the related #6253 work.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:177,208; source/observation/structuredefinition-Observation.xml:117-121,901-946",
+    "ref": { "paths": "source/fhir.ini; source/observation/structuredefinition-Observation.xml" },
+    "summary": "Observation and BodyStructure are active resources; Observation.bodySite is deprecated CodeableConcept and Observation.bodyStructure is CodeableReference(BodyStructure) with obs-8 mutual exclusion.",
+    "learned": "Current core source is in build scope and already reflects a simplified bodySite model with a later explicit bodyStructure path.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/observation/bundle-Observation-search-params.xml:827-879",
+    "ref": { "path": "source/observation/bundle-Observation-search-params.xml" },
+    "summary": "Observation-body-site search is deprecated while body-structure reference and code search parameters are present.",
+    "learned": "The searchable conformance surface matches the current bodySite/bodyStructure source model.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/Element/StructureDefinition-bodySite.xml and /home/jmandel/work/fhir-extensions/input/definitions/Observation/StructureDefinition-observation-structureLaterality.xml",
+    "ref": { "paths": "input/definitions/Element/StructureDefinition-bodySite.xml; input/definitions/Observation/StructureDefinition-observation-structureLaterality.xml" },
+    "summary": "The Extension Pack contains the standard BodyStructure-reference extension context for Observation.bodySite and the Observation structure laterality extension.",
+    "learned": "Extension-specific portions of the old request are represented outside the core checkout and do not require a core edit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-34894 / FHIR-53203 / FHIR-50083",
+    "url": "https://jira.hl7.org/browse/FHIR-53203",
+    "snapshot_path": "contexts/FHIR-53203/jira/FHIR-53203.md",
+    "ref": { "jira_key": "FHIR-53203", "related_keys": "FHIR-34894,FHIR-50083" },
+    "summary": "Later final issues added Observation.bodyStructure, converted it to CodeableReference while deprecating bodySite, and added an Observation laterality extension in the Extension Pack.",
+    "learned": "These later decisions explain the current model and do not require reintroducing a BodySite reference choice.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-7587 BodySite Observation",
+    "command": "bun run zulip:search fts '\"FHIR-7587\" BodySite Observation' --limit 10; bun run zulip:search fts 'BodySite Observation laterality' --limit 10; bun run confluence:search refs jira FHIR-7587; bun run confluence:search refs jira FHIR-6253",
+    "query": "FHIR-7587 BodySite Observation laterality",
+    "summary": "No direct FHIR-7587 Zulip or Confluence hits were found; broad laterality hits were later implementation discussions and not conflicting issue-history evidence.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Targeted current-source validation",
+    "command": "xmllint --noout source/observation/structuredefinition-Observation.xml source/observation/bundle-Observation-search-params.xml; ! rg -n 'Observation\\.bodySite\\[x\\]|Reference\\(BodySite\\)' source/observation/structuredefinition-Observation.xml source/observation/bundle-Observation-search-params.xml; git diff --check",
+    "summary": "Observation XML parsed, obsolete bodySite choice/reference patterns were absent, and whitespace checks passed.",
+    "learned": "The no-change decision was verified against the current authoritative Observation source.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

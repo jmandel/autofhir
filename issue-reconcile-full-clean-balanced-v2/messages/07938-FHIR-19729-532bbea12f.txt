@@ -1,0 +1,102 @@
+FHIR-19729: Audit search parameter expression fix
+
+Issue request:
+FHIR-19729 was a Published/Persuasive STU3 FHIR-I change request asking to fix invalid FHIRPath search parameter expressions for Group value and Observation combo-value-quantity where `as` and `|` operator precedence made the expressions invalid. The approved resolution was to add parentheses to the affected expressions, following the Zulip discussion.
+
+Initial application:
+No Jira-keyed commit for FHIR-19729 was found. The application appears to be Brian Postlethwaite's 2018-12-06 commit 005eb62bce, merged as PR #352, which changed source/group/group-spreadsheet.xml and source/observation/observation-spreadsheet.xml to parenthesize Group value plus the Observation value/combo/component expressions mentioned in the Zulip thread.
+
+Additional context:
+The current build-scope source no longer uses the old spreadsheets for these definitions; Group and Observation are active resources in source/fhir.ini and their current checked-in search parameter bundles contain the relevant definitions. Later search-parameter cleanup, especially FHIR-29653 commit ee9191ec79 for Observation and 2023 Group cleanup commits 7b140eccee and aac5d575d8, replaced the parenthesized `as` expressions with equivalent `ofType()` expressions, which avoids the FHIRPath collection/type-specifier issue entirely. Zulip confirms the original issue and no Confluence reference for FHIR-19729 was found.
+
+AutoFHIR reconciliation:
+This commit makes no source change. The current Group value expression is `(Group.characteristic.value.ofType(CodeableConcept)) | (Group.characteristic.value.ofType(boolean))`, and the current Observation combo-value-quantity expression is `Observation.value.ofType(Quantity) |  Observation.component.value.ofType(Quantity)`. These satisfy the original operator-precedence correction under the later ofType() representation.
+
+Recommendation:
+Keep this empty audit commit as-is. No core source follow-up is needed for FHIR-19729; future work, if any, should be handled under later search-parameter expression issues rather than reopening this STU3 operator-precedence fix.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19729
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-29653: later-change - later Published Observation issue changed affected Observation `as` expressions to `ofType()`, explaining why current source no longer literally matches the 2018 parenthesized-`as` fix.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19729: Published/Persuasive issue requested parentheses for Group value and Observation combo-value-quantity search parameter expressions. Learned: establishes the final requested correction for this reconciliation.
+- E2 Zulip #committers > invalid search parameters: Brian Postlethwaite identified the invalid `as`/`|` precedence issue and Grahame Grieve approved parenthesizing the expressions. Learned: confirms the concrete source problem and intended fix.
+- E3 Git 005eb62bce: changed Group and Observation spreadsheet search expressions to add parentheses. Learned: shows the original application even though the commit did not mention FHIR-19729.
+- E4 Source source/fhir.ini:193,208: Group and Observation are active resources in the current build. Learned: the current search parameter bundle checks are in build scope.
+- E5 Source source/group/bundle-Group-search-params.xml:254 and source/observation/bundle-Observation-search-params.xml:277: current expressions use `ofType()` with unioned branches. Learned: current source preserves the intended valid FHIRPath semantics without needing a new edit.
+- E6 Git ee9191ec79, 7b140eccee, aac5d575d8: later cleanup replaced relevant `as` uses with `ofType()`. Learned: explains the legitimate current representation and prevents reverting to obsolete `as` syntax.
+- E7 Command community/source checks: Confluence refs for FHIR-19729 found no references; targeted source/history searches found no remaining invalid `as`/`|` expressions in the active Group and Observation search bundles. Learned: no conflicting community or source evidence requires a source change.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19729",
+    "url": "https://jira.hl7.org/browse/FHIR-19729",
+    "snapshot_path": "contexts/FHIR-19729/jira/FHIR-19729.md",
+    "ref": { "jira_key": "FHIR-19729" },
+    "summary": "Published/Persuasive issue asked to fix Group value and Observation combo-value-quantity search parameter expressions by parenthesizing `as` expressions around union branches.",
+    "learned": "This is the final Jira decision and defines the expected correction for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#committers > invalid search parameters",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/invalid%20search%20parameters",
+    "summary": "The 2018-12-05 thread identified invalid Group value and Observation search expressions caused by `as`/`|` precedence and confirmed parenthesizing as the fix.",
+    "learned": "This corroborates the Jira resolution and identifies the exact intended source-level change.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "005eb62bce088bddc5a6fad83a7978027490a419",
+    "ref": { "commit": "005eb62bce088bddc5a6fad83a7978027490a419" },
+    "summary": "2018-12-06 commit 'QA - technical correction on search parameters' parenthesized Group and Observation spreadsheet search expressions.",
+    "learned": "This appears to be the original source application for FHIR-19729 even though it does not carry the issue key.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:193,208",
+    "summary": "The current build lists group=Group and observation=Observation as active resources.",
+    "learned": "The current Group and Observation search parameter bundles are in build scope for this reconciliation.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/group/bundle-Group-search-params.xml:254; source/observation/bundle-Observation-search-params.xml:277",
+    "summary": "Group value and Observation combo-value-quantity currently use `ofType()` expressions with unioned branches instead of the old unparenthesized `as` expressions.",
+    "learned": "The active source already has valid FHIRPath semantics for the seed issue, so no source edit is needed.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "ee9191ec79; 7b140eccee; aac5d575d8",
+    "ref": { "commits": "ee9191ec79,7b140eccee,aac5d575d8" },
+    "summary": "Later commits changed Observation and Group search expressions from parenthesized `as` forms to `ofType()` forms.",
+    "learned": "The current wording is a later valid representation of the same correction, not a missing application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted source, git, Zulip, and Confluence searches for FHIR-19729 search parameter expressions",
+    "command": "rg 'as|combo-value-quantity|Group.characteristic.value' source/group source/observation; git log/show for 005eb62bce, ee9191ec79, 7b140eccee, aac5d575d8; bun run zulip:search snapshot committers 'invalid search parameters'; bun run confluence:search refs jira FHIR-19729",
+    "summary": "Searches found the original Zulip rationale, the source application and later cleanup commits, no Confluence references, and no remaining invalid active Group/Observation `as`/`|` expressions.",
+    "learned": "No discovered evidence conflicts with a no-change audit decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

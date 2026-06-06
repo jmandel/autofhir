@@ -1,0 +1,128 @@
+FHIR-31393: Audit ordinalValue expansion context
+
+Issue request:
+FHIR-31393 was Published with a Persuasive FHIR-I decision for R5. It asked to add ValueSet.expansion.contains as a context for the ordinalValue extension so ordinal values could be visible when looking at a ValueSet expansion.
+
+Initial application:
+Core commit 8df9b37980c9dd473e0ebf48bef9cce830725162 applied the issue by adding ValueSet.expansion.contains to the ordinalValue row in source/profiles/general-extensions-spreadsheet.xml. Core commit 02d5f0bffcaefadbf7619c9314915307cc4a0444 then renamed ordinalValue to itemWeight for FHIR-24672 while preserving that ValueSet.expansion.contains context. The general extension spreadsheet is still listed in source/fhir.ini, but the ordinalValue/itemWeight row no longer exists there because core commit dd468d4f1799dd79819315b211588ef1cf4586e0 removed extensions from the R5 core source.
+
+Additional context:
+FHIR-33540 later made a Published/Persuasive with Modification decision for the same ValueSet expansion weighting problem: remove CodeSystem.concept, ValueSet.compose.include.concept, and ValueSet.expansion.contains contexts from the itemWeight extension and represent CodeSystem/ValueSet weights with the defined concept property http://hl7.org/fhir/concept-properties#itemWeight instead. The current core source has active CodeSystem and ValueSet build entries, includes the concept-properties CodeSystem, defines itemWeight with decimal type, and lets ValueSet.$expand request and return expansion concept properties. The Extension Pack itemWeight definition is scoped away from CodeSystem/ValueSet and points users to the itemWeight property; the retained ordinalValue definition is retired. The combined branch already contains a FHIR-33540 audit commit for this later decision.
+
+AutoFHIR reconciliation:
+Made no source change. Restoring ValueSet.expansion.contains as an extension context would contradict the later FHIR-33540 decision and duplicate the current property-based expansion mechanism. The current core build surfaces already support the implementer outcome FHIR-31393 sought: ordinal/item weights can appear in ValueSet expansions as concept properties.
+
+Recommendation:
+Keep this audit commit as-is. Do not re-add ordinalValue or itemWeight extension contexts in core. If R4/R4B compatibility guidance or the retired Extension Pack ordinalValue definition needs different handling, that should be a separate work-group decision in the appropriate repository rather than a core-source fix for FHIR-31393.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-31393
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-33540: superseded-by - later Published decision replaced the CodeSystem/ValueSet extension-context mechanism with concept-properties#itemWeight; already represented on the combined branch by commit 729712d0ab8646f8be5c8a87c37192f30b483569.
+FHIR-24672: later-change - renamed ordinalValue to itemWeight after the seed was applied, preserving the expansion context until the later property-based decision.
+FHIR-19970: supporting-decision - earlier no-change decision said R5 ValueSet expansion properties could return ordinal values without requiring an extension-context change.
+FHIR-22698: supporting-decision - related no-change issue pointed to FHIR-19970 and the general expansion property mechanism.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-31393: Published/Persuasive issue requested ValueSet.expansion.contains as a context for ordinalValue. Learned: this establishes the seed request and final status.
+- E2 Confluence FHIR-I minutes 2022-08-22: FHIR-I recorded a 13-0-0 Persuasive vote for FHIR-31393. Learned: the Jira decision was confirmed in WG minutes.
+- E3 Git 8df9b37980c9dd473e0ebf48bef9cce830725162 and 02d5f0bffcaefadbf7619c9314915307cc4a0444: the original core spreadsheet added ValueSet.expansion.contains to ordinalValue, then renamed it to itemWeight while preserving the context. Learned: the seed was initially applied before later refactoring.
+- E4 Jira FHIR-33540: Published/Persuasive with Modification issue required removing CodeSystem/ValueSet contexts from itemWeight and using concept-properties#itemWeight instead. Learned: this later decision supersedes the seed's extension-context mechanism.
+- E5 Source source/fhir.ini:226,269,450,1265; source/codesystem/codesystem-concept-properties.xml:197-203; source/codesystem/codesystem-notes.xml:273-275; source/valueset/operationdefinition-ValueSet-expand.xml:224-229; source/valueset/structuredefinition-ValueSet.xml:1273-1333. Learned: current active core source supports itemWeight as a decimal concept property in ValueSet expansions.
+- E6 Extension Pack /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-itemWeight.xml:41-65 and StructureDefinition-ordinalValue.json:22-26,44-66. Learned: current extension definitions are outside core; itemWeight directs CodeSystem/ValueSet use to the property mechanism and ordinalValue is retired.
+- E7 Git dd468d4f1799dd79819315b211588ef1cf4586e0, 784a10b5c83c80ad7f387b244b4eee65558ec624, and combined commit 729712d0ab8646f8be5c8a87c37192f30b483569. Learned: core extension rows moved out of current core source, the Extension Pack removed itemWeight CodeSystem/ValueSet contexts for FHIR-33540, and the combined branch already audited that later issue.
+- E8 Community Zulip/Confluence search: terminology thread "OrdinalValue extension for expansion" records the original oversight concern and later explanation that R5 returns the value as a property; questionnaire thread "Weights in ValueSet.compose with itemWeight" confirms value-set weights are now handled as properties. Learned: community evidence aligns with property-based handling and does not justify restoring the extension context.
+- E9 Verification command/query: local rg assertions found active ValueSet/CodeSystem/concept-properties build entries, itemWeight decimal concept property, $expand property support, ValueSet.expansion.contains.property decimal values, Extension Pack itemWeight property guidance, and retired ordinalValue. Learned: current source matches the later decision without a source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-31393",
+    "url": "https://jira.hl7.org/browse/FHIR-31393",
+    "snapshot_path": "contexts/FHIR-31393/jira/FHIR-31393.md",
+    "ref": { "jira_key": "FHIR-31393" },
+    "summary": "Published/Persuasive issue requesting ValueSet.expansion.contains as a context for the ordinalValue extension.",
+    "learned": "This establishes the seed request and final workflow status.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2022-08-22 page 108303407",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/108303407/FHIR+Infrastructure+Minutes+CC+2022-08-22",
+    "ref": { "confluence_page_id": 108303407 },
+    "summary": "Minutes record FHIR-31393 as Persuasive with a Grahame Grieve/Christiaan Knaap 13-0-0 motion.",
+    "learned": "The WG minutes confirm the Jira decision.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "8df9b37980c9dd473e0ebf48bef9cce830725162; 02d5f0bffcaefadbf7619c9314915307cc4a0444",
+    "ref": { "application_commit": "8df9b37980c9dd473e0ebf48bef9cce830725162", "rename_commit": "02d5f0bffcaefadbf7619c9314915307cc4a0444" },
+    "summary": "The original core spreadsheet added ValueSet.expansion.contains to ordinalValue, then FHIR-24672 renamed ordinalValue to itemWeight while preserving the context.",
+    "learned": "FHIR-31393 was initially applied before later refactoring.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-33540",
+    "url": "https://jira.hl7.org/browse/FHIR-33540",
+    "ref": { "jira_key": "FHIR-33540" },
+    "summary": "Published/Persuasive with Modification issue requiring itemWeight CodeSystem and ValueSet use to move from extension contexts to concept-properties#itemWeight.",
+    "learned": "This later final decision supersedes the seed's extension-context mechanism.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:226,269,450,1265; source/codesystem/codesystem-concept-properties.xml:197-203; source/codesystem/codesystem-notes.xml:273-275; source/valueset/operationdefinition-ValueSet-expand.xml:224-229; source/valueset/structuredefinition-ValueSet.xml:1273-1333",
+    "summary": "Current core source includes active ValueSet, CodeSystem, and concept-properties entries; defines itemWeight as decimal; and supports requesting/returning ValueSet expansion properties.",
+    "learned": "The current build-scope core source supports the property-based expansion carrier.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-itemWeight.xml:41-65; /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-ordinalValue.json:22-26,44-66",
+    "summary": "Extension Pack itemWeight is scoped to Coding/questionnaire contexts and directs CodeSystem/ValueSet users to the itemWeight property; ordinalValue is retained as a retired extension.",
+    "learned": "The current extension definitions live outside core and align with not restoring core extension contexts.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "dd468d4f1799dd79819315b211588ef1cf4586e0; 784a10b5c83c80ad7f387b244b4eee65558ec624; 729712d0ab8646f8be5c8a87c37192f30b483569",
+    "ref": { "core_removal_commit": "dd468d4f1799dd79819315b211588ef1cf4586e0", "extension_pack_commit": "784a10b5c83c80ad7f387b244b4eee65558ec624", "combined_audit_commit": "729712d0ab8646f8be5c8a87c37192f30b483569" },
+    "summary": "Core extension rows were removed from current core source, the Extension Pack removed itemWeight CodeSystem/ValueSet contexts for FHIR-33540, and the combined branch already audits FHIR-33540.",
+    "learned": "The missing core extension row is intentional current structure plus later policy, not an unapplied seed fix.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#terminology > OrdinalValue extension for expansion; #questionnaire > Weights in ValueSet.compose with itemWeight",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/OrdinalValue%20extension%20for%20expansion",
+    "ref": { "stream": "terminology", "topic": "OrdinalValue extension for expansion" },
+    "summary": "Community discussion includes the original expansion-context concern and later explanation that R5 returns the value as a property; a 2026 questionnaire thread says value-set weights are now handled as properties.",
+    "learned": "No discovered community evidence supports restoring the extension context after FHIR-33540.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Local source assertions for FHIR-31393",
+    "command": "rg assertions over source/fhir.ini, concept-properties, ValueSet $expand/property, and Extension Pack itemWeight/ordinalValue definitions",
+    "summary": "Assertions found active build entries, itemWeight decimal property, expansion property support, Extension Pack property guidance, and retired ordinalValue.",
+    "learned": "The current source state matches the later decision without a source edit.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

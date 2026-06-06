@@ -1,0 +1,132 @@
+FHIR-13187: Fix dom-3 container reference test
+
+Issue request:
+FHIR-13187 was Published/Persuasive with Modification for FHIR-core DomainResource. It requested that dom-3 allow a contained resource either to be referred to from elsewhere in the containing resource or to refer back to the containing resource, with `#` as the special local reference value and an example showing a contained Provenance targeting its container.
+
+Initial application:
+The narrative portion was applied in git commit a65f36c6b8ba67bdd1dbf4b68b3636e96bf518c8, which records svn revision 12864 and added the container-reference rule plus the Patient/contained Provenance `reference value="#"` example to source/references.html. The DomainResource StructureDefinition was later regenerated/refactored into source/domainresource/structuredefinition-DomainResource.xml, where dom-3 carried the requested human text and an expression branch intended to detect contained resources that reference the container.
+
+Additional context:
+DomainResource is active in the current build through source/fhir.ini [resource-infrastructure], and source/references.html remains the active datatype/reference guidance page. Later issues in the same rule family confirm the intended semantics: FHIR-33008 aligned the contained-resource narrative bullet with FHIR-13187, FHIR-29408/FHIR-31732 addressed local `#` container references in invariants, and FHIR-41692 was retracted after the reporter recognized that a contained resource should reference its container with `#`. FHIR-43690 later simplified dom-3 for R6 but introduced the current expression `reference='#' | as(uri)='#'`; submitted FHIR-56263 and its Zulip thread identify that FHIRPath precedence parses that subexpression incorrectly, so the reverse-reference branch can fail despite the approved FHIR-13187 rule. FHIR-56263 is not decided here because it is still Submitted, but it is direct evidence that the current source does not fully implement the already-final FHIR-13187 behavior.
+
+AutoFHIR reconciliation:
+Updated the active DomainResource dom-3 expression in source/domainresource/structuredefinition-DomainResource.xml to use an explicit logical `or` between `(reference='#')` and `(as(uri)='#')`. This is a narrow source fix: it preserves the FHIR-43690 simplification while making the contained-resource-to-container branch evaluate as FHIR-13187 requires. No narrative change was needed because source/references.html already states the rule and includes the `#` Provenance example.
+
+Recommendation:
+Keep this source fix as-is. Future work on the open FHIR-56263 tracker can decide whether to make additional R6-era dom-3 changes, but the current hunk is the minimal correction needed to keep the active invariant aligned with the published FHIR-13187 decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13187
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-43690: later-change - simplified dom-3 for R6 and introduced the current precedence-sensitive container-reference subexpression; this commit preserves its intended simplification while fixing the branch.
+FHIR-56263: background - Submitted unresolved report and Zulip thread identify the same R6 operator-precedence problem; not decided separately because it is not final.
+FHIR-33008: same-change-family - later Published issue aligned contained-resource narrative guidance with the FHIR-13187 container-reference alternative.
+FHIR-29408: supporting-decision - later Published issue/audit confirms contained resources using local `#` references to their container are intended to satisfy the invariants.
+FHIR-41692: later-change - retracted concern about dom-3 after the reporter recognized that the correct container reference is `#`.
+FHIR-26593: later-change - related Published id-constraint clarification for inbound references to contained resources; it does not conflict with the reverse-reference rule.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13187: Published/Persuasive with Modification issue requested changing dom-3 to allow contained resources to refer to the containing resource, noting `#` as the special value and asking for an example. Learned: this establishes the final seed semantics and required source behavior.
+- E2 Source source/fhir.ini:128-131,533: [resource-infrastructure] includes `domainresource=abstract,DomainResource`, and DomainResource is assigned to the FHIR work group. Learned: source/domainresource/structuredefinition-DomainResource.xml is in the current build scope.
+- E3 Source source/domainresource/structuredefinition-DomainResource.xml:77-80: active dom-3 contains the approved human text and this commit changes only the container-reference expression branch from `reference='#' | as(uri)='#'` to `(reference='#') or (as(uri)='#')`. Learned: the authoritative invariant now matches the published rule.
+- E4 Source source/references.html:752-789: current narrative says a contained resource may be included if it references the container and shows `reference value="#"` in a contained Provenance example. Learned: the requested `#` explanation/example is already present and did not need an edit.
+- E5 Git a65f36c6b8ba67bdd1dbf4b68b3636e96bf518c8: `#13187 - allow contained resources to reference container` added the references-page rule and example, matching Jira's svn revision 12864 comment. Learned: the initial narrative application is explicit in source history.
+- E6 Jira/Git FHIR-43690 and 86ddd389b9c7690e89ddc061f23f3e6fa09333b6: later Applied issue simplified dom-3 to the current R6 expression. Learned: the expression being fixed is a later refactor of the same final rule, not a new policy decision.
+- E7 Jira/Zulip FHIR-56263 and #implementers > Isn't dom-3 broken: submitted issue and discussion explain that `reference='#' | as(uri)='#'` is parsed by FHIRPath precedence in a way that cannot satisfy the intended branch. Learned: the current source has a real computable-invariant defect relative to FHIR-13187, while the related Jira is not final enough to decide independently.
+- E8 Command searches: combined-branch grep found no existing FHIR-13187 reconcile commit; Jira/Zulip/Confluence searches for FHIR-13187 and contained-resource container-reference terms found related supporting/background issues and no later final decision reversing the FHIR-13187 rule. Learned: publishing one fixed seed commit is idempotent and bounded.
+- E9 Verification command/query: `xmllint --noout source/domainresource/structuredefinition-DomainResource.xml` and `git diff --check` completed without errors after the edit. Learned: the XML remains well-formed and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13187",
+    "url": "https://jira.hl7.org/browse/FHIR-13187",
+    "snapshot_path": "contexts/FHIR-13187/jira/FHIR-13187.md",
+    "ref": { "jira_key": "FHIR-13187" },
+    "summary": "Published/Persuasive with Modification issue asking dom-3 to allow a contained resource to refer to its containing resource, with `#` as the special local reference and an example.",
+    "learned": "This establishes the final seed semantics that the current DomainResource invariant must implement.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:128-131,533",
+    "ref": { "path": "source/fhir.ini", "line_start": 128, "line_end": 133 },
+    "summary": "The [resource-infrastructure] section includes `domainresource=abstract,DomainResource`, and DomainResource is assigned to the FHIR work group.",
+    "learned": "The DomainResource StructureDefinition source is active current-build input.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/domainresource/structuredefinition-DomainResource.xml:77-80",
+    "ref": { "path": "source/domainresource/structuredefinition-DomainResource.xml", "line_start": 77, "line_end": 80 },
+    "summary": "Active dom-3 carries the approved human text; this commit changes the container-reference test to `(reference='#') or (as(uri)='#')`.",
+    "learned": "The authoritative invariant now evaluates the reverse-reference branch according to the approved rule.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/references.html:752-789",
+    "ref": { "path": "source/references.html", "line_start": 752, "line_end": 789 },
+    "summary": "The narrative states that contained resources may reference the container and shows a contained Provenance using `reference value=\"#\"`.",
+    "learned": "The requested explanatory text and example are already present, so no narrative edit is needed.",
+    "supports": ["source_current_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "a65f36c6b8ba67bdd1dbf4b68b3636e96bf518c8",
+    "ref": { "commit": "a65f36c6b8ba67bdd1dbf4b68b3636e96bf518c8" },
+    "summary": "Commit `#13187 - allow contained resources to reference container` added the references-page rule and `#` example, matching Jira's svn revision 12864 comment.",
+    "learned": "FHIR-13187 was initially applied to the narrative source in 2017.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "86ddd389b9c7690e89ddc061f23f3e6fa09333b6 / FHIR-43690",
+    "url": "https://jira.hl7.org/browse/FHIR-43690",
+    "ref": { "commit": "86ddd389b9c7690e89ddc061f23f3e6fa09333b6", "jira_key": "FHIR-43690" },
+    "summary": "Later Applied/Persuasive with Modification issue simplified dom-3 to the current R6 expression containing `reference='#' | as(uri)='#'`.",
+    "learned": "The repaired expression is a later refactor of the FHIR-13187 rule, so a narrow precedence fix preserves rather than changes WG intent.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-56263 and Zulip #implementers > Isn't dom-3 broken",
+    "url": "https://jira.hl7.org/browse/FHIR-56263",
+    "ref": { "jira_key": "FHIR-56263", "stream": "implementers", "topic": "Isn't dom-3 broken" },
+    "summary": "Submitted issue and linked Zulip thread explain that the R6 subexpression `reference='#' | as(uri)='#'` is parsed by FHIRPath precedence as a comparison that cannot be true.",
+    "learned": "This confirms a current computable defect relative to FHIR-13187 while remaining outside this run's independent decision scope because the issue is unresolved.",
+    "supports": ["additional_context", "reconciliation", "related_not_decided"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Bounded duplicate, Jira, Zulip, and Confluence searches for FHIR-13187 contained-resource context",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13187' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run jira:search fts '\"dom-3\" \"containing resource\"' --limit 10; bun run zulip:search fts '\"FHIR-13187\"' --limit 10; bun run confluence:search refs jira FHIR-13187",
+    "query": "FHIR-13187 dom-3 containing resource",
+    "summary": "No existing seed reconcile commit was found; searches found FHIR-13187 plus supporting/background related issues and no Confluence references or later final reversal.",
+    "learned": "The fix is idempotent and bounded to the seed's contained-resource rule family.",
+    "supports": ["absence_of_duplicate", "absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Post-edit XML and whitespace checks",
+    "command": "xmllint --noout source/domainresource/structuredefinition-DomainResource.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/domainresource/structuredefinition-DomainResource.xml",
+    "summary": "The edited XML is well-formed and the patch has no whitespace errors.",
+    "learned": "The source change is syntactically safe for the edited artifact.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

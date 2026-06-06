@@ -1,0 +1,124 @@
+FHIR-9260 + FHIR-25381: Correct HealthcareService availability references
+
+Attribution note: surfaced while reviewing FHIR-9260, but direct Jira backing for this change is FHIR-9260 + FHIR-25381.
+
+Issue request:
+FHIR-9260 was an Applied/Not Persuasive with Modification PA change request, raised against DSTU2 and applied for R5, asking to restructure HealthcareService availability around a single availability structure with locations, available times, exceptions, and removed standalone exception text. The final resolution did not adopt every proposed nesting change; it says the R5 availability structure was made consistent across the specification by using a datatype, supporting the submitter's use cases.
+
+Initial application:
+No source commit explicitly tagged FHIR-9260 was found. The relevant application appears to have happened through the PA availability-family work, especially commit 447e89f4a40f92d16f33490766f29b9bce017236 for FHIR-25381/FHIR-26641, which introduced source/datatypes/availability.xml and replaced HealthcareService.availableTime, HealthcareService.notAvailable, and HealthcareService.availabilityExceptions with HealthcareService.availability of type Availability. The active fhir.ini R4/R5 change annotations also recorded that HealthcareService availability was changed to a datatype.
+
+Additional context:
+FHIR-25381's Published/Persuasive resolution explicitly created the Availability datatype and said PractitionerRole, Location, and HealthcareService would replace their prior availability structures with an availability property. FHIR-26641 supplied related closure/not-available semantics for Location. Later changes refined the shared datatype and current shape: FHIR-36017 changed HealthcareService.availability to a single Availability instance, and FHIR-41311 added Availability.availableTime.period; FHIR-41311 is already represented on the combined branch. A 2023 Zulip discussion with Brian Postlethwaite confirms the primary purpose of the R5 change was consistency across directory resources. Current fhir.ini entries keep both HealthcareService and Availability in build scope.
+
+AutoFHIR reconciliation:
+This commit keeps the approved datatype-based structure intact and fixes stale HealthcareService references that still pointed readers at the deleted notAvailable spelling. It updates the authoritative HealthcareService.active definition, the matching Participant mapping exception, the checked-in HealthcareService SVG title that mirrors that definition, and the fhir.ini R4/R5 change annotation for HealthcareService.availabilityExceptions so it points to HealthcareService.availability.notAvailableTime.description.
+
+Recommendation:
+Keep this source fix. It does not reopen the rejected parts of the original proposal, but it removes the remaining misleading references to the pre-R5 HealthcareService.notAvailable/availabilityExceptions structure from current build inputs and their companion diagram artifact.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-9260
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-25381: same-change-family - Published PA issue that created the Availability datatype and explicitly replaced HealthcareService's prior availability elements with an availability property.
+FHIR-26641: same-change-family - Published PA issue whose Location closure semantics were applied in the same commit that introduced the shared Availability datatype.
+FHIR-36017: later-change - Later PA source change that made HealthcareService.availability cardinality 0..1 in the current source.
+FHIR-41311: later-change - Later Applied PA issue that refined Availability.availableTime.period and is already represented on the combined branch.
+FHIR-57211: background - Triaged cross-version mapping concern found during search; not final and not independently decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-9260: Applied/Not Persuasive with Modification request to restructure HealthcareService availability, with final resolution saying R5 used a consistent availability datatype. Learned: the approved target is the datatype-based structure, not the exact originally proposed nesting under availability.
+- E2 Source source/fhir.ini:97 and source/fhir.ini:238: active availability=metadatatypes and healthcareservice=HealthcareService entries. Learned: the edited datatype/resource/config sources are part of the current build.
+- E3 Source source/healthcareservice/structuredefinition-HealthcareService.xml:117-122 and source/fhir.ini:1813-1816: current source had HealthcareService.availability type Availability but stale active-definition and change-annotation references to deleted notAvailable spelling. Learned: the current structure is substantially applied, but these source locations still needed correction.
+- E4 Git 447e89f4a40f: FHIR-25381/FHIR-26641 commit added source/datatypes/availability.xml and replaced HealthcareService.availableTime/notAvailable/availabilityExceptions with HealthcareService.availability. Learned: FHIR-9260's final resolution was applied indirectly through the shared Availability datatype work.
+- E5 Jira FHIR-25381 and FHIR-41311: FHIR-25381 created the Availability datatype for HealthcareService/Location/PractitionerRole, and FHIR-41311 later refined Availability.availableTime.period. Learned: later final decisions explain why the current source should retain the shared datatype and only fix stale references.
+- E6 Zulip #implementers > HealthcareService and availability times (2023-08-18/19): Brian Postlethwaite stated the primary purpose was to bring all directory resources to a consistent structure. Learned: community discussion supports preserving the shared datatype interpretation.
+- E7 Confluence PA refs for FHIR-9260 pages 120095628 and 101358522: PA minutes record follow-up with Australian profile/users before closure. Learned: no discovered minutes require moving HealthcareService.location under availability in the current build.
+- E8 Verification commands: xmllint on touched XML/SVG files and CRLF-aware git diff whitespace check. Learned: edited XML artifacts remain well-formed and the diff has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-9260",
+    "url": "https://jira.hl7.org/browse/FHIR-9260",
+    "snapshot_path": "contexts/FHIR-9260/jira/FHIR-9260.md",
+    "ref": { "jira_key": "FHIR-9260" },
+    "summary": "Applied/Not Persuasive with Modification PA issue asking to restructure HealthcareService availability, with final resolution saying R5 used a consistent availability datatype.",
+    "learned": "The final decision supports the shared Availability datatype approach rather than the exact originally proposed nesting.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:97; source/fhir.ini:238",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "fhir.ini actively maps availability to metadatatypes and lists HealthcareService as an active resource.",
+    "learned": "The edited HealthcareService, Availability, and fhir.ini sources are current build inputs.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/healthcareservice/structuredefinition-HealthcareService.xml:117-122; source/fhir.ini:1813-1816",
+    "ref": { "path": "source/healthcareservice/structuredefinition-HealthcareService.xml", "line": 120 },
+    "summary": "HealthcareService currently has an availability element of type Availability, but the active definition and R4/R5 change annotation still contained stale notAvailable references.",
+    "learned": "The structure is substantially applied, while these remaining references could mislead implementers toward deleted pre-R5 elements.",
+    "supports": ["initial_application", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "447e89f4a40f92d16f33490766f29b9bce017236",
+    "ref": { "commit": "447e89f4a40f92d16f33490766f29b9bce017236" },
+    "summary": "The FHIR-25381/FHIR-26641 commit introduced source/datatypes/availability.xml and replaced HealthcareService.availableTime, HealthcareService.notAvailable, and HealthcareService.availabilityExceptions with HealthcareService.availability.",
+    "learned": "FHIR-9260's final resolution was applied indirectly through the shared Availability datatype work rather than a FHIR-9260-tagged commit.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-25381; FHIR-41311",
+    "url": "https://jira.hl7.org/browse/FHIR-25381",
+    "snapshot_path": "contexts/FHIR-25381/jira/FHIR-25381.md",
+    "ref": { "jira_key": "FHIR-25381" },
+    "summary": "FHIR-25381 created the Availability datatype for HealthcareService/Location/PractitionerRole, and FHIR-41311 later refined Availability.availableTime.period.",
+    "learned": "Final related decisions support preserving the shared datatype and limiting this reconciliation to stale HealthcareService references.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > HealthcareService and availability times",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/HealthcareService%20and%20availability%20times",
+    "ref": { "stream": "implementers", "topic": "HealthcareService and availability times" },
+    "summary": "Brian Postlethwaite explained that the primary purpose of the R5 availability change was to bring directory resources to a consistent structure.",
+    "learned": "Community discussion supports retaining the datatype-based structure rather than moving location under availability now.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "PA minutes pages 120095628 and 101358522",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/120095628/2021-07-21+Conference+Call+Minutes",
+    "ref": { "confluence_page_id": 120095628 },
+    "summary": "PA minutes referenced FHIR-9260 follow-up with Australian profile/users before closure.",
+    "learned": "The minutes do not reveal a later final decision requiring the original location-under-availability proposal in current source.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML parse and whitespace check for FHIR-9260 edits",
+    "command": "xmllint --noout source/healthcareservice/structuredefinition-HealthcareService.xml source/healthcareservice/healthcareservice-participant-mapping-exceptions.xml source/healthcareservice/healthcareservice.svg; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Touched XML/SVG files parsed successfully and the CRLF-aware whitespace check passed.",
+    "learned": "The source edit is syntactically safe for the touched artifacts.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

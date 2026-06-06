@@ -1,0 +1,120 @@
+FHIR-22973: Audit Condition abatement invariant
+
+Issue request:
+FHIR-22973 was a Published / Persuasive with Modification Patient Care change request for Condition from STU3, applied for R5. It asked why the then-current con-4 abatement invariant blocked abatement[x] when verificationStatus was entered-in-error and resolved to update the abatement invariant to allow clinicalStatus to be inactive, resolved, remission, or not valued; remove the old con-5 rule prohibiting clinicalStatus when verificationStatus is entered-in-error; and adjust the old con-3 guidance about clinicalStatus.
+
+Initial application:
+No current source commit was found that implements FHIR-22973 as a standalone change. The relevant application happened through commit 91c6eeca7e20574ca2f9d941bc0a19fe76539a45 for FHIR-29409, whose subject explicitly says FHIR-22973 became mostly irrelevant after the FHIR-29409 changes. That commit made Condition.clinicalStatus 1..1, removed the old clinicalStatus/verificationStatus invariant, retained the abatement invariant without an empty clinicalStatus option, and removed the verificationStatus dependency that had caused the original conflict.
+
+Additional context:
+FHIR-29409 was a later Published / Persuasive with Modification Patient Care decision for R5 requiring Condition.clinicalStatus 1..1 and replacing the old conditional clinicalStatus invariant with guidance about the unknown clinicalStatus code. In the current source, Condition remains an active build resource in source/fhir.ini, clinicalStatus is 1..1, the abatement invariant is now keyed con-3, and con-4 is a later bodySite/bodyStructure rule from FHIR-39630. The old con-5 prohibition is absent from current Condition source. Community searches found no FHIR-22973-specific Zulip or Confluence evidence that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The original inconsistency no longer exists because current Condition does not prohibit clinicalStatus when verificationStatus is entered-in-error, and applying the original "or not valued" wording would contradict the later FHIR-29409 decision that clinicalStatus is mandatory.
+
+Recommendation:
+Keep this audit commit as-is. Do not reapply the original FHIR-22973 wording unless Patient Care reopens the broader clinicalStatus cardinality policy; any future change should account for FHIR-29409 and the current required clinicalStatus model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22973
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-29409: later-change - made Condition.clinicalStatus 1..1 and removed the old clinicalStatus/verificationStatus dependency, making the FHIR-22973 "not valued" update obsolete.
+FHIR-23008: background - earlier invariant repair context for Condition and AllergyIntolerance noted by FHIR-22973 comments, but superseded for Condition by FHIR-29409.
+FHIR-39630: later-change - added Condition.bodyStructure and the current con-4 rule, explaining why the abatement invariant is now con-3 in current source.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22973: Published / Persuasive with Modification request to update the old Condition con-4 abatement invariant, remove old con-5, and adjust old con-3 guidance. Learned: this establishes the seed request and its intended R5 application.
+- E2 Jira FHIR-29409: Published / Persuasive with Modification later decision requiring Condition.clinicalStatus 1..1, removing the old invariant, and adding explanatory clinicalStatus guidance. Learned: this later final decision supersedes the need to allow clinicalStatus to be absent.
+- E3 Source source/fhir.ini:1121 and source/fhir.ini:1347: Condition is listed as an active resource abbreviation and approved resource. Learned: source/condition/structuredefinition-Condition.xml is in current build scope.
+- E4 Source source/condition/structuredefinition-Condition.xml:91: current abatement invariant requires inactive/resolved/remission; source/condition/structuredefinition-Condition.xml:143: current clinicalStatus has min 1 and related explanatory comment; source/condition/structuredefinition-Condition.xml:99: current con-4 is bodyStructure/bodySite. Learned: the current source reflects the later required clinicalStatus model and no longer has the old con-5 conflict.
+- E5 Git 91c6eeca7e20574ca2f9d941bc0a19fe76539a45: FHIR-29409 implementation commit explicitly says FHIR-22973 is mostly irrelevant after the FHIR-29409 changes. Learned: this is the historical application path that explains why no standalone FHIR-22973 edit remains necessary.
+- E6 Git 93bb6d5c9aa5c7d4db3b9cead0ca76f8d91f24c6: FHIR-39630 added Condition.bodyStructure and the current con-4 rule. Learned: current con-4 is unrelated to the seed's historical con-4 abatement invariant.
+- E7 Command community searches: `bun run zulip:search fts 'Condition clinicalStatus abatement entered error' --limit 10`, `bun run confluence:search refs jira FHIR-22973`, and `bun run confluence:search fts 'Condition clinicalStatus abatement entered error' --limit 10`. Learned: no directly relevant FHIR-22973 community evidence or conflicting Patient Care decision was found.
+- E8 Command source search: `rg -n 'con-5|Condition\.clinicalStatus SHALL NOT be present if verification' source/condition source/fhir.ini`. Learned: the obsolete con-5 prohibition is absent from current Condition source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22973",
+    "url": "https://jira.hl7.org/browse/FHIR-22973",
+    "snapshot_path": "contexts/FHIR-22973/jira/FHIR-22973.md",
+    "ref": { "jira_key": "FHIR-22973" },
+    "summary": "Published / Persuasive with Modification request to update the old Condition abatement invariant, remove the old con-5 entered-in-error prohibition, and adjust clinicalStatus guidance.",
+    "learned": "This establishes the seed's final request and shows why entered-in-error plus abatement was the original problem.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-29409",
+    "url": "https://jira.hl7.org/browse/FHIR-29409",
+    "snapshot_path": "contexts/FHIR-22973/jira/FHIR-29409.md",
+    "ref": { "jira_key": "FHIR-29409" },
+    "summary": "Published / Persuasive with Modification later decision requiring Condition.clinicalStatus 1..1, removing the old invariant, and adding explanatory clinicalStatus guidance.",
+    "learned": "This later final decision supersedes the original FHIR-22973 need to permit absent clinicalStatus.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:1121 and source/fhir.ini:1347",
+    "ref": { "path": "source/fhir.ini", "lines": "1121,1347" },
+    "summary": "Condition is listed as an active resource abbreviation and approved resource in the current build configuration.",
+    "learned": "The Condition StructureDefinition source inspected for this decision is in current build scope.",
+    "supports": ["source_build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/condition/structuredefinition-Condition.xml:91-103,143-156,185-199",
+    "ref": { "path": "source/condition/structuredefinition-Condition.xml", "lines": "91-103,143-156,185-199" },
+    "summary": "The current source has the abatement invariant, clinicalStatus 1..1, verificationStatus entered-in-error modifier text, and a different current con-4 rule for bodyStructure/bodySite.",
+    "learned": "Current source no longer contains the old con-5 conflict and intentionally keeps clinicalStatus required.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "91c6eeca7e20574ca2f9d941bc0a19fe76539a45",
+    "ref": { "commit": "91c6eeca7e20574ca2f9d941bc0a19fe76539a45" },
+    "summary": "FHIR-29409 implementation commit made clinicalStatus 1..1, replaced the old invariant, and explicitly noted FHIR-22973 was mostly irrelevant after those changes.",
+    "learned": "This explains the historical source application path for the seed issue.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "93bb6d5c9aa5c7d4db3b9cead0ca76f8d91f24c6",
+    "ref": { "commit": "93bb6d5c9aa5c7d4db3b9cead0ca76f8d91f24c6" },
+    "summary": "FHIR-39630 added Condition.bodyStructure and the current con-4 bodySite/bodyStructure invariant.",
+    "learned": "This explains why the seed's historical con-4 is now represented by the current abatement invariant rather than the current con-4 key.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-22973 and Condition clinicalStatus abatement",
+    "command": "bun run zulip:search fts 'Condition clinicalStatus abatement entered error' --limit 10; bun run confluence:search refs jira FHIR-22973; bun run confluence:search fts 'Condition clinicalStatus abatement entered error' --limit 10",
+    "query": "FHIR-22973 Condition clinicalStatus abatement entered error",
+    "summary": "No directly relevant FHIR-22973 Zulip or Confluence evidence, and no conflicting Patient Care decision, was found.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Current source search for old con-5 prohibition",
+    "command": "rg -n 'con-5|Condition\\.clinicalStatus SHALL NOT be present if verification' source/condition source/fhir.ini",
+    "result_count": 0,
+    "summary": "No current Condition source or build configuration occurrence of the obsolete con-5 prohibition was found.",
+    "learned": "The remove-con-5 portion of FHIR-22973 is already satisfied in current source.",
+    "supports": ["current_source", "reconciliation"]
+  }
+]
+</evidence-manifest>

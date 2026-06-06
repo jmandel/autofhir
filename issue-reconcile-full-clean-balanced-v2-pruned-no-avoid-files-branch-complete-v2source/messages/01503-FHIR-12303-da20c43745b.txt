@@ -1,0 +1,128 @@
+FHIR-12303: Fix vaccine-code expansion
+
+Issue request:
+FHIR-12303 was a Published/Persuasive FHIR-core Immunization correction from DSTU2. It reported that the vaccine-code value set page could not render its Expansion section because publication tooling encountered a code system unknown to the build tooling.
+
+Initial application:
+Jira records the issue as auto-approved and fixed in 2017, but no Jira-tagged source commit was found. Historical release expansion bundles for R3/R4/R5 contain a successful vaccine-code expansion with CVX plus 73 Australian ACIR concepts, so the issue appears to have been handled through generated expansion/cache state rather than a durable current source definition.
+
+Additional context:
+Immunization is an active current-build resource. FHIR-5444 created the international example vaccine-code value set and examples, so removing ACIR entirely would undo the accepted multi-system example intent. FHIR-31774 later recorded that the ACIR system is no longer used/replaced and that vaccine-code is only an example binding, which supports keeping the fix bounded to the historical ACIR example concepts rather than trying to define or update a complete authoritative Australian code system. The current build.fhir.org page reproduced the expansion failure because tx.fhir.org could not find CodeSystem urn:oid:1.2.36.1.2001.1005.17.
+
+AutoFHIR reconciliation:
+This commit adds a build-scoped ACIR CodeSystem fragment in source/immunization and changes the vaccine-code value set's ACIR include from an unbounded include-all reference to the 73 ACIR concepts present in the R3/R4/R5 generated expansions. The value set still includes CVX from the terminology server and still carries the Australian example codes used by Immunization examples, but expansion no longer depends on tx.fhir.org having an unavailable external ACIR code system.
+
+Recommendation:
+Keep this source fix. If PHER wants to replace ACIR with a current Australian code system or retire the ACIR examples altogether, that should be a separate work-group decision because it would change the example value set's international coding guidance beyond the expansion failure fixed here.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12303
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-5444: same-change-family - created the multi-system Immunization vaccine example value set and examples, so this fix preserves ACIR examples instead of removing them; it is already represented on the combined branch.
+FHIR-31774: later-change - Vocab's later no-change decision notes ACIR is no longer used/replaced and vaccine-code is example-bound, supporting a bounded fragment fix rather than an authoritative terminology update.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12303: Published/Persuasive DSTU2 Immunization correction reported vaccine-code expansion failing because the build tooling did not know a code system. Learned: the accepted issue requires the current vaccine-code expansion path not to fail on an unknown system.
+- E2 Source source/fhir.ini:169-197: Immunization is listed in the active [resources] section. Learned: source/immunization resources are in current build scope.
+- E3 Source source/immunization/valueset-vaccine-code.xml:87-386: vaccine-code now includes CVX plus explicit ACIR concepts instead of an unbounded ACIR include. Learned: the value set preserves international example content while avoiding expansion against an unavailable full ACIR system.
+- E4 Source source/immunization/codesystem-acir-vaccine-codes.xml:3-319: new informative ACIR CodeSystem fragment defines the 73 historical ACIR concepts. Learned: the code system is now known to the build/terminology context without claiming a complete current ACIR authority.
+- E5 Published spec build.fhir.org/valueset-vaccine-code.html: current Expansion section failed with CodeSystem urn:oid:1.2.36.1.2001.1005.17 not found. Learned: the historical problem is present in the current build output before this reconciliation.
+- E6 Source tools/history/release5/expansions.xml:815461-815488,817953-818180: R5 generated expansion included CVX plus ACIR concepts and version parameters. Learned: the 73 ACIR concepts are prior published expansion content, not newly invented terminology.
+- E7 Jira FHIR-5444 and FHIR-31774: FHIR-5444 required a multi-system international vaccine example value set; FHIR-31774 later noted ACIR is obsolete/replaced and vaccine-code is example-bound. Learned: the safe fix is to preserve bounded example concepts rather than remove or broadly update the terminology.
+- E8 Command Zulip/Confluence searches for FHIR-12303 and ACIR vaccine terms: no directly relevant community minutes or threads were found. Learned: no community evidence was discovered that changes the Jira/source conclusion.
+- E9 Verification command: XML parsing and git diff whitespace checks passed; tx.fhir.org $expand with the local ACIR fragment returned HTTP 200 with 360 concepts, including 73 ACIR concepts and FLUVAX/GNFLU/GNHEP. Learned: the edited source shape addresses the expansion failure while retaining the example codes.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12303",
+    "url": "https://jira.hl7.org/browse/FHIR-12303",
+    "snapshot_path": "contexts/FHIR-12303/jira/FHIR-12303.md",
+    "ref": { "jira_key": "FHIR-12303" },
+    "summary": "Published/Persuasive DSTU2 Immunization correction reporting that valueset-vaccine-code.html could not expand because the build tooling did not know a code system.",
+    "learned": "The accepted issue requires a durable current-build fix for the vaccine-code expansion failure.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-197",
+    "ref": { "path": "source/fhir.ini", "lines": "169-197" },
+    "summary": "The active [resources] section includes immunization=Immunization.",
+    "learned": "Files under source/immunization are current build scope for this issue.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/immunization/valueset-vaccine-code.xml:87-386",
+    "ref": { "path": "source/immunization/valueset-vaccine-code.xml", "lines": "87-386" },
+    "summary": "The vaccine-code value set now includes CVX plus an explicit 73-concept ACIR include instead of an unbounded ACIR include-all reference.",
+    "learned": "The value set can preserve its international example content without requiring the terminology server to expand an unavailable full ACIR system.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/immunization/codesystem-acir-vaccine-codes.xml:3-319",
+    "ref": { "path": "source/immunization/codesystem-acir-vaccine-codes.xml", "lines": "3-319" },
+    "summary": "A new informative CodeSystem fragment defines the 73 ACIR concepts historically used by the vaccine-code expansion.",
+    "learned": "The ACIR system is now known locally without asserting complete current ownership of that external code system.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/valueset-vaccine-code.html#expansion",
+    "url": "https://build.fhir.org/valueset-vaccine-code.html",
+    "summary": "The current build page reported that the value set could not be expanded because CodeSystem urn:oid:1.2.36.1.2001.1005.17 could not be found.",
+    "learned": "The issue's expansion failure is still visible in current generated output before this fix.",
+    "supports": ["current_state", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "tools/history/release5/expansions.xml:815461-815488,817953-818180",
+    "ref": { "path": "tools/history/release5/expansions.xml", "lines": "815461-815488,817953-818180" },
+    "summary": "The R5 generated expansion for vaccine-code included CVX plus 73 ACIR concepts and succeeded as a limited expansion.",
+    "learned": "The ACIR concept list used by this fix comes from previously published generated FHIR expansion content.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-5444 and FHIR-31774",
+    "url": "https://jira.hl7.org/browse/FHIR-5444",
+    "ref": { "jira_key": "FHIR-5444" },
+    "summary": "FHIR-5444 required an international multi-system vaccine example value set; FHIR-31774 later noted the ACIR system is obsolete/replaced and vaccine-code is example-bound.",
+    "learned": "The fix should retain bounded ACIR example content but avoid claiming or updating a complete current ACIR authority.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community searches for FHIR-12303 and ACIR vaccine terms",
+    "command": "bun run zulip:search fts '\"FHIR-12303\" vaccine expansion' --limit 10; bun run zulip:search fts 'ACIR vaccine' --limit 10; bun run confluence:search refs jira FHIR-12303; bun run confluence:search fts 'ACIR vaccine' --limit 10",
+    "query": "FHIR-12303 vaccine expansion; ACIR vaccine",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "XML, whitespace, and expansion verification",
+    "command": "python3 XML parse/count checks; git diff --check; POST Parameters with tx-resource CodeSystem and valueSet to https://tx.fhir.org/r5/ValueSet/$expand",
+    "summary": "XML parsing and whitespace checks passed; the expansion request returned HTTP 200 with 360 concepts including 73 ACIR concepts and FLUVAX, GNFLU, and GNHEP.",
+    "learned": "The edited source shape resolves the unknown-code-system expansion failure while retaining the ACIR example codes.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,96 @@
+FHIR-13400: Audit sliceName constraint application
+
+Issue request:
+FHIR-13400 was a Published/Persuasive with Modification FHIR-core StructureDefinition issue asking for sliceName constraints: no sliceName on a true snapshot or differential root element, and no snapshot sliceName unless an earlier element in the same path hierarchy declares slicing.
+
+Initial application:
+The issue was applied by git-svn commit 5dfb9237e7c6c0550099bc8feedb68b7a8c85eaf (svn revision 14484), which added StructureDefinition invariant sdf-23 to the then-authoritative StructureDefinition spreadsheet. The current generated StructureDefinition source carries that invariant forward as an error-level rule on both snapshot.element and differential.element.
+
+Additional context:
+The Jira resolution narrowed the enforceable change: a differential may start at a non-root subnode, so the root test must be path-based, and the same-path predecessor rule was accepted as correct but not expressible in FHIRPath without grouping or a previous-node axis. Current ElementDefinition slicing prose still defines slices as elements following the slicing entry with the same path until a shorter path occurs, and the current StructureDefinition resource is active in source/fhir.ini.
+
+AutoFHIR reconciliation:
+No source change was made. The current source already contains the required path-based root sliceName invariant, and adding a duplicate or approximate invariant for the accepted but non-expressible predecessor rule would exceed the Jira resolution and risk false validation behavior.
+
+Recommendation:
+Keep this no-change audit commit. If tooling later gains sequence-aware FHIRPath/grouping support, the second rule could be reconsidered as a new validator/tooling enhancement, but the current specification source matches the applied FHIR-13400 decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13400
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12849: same-change-family - Earlier Published issue about root sliceName values in generated profiles; it was implemented as spreadsheet tooling behavior and reinforces that root sliceNames are invalid, but it is a separate tooling issue and is not decided by this commit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13400: Published/Persuasive with Modification, voted 2018-03-26, requested root and snapshot sliceName constraints. Learned: final WG intent required the path-based root invariant and explicitly noted the same-path predecessor rule could not be enforced in FHIRPath.
+- E2 Git 5dfb9237e7c6: GF#13400 / svn revision 14484 added invariant 23, "No slice name on root", to the StructureDefinition spreadsheet. Learned: the issue was previously applied exactly through the enforceable invariant described in the resolution.
+- E3 Source source/structuredefinition/structuredefinition-StructureDefinition.xml:162 and :943-1035: current StructureDefinition defines sdf-23 and attaches it to snapshot.element and differential.element. Learned: current build source carries the applied rule forward for both requested element lists.
+- E4 Source source/datatypes/elementdefinition.xml:1031-1047 and source/elementdefinition.html:406-416: current ElementDefinition slicing definition/prose says slices follow the slicing entry with the same path and the first slicing entry carries the slicing information. Learned: the accepted but non-FHIRPath-ordering rule is represented as slicing semantics rather than an invariant.
+- E5 Source source/fhir.ini:169-258: StructureDefinition is listed as an active resource. Learned: the inspected source is in current FHIR build scope.
+- E6 Command community search for FHIR-13400 and sliceName: quoted Zulip and Confluence searches found no direct FHIR-13400 discussion; broader Zulip discussion confirms root checks should be based on an actual root path, not list position. Learned: no community evidence was found that changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13400",
+    "url": "https://jira.hl7.org/browse/FHIR-13400",
+    "snapshot_path": "contexts/FHIR-13400/jira/FHIR-13400.md",
+    "ref": { "jira_key": "FHIR-13400" },
+    "summary": "Published/Persuasive with Modification issue requested sliceName constraints for StructureDefinition snapshot and differential elements.",
+    "learned": "The final decision required a path-based no-root-sliceName invariant and recorded that the same-path predecessor rule could not be expressed in FHIRPath.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "5dfb9237e7c6c0550099bc8feedb68b7a8c85eaf",
+    "ref": { "commit": "5dfb9237e7c6c0550099bc8feedb68b7a8c85eaf" },
+    "summary": "GF#13400 / svn revision 14484 added invariant 23, 'No slice name on root', to the StructureDefinition spreadsheet.",
+    "learned": "The historical application matches the enforceable portion of the Jira resolution.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/structuredefinition/structuredefinition-StructureDefinition.xml:162,943-1035",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml", "line": 162 },
+    "summary": "Current StructureDefinition source defines sdf-23 as '(snapshot | differential).element.all(path.contains('.').not() implies sliceName.empty())' and lists it as a condition for snapshot.element and differential.element.",
+    "learned": "The current source enforces no sliceName on true root elements in both snapshot and differential.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:1031-1047; source/elementdefinition.html:406-416",
+    "ref": { "path": "source/datatypes/elementdefinition.xml", "line": 1031 },
+    "summary": "Current ElementDefinition slicing text says slice sets are the following elements with the same path and that the first slicing entry carries the slicing information.",
+    "learned": "The non-invariant same-path predecessor rule remains represented as slicing semantics.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-258",
+    "ref": { "path": "source/fhir.ini", "line": 258 },
+    "summary": "The active [resources] section includes structuredefinition=StructureDefinition.",
+    "learned": "The inspected StructureDefinition source is in current build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-13400 and sliceName",
+    "command": "bun run zulip:search fts '\"FHIR-13400\" sliceName' --limit 10; bun run confluence:search refs jira FHIR-13400; bun run confluence:search fts '\"FHIR-13400\" sliceName' --limit 10",
+    "query": "FHIR-13400 sliceName",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence references to FHIR-13400 and sliceName were found; broader slicing-root discussion did not contradict the path-based root interpretation.",
+    "learned": "No discovered community evidence changes the Jira, git, and source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

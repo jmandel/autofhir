@@ -1,0 +1,91 @@
+FHIR-24917: Audit BackboneElement search parameter corrections
+
+Issue request:
+FHIR-24917 was a Published/Persuasive FHIR-I technical correction for R5. It reported that R4 search parameters SubstanceSpecification-code and StructureDefinition-ext-context resolved to BackboneElement values and requested corrected expressions, with the Jira resolution saying to correct them to SubstanceDefinition.code.code and StructureDefinition.context.type.
+
+Initial application:
+Git commit 013e80221d3bb479e3770d45c74bb3fb304aa16f, titled "GF#24917 - fix definitions of search parameters," added a history entry for GF#24917 and changed the historical source rows from SubstanceSpecification.code to SubstanceSpecification.code.code and from StructureDefinition.context to StructureDefinition.context.type. The originating Zulip thread reached the same two candidate fixes and noted that SubstanceSpecification-code was already fixed in the latest build.
+
+Additional context:
+Current source has moved beyond the R4 technical-correction shape. SubstanceDefinition is the active resource and SubstanceDefinition-code uses SubstanceDefinition.code.code. StructureDefinition now has separate extension-context search parameters: ext-context-type uses StructureDefinition.context.type, while ext-context is a composite parameter over StructureDefinition.context with components for type and expression. R5 publication evidence matches this current composite/token split.
+
+AutoFHIR reconciliation:
+This empty audit commit intentionally makes no source change. The current source preserves the FHIR-24917 correction for SubstanceDefinition-code and represents extension context using the later composite design plus explicit ext-context-type token parameter, so there is no remaining current-build BackboneElement token expression to fix.
+
+Recommendation:
+Keep this no-change audit. Do not force the current composite StructureDefinition-ext-context parameter back to the R4 token-only expression; use the current ext-context-type token parameter when searching by context type.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-24917
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-22098: same-change-family - earlier BR&R issue raised the SubstanceSpecification-code expression problem that FHIR-24917 later described as corrected to SubstanceDefinition.code.code.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-24917: Published/Persuasive technical correction requested SubstanceDefinition.code.code and StructureDefinition.context.type. Learned: this is final FHIR-I intent for the two BackboneElement search parameter fixes.
+- E2 Zulip #implementers/Search parameter expressions that resolve to BackboneElem...: implementers identified SubstanceSpecification-code and StructureDefinition-ext-context as problematic and proposed code.code and context.type. Learned: the Jira resolution matches the community problem statement.
+- E3 Git 013e80221d: GF#24917 commit added a history note and changed historical spreadsheet search rows to SubstanceSpecification.code.code and StructureDefinition.context.type. Learned: the issue was applied in source history.
+- E4 Source source/substancedefinition/bundle-SubstanceDefinition-search-params.xml:27-39: current SubstanceDefinition-code expression is SubstanceDefinition.code.code. Learned: the SubstanceDefinition half remains correct in the active build.
+- E5 Source source/structuredefinition/bundle-StructureDefinition-search-params.xml:246-281: current ext-context is composite over StructureDefinition.context and ext-context-type separately uses StructureDefinition.context.type. Learned: the current design avoids the old token-over-BackboneElement problem without reverting the composite parameter.
+- E6 Published spec R4/R5 search-parameters.json checks: R4 technical correction shows StructureDefinition-ext-context as StructureDefinition.context.type; R5 shows ext-context composite with ext-context-type component. Learned: the publication boundary confirms the historical correction and later R5 redesign.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-24917",
+    "url": "https://jira.hl7.org/browse/FHIR-24917",
+    "ref": { "jira_key": "FHIR-24917" },
+    "summary": "Published/Persuasive FHIR-I technical correction asked to fix SubstanceSpecification-code and StructureDefinition-ext-context expressions that resolved to BackboneElement values.",
+    "learned": "This establishes final intent for the same SubstanceSpecification-code correction and the StructureDefinition ext-context correction.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Search parameter expressions that resolve to BackboneElem...",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Search%20parameter%20expressions%20that%20resolve%20to%20BackboneElem...",
+    "summary": "The thread identified SubstanceSpecification-code and StructureDefinition-ext-context as BackboneElement-valued and proposed code.code and context.type fixes.",
+    "learned": "The community discussion aligns with the Jira resolution and explains the implementation problem.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "013e80221d3bb479e3770d45c74bb3fb304aa16f",
+    "ref": { "commit": "013e80221d3bb479e3770d45c74bb3fb304aa16f" },
+    "summary": "The GF#24917 commit added a history entry and changed the historical search rows to SubstanceSpecification.code.code and StructureDefinition.context.type.",
+    "learned": "The technical correction was applied in source history.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/substancedefinition/bundle-SubstanceDefinition-search-params.xml:27-39",
+    "summary": "Current SubstanceDefinition-code uses expression SubstanceDefinition.code.code.",
+    "learned": "The SubstanceDefinition search parameter remains on the corrected path in the active build.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/structuredefinition/bundle-StructureDefinition-search-params.xml:246-281",
+    "summary": "Current StructureDefinition-ext-context is composite over StructureDefinition.context and ext-context-type uses StructureDefinition.context.type.",
+    "learned": "The current design represents extension context without the old token-over-BackboneElement error.",
+    "supports": ["reconciliation", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Published R4/R5 search parameter checks for FHIR-24917",
+    "command": "curl -fsSL https://hl7.org/fhir/R4/search-parameters.json | rg -n 'StructureDefinition-ext-context|StructureDefinition.context.type'; curl -fsSL https://hl7.org/fhir/R5/search-parameters.json | rg -n 'StructureDefinition-ext-context|StructureDefinition-ext-context-type|StructureDefinition.context.type|SubstanceDefinition.code.code'",
+    "summary": "R4 technical correction shows ext-context as StructureDefinition.context.type; R5 shows ext-context composite plus ext-context-type and SubstanceDefinition.code.code.",
+    "learned": "The published surfaces confirm both the historical correction and the current R5+ design.",
+    "supports": ["additional_context", "confidence"]
+  }
+]
+</evidence-manifest>

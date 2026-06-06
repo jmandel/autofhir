@@ -1,0 +1,119 @@
+FHIR-39795: Audit BodyStructure measurement device reference
+
+Issue request:
+FHIR-39795 was Published with a Persuasive with Modification resolution for R5. It asked to change BodyStructure.includedStructure.bodyLandmarkOrientation.distanceFromLandmark.device from a CodeableConcept using BodyStructure-specific device codes to CodeableReference(Device), bind its coded side the same way as Device.type, rename distanceFromLandmark.measurementDevice to distanceFromLandmark.value, and update the value short display.
+
+Initial application:
+The Jira comment says the issue was applied through PR #2594 and links commit eee115d, a merge update on the implementation branch. The actual BodyStructure source change in that PR was c08a723cf9, which changed .distanceFromLandmark.device to CodeableReference(Device), switched the binding name/value set to DeviceType/http://hl7.org/fhir/ValueSet/device-type, and renamed .distanceFromLandmark.measurementDevice to .distanceFromLandmark.value. Follow-up commit 86a1883099 adjusted the new value element short display to "Measured distance from body landmark," and later FHIR-39796 work aligned the distance wording around units.
+
+Additional context:
+source/fhir.ini actively lists bodystructure=BodyStructure in [resources] and notes that BodySite became BodyStructure, so source/bodystructure/structuredefinition-BodyStructure.xml is the current build-scope source for this BodySite-related Jira artifact. OO WGM minutes for 2023-01-16/20 record the same decision path and explicitly answer "Do we need to reference deviceDefinition? - no," supporting the current Device-only target. Current Device.type uses the same DeviceType binding and device-type value set as BodyStructure.distanceFromLandmark.device. A legacy BodyStructure-specific value set file remains in source but is not referenced by the StructureDefinition or fhir.ini; the current build surface publishes the BodyStructure use under the device-type value set and the old BodyStructure-specific value set URL returns 404. Direct Zulip searches found no issue-specific discussion that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active BodyStructure StructureDefinition already represents the approved CodeableReference(Device) type, same Device.type binding, and measurementDevice-to-value rename. The current short display is a harmless follow-up refinement consistent with the approved meaning and later same-element unit-flexibility work.
+
+Recommendation:
+Keep this empty audit commit as-is. No FHIR core source fix is needed for FHIR-39795; any future cleanup of the unreferenced legacy value set file should be handled separately as repository hygiene, not as a required semantic correction for this issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-39795
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-39796: same-change-family - adjacent Published BodyStructure distanceFromLandmark issue that refined distance unit wording and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-39795: Published/Persuasive with Modification; approved CodeableReference(Device), Device.type-equivalent binding, measurementDevice-to-value rename, and value short display update. Learned: establishes the final OO work-group request for this audit.
+- E2 Source source/fhir.ini:169-177,1449: bodystructure=BodyStructure is active and BodySite became BodyStructure. Learned: the BodyStructure StructureDefinition is current core build scope for this Jira artifact.
+- E3 Source source/bodystructure/structuredefinition-BodyStructure.xml:310-339: .distanceFromLandmark.device is CodeableReference targeting Device and bound to DeviceType/device-type; .value exists with the measured-distance short/definition. Learned: the authoritative current source already satisfies the requested semantic change.
+- E4 Source source/device/structuredefinition-Device.xml:842-862: Device.type uses binding name DeviceType and value set http://hl7.org/fhir/ValueSet/device-type. Learned: BodyStructure.distanceFromLandmark.device uses the same coded binding requested by the resolution.
+- E5 Git c08a723cf9 and 86a1883099: PR #2594 changed BodyStructure.device/value as requested and then refined the value short display. Learned: the issue was applied in source history, with only wording refinements afterward.
+- E6 Confluence 144996102: 2023-01-16/20 OO WGM minutes record the FHIR-39795 discussion, including "Do we need to reference deviceDefinition? - no," the DeviceType value-set binding, and the approved motion. Learned: meeting evidence supports the current Device-only CodeableReference and prevents an overbroad DeviceDefinition edit.
+- E7 Command build/source checks: old BodyStructure-specific value set has no source references beyond its own file and build.fhir.org returns 404 for its page, while device-type lists the BodyStructure use. Learned: the stale-looking value set file is not current published semantics requiring this issue to change source.
+- E8 Command Zulip searches: no issue-key-specific Zulip hits were found; broader BodyStructure/device hits were unrelated package-import or CodeableReference inventory discussions. Learned: no discovered Zulip discussion conflicts with the Jira/source/confluence decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-39795",
+    "url": "https://jira.hl7.org/browse/FHIR-39795",
+    "snapshot_path": "contexts/FHIR-39795/jira/FHIR-39795.md",
+    "ref": { "jira_key": "FHIR-39795" },
+    "summary": "Published/Persuasive with Modification issue requiring BodyStructure.distanceFromLandmark.device to become CodeableReference(Device), use the Device.type binding, and rename measurementDevice to value.",
+    "learned": "This establishes the final OO work-group request and the exact source semantics to verify.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-177,1449",
+    "ref": { "path": "source/fhir.ini", "lines": "169-177,1449" },
+    "summary": "The active [resources] list includes bodystructure=BodyStructure and a status note says BodySite became BodyStructure.",
+    "learned": "source/bodystructure/structuredefinition-BodyStructure.xml is in current core build scope for the Jira's BodySite-related artifact.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/bodystructure/structuredefinition-BodyStructure.xml:310-339",
+    "ref": { "path": "source/bodystructure/structuredefinition-BodyStructure.xml", "lines": "310-339" },
+    "summary": "The current BodyStructure source defines distanceFromLandmark.device as CodeableReference(Device), binds it to DeviceType/device-type, and defines distanceFromLandmark.value.",
+    "learned": "The authoritative source already satisfies the requested type, binding, and element rename.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:842-862",
+    "ref": { "path": "source/device/structuredefinition-Device.xml", "lines": "842-862" },
+    "summary": "Device.type uses binding name DeviceType and value set http://hl7.org/fhir/ValueSet/device-type.",
+    "learned": "BodyStructure.distanceFromLandmark.device is bound the same way as Device.type, as requested.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "c08a723cf9583d05371b40097c24a34d7a091d6b / 86a188309975d4acabd543e99bb24731a3e0ad98",
+    "ref": { "commit": "c08a723cf9583d05371b40097c24a34d7a091d6b" },
+    "summary": "PR #2594 source history changed BodyStructure.device/value as requested and then refined the new value short display.",
+    "learned": "The Jira was applied in source history, with later wording refinements rather than a missed semantic change.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "OO WGM 2023-01-16/20 page 144996102",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/144996102/2023-01-16-20+WGM",
+    "snapshot_path": "contexts/FHIR-39795/confluence/144996102.md",
+    "ref": { "confluence_page_id": 144996102 },
+    "summary": "OO WGM minutes record that DeviceDefinition was considered and rejected, DeviceType binding was expected, and the FHIR-39795 motion passed 7-0-4.",
+    "learned": "The current Device-only CodeableReference and DeviceType binding match the approved meeting decision.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Source/build check for legacy BodyStructure-specific value set",
+    "command": "grep -R 'ValueSet/bodystructure-bodylandmarkorientation-distancefromlandmark-device\\|valueset-bodystructure-bodylandmarkorientation-distancefromlandmark-device' -n source/bodystructure source/fhir.ini; curl -fsSL https://build.fhir.org/valueset-bodystructure-bodylandmarkorientation-distancefromlandmark-device.html; curl -fsSL https://build.fhir.org/valueset-device-type.html | grep BodyStructure.includedStructure.bodyLandmarkOrientation.distanceFromLandmark.device",
+    "summary": "The legacy value set is referenced only by its own source file; its build.fhir.org page returns 404, while device-type lists the BodyStructure element use.",
+    "learned": "The old BodyStructure-specific device-code value set is not current published semantics requiring a FHIR-39795 source change.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Zulip searches for FHIR-39795 and BodyStructure device terms",
+    "command": "bun run zulip:search fts 'FHIR 39795 BodyStructure Device' --limit 10; bun run zulip:search fts 'BodyStructure Device distanceFromLandmark' --limit 10",
+    "query": "FHIR 39795 BodyStructure Device; BodyStructure Device distanceFromLandmark",
+    "result_count": 3,
+    "snapshot_path": "contexts/FHIR-39795/commands/community-search.md",
+    "summary": "No issue-key-specific Zulip hits were found; broader hits were unrelated package-import or CodeableReference inventory discussions.",
+    "learned": "No discovered Zulip discussion conflicts with the Jira/source/confluence conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

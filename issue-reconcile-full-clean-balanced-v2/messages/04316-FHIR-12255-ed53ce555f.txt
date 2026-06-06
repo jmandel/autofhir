@@ -1,0 +1,108 @@
+FHIR-12255: Audit MedicationStatement reason invariant removal
+
+Issue request:
+FHIR-12255 was a Published/Persuasive Pharmacy change request for DSTU2 MedicationStatement. It asked to remove mst-2 and mst-3 because MedicationStatement.reasonForUse recorded the intended reason for the medication and should remain valid even when the medication was not actually taken.
+
+Initial application:
+The issue was applied in git commit 0e9aa872c529a491a7acec3f5a008250c5a0c184, "GForge #12255, and QA item for MedicationStatement", which removed the two spreadsheet invariant rows that allowed reasonForUseCodeableConcept and reasonForUseReference only when notTaken was No. No Jira-tagged source change remains missing for the old invariant text.
+
+Additional context:
+MedicationStatement is active in the current build through source/fhir.ini. Current source no longer has reasonForUse or wasNotTaken; later source history renamed reasonForUseCodeableConcept/reasonForUseReference to reasonCode/reasonReference and then the current build merges those into MedicationStatement.reason. The current reason definition explicitly covers why the medication is being/was taken or not taken, while adherence.reason separately covers non-use/adherence reasons. Jira FHIR-11091 was a nearby naming-consistency issue but does not require restoring the removed FHIR-12255 restriction.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current authoritative MedicationStatement StructureDefinition has no mst-2/mst-3 constraint or equivalent reason-vs-notTaken/wasNotTaken gate, and a current source grep found no stale copy of the removed invariant text.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up source work is needed in core for FHIR-12255 unless a future Pharmacy decision intentionally changes the semantics of MedicationStatement.reason or MedicationStatement.adherence.reason.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12255
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-11091: background - nearby Published Pharmacy consistency issue for MedicationAdministration, MedicationStatement, and Immunization naming/search parameters; it does not conflict with removing the FHIR-12255 reasonForUse invariant.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12255: Published/Persuasive issue requested removing mst-2 and mst-3 so reasonForUse could remain when a medication was not taken. Learned: this establishes the final requested correction.
+- E2 Git 0e9aa872c529a491a7acec3f5a008250c5a0c184: removed invariant rows for reasonForUseCodeableConcept and reasonForUseReference from the MedicationStatement spreadsheet source. Learned: the requested correction was historically applied.
+- E3 Source source/fhir.ini:204 and source/medicationstatement/structuredefinition-MedicationStatement.xml:405: MedicationStatement is active in the build and the current reason element has no notTaken/wasNotTaken gating constraint. Learned: the authoritative current source already reflects the intended semantics.
+- E4 Source source/fhir.ini:1918-1920 and Git 3e6ab010725e97201494594d25960f3a4ebbb7df: current migration metadata and history show reasonCode/reasonReference evolved from reasonForUse and were later merged into MedicationStatement.reason. Learned: name changes explain why the old element names are absent without indicating a missing fix.
+- E5 Zulip #implementers > medicationStatement reasonForUse and  wasNotTaken: Rik Smithies raised the same concern and Grahame Grieve replied "seems reasonable - make a task." Learned: community context aligns with the Jira request and does not broaden the fix.
+- E6 Command search: current grep for removed invariant phrases and mst-2/mst-3 in source/medicationstatement and source/fhir.ini returned no matches. Learned: no stale source copy remains in the current build inputs checked.
+- E7 Command search: quoted Zulip/Confluence key searches and Confluence refs for FHIR-12255 found no conflicting meeting or discussion evidence. Learned: no discovered community record changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12255",
+    "url": "https://jira.hl7.org/browse/FHIR-12255",
+    "snapshot_path": "contexts/FHIR-12255/jira/FHIR-12255.md",
+    "ref": { "jira_key": "FHIR-12255" },
+    "summary": "Published/Persuasive Pharmacy issue requesting removal of MedicationStatement mst-2 and mst-3 reasonForUse restrictions.",
+    "learned": "The final request was to allow reasonForUse even when the medication was not taken because it represents the intended reason.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "0e9aa872c529a491a7acec3f5a008250c5a0c184",
+    "ref": { "commit": "0e9aa872c529a491a7acec3f5a008250c5a0c184" },
+    "summary": "GForge #12255 commit removed the invariant rows for reasonForUseCodeableConcept and reasonForUseReference from MedicationStatement spreadsheet source.",
+    "learned": "The historical application directly implemented the requested removal.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationstatement/structuredefinition-MedicationStatement.xml:405",
+    "ref": { "path": "source/medicationstatement/structuredefinition-MedicationStatement.xml", "line": 405 },
+    "summary": "Current MedicationStatement.reason is defined as the concepts, Conditions, or observations leading to the medication being taken or not taken, with no gating constraint.",
+    "learned": "The current authoritative source already preserves the intended reason semantics without the old invariant.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:204, source/fhir.ini:1918-1920",
+    "ref": { "path": "source/fhir.ini", "line": 204 },
+    "summary": "fhir.ini actively includes MedicationStatement and maps old reasonCode/reasonReference to the current merged reason element.",
+    "learned": "MedicationStatement is in current build scope and later element renames account for the old reasonForUse names being absent.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > medicationStatement reasonForUse and  wasNotTaken",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/medicationStatement%20reasonForUse%20and%20%20wasNotTaken",
+    "ref": { "stream": "implementers", "topic": "medicationStatement reasonForUse and  wasNotTaken" },
+    "summary": "The originating thread raised the same concern, and Grahame Grieve replied that it seemed reasonable and should become a task.",
+    "learned": "Community context supports the Jira request and does not identify a different intended change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current source grep for removed invariant text",
+    "command": "rg -n 'Reason for use.*permitted|reasonForUse.*notTaken|mst-[23]' source/medicationstatement source/fhir.ini",
+    "result_count": 0,
+    "summary": "No current source matches were found for the removed invariant phrases or mst-2/mst-3 in MedicationStatement build inputs checked.",
+    "learned": "There is no stale source copy requiring a fixup commit.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-12255",
+    "command": "bun run zulip:search fts '\"FHIR-12255\" MedicationStatement reasonForUse' --limit 10; bun run confluence:search refs jira FHIR-12255; bun run confluence:search fts '\"FHIR-12255\" MedicationStatement reasonForUse' --limit 10",
+    "query": "FHIR-12255 MedicationStatement reasonForUse",
+    "result_count": 0,
+    "summary": "No key-specific Zulip or Confluence hits and no Confluence Jira references were found beyond the originating unkeyed Zulip thread.",
+    "learned": "No discovered community evidence conflicts with the Jira, source, and git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

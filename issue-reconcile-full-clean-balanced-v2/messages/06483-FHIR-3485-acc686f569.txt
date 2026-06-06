@@ -1,0 +1,105 @@
+FHIR-3485: Confirm Patient provider search split
+
+Issue request:
+FHIR-3485 was a Published/Persuasive Patient change request saying the Patient "provider" search parameter pointed at Patient.managingOrganization even though the intended care-provider path was Patient.careProvider. The accepted PA resolution distinguished two use cases: organization = Patient.managingOrganization and careprovider = Patient.careProvider.
+
+Initial application:
+The issue was applied in git commit 5415ea6b96, which changed the old Patient search row named provider into organization on Patient.managingOrganization and added a separate careprovider row on Patient.careProvider. No existing combined-branch reconciliation commit for FHIR-3485 was found before this audit.
+
+Additional context:
+FHIR-7963 later renamed Patient.careProvider to Patient.generalPractitioner. Git commit fb14d2fad1 applied that rename to Patient and the search parameter, so the current equivalent of the FHIR-3485 careprovider parameter is general-practitioner. The current Patient resource is active in source/fhir.ini, and the current checked-in Patient search parameter bundle has general-practitioner on Patient.generalPractitioner and organization on Patient.managingOrganization, with no Patient provider search parameter remaining.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scoped source already preserves the FHIR-3485 distinction after the later careProvider to generalPractitioner rename.
+
+Recommendation:
+Keep this no-change audit commit as-is. Revisit only if a future Patient search-parameter change reintroduces a provider/organization ambiguity.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3485
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7963: later-change - renamed Patient.careProvider to Patient.generalPractitioner, explaining why the current search parameter is general-practitioner rather than careprovider.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3485: Published/Persuasive request to correct Patient provider search semantics by splitting organization and careprovider paths. Learned: the final PA decision requires separate organization and care-provider search parameters rather than a provider parameter on the wrong path.
+- E2 Source source/fhir.ini:169 and source/fhir.ini:211: Patient is listed in the active [resources] section. Learned: Patient source files and search parameters are in current build scope.
+- E3 Source source/patient/bundle-Patient-search-params.xml:255 and source/patient/bundle-Patient-search-params.xml:369: Patient-general-practitioner searches Patient.generalPractitioner and Patient-organization searches Patient.managingOrganization. Learned: the current source implements the required split after the later element rename.
+- E4 Git 5415ea6b96: applied Task #3485 by renaming provider to organization and adding careprovider on Patient.careProvider. Learned: the original issue was explicitly applied in source history.
+- E5 Jira FHIR-7963 and Git fb14d2fad1: the later Published/Persuasive with Modification decision renamed careProvider to GeneralPractitioner and the commit updated the Patient search parameter name and path. Learned: current general-practitioner wording is an intentional later evolution, not a missed FHIR-3485 application.
+- E6 Command community searches: Zulip searches for "FHIR-3485" and Patient provider/careprovider terms and Confluence refs for FHIR-3485 found no relevant hits. Learned: no discovered community record changes the Jira/source/history conclusion.
+- E7 Command source search: rg over Patient search-parameter source found Patient.generalPractitioner and Patient.managingOrganization but no Patient-provider/provider search parameter. Learned: there is no remaining current Patient provider parameter to edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3485",
+    "url": "https://jira.hl7.org/browse/FHIR-3485",
+    "snapshot_path": "contexts/FHIR-3485/jira/FHIR-3485.md",
+    "ref": { "jira_key": "FHIR-3485" },
+    "summary": "Published/Persuasive Patient change request to resolve the ambiguous provider search parameter by using organization for Patient.managingOrganization and careprovider for Patient.careProvider.",
+    "learned": "This establishes the final requested semantics for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,211",
+    "summary": "The active [resources] section includes patient=Patient.",
+    "learned": "Patient source and generated search-parameter inputs are in current build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/patient/bundle-Patient-search-params.xml:255-380",
+    "summary": "Patient-general-practitioner has expression Patient.generalPractitioner and Patient-organization has expression Patient.managingOrganization.",
+    "learned": "The current source already implements the split required by FHIR-3485 after the later element rename.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "5415ea6b96",
+    "ref": { "commit": "5415ea6b967c8ea57da1ac0aa8743b04aa7867e6" },
+    "summary": "Task #3485 commit changed the old provider search parameter to organization on Patient.managingOrganization and added careprovider on Patient.careProvider.",
+    "learned": "FHIR-3485 was explicitly applied in source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-7963",
+    "url": "https://jira.hl7.org/browse/FHIR-7963",
+    "snapshot_path": "contexts/FHIR-7963/jira/FHIR-7963.md",
+    "ref": { "jira_key": "FHIR-7963" },
+    "summary": "Published/Persuasive with Modification issue to rename Patient.careProvider to GeneralPractitioner.",
+    "learned": "This explains why the current care-provider search is named general-practitioner and points to Patient.generalPractitioner.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "fb14d2fad1",
+    "ref": { "commit": "fb14d2fad17858e1b603cb0032db8a62b3563517" },
+    "summary": "The later rename commit updated Patient.careProvider and the careprovider search parameter to Patient.generalPractitioner and general-practitioner.",
+    "learned": "The current search parameter name/path is a deliberate later source evolution.",
+    "supports": ["additional_context", "current_source"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community and source searches for FHIR-3485 Patient provider search parameter",
+    "command": "bun run zulip:search fts '\"FHIR-3485\" Patient provider search param careprovider organization' --limit 10; bun run zulip:search fts 'Patient provider search parameter careprovider organization' --limit 10; bun run confluence:search refs jira FHIR-3485; rg 'Patient-provider|<code value=\"provider\"|Patient\\.careProvider|Patient\\.managingOrganization|Patient\\.generalPractitioner' source/patient",
+    "query": "FHIR-3485 Patient provider search parameter careprovider organization",
+    "summary": "No relevant Zulip or Confluence hits were found; Patient search-parameter source contains the current general-practitioner and organization paths and no provider parameter.",
+    "learned": "No discovered evidence conflicts with the no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

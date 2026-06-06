@@ -1,0 +1,96 @@
+FHIR-53492: Audit decimal regex syntax correction
+
+Issue request:
+FHIR-53492 was Applied with a Persuasive with Modification resolution for FHIR-core datatypes. It reported that the decimal regex had an extra closing brace and proposed also allowing decimals such as .5; the final decision accepted only removal of the extra brace and rejected the leading-zero change as substantive for a normative datatype.
+
+Initial application:
+Commit 2a1360e087 applied FHIR-53492 by changing source/datatypes/primitives.xml from the FHIR-22655 regex with `[0-9]{1,9}}` to `[0-9]{1,9}`. There was no prior AutoFHIR audit commit for FHIR-53492 on the combined branch.
+
+Additional context:
+The FHIR-22655 reconciliation in the immediately preceding commit changed the decimal regex further to enforce the approved 18-digit mantissa limit, but it preserved the two FHIR-53492 decisions: there is no extra closing brace in the exponent branch, and the regex still requires a leading zero for fractional decimals rather than allowing .5.
+
+AutoFHIR reconciliation:
+This empty audit commit records that no additional FHIR-53492 source change is needed after the FHIR-22655 reconciliation. The active primitive regex and the XML schema override pattern are syntactically balanced and continue to require a digit before the decimal point.
+
+Recommendation:
+Keep this audit commit. FHIR-53492 is satisfied by current source; any future proposal to allow .5 should be handled as a separate normative datatype change, not as part of this syntax correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-53492
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-22655: same-change-family - introduced the bounded decimal regex that contained the extra brace later corrected by FHIR-53492; the current FHIR-22655 reconciliation preserves the FHIR-53492 syntax and leading-zero outcomes.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-53492: Applied/Persuasive with Modification issue accepted removing the extra `}` but rejected allowing decimals without a leading zero. Learned: final WG intent is a syntax correction only, not a substantive lexical change.
+- E2 Confluence FHIR Infrastructure Minutes CC 2025-11-24: minutes record the FHIR-53492 motion and rationale that allowing .5 would be substantive while removing the extra brace was approved 6-0-0. Learned: meeting evidence corroborates the Jira resolution.
+- E3 Git 2a1360e087: FHIR-53492 source commit changed `[0-9]{1,9}}` to `[0-9]{1,9}` in source/datatypes/primitives.xml. Learned: the approved syntax fix was already applied in source history.
+- E4 Source source/datatypes/primitives.xml:134 and source/xml.html:318: current decimal regexes have a balanced exponent branch and retain a required integer/zero prefix before the decimal point. Learned: current active source satisfies FHIR-53492 after the FHIR-22655 reconciliation.
+- E5 Command Zulip/Confluence search for FHIR-53492: Zulip had no direct hits and Confluence refs found the 2025-11-24 FHIR-I minutes. Learned: no discovered community discussion conflicts with the Jira/minutes conclusion.
+- E6 Verification command: regex tests confirmed `.5` is rejected while `0.5` is accepted, and source grep found no stale `[0-9]{1,9}}` exponent typo in active datatype source. Learned: the specific accepted and rejected FHIR-53492 changes are reflected in current source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-53492",
+    "url": "https://jira.hl7.org/browse/FHIR-53492",
+    "ref": { "jira_key": "FHIR-53492" },
+    "summary": "Applied/Persuasive with Modification issue accepting removal of an extra closing brace in the decimal regex while rejecting support for .5-style decimals.",
+    "learned": "This establishes that FHIR-53492 is a syntax correction and not a change to the leading-zero lexical rule.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2025-11-24 page 404099439",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/404099439/FHIR+Infrastructure+Minutes+CC+2025-11-24",
+    "ref": { "confluence_page_id": 404099439 },
+    "summary": "Minutes state that allowing .5 would be substantive for a normative datatype and that removing the extra } was approved 6-0-0.",
+    "learned": "The meeting record confirms the narrow approved scope of FHIR-53492.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "2a1360e08725bc95341e925aabb48232ff583e8d",
+    "ref": { "commit": "2a1360e08725bc95341e925aabb48232ff583e8d" },
+    "summary": "The FHIR-53492 commit removed the extra closing brace from the exponent part of the decimal regex in source/datatypes/primitives.xml.",
+    "learned": "The source history already applied the approved syntax correction.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:134; source/xml.html:318",
+    "ref": { "paths": "source/datatypes/primitives.xml,source/xml.html", "lines": "134,318" },
+    "summary": "The active primitive regex and XML override pattern have a balanced exponent branch and require a leading integer/zero before any decimal fraction.",
+    "learned": "Current source satisfies both the accepted and rejected portions of the FHIR-53492 resolution.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Community search for FHIR-53492",
+    "command": "bun run zulip:search fts '\"FHIR-53492\" decimal' --limit 10; bun run confluence:search refs jira FHIR-53492",
+    "query": "FHIR-53492 decimal",
+    "result_count": 1,
+    "summary": "No direct Zulip hits were found; Confluence refs found the FHIR-I 2025-11-24 minutes.",
+    "learned": "No discovered community record conflicts with the Jira and meeting-minutes decision.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Decimal regex syntax and leading-zero verification",
+    "command": "python regex validation for .5 and 0.5; rg '\\[0-9\\]\\{1,9\\}\\}' source/datatypes/primitives.xml source/xml.html",
+    "summary": "Representative regex tests reject .5 and accept 0.5, and active datatype source no longer contains the stale extra-brace exponent typo.",
+    "learned": "The current source state needs no additional FHIR-53492 change.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

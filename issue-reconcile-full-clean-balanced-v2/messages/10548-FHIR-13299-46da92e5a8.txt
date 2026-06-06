@@ -1,0 +1,85 @@
+FHIR-13299: Audit differential extension ordering renderer
+
+Issue request:
+FHIR-13299 was a Published/Persuasive FHIR-core change request for STU3 asking that generated differential views show extension and modifierExtension rows where they belong in element order instead of moving them to the end, because implementers were following the differential table order when writing instances.
+
+Initial application:
+The issue was applied in SVN revision 13122, represented in git as c8b51e7adc717c021f5702d4505547e949496327. That commit changed implementations/java/org.hl7.fhir.r4/src/org/hl7/fhir/r4/conformance/ProfileUtilities.java by disabling the differential-only logic that skipped extension rows during normal child traversal and appended them after the other children. The Jira comment records the same SVN revision.
+
+Additional context:
+The old in-repo ProfileUtilities.java renderer was later deleted during the build/tooling refactors; current HEAD no longer contains that Java source. The current FHIR build runs org.hl7.fhir.tools.publisher.Publisher from the external org.hl7.fhir:kindling dependency declared in build.gradle.kts, with the relevant model/rendering utilities supplied by dependency artifacts rather than editable source in this checkout. Jira, Zulip, and Confluence searches found no later FHIR-core decision that reverses the ordering request.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change in HL7/fhir. The issue's historical source change was applied, and the current checkout has no authoritative local source file for the differential table renderer; any future correction to this behavior belongs in the Kindling/FHIR tooling dependency rather than in a spec source file here.
+
+Recommendation:
+Keep this audit commit as-is for the core repository. If a current build demonstrates that differential extension rows are again ordered incorrectly, open or apply the fix in the external Kindling/FHIR tooling source and then update the dependency used by this repository.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13299
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13299: Published/Persuasive FHIR-core issue asking differential views to show extensions first/in normal order rather than last; the only Jira comment records svn revision 13122. Learned: this is a final applied issue and identifies the implementation revision.
+- E2 Git c8b51e7adc717c021f5702d4505547e949496327: SVN revision 13122 commit commented out the differential-only code in ProfileUtilities.java that deferred extension rows until after non-extension children. Learned: the requested behavior was implemented in the old in-repo renderer.
+- E3 Git 7a2c3cd52484193783dcf3edf9b0c815e88d7aac and current source search: the pre-deletion ProfileUtilities.java still had the FHIR-13299 deferral code disabled, and current HEAD has no implementations/java ProfileUtilities.java. Learned: the applied local renderer code was removed by later tooling refactors rather than left stale in this checkout.
+- E4 Source build.gradle.kts:47,137-150 and Gradle dependency query: the current build uses org.hl7.fhir:kindling:1.25.5-SNAPSHOT and runs org.hl7.fhir.tools.publisher.Publisher from that dependency. Learned: the current differential renderer is supplied externally, outside editable HL7/fhir source.
+- E5 Community/Jira search: Jira exact-phrase search found only FHIR-13299, and Zulip/Confluence searches for FHIR-13299 plus differential/extension terms found no direct or conflicting discussion. Learned: no discovered later decision changes the source-scope conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13299",
+    "url": "https://jira.hl7.org/browse/FHIR-13299",
+    "snapshot_path": "contexts/FHIR-13299/jira/FHIR-13299.md",
+    "ref": { "jira_key": "FHIR-13299" },
+    "summary": "Published/Persuasive FHIR-core change request asking generated differential views to show extension rows in their proper order rather than last.",
+    "learned": "This establishes the final issue request and records svn revision 13122 as the application point.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "c8b51e7adc717c021f5702d4505547e949496327",
+    "ref": { "commit": "c8b51e7adc717c021f5702d4505547e949496327", "svn_revision": 13122 },
+    "summary": "Historical commit '#13299 - Differential view needs to show extensions first, not last' changed ProfileUtilities.java to stop deferring extension rows in differential rendering.",
+    "learned": "The Jira request was applied to the old in-repo Java renderer.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "7a2c3cd52484193783dcf3edf9b0c815e88d7aac and current HEAD source search",
+    "command": "git show 7a2c3cd^:implementations/java/org.hl7.fhir.r4/src/org/hl7/fhir/r4/conformance/ProfileUtilities.java | rg -n 'isExtension|extensions != null|endsWith\\(\\\"\\.extension'; test -e implementations/java/org.hl7.fhir.r4/src/org/hl7/fhir/r4/conformance/ProfileUtilities.java",
+    "summary": "The disabled extension-deferral logic was still present before the old ProfileUtilities.java was deleted; current HEAD does not contain that file.",
+    "learned": "There is no remaining local source hunk in HL7/fhir to update for this renderer behavior.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "build.gradle.kts:47,137-150; gradle.properties:2",
+    "command": "./gradlew -q dependencies --configuration runtimeClasspath | sed -n '/runtimeClasspath/,/A web-based/p' | head -120",
+    "summary": "The current build declares org.hl7.fhir:kindling:1.25.5-SNAPSHOT and runs org.hl7.fhir.tools.publisher.Publisher from the dependency classpath.",
+    "learned": "Current differential table rendering is controlled by external Kindling/FHIR tooling artifacts rather than editable spec source in this checkout.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-13299 and differential extension ordering",
+    "command": "bun run jira:search fts '\"Differential view needs to show extensions first\"' --limit 10; bun run zulip:search fts '\"FHIR-13299\" differential extensions' --limit 10; bun run confluence:search refs jira FHIR-13299; bun run confluence:search fts '\"FHIR-13299\" differential extensions' --limit 10",
+    "query": "FHIR-13299 differential extensions; Differential view needs to show extensions first",
+    "result_count": 1,
+    "summary": "Exact Jira search found only FHIR-13299; direct Zulip and Confluence searches found no references or conflicting decisions.",
+    "learned": "No discovered community or later Jira evidence changes the conclusion that this is an already-applied tooling issue now outside the core source checkout.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,96 @@
+FHIR-13944: Audit Questionnaire que-7 schematron fix
+
+Issue request:
+FHIR-13944 was a Published/Persuasive FHIR-core Questionnaire correction raised against STU3. It reported that the que-7 Schematron XPath used `self::f:hasAnswer` even though the XPath was already evaluated in the Questionnaire.item.enableWhen context, so the hasAnswer branch should be `f:hasAnswer` instead.
+
+Initial application:
+The Jira comment cites svn revision 13241, and the git-svn import contains commit 5fe4485daf114ca566274e2b0fa6d41ed2f10f1c with the matching message, `GF#13944 - fix que-7 schematron`. That commit changed source/questionnaire/questionnaire-spreadsheet.xml from `count(f:*[starts-with(local-name(.), 'answer')]|self::f:hasAnswer) = 1` to `count(f:*[starts-with(local-name(.), 'answer')]|f:hasAnswer) = 1`, which is the requested STU3 source fix.
+
+Additional context:
+Questionnaire remains an active resource in source/fhir.ini, but the current build source is source/questionnaire/structuredefinition-Questionnaire.xml after the 2021 source rework removed the old spreadsheet source. The current que-7 constraint is the later R4+ FHIRPath rule `operator = 'exists' implies (answer is boolean)` and has no XPath at all; commit 88a1f3d6bd60f7618ae140179b008ac5686e8a08 later removed remaining XPath fields from current ElementDefinition source. Searches found `self::f:hasAnswer` only in tools/history/release3 generated historical profile snapshots, not in active current source. A later same-key issue, FHIR-25390, concerns lowercase FHIRPath `boolean` casing and is already represented on the combined branch.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change because the original FHIR-13944 correction was applied to the then-authoritative spreadsheet source, and the current authoritative Questionnaire StructureDefinition no longer contains the bad Schematron XPath or any replacement location needing the same edit.
+
+Recommendation:
+Keep this no-change audit commit as-is. Do not edit tools/history/release3 generated snapshots for this reconciliation; they are historical artifacts, while the current active Questionnaire source already reflects later constraint modeling and contains no stale `self::f:hasAnswer` expression.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13944
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25390: later-change - Same Questionnaire que-7 invariant key but a distinct later FHIRPath boolean casing issue; combined branch already contains audit commit 2fe3639717fdc073717fa24c48964becebd28e97.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13944: Published/Persuasive STU3 Questionnaire correction for the que-7 Schematron XPath, with svn revision 13241 recorded in comments. Learned: this establishes the final request and the historical application locator.
+- E2 Source source/fhir.ini:219 and source/questionnaire/structuredefinition-Questionnaire.xml:1024-1028: Questionnaire is active and current que-7 is a FHIRPath-only boolean rule with no XPath. Learned: the current build input has no instance of the bad STU3 Schematron expression.
+- E3 Git 5fe4485daf114ca566274e2b0fa6d41ed2f10f1c: git-svn commit `GF#13944 - fix que-7 schematron` changed `self::f:hasAnswer` to `f:hasAnswer` in the old Questionnaire spreadsheet. Learned: the Jira-requested correction was applied to the then-authoritative source.
+- E4 Git 33b409a4b6d544598262f2f074ebb4b6dc466157 and 88a1f3d6bd60f7618ae140179b008ac5686e8a08: later source history removed questionnaire-spreadsheet.xml and then removed XPath fields from current ElementDefinition source. Learned: the original Schematron location no longer exists in current source scope.
+- E5 Command/source search: `rg -n 'self::f:hasAnswer' . -g '!tools/history/**'` found no active-source hits; unrestricted search found only tools/history/release3 generated profile snapshots. Learned: remaining bad-expression text is historical generated content, not a current source fix target.
+- E6 Community/Jira neighborhood search: SQL searches found FHIR-13944 and later FHIR-25390 plus related Zulip que-7 discussions; Confluence refs for FHIR-13944 found none. Learned: no community or related-issue evidence changes the no-change conclusion for the seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13944",
+    "url": "https://jira.hl7.org/browse/FHIR-13944",
+    "snapshot_path": "contexts/FHIR-13944/jira/FHIR-13944.md",
+    "ref": { "jira_key": "FHIR-13944" },
+    "summary": "Published/Persuasive STU3 Questionnaire correction requiring the que-7 Schematron XPath to use f:hasAnswer instead of self::f:hasAnswer.",
+    "learned": "This establishes the final request and points to svn revision 13241 as the historical application.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:219; source/questionnaire/structuredefinition-Questionnaire.xml:1024-1028",
+    "ref": { "path": "source/questionnaire/structuredefinition-Questionnaire.xml", "line": 1027 },
+    "summary": "Questionnaire is active in fhir.ini and current que-7 is the FHIRPath rule operator = 'exists' implies (answer is boolean), with no XPath field.",
+    "learned": "The active current build source no longer contains the bad STU3 Schematron expression or an equivalent edit target.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "5fe4485daf114ca566274e2b0fa6d41ed2f10f1c",
+    "ref": { "commit": "5fe4485daf114ca566274e2b0fa6d41ed2f10f1c" },
+    "summary": "Commit GF#13944 - fix que-7 schematron changed the old Questionnaire spreadsheet XPath from self::f:hasAnswer to f:hasAnswer.",
+    "learned": "The Jira-requested correction was applied to the then-authoritative STU3 source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "33b409a4b6d544598262f2f074ebb4b6dc466157; 88a1f3d6bd60f7618ae140179b008ac5686e8a08",
+    "ref": { "source_rework_commit": "33b409a4b6d544598262f2f074ebb4b6dc466157", "xpath_removal_commit": "88a1f3d6bd60f7618ae140179b008ac5686e8a08" },
+    "summary": "Later history removed questionnaire-spreadsheet.xml during source rework and then removed XPath fields from current ElementDefinition source.",
+    "learned": "The old Schematron location is no longer part of the current authoritative source model.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current-source bad-expression search",
+    "command": "rg -n 'self::f:hasAnswer' . -g '!tools/history/**'; rg -n 'self::f:hasAnswer' .",
+    "result_count": 0,
+    "summary": "No non-history source hits were found; unrestricted search found only tools/history/release3 generated historical profile snapshots.",
+    "learned": "No active current source file needs a source-changing reconciliation for FHIR-13944.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Jira, Zulip, and Confluence neighborhood checks for FHIR-13944 and que-7",
+    "command": "bun run jira:search sql ... data LIKE '%que-7%' OR data LIKE '%self::f:hasAnswer%'; bun run zulip:search sql ... content LIKE '%FHIR-13944%' OR content LIKE '%que-7%' OR content LIKE '%self::f:hasAnswer%'; bun run confluence:search refs jira FHIR-13944",
+    "result_count": 2,
+    "summary": "Jira search found only FHIR-13944 and later FHIR-25390; Zulip contained bot notifications and later que-7 discussions; Confluence had no direct FHIR-13944 references.",
+    "learned": "No discovered community or related-issue evidence conflicts with treating the seed as already applied and currently correct.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  }
+]
+</evidence-manifest>

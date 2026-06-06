@@ -1,0 +1,102 @@
+FHIR-50614: Allow resource type filter modifiers
+
+Issue request:
+FHIR-50614 is Applied/Persuasive with Modification for R6 and asks how SubscriptionTopic.trigger.canFilterBy.modifier and Subscription.filterBy.modifier can express the search :type modifier when the value is the target resource type, such as Patient, rather than the literal code type. The accepted resolution was to expand the search modifier value-set coverage to include extended resource types.
+
+Initial application:
+The issue-tagged source commit 584ea5fadb47d6ef43add3666481a61e7733c133 added ValueSet/search-modifier-all-codes, which composes search-modifier-code with ValueSet/extended-resource-types, and switched SearchParameter.modifier to that broader value set. Follow-up commits 926c1640e358deb6e9f306569fb474261b372770 and ac7f9d06d91a4955834ac69f9bfcee1185e23ce5 registered and case-corrected the original search-modifier-code value-set file, but Subscription and SubscriptionTopic still bound their modifier elements to the narrower search-modifier-code value set.
+
+Additional context:
+FHIR-I minutes from 2025-12-08 record the FHIR-50614 decision as adding codes to the normative value set, and a June 2025 minute shows the issue had been assigned for review because R6/backport handling differed. Current build.fhir.org output still showed Subscription.filterBy.modifier and SubscriptionTopic.trigger.canFilterBy.modifier using search-modifier-code while SearchParameter.modifier used search-modifier-all-codes. The edited StructureDefinition files are active resource sources under source/fhir.ini, and source/search.html is the active search narrative. Generated SVG diagrams still reference the old link but were not edited because they are generated artifacts.
+
+AutoFHIR reconciliation:
+This commit completes the already-applied all-codes approach by binding Subscription.filterBy.modifier and SubscriptionTopic.trigger.canFilterBy.modifier to ValueSet/search-modifier-all-codes, updating the SearchParameter/Subscription/SubscriptionTopic definitions and binding descriptions to say resource type codes are allowed for :type, and correcting search.html to link to the broader value set with a concrete subject:Patient example.
+
+Recommendation:
+Keep this commit. It aligns the two issue-named subscription elements with the prior SearchParameter.modifier implementation and the accepted FHIR-I decision without changing unrelated search modifier code-system semantics. A later full publication build should regenerate the affected diagrams and rendered artifacts from these source changes.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-50614
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-50614: Applied/Persuasive with Modification, R6, requesting clarification of type modifier use in SubscriptionTopic and Subscription, with resolution to include extended resource types. Learned: the final WG intent is to allow resource type codes for these modifier elements.
+- E2 Confluence FHIR-I 2025-12-08 minutes page 413042140: records FHIR-50614 as adding codes to a normative value set and a Persuasive with Modification vote. Learned: meeting evidence confirms the Jira resolution direction.
+- E3 Git 584ea5fadb47: added ValueSet/search-modifier-all-codes and changed SearchParameter.modifier to use it. Learned: the prior application chose a broader all-codes value set but did not update Subscription or SubscriptionTopic.
+- E4 Source source/fhir.ini:170,249 and source/fhir.ini:1312: SearchParameter is an active resource and search-modifier-code is an active value-set source. Learned: the changed resource and terminology sources feed the current build.
+- E5 Source source/subscription/structuredefinition-Subscription.xml:298 and source/subscriptiontopic/structuredefinition-SubscriptionTopic.xml:880: the reconciled modifier elements now bind to ValueSet/search-modifier-all-codes and describe resource type codes. Learned: the issue-named elements now permit values such as Patient for :type.
+- E6 Source source/search.html:1035: the search narrative now points SearchParameter.modifier to search-modifier-all-codes and explains subject:Patient usage. Learned: the human-facing search rules no longer contradict the broadened binding.
+- E7 Command Zulip/Confluence/source checks: quoted Zulip searches for FHIR-50614 and search-modifier-code plus extended-resource-types found no conflicting discussions; build.fhir.org checks showed the pre-reconciliation Subscription and SubscriptionTopic bindings were still narrow. Learned: no discovered community evidence blocks the source fix, and the current CI surface demonstrated the remaining gap.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-50614",
+    "url": "https://jira.hl7.org/browse/FHIR-50614",
+    "snapshot_path": "contexts/FHIR-50614/jira/FHIR-50614.md",
+    "ref": { "jira_key": "FHIR-50614" },
+    "summary": "Applied/Persuasive with Modification R6 issue asking how SubscriptionTopic and Subscription modifier elements can express type modifiers using resource type codes.",
+    "learned": "This establishes the final WG intent to allow extended resource type codes for the relevant modifier bindings.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2025-12-08 page 413042140",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/413042140/FHIR+Infrastructure+Minutes+CC+2025-12-08",
+    "ref": { "confluence_page_id": 413042140 },
+    "summary": "Minutes record FHIR-50614 as adding codes to a normative value set with a Persuasive with Modification vote.",
+    "learned": "This confirms the Jira disposition and supports a source change rather than a no-change audit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "584ea5fadb47d6ef43add3666481a61e7733c133",
+    "ref": { "commit": "584ea5fadb47d6ef43add3666481a61e7733c133" },
+    "summary": "The original issue-tagged implementation added ValueSet/search-modifier-all-codes and changed SearchParameter.modifier to use it.",
+    "learned": "The prior application implemented the broader value-set approach but left the issue-named Subscription and SubscriptionTopic bindings unchanged.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,249,1312",
+    "summary": "fhir.ini lists SearchParameter as an active resource and search-modifier-code as an active value-set source.",
+    "learned": "The changed SearchParameter and terminology sources are in current build scope; Subscription and SubscriptionTopic are also active resources in the same section.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/subscription/structuredefinition-Subscription.xml:298; source/subscriptiontopic/structuredefinition-SubscriptionTopic.xml:880",
+    "summary": "Subscription.filterBy.modifier and SubscriptionTopic.trigger.canFilterBy.modifier now bind to ValueSet/search-modifier-all-codes and describe resource type codes.",
+    "learned": "The two issue-named elements now allow values such as Patient for :type filtering.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/search.html:1035",
+    "summary": "The search narrative now links SearchParameter.modifier to search-modifier-all-codes and explains subject:Patient syntax for the type modifier.",
+    "learned": "Narrative guidance is aligned with the broadened binding and clarifies the user-facing question.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and CI surface checks for FHIR-50614",
+    "command": "bun run zulip:search fts '\"FHIR-50614\"' --limit 10; bun run zulip:search fts '\"search-modifier-code\" \"extended-resource-types\"' --limit 10; curl -fsSL https://build.fhir.org/subscription.profile.json; curl -fsSL https://build.fhir.org/subscriptiontopic.profile.json",
+    "query": "FHIR-50614 search-modifier-code extended-resource-types SubscriptionTopic type modifier",
+    "summary": "No conflicting Zulip discussion was found, while build.fhir.org showed the pre-reconciliation Subscription and SubscriptionTopic modifier bindings still pointed to search-modifier-code.",
+    "learned": "The remaining gap was in current source/build output rather than a known later reversal.",
+    "supports": ["absence_of_conflict", "reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

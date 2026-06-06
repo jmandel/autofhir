@@ -1,0 +1,134 @@
+FHIR-14414: Align NutritionOrder status comment with request intent
+
+Attribution note: surfaced while reviewing FHIR-3720, but direct Jira backing for this change is FHIR-14414.
+
+Issue request:
+FHIR-3720 was a Published/Persuasive with Modification DSTU1 Patient Care issue asking order/request resources, including CarePlan, DiagnosticRequest, MedicationPrescription, ReferralRequest, and related request classes, to represent planned and proposed activities. The recorded resolution endorsed using status values at the time, with OO and Pharmacy comments supporting planned/proposed status handling.
+
+Initial application:
+The explicit historical application was git d6259fa8e3beda8fd5e58ad54d85001f1efb9d42, whose message included "[#3720] add 'planned' and 'proposed' to DiagnosticOrder and NutritionOrder". That patch added proposed/planned values to then-current DiagnosticOrder and NutritionOrder status lists, while some originally mentioned artifacts were later renamed, subsumed, or handled through the FHIR workflow/request pattern rather than by preserving proposed/planned as status codes.
+
+Additional context:
+Current build scope has CarePlan, MedicationRequest, NutritionOrder, and ServiceRequest active; fhir.ini records DiagnosticOrder as subsumed into ServiceRequest, MedicationPrescription as MedicationRequest, and ReferralRequest as ServiceRequest. Later workflow decisions split lifecycle state from planned/proposed/order authority: Request.status is lifecycle-oriented, while Request.intent carries proposal, plan, and order semantics. FHIR-9266 later resolved Not Persuasive/No Change for adding proposed/planned to MedicationOrder status because the resource follows the Request workflow pattern, and FHIR-14414 added NutritionOrder.intent/status alignment to that pattern. The current CarePlan, ServiceRequest, MedicationRequest, and NutritionOrder definitions already expose proposal/plan/order through required intent bindings, but NutritionOrder.status still contained stale prose saying the status was set to "requested" and then maintained by the receiver, contradicting both the current code set and the request-pattern fulfillment model.
+
+AutoFHIR reconciliation:
+This commit changes only the stale NutritionOrder.status comment and the matching NutritionOrder request-pattern mapping exception. The new text removes the invalid requested status reference, makes the requester-controlled lifecycle meaning explicit, and points performer fulfillment state to event resources or Task. No proposed/planned status codes were added because the current and later-approved representation is through intent, not lifecycle status.
+
+Recommendation:
+Keep this source fix as-is. It preserves the current Request pattern while removing a real stale contradiction from one of the original FHIR-3720 artifacts; future changes should not reintroduce proposed/planned status codes unless the workflow pattern is reopened by a new work-group decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3720
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-7640: same-change-family - MedicationPrescription/MedicationRequest status alignment issue for proposed/planned medication requests; already represented on the combined branch and supports the later status-vs-intent interpretation.
+FHIR-9266: supporting-decision - later Pharmacy no-change decision explicitly declined adding proposed/planned to MedicationOrder status because it follows the Request workflow pattern.
+FHIR-14414: later-change - added NutritionOrder.intent/status alignment to the request pattern, making NutritionOrder's planned/proposed semantics an intent concern.
+FHIR-13704: later-change - aligned MedicationRequest.intent with proposal/plan/order intent codes, already represented on the combined branch.
+FHIR-20606: later-change - clarified CarePlan.intent immutability for proposal-to-plan/order workflow, already represented on the combined branch.
+FHIR-7384: same-change-family - ServiceRequest proposal/order distinction audit already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3720: Published/Persuasive with Modification issue requested request/order classes to support proposed and planned activities, with the original resolution endorsing a status route. Learned: the seed is final and establishes the original planned/proposed support requirement.
+- E2 Git d6259fa8e3beda8fd5e58ad54d85001f1efb9d42: explicit #3720 application added proposed/planned to DiagnosticOrder and NutritionOrder status lists in 2015. Learned: initial application was status-code based for the then-current resources.
+- E3 Source source/fhir.ini:178,202,207,213,1457,1467,1480: CarePlan, MedicationRequest, NutritionOrder, and ServiceRequest are active; DiagnosticOrder/ReferralRequest were subsumed into ServiceRequest and MedicationPrescription became MedicationRequest. Learned: current reconciliation must inspect the successor resources in build scope.
+- E4 Source source/careplan/structuredefinition-CarePlan.xml:201-262; source/servicerequest/structuredefinition-ServiceRequest.xml:268-354; source/medicationrequest/structuredefinition-MedicationRequest.xml:210-310; source/nutritionorder/structuredefinition-NutritionOrder.xml:194-255. Learned: current resources already separate lifecycle status from proposal/plan/order intent.
+- E5 Source source/request/request-spreadsheet-introduction.xml:15-17; source/request/request-spreadsheet-notes.xml:41-54; source/request/request-spreadsheet.xml:1095-1163; source/request/codesystem-request-intent.xml:25-68; source/request/codesystem-request-status.xml:25-64. Learned: the current request pattern supports proposals/plans/orders through intent and excludes fulfillment progress from request status.
+- E6 Jira FHIR-9266, FHIR-14414, FHIR-13704, and FHIR-20606 snapshots/queries: later final decisions declined proposed/planned MedicationOrder status, added NutritionOrder intent alignment, and clarified intent usage/immutability. Learned: later workflow decisions supersede the original status-route mechanics.
+- E7 Source source/nutritionorder/structuredefinition-NutritionOrder.xml:197 and source/nutritionorder/nutritionorder-request-mapping-exceptions.xml:68: NutritionOrder.status still referred to invalid requested status and receiver-maintained fulfillment before this commit. Learned: a narrow source fix was necessary despite the intent model already being present.
+- E8 Community search: Zulip searches for FHIR-3720/#3720/proposed/planned/request intent and Confluence references/FTS for FHIR-3720 found no directly relevant or conflicting community evidence. Learned: no discovered community record changes the Jira/source/history conclusion.
+- E9 Verification command/query: xmllint parsed the edited XML; rg confirmed the stale requested-status wording was removed from edited authoritative/source mapping files; git diff --check with CRLF-aware whitespace settings passed. Learned: the source correction is syntactically valid and limited to the stale NutritionOrder wording.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3720",
+    "url": "https://jira.hl7.org/browse/FHIR-3720",
+    "snapshot_path": "contexts/FHIR-3720/jira/FHIR-3720.md",
+    "ref": { "jira_key": "FHIR-3720" },
+    "summary": "Published/Persuasive with Modification DSTU1 issue requested order/request resources to support proposed and planned activities.",
+    "learned": "The issue is final and establishes the planned/proposed support requirement, even though later workflow decisions changed the representation from status to intent.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "d6259fa8e3beda8fd5e58ad54d85001f1efb9d42",
+    "ref": { "commit": "d6259fa8e3beda8fd5e58ad54d85001f1efb9d42" },
+    "summary": "Historical #3720 application added proposed/planned to DiagnosticOrder and NutritionOrder status lists.",
+    "learned": "The initial implementation was status-code based for the then-current resource model.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:178,202,207,213,1457,1467,1480",
+    "ref": { "path": "source/fhir.ini", "lines": "178,202,207,213,1457,1467,1480" },
+    "summary": "CarePlan, MedicationRequest, NutritionOrder, and ServiceRequest are active current resources; DiagnosticOrder/ReferralRequest were subsumed into ServiceRequest and MedicationPrescription became MedicationRequest.",
+    "learned": "The current build-scope check must use these successor resources.",
+    "supports": ["source_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "current status/intent elements on CarePlan, ServiceRequest, MedicationRequest, and NutritionOrder",
+    "ref": { "path": "source/nutritionorder/structuredefinition-NutritionOrder.xml", "lines": "194-255" },
+    "summary": "The active resources have lifecycle status elements and required intent elements with proposal/plan/order semantics.",
+    "learned": "Planned/proposed semantics are already represented by intent rather than by adding proposed/planned lifecycle statuses.",
+    "supports": ["source_current_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/request/request-spreadsheet-introduction.xml:15-17; source/request/request-spreadsheet-notes.xml:41-54; source/request/request-spreadsheet.xml:1095-1163; source/request/codesystem-request-intent.xml:25-68; source/request/codesystem-request-status.xml:25-64",
+    "ref": { "path": "source/request/request-spreadsheet.xml", "lines": "1095-1163" },
+    "summary": "The Request pattern covers proposals/plans/orders via Request.intent and keeps fulfillment progress out of Request.status.",
+    "learned": "The original status-route mechanics should not be restored in current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-9266, FHIR-14414, FHIR-13704, FHIR-20606",
+    "url": "https://jira.hl7.org/browse/FHIR-9266",
+    "ref": { "jira_key": "FHIR-9266" },
+    "summary": "Later final issues declined proposed/planned MedicationOrder status, added NutritionOrder request intent alignment, and clarified intent behavior.",
+    "learned": "Later workflow decisions support using intent rather than proposed/planned status codes.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/nutritionorder/structuredefinition-NutritionOrder.xml:197; source/nutritionorder/nutritionorder-request-mapping-exceptions.xml:68",
+    "ref": { "path": "source/nutritionorder/structuredefinition-NutritionOrder.xml", "line": 197 },
+    "summary": "NutritionOrder.status contained stale requested/receiver-managed fulfillment prose, now replaced with requester-controlled lifecycle wording.",
+    "learned": "This was the remaining current-source contradiction requiring a fix for the seed issue family.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-3720 and request planned/proposed terms",
+    "command": "cd /home/jmandel/work/fhir-community-search && bun run zulip:search fts '\"FHIR-3720\" proposed planned request status intent' --limit 10; bun run zulip:search fts '\"#3720\" proposed planned request status' --limit 10; bun run zulip:search fts '\"proposed\" \"planned\" \"Request.intent\" status' --limit 10; bun run confluence:search refs jira FHIR-3720; bun run confluence:search fts '\"FHIR-3720\" proposed planned request status intent' --limit 10",
+    "query": "FHIR-3720 proposed planned request status intent",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence records were found.",
+    "learned": "No discovered community record conflicts with the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "XML and whitespace validation for edited NutritionOrder files",
+    "command": "xmllint --noout source/nutritionorder/structuredefinition-NutritionOrder.xml source/nutritionorder/nutritionorder-request-mapping-exceptions.xml; rg -n 'status to &quot;requested&quot;|maintained by the receiver|requester\\. It reflects' source/nutritionorder/structuredefinition-NutritionOrder.xml source/nutritionorder/nutritionorder-request-mapping-exceptions.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/nutritionorder/structuredefinition-NutritionOrder.xml source/nutritionorder/nutritionorder-request-mapping-exceptions.xml",
+    "summary": "The edited XML parsed, the replacement wording was present, and the CRLF-aware whitespace check passed.",
+    "learned": "The source correction is syntactically valid and limited to the intended NutritionOrder wording.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

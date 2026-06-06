@@ -1,0 +1,106 @@
+FHIR-7847: Audit MedicationStatement RXR-4 removal
+
+Issue request:
+FHIR-7847 was a Published/Persuasive Pharmacy change request from the 2015May ballot asking that the HL7 v2 mapping for MedicationStatement method be changed from RXR-4 Administration Method to blank. The rationale was that MedicationStatement is a reported medication-use record rather than a v2 prescribe-dispense-administer transaction concept, so RXR-4 is not a likely mapping source for MedicationStatement.
+
+Initial application:
+The issue appears to have been applied in historical commit 5bb461af1063efe577bac2b8b17b6992be7560bf, which grouped tracker items 7827, 7829-7838, and 7840-7848 for MedicationDispense and MedicationStatement v2 mapping updates. That commit removed the RXR-4-Administration Method cell from the old MedicationStatement.dosage.method spreadsheet row and left the v2 mapping blank.
+
+Additional context:
+MedicationStatement is active in the current build through source/fhir.ini. The current source no longer has the old MedicationStatement.dosage.method element; MedicationStatement.dosage now uses DosageDetails, and current MedicationStatement/DosageDetails source contains no RXR-4 or Administration Method mapping. RXR-4 remains in the reusable Dosage datatype and in MedicationAdministration.dosage.method, where this MedicationStatement-specific issue does not require removal. Jira search returned neighboring MedicationStatement RXR removal issues, but they concern separate mapping rows and were not decided here. Zulip and Confluence searches found no direct conflicting discussion for FHIR-7847.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Removing RXR-4 from the reusable Dosage datatype or MedicationAdministration would over-apply a MedicationStatement-specific request, while the authoritative MedicationStatement source already reflects the requested blank mapping.
+
+Recommendation:
+Keep this audit commit as-is. No further core source work is needed for FHIR-7847 unless Pharmacy decides in a separate tracker to revisit reusable Dosage v2 mappings across all resources.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7847
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7845: same-change-family - neighboring Published MedicationStatement RXR.2 removal returned by Jira search; it concerns a separate v2 mapping row and was not decided here.
+FHIR-7846: same-change-family - neighboring Published MedicationStatement RXR.1 removal returned by Jira search; it concerns a separate v2 mapping row and was not decided here.
+FHIR-10066: background - Jira search returned a later Pharmacy issue about route/site inside dosage instruction, but it is a separate modeling question and not needed to decide FHIR-7847.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7847: Published/Persuasive Pharmacy issue asks to blank the MedicationStatement method v2 mapping that had named RXR-4 Administration Method. Learned: establishes the final requested MedicationStatement-specific mapping change.
+- E2 Source source/fhir.ini:203 and source/medicationstatement/structuredefinition-MedicationStatement.xml:474-486: MedicationStatement is active and its current dosage element is DosageDetails, not the old direct dosage.method row. Learned: the current build scope was checked and the old target element no longer exists as a MedicationStatement-specific mapping row.
+- E3 Source source/medicationstatement and source/datatypes/dosagedetails.xml grep: no RXR-4 or Administration Method mapping remains in MedicationStatement or DosageDetails source. Learned: the requested blanking is already reflected in current authoritative source.
+- E4 Source source/datatypes/dosage.xml:1146-1165 and source/medicationadministration/structuredefinition-MedicationAdministration.xml:717-737: RXR-4 remains only on reusable Dosage.method and MedicationAdministration.dosage.method. Learned: remaining RXR-4 mappings are outside this MedicationStatement-specific request and should not be removed here.
+- E5 Git 5bb461af1063efe577bac2b8b17b6992be7560bf: historical MedicationStatement spreadsheet patch removed v2 Mapping = RXR-4-Administration Method from MedicationStatement.dosage.method. Learned: shows the original Jira application was performed.
+- E6 Community searches: Jira FTS found FHIR-7847 plus neighboring RXR removal issues; Zulip and Confluence searches for FHIR-7847/MedicationStatement/RXR found no direct conflicting decision, with only a broad later infusion thread mentioning dosage.method/RXR-4 outside this tracker. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E7 Command checks: combined branch had no prior Issue-Reconcile-Key: FHIR-7847 commit, and git grep confirmed current RXR-4 occurrences are absent from MedicationStatement/DosageDetails and present only in Dosage/MedicationAdministration. Learned: publishing one no-change audit commit is idempotent and bounded to the seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7847",
+    "url": "https://jira.hl7.org/browse/FHIR-7847",
+    "snapshot_path": "contexts/FHIR-7847/jira/FHIR-7847.md",
+    "ref": { "jira_key": "FHIR-7847" },
+    "summary": "Published/Persuasive Pharmacy issue asking to remove the RXR-4 Administration Method v2 mapping from MedicationStatement method.",
+    "learned": "This is the final WG request and establishes that only the MedicationStatement-specific method mapping should be blanked.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:203; source/medicationstatement/structuredefinition-MedicationStatement.xml:474-486",
+    "summary": "MedicationStatement is an active resource, and current MedicationStatement.dosage is typed as DosageDetails rather than exposing the old direct dosage.method row.",
+    "learned": "The current build source was checked and the historical target row no longer exists as a MedicationStatement-specific element mapping.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "command",
+    "locator": "Current MedicationStatement/DosageDetails RXR-4 grep",
+    "command": "rg -n 'dosageInstruction\\.method|RXR-4|Administration Method' source/medicationstatement; rg -n 'RXR-4|Administration Method' source/medicationstatement source/datatypes/dosagedetails.xml",
+    "result_count": 0,
+    "summary": "No RXR-4 or Administration Method mapping text was found in MedicationStatement or DosageDetails source.",
+    "learned": "The requested blank MedicationStatement mapping is already reflected in authoritative source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/dosage.xml:1146-1165; source/medicationadministration/structuredefinition-MedicationAdministration.xml:717-737",
+    "summary": "The remaining RXR-4 mappings are on reusable Dosage.method and MedicationAdministration.dosage.method.",
+    "learned": "Those mappings are outside this MedicationStatement-specific request, so changing them would over-apply FHIR-7847.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "5bb461af1063efe577bac2b8b17b6992be7560bf",
+    "ref": { "commit": "5bb461af1063efe577bac2b8b17b6992be7560bf" },
+    "summary": "Historical MedicationStatement spreadsheet patch removed the RXR-4-Administration Method v2 mapping from MedicationStatement.dosage.method.",
+    "learned": "The original Jira change was applied before the later source refactors.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Jira, Zulip, and Confluence searches for FHIR-7847 and MedicationStatement RXR",
+    "command": "bun run jira:search fts 'MedicationStatement RXR' --limit 10; bun run jira:search fts 'MedicationStatement \"Administration Method\"' --limit 10; bun run zulip:search fts 'MedicationStatement RXR' --limit 10; bun run zulip:search fts 'MedicationStatement \"Administration Method\"' --limit 10; bun run confluence:search refs jira FHIR-7847; bun run confluence:search fts 'MedicationStatement RXR' --limit 10",
+    "query": "FHIR-7847 MedicationStatement RXR Administration Method",
+    "summary": "Jira found the seed and neighboring RXR removal issues; Zulip and Confluence found no direct FHIR-7847 conflict, only broader dosage.method/RXR-4 discussion outside the seed tracker.",
+    "learned": "No community evidence was found that changes the Jira/source conclusion.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Idempotency and source occurrence checks",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-7847' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git grep -n 'RXR-4\\|Administration Method' HEAD -- source/medicationstatement source/datatypes/dosagedetails.xml source/medicationadministration/structuredefinition-MedicationAdministration.xml source/datatypes/dosage.xml",
+    "summary": "The combined branch had no prior FHIR-7847 reconcile commit, and current RXR-4 occurrences are absent from MedicationStatement/DosageDetails while remaining in Dosage/MedicationAdministration.",
+    "learned": "A single no-change seed audit commit is required and sufficient.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

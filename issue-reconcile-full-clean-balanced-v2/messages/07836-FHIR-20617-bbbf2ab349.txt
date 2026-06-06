@@ -1,0 +1,131 @@
+FHIR-20617: Audit CapabilityStatement format binding
+
+Issue request:
+FHIR-20617 was a Published/Persuasive with Modification FHIR-core Conformance issue raised against STU3 and applied for R5. It reported that CapabilityStatement.format was required-bound to MimeType while the element also allowed `xml`, `json`, and `ttl`, which were not in that value set. The accepted resolution was to use a more accurate CapabilityStatement format value set containing the simple FHIR format codes and FHIR media types, with a MIME-type maximum binding, without preventing other MIME types or defining legacy MIME types.
+
+Initial application:
+The issue was explicitly applied in git commit b4cf3227e2307b020adaf94603f563b6a8fe777b, which added source/capabilitystatement/valueset-capability-format-type.xml and changed CapabilityStatement.format from a required ValueSet/mimetypes binding to an extensible ValueSet/capability-format-type binding with elementdefinition-maxValueSet pointing to ValueSet/mimetypes. A later generic additional-binding rework in ba6dd4995575f6af4f7f38c23835ffdbb250256d converted that shape to a required ValueSet/mimetypes binding plus an additional starter binding to ValueSet/capability-format-type.
+
+Additional context:
+FHIR-48679 later revisited the same invalid MIME-type family, explicitly citing FHIR-20617. Its Applied/Persuasive resolution created ValueSet/supplemented-mimetypes, including BCP-13 MIME types plus `xml`, `json`, and `ttl`, and changed CapabilityStatement.format to require that supplemented set while keeping ValueSet/capability-format-type as the starter binding. FHIR-55152 was later Resolved - No Change for an escape-valve request because the current codes include all MIME types. FHIR-17356 also corrected the starter Turtle media type to application/fhir+turtle rather than the older application/fhir+ttl spelling.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current build-scope source/fhir.ini registers CapabilityStatement, simple-format-codes, mimetypes, and supplemented-mimetypes. Current CapabilityStatement.format is required-bound to ValueSet/supplemented-mimetypes, whose active source includes all BCP-13 MIME types plus the active simple-format-codes CodeSystem, and it still carries the additional starter binding to ValueSet/capability-format-type for the common FHIR formats. That current representation preserves FHIR-20617's semantic intent while incorporating later FHIR-48679 and FHIR-17356 corrections.
+
+Recommendation:
+Keep this audit commit as-is. Do not revert the binding to the older extensible-plus-maxValueSet shape; the current supplemented required binding is the later approved technical correction for the same problem. Any future change to narrow or broaden CapabilityStatement.format should be handled as a new FHIR-I decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20617
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-48679: later-change - Applied/Persuasive R6 correction that superseded the exact binding representation by adding supplemented-mimetypes and keeping short-form codes scoped to CapabilityStatement.format.
+FHIR-55152: supporting-decision - later Resolved - No Change request for an escape valve; confirms the current required binding is acceptable because it includes all MIME types.
+FHIR-17356: later-change - corrected the Turtle FHIR media type in the CapabilityStatement starter value set to application/fhir+turtle.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20617: Published/Persuasive with Modification; requested fixing CapabilityStatement.format's invalid required MimeType binding while still allowing xml/json/ttl and common FHIR media types. Learned: this establishes the seed issue request and accepted R5 target.
+- E2 Source source/capabilitystatement/structuredefinition-CapabilityStatement.xml:664-689: current CapabilityStatement.format is required-bound to ValueSet/supplemented-mimetypes and has an additional starter binding to ValueSet/capability-format-type. Learned: the active element no longer has the invalid plain MimeType required binding described by the seed.
+- E3 Source source/fhir.ini:183,1281,1305-1306; source/terminologies/valueset-supplemented-mimetypes.xml:19-26; source/terminologies/codesystem-simple-format-codes.xml:17-31; source/capabilitystatement/valueset-capability-format-type.xml:19-34. Learned: the resource and terminology artifacts are in current build scope, supplemented-mimetypes includes BCP-13 plus simple format codes, and the starter set includes the common FHIR media types.
+- E4 Git b4cf3227e2307b020adaf94603f563b6a8fe777b: original FHIR-20617 implementation added capability-format-type and changed the binding to extensible with a MIME maxValueSet. Learned: the seed was initially applied in source.
+- E5 Git ba6dd4995575f6af4f7f38c23835ffdbb250256d and 41d77c5f67ad438536eeb1701cfefffe3688d7d4: additional-binding rework changed the representation, and FHIR-48679 later introduced supplemented-mimetypes for CapabilityStatement.format. Learned: current differences from the original resolution are explained by later source-wide binding mechanics and a later approved correction.
+- E6 Jira FHIR-48679: Applied/Persuasive; cites FHIR-20617 and resolves to create Supplemented MIME Types for CapabilityStatement.format while not allowing short-form codes globally. Learned: this later final issue supports the current scoped supplemented binding.
+- E7 Jira FHIR-55152: Resolved - No Change; says CapabilityStatement.format needs no unknown/other escape valve because the codes include all MIME types and MIME types are inherently extensible. Learned: later WG review confirms the current required binding is not too narrow.
+- E8 Community searches: Confluence refs found FHIR-I WGM 202501 minutes recording FHIR-48679 as Persuasive 13-0-0 with a simplified-code-set binding solution; Zulip found no FHIR-20617-specific thread and found a FHIR-48679 validator thread confirming adding xml/json/ttl to the plain MIME Types value set was not the chosen approach. Learned: community evidence supports the later scoped interpretation and reveals no conflict with leaving current source unchanged.
+- E9 Verification command: git log idempotency check for Issue-Reconcile-Key FHIR-20617 on the combined branch returned no existing commit; focused source grep confirmed CapabilityStatement.format references supplemented-mimetypes and capability-format-type and fhir.ini registers supplemented-mimetypes/simple-format-codes. Learned: publishing exactly one no-change audit commit is appropriate.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20617",
+    "url": "https://jira.hl7.org/browse/FHIR-20617",
+    "snapshot_path": "contexts/FHIR-20617/jira/FHIR-20617.md",
+    "ref": { "jira_key": "FHIR-20617" },
+    "summary": "Published/Persuasive with Modification issue requiring CapabilityStatement.format to stop using an invalid required MimeType binding while allowing xml/json/ttl and common FHIR media types.",
+    "learned": "This establishes the final seed request and the semantic target for the current source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/capabilitystatement/structuredefinition-CapabilityStatement.xml:664-689",
+    "ref": { "path": "source/capabilitystatement/structuredefinition-CapabilityStatement.xml" },
+    "summary": "CapabilityStatement.format is required-bound to ValueSet/supplemented-mimetypes and carries an additional starter binding to ValueSet/capability-format-type.",
+    "learned": "The active element no longer has the invalid plain MimeType required binding described by FHIR-20617.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:183,1281,1305-1306; source/terminologies/valueset-supplemented-mimetypes.xml:19-26; source/terminologies/codesystem-simple-format-codes.xml:17-31; source/capabilitystatement/valueset-capability-format-type.xml:19-34",
+    "summary": "CapabilityStatement and the relevant terminology are active build inputs; supplemented-mimetypes includes BCP-13 plus simple-format-codes, and capability-format-type provides the common starter FHIR formats.",
+    "learned": "The current build-scope source implements both broad MIME allowance and the intended simple FHIR format codes.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "b4cf3227e2307b020adaf94603f563b6a8fe777b",
+    "ref": { "commit": "b4cf3227e2307b020adaf94603f563b6a8fe777b" },
+    "summary": "Original FHIR-20617 implementation added capability-format-type and changed CapabilityStatement.format to an extensible starter binding with a MIME maxValueSet.",
+    "learned": "The seed issue was explicitly applied before later binding-mechanics changes.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "ba6dd4995575f6af4f7f38c23835ffdbb250256d; 41d77c5f67ad438536eeb1701cfefffe3688d7d4; bc59d0544649eb13759bcabaafe1b644cda880d8",
+    "ref": { "commits": "ba6dd4995575f6af4f7f38c23835ffdbb250256d, 41d77c5f67ad438536eeb1701cfefffe3688d7d4, bc59d0544649eb13759bcabaafe1b644cda880d8" },
+    "summary": "Additional-binding rework changed the binding representation; FHIR-48679 then added supplemented-mimetypes/simple-format-codes and OIDs were later populated.",
+    "learned": "Current source differences from the original FHIR-20617 patch are explained by later approved source changes rather than missed application.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-48679",
+    "url": "https://jira.hl7.org/browse/FHIR-48679",
+    "snapshot_path": "contexts/FHIR-48679/jira/FHIR-48679.md",
+    "ref": { "jira_key": "FHIR-48679" },
+    "summary": "Applied/Persuasive R6 issue that cites FHIR-20617 and resolves to create Supplemented MIME Types for CapabilityStatement.format without allowing short-form codes everywhere MIME types are used.",
+    "learned": "This later final decision supports the current scoped required binding to supplemented-mimetypes.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-55152",
+    "url": "https://jira.hl7.org/browse/FHIR-55152",
+    "snapshot_path": "contexts/FHIR-55152/jira/FHIR-55152.md",
+    "ref": { "jira_key": "FHIR-55152" },
+    "summary": "Resolved - No Change request to add an escape valve to CapabilityStatement.format; resolution says the codes include all MIME types and MIME types are inherently extensible.",
+    "learned": "Later WG review confirms the current required binding is intentionally broad enough.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community searches for FHIR-20617/FHIR-48679 and CapabilityStatement.format MIME binding",
+    "command": "bun run confluence:search refs jira FHIR-20617; bun run confluence:search refs jira FHIR-48679; bun run confluence:search snapshot 281219681; bun run zulip:search fts '\"FHIR-20617\" CapabilityStatement format' --limit 10; bun run zulip:search fts '\"FHIR-48679\" CapabilityStatement format' --limit 10; bun run zulip:search snapshot tooling 'mandatory validator upgrade'",
+    "query": "FHIR-20617 FHIR-48679 CapabilityStatement.format MIME binding",
+    "result_count": 2,
+    "summary": "No FHIR-20617-specific community hit was found; FHIR-I minutes record FHIR-48679 as Persuasive 13-0-0 with a simplified-code-set solution, and a Zulip validator thread confirms adding xml/json/ttl to the plain MIME Types value set was not the chosen approach.",
+    "learned": "Community evidence supports the later scoped interpretation and reveals no conflicting instruction for FHIR-20617.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Idempotency and focused source checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-20617' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n 'CapabilityStatement\\.format|supplemented-mimetypes|simple-format-codes|capability-format-type' source/capabilitystatement/structuredefinition-CapabilityStatement.xml source/terminologies/valueset-supplemented-mimetypes.xml source/terminologies/codesystem-simple-format-codes.xml source/capabilitystatement/valueset-capability-format-type.xml source/fhir.ini",
+    "summary": "No existing FHIR-20617 reconcile commit was found, and the focused source check confirmed the active supplemented/starter binding references.",
+    "learned": "Publishing one empty audit commit is safe and no source hunk is needed.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

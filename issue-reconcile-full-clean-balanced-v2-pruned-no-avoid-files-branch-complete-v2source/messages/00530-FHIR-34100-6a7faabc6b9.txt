@@ -1,0 +1,93 @@
+FHIR-34100: Enforce Encounter subject participant constraint
+
+Issue request:
+FHIR-34100 was Published with resolution Not Persuasive with Modification for R5. The Jira requested removal of Group as an Encounter participant, but the final PA decision kept Patient and Group as possible participant actors while adding guardrails: Patient/Group participants must not carry participant.type and any Patient/Group participant actor must also be the Encounter.subject.
+
+Initial application:
+The issue was initially applied by commit 49ef4a005163617c3019647acedd1eaab45b175d, merged by PR #2391, which added Encounter.participant guidance and invariant enc-2 preventing participant.type for Patient/Group actors. That commit did not add the second requested enforceable constraint requiring the Patient/Group actor to match Encounter.subject; current source only carried that rule as prose in Encounter.participant.comment.
+
+Additional context:
+source/fhir.ini actively lists encounter=Encounter, so source/encounter/structuredefinition-Encounter.xml and its invariant-tests directory feed the current build. FHIR-54316 is related later context, but it is still Waiting for Input and concerns explanatory comments for existing invariants, so it is not a separate source-edit decision in this run. PA 2026 WGM minutes also record that the last FHIR-34100 constraint was not applied, confirming the omission rather than reversing the original decision.
+
+AutoFHIR reconciliation:
+This commit adds Encounter invariant enc-3 requiring a Patient or Group participant actor to have the same reference as Encounter.subject, marks Encounter.participant.actor with the new condition, and adds a failing invariant test where a contained Patient participant is not the Encounter.subject.
+
+Recommendation:
+Keep this source change. It completes the Published FHIR-34100 resolution in an active Encounter build source without implementing non-final FHIR-54316 comment wording; revisit FHIR-54316 separately if PA finalizes that clarification.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34100
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-54316: background - later Waiting for Input issue about enc-1/enc-2 explanatory comments; it confirms FHIR-34100 as the source of the invariants but is not final enough to decide here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34100: Published/Not Persuasive with Modification with a 2022-01-21 PA vote; resolution kept Group/Patient participants but required no participant.type and required any Patient/Group participant actor to be the subject. Learned: this establishes the final requested Encounter behavior.
+- E2 Source source/fhir.ini:191 and source/encounter/structuredefinition-Encounter.xml:533: Encounter is an active resource and its StructureDefinition is authoritative build input. Learned: the edited files are in current build scope.
+- E3 Git 49ef4a005163617c3019647acedd1eaab45b175d: initial FHIR-34100 application added Encounter.participant.comment and enc-2 only. Learned: the historical source application omitted the second requested enforceable constraint.
+- E4 Confluence PA 2026 January WGM page 413248899: minutes say analysis traced the invariants to FHIR-34100 and that the last constraint was not applied. Learned: later PA context supports completing the missing constraint rather than treating the prose as sufficient.
+- E5 Source source/encounter/structuredefinition-Encounter.xml:555 and source/encounter/invariant-tests/enc-3.f1.fail.xml: enc-3 now enforces Patient/Group participant actor reference equality with Encounter.subject and has a failing test example. Learned: the reconciliation changes the conformance rule, not just narrative.
+- E6 Verification command/query: git diff --check, xmllint --noout on edited XML files, and ./gradlew test --quiet all completed successfully. Learned: the edited XML and repository test task accepted the change.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34100",
+    "url": "https://jira.hl7.org/browse/FHIR-34100",
+    "snapshot_path": "contexts/FHIR-34100/jira/FHIR-34100.md",
+    "ref": { "jira_key": "FHIR-34100" },
+    "summary": "Published/Not Persuasive with Modification Encounter issue retaining Patient and Group participants while adding constraints on participant.type and subject matching.",
+    "learned": "This is the final PA decision and establishes that both requested constraints should exist in Encounter.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:191; source/encounter/structuredefinition-Encounter.xml:533",
+    "summary": "fhir.ini actively lists encounter=Encounter and the Encounter StructureDefinition contains the participant backbone.",
+    "learned": "The edited StructureDefinition and its invariant test are in current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "49ef4a005163617c3019647acedd1eaab45b175d",
+    "ref": { "commit": "49ef4a005163617c3019647acedd1eaab45b175d" },
+    "summary": "Initial FHIR-34100 commit added Encounter.participant.comment and enc-2 preventing participant.type for Patient/Group actors.",
+    "learned": "The first application did not add the promised Patient/Group actor must be subject invariant.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "confluence",
+    "locator": "PA 2026 January WGM minutes page 413248899",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/413248899/2026+January+WGM+Virtual+-+Meeting+Minutes",
+    "ref": { "confluence_page_id": 413248899 },
+    "summary": "Minutes for related FHIR-54316 note that analysis traced the invariants to FHIR-34100 and that the last constraint was not applied.",
+    "learned": "Later work-group context confirms the current source omission without finalizing a separate FHIR-54316 change.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/encounter/structuredefinition-Encounter.xml:555; source/encounter/invariant-tests/enc-3.f1.fail.xml",
+    "summary": "Added enc-3 and a failing invariant test for a Patient participant actor that is not the Encounter.subject.",
+    "learned": "The source now enforces the missing FHIR-34100 subject-matching requirement.",
+    "supports": ["reconciliation", "verification"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Local validation commands",
+    "command": "git diff --check -- source/encounter/structuredefinition-Encounter.xml source/encounter/invariant-tests/enc-3.f1.fail.xml; xmllint --noout source/encounter/structuredefinition-Encounter.xml source/encounter/invariant-tests/enc-3.f1.fail.xml; ./gradlew test --quiet",
+    "summary": "Whitespace/XML checks and the Gradle test task completed successfully.",
+    "learned": "No local formatting, XML well-formedness, or repository test-task failure was introduced.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

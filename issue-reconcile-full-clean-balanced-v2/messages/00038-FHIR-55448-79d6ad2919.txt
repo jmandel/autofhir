@@ -1,0 +1,131 @@
+FHIR-55448: Deduplicate DiagnosticReport conclusionCode summary flag
+
+Issue request:
+FHIR-55448 was Applied/Persuasive with Modification for R6 DiagnosticReport. It asked whether media, but not result, belonged in the resource summary; the accepted resolution was to remove .media from the summary and add .conclusion and .conclusionCode to the summary.
+
+Initial application:
+PR #4012, merged as 722eaabc3470b6a4015cad5d9e7fec33c08d08e4, applied the requested change by removing isSummary from DiagnosticReport.media and DiagnosticReport.media.link and adding isSummary to DiagnosticReport.conclusion and DiagnosticReport.conclusionCode. The current source already preserves those semantics, but it inherited two isSummary entries for DiagnosticReport.conclusionCode after overlapping FHIR-54554 work was also merged.
+
+Additional context:
+DiagnosticReport is an active resource in source/fhir.ini, so source/diagnosticreport/structuredefinition-DiagnosticReport.xml is in current build scope. FHIR-54554 is the same summary-change family: OO minutes for 2026-01-26 record the conclusion/conclusionCode summary decision and the instruction to create FHIR-55448 for the media-versus-result question; PR #4020 independently added conclusionCode summary, creating the duplicate after both branches landed. The OO 2026-02-03 minutes confirm the FHIR-55448 decision to remove media and add conclusion/conclusionCode while leaving result out.
+
+AutoFHIR reconciliation:
+Removed the duplicate second isSummary element from DiagnosticReport.conclusionCode, leaving the canonical single summary flag before the binding. DiagnosticReport.result, DiagnosticReport.media, and DiagnosticReport.media.link remain outside the summary; DiagnosticReport.conclusion and DiagnosticReport.conclusionCode each have exactly one summary flag.
+
+Recommendation:
+Keep this source correction. It preserves the applied WG decision and avoids duplicate ElementDefinition.isSummary content in the active DiagnosticReport StructureDefinition. FHIR-54554 can be audited separately if desired, but no additional source change is needed for the shared summary end-state.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-55448
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-54554: same-change-family - established the conclusion/conclusionCode summary addition and its overlapping implementation explains why conclusionCode had duplicate summary flags.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-55448: Applied/Persuasive with Modification; resolution says to remove .media from summary and add .conclusion and .conclusionCode. Learned: this is the final seed decision and target summary end-state.
+- E2 Source source/fhir.ini:170,1138,1360: DiagnosticReport is an active approved resource. Learned: the edited DiagnosticReport StructureDefinition source is in current build scope.
+- E3 Source source/diagnosticreport/structuredefinition-DiagnosticReport.xml:577,690,731,763,784: result/media/media.link have no summary flag, while conclusion and conclusionCode have one summary flag after this commit. Learned: the current source now matches the requested summary semantics without duplicate ElementDefinition content.
+- E4 Git 722eaabc3470b6a4015cad5d9e7fec33c08d08e4 and c5fca0d6248df1140e1518106caa1d96335dcf99: PR #4012 applied FHIR-55448 by removing media summary flags and adding conclusion/conclusionCode summary flags. Learned: the seed was initially applied but later overlap left a cleanup issue.
+- E5 Jira/Confluence FHIR-54554 and OO 2026-01-26 minutes: FHIR-54554 asked to add conclusionCode/conclusion to summary and spawned FHIR-55448 for the media-versus-result question. Learned: the duplicate conclusionCode flag came from two tightly related accepted changes, not a new semantic decision.
+- E6 Confluence 2026-02-03 OO on FHIR minutes: records the FHIR-55448 vote to remove media and add conclusion/conclusionCode, with concern that result should remain out of summary. Learned: meeting evidence confirms the Jira resolution scope.
+- E7 Verification command: parsed source/diagnosticreport/structuredefinition-DiagnosticReport.xml and checked target summary counts plus git diff --check. Learned: XML parses, no element has duplicate isSummary, and the target fields have the expected counts.
+- E8 Community search: Zulip FTS for "FHIR-55448" DiagnosticReport media summary conclusion found no results; Confluence refs found the two OO minutes pages. Learned: no conflicting Zulip discussion was found, while minutes support the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-55448",
+    "url": "https://jira.hl7.org/browse/FHIR-55448",
+    "snapshot_path": "contexts/FHIR-55448/jira/FHIR-55448.md",
+    "ref": { "jira_key": "FHIR-55448" },
+    "summary": "Applied/Persuasive with Modification R6 DiagnosticReport issue requiring .media to leave the summary and .conclusion/.conclusionCode to be added.",
+    "learned": "This establishes the final WG decision and the required summary end-state for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,1138,1360",
+    "ref": { "path": "source/fhir.ini", "lines": "170,1138,1360" },
+    "summary": "DiagnosticReport appears as an active approved resource in fhir.ini.",
+    "learned": "The DiagnosticReport StructureDefinition source feeds the current FHIR build.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/diagnosticreport/structuredefinition-DiagnosticReport.xml:577,690,731,763,784",
+    "ref": { "path": "source/diagnosticreport/structuredefinition-DiagnosticReport.xml" },
+    "summary": "After this commit, result/media/media.link are not summary elements, while conclusion and conclusionCode each have one isSummary flag.",
+    "learned": "The source matches the accepted FHIR-55448 summary semantics and no longer contains duplicate isSummary content.",
+    "supports": ["reconciliation", "verification"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "722eaabc3470b6a4015cad5d9e7fec33c08d08e4 / c5fca0d6248df1140e1518106caa1d96335dcf99",
+    "ref": { "commit": "722eaabc3470b6a4015cad5d9e7fec33c08d08e4" },
+    "summary": "PR #4012 applied FHIR-55448 by removing media summary flags and adding conclusion/conclusionCode summary flags.",
+    "learned": "FHIR-55448 had already been applied, but later overlapping history left a duplicate conclusionCode flag to clean up.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-54554",
+    "url": "https://jira.hl7.org/browse/FHIR-54554",
+    "snapshot_path": "contexts/FHIR-55448/jira/FHIR-54554.md",
+    "ref": { "jira_key": "FHIR-54554" },
+    "summary": "Applied/Persuasive with Modification issue requiring DiagnosticReport.conclusion and conclusionCode to be summary elements.",
+    "learned": "This related accepted decision explains the overlapping implementation that duplicated conclusionCode summary.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "OO 2026-01-26-30 WGM minutes page 413246813",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/413246813/2026-01-26-30_WGM",
+    "snapshot_path": "contexts/FHIR-55448/confluence/413246813.md",
+    "ref": { "confluence_page_id": 413246813 },
+    "summary": "Minutes record the FHIR-54554 conclusion/conclusionCode summary motion and the instruction to create FHIR-55448 for media-versus-result summary review.",
+    "learned": "The seed and FHIR-54554 are the same change family and should be interpreted together.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "OO on FHIR 2026-02-03 minutes page 413053497",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/413053497/2026-02-03+OO+on+FHIR",
+    "snapshot_path": "contexts/FHIR-55448/confluence/413053497.md",
+    "ref": { "confluence_page_id": 413053497 },
+    "summary": "Minutes record the FHIR-55448 vote to remove media and add conclusion/conclusionCode, while noting result should not be included merely because media had been included.",
+    "learned": "Meeting evidence confirms the Jira resolution and rules out adding result to the summary for this issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "DiagnosticReport summary validation",
+    "command": "python XML summary-count check; git diff --check",
+    "summary": "The XML parsed, target summary counts were result/media/media.link=0 and conclusion/conclusionCode=1, no element had duplicate isSummary, and git diff --check passed.",
+    "learned": "The edited source is structurally clean and satisfies the exact FHIR-55448 summary expectations.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-55448 DiagnosticReport summary terms",
+    "command": "bun run zulip:search fts '\"FHIR-55448\" DiagnosticReport media summary conclusion' --limit 10; bun run confluence:search refs jira FHIR-55448",
+    "query": "\"FHIR-55448\" DiagnosticReport media summary conclusion",
+    "result_count": 2,
+    "summary": "No Zulip hits were found; Confluence refs found the OO WGM and OO on FHIR minutes pages.",
+    "learned": "No conflicting community discussion was discovered, and the relevant minutes support the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

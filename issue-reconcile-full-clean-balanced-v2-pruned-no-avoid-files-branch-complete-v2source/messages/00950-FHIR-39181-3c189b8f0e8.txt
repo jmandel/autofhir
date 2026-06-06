@@ -1,0 +1,107 @@
+FHIR-39181: Use typed choice ids in vital-sign profiles
+
+Issue request:
+FHIR-39181 was Published/Persuasive for R5 and asked that core profiles stop using renamed choice-type element ids and paths such as Observation.valueQuantity, GuidanceResponse.moduleUri, Observation.effectiveDateTime, and ArtifactAssessment.citeAs/artifact. The requested representation for typed choice constraints is the sliced choice form, e.g. Observation.value[x]:valueQuantity.
+
+Initial application:
+No git commit in the current repository history explicitly mentions FHIR-39181. The current source had been partly corrected or superseded by later profile work: the BP component slices already use Observation.component:<slice>.value[x]:valueQuantity, the vital-signs base profile uses Observation.component.value[x]:valueQuantity, and several listed profiles have since been removed. However, eight active single-value vital-sign Observation profiles still used the obsolete Observation.valueQuantity id/path.
+
+Additional context:
+source/fhir.ini lists Observation as an active resource, so the StructureDefinition profile XML files in source/observation feed the current build. Later history removed the diagnostic-report cholesterol/triglyceride profiles, DeviceMetricObservation, CDS Hooks GuidanceResponse, and EBMRecommendation profile from current source, so there was no current profile source to edit for those Jira-listed artifacts. FHIR-I minutes for 2022-11-14 record the FHIR-39181 Persuasive vote and note that it might be a tooling issue; no direct Zulip mention of FHIR-39181 was found.
+
+AutoFHIR reconciliation:
+Updated the remaining active single-value vital-sign profiles (bmi, bodyheight, bodytemp, bodyweight, headcircum, heartrate, oxygensat, and resprate) from Observation.valueQuantity to Observation.value[x]:valueQuantity, set the path to Observation.value[x], added sliceName=valueQuantity, and declared the Quantity type. This matches the current BP and vital-signs typed-choice pattern and removes the obsolete profile element ids/paths from current source.
+
+Recommendation:
+Keep this source fix. No further core edits are indicated for the Jira-listed profiles that are no longer present in current source; if those profiles are reintroduced later, use the same value[x]:valueQuantity representation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-39181
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-23070: same-change-family - later vital-signs profile cleanup clarified and simplified value[x] slicing and helped establish the current typed-choice pattern.
+FHIR-47136: same-change-family - later BP profile cleanup produced the current Observation.component:<slice>.value[x]:valueQuantity representation used as a model here.
+FHIR-22531: later-change - removed the diagnostic-report cholesterol, HDL, LDL, lipid, and triglyceride profiles that were in the original Jira list.
+FHIR-53085: later-change - removed the CDS Hooks GuidanceResponse profile that was in the original Jira list.
+FHIR-48393: later-change - removed the EBMRecommendation profile that was in the original Jira list.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-39181: Published/Persuasive issue requested updating core profiles that used renamed choice-type element ids and paths. Learned: final WG intent requires current source not to retain those obsolete profile element ids/paths.
+- E2 Confluence FHIR-I minutes 2022-11-14 page 144973115: minutes record FHIR-39181 as Persuasive, Richard Ettema/Yunwei Wang 8-0-0, with a note that it might be a tooling issue. Learned: the formal vote supports applying the correction while keeping the change mechanical and source-focused.
+- E3 Source source/fhir.ini:169 and source/fhir.ini:208: Observation is an active resource in the current build. Learned: Observation profile XML under source/observation is in current build scope.
+- E4 Source source/observation/structuredefinition-profile-bmi.xml:111 and sibling vital-sign profiles: remaining active single-value profiles now use Observation.value[x]:valueQuantity with path Observation.value[x], sliceName valueQuantity, and Quantity type. Learned: the residual obsolete Observation.valueQuantity profile ids/paths were corrected.
+- E5 Git e4978f7: FHIR-47136 BP profile cleanup added Observation.component:<slice>.value[x]:valueQuantity slices with path Observation.component.value[x] and sliceName valueQuantity. Learned: this is the established current pattern for typed choice constraints in these profiles.
+- E6 Git 61baf46c/0c4fafcc/6abb1454/571498e: later commits removed diagnostic-report lipid profiles, DeviceMetricObservation, CDS Hooks GuidanceResponse, and EBMRecommendation profile source. Learned: the other Jira-listed profile ids are not current source-edit targets.
+- E7 Verification command: rg found no remaining obsolete Observation.valueQuantity, Observation.component.*.valueQuantity, GuidanceResponse.moduleUri, or Observation.effectiveDateTime element ids/paths in current XML source; XML parse and git diff --check passed. Learned: the exact residual patterns from the in-scope current profiles are removed without whitespace or XML well-formedness errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-39181",
+    "url": "https://jira.hl7.org/browse/FHIR-39181",
+    "snapshot_path": "contexts/FHIR-39181/jira/FHIR-39181.md",
+    "ref": { "jira_key": "FHIR-39181" },
+    "summary": "Published/Persuasive issue requesting core profiles to stop using renamed choice-type element ids and paths.",
+    "learned": "This establishes final WG intent to correct current profile source that still uses obsolete renamed choice element forms.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2022-11-14 page 144973115",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/144973115/FHIR+Infrastructure+Minutes+CC+2022-11-14",
+    "ref": { "confluence_page_id": 144973115 },
+    "summary": "Minutes record FHIR-39181 as Persuasive with an 8-0-0 vote and a note that the problem might be tooling-related.",
+    "learned": "This corroborates the Jira disposition and supports a mechanical source cleanup rather than a broader semantic change.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,208",
+    "summary": "The active resources list includes observation=Observation.",
+    "learned": "Observation profile XML under source/observation is part of the current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-bmi.xml:111 and sibling vital-sign profiles",
+    "summary": "The remaining active single-value vital-sign profiles now use Observation.value[x]:valueQuantity with path Observation.value[x], sliceName valueQuantity, and Quantity type.",
+    "learned": "The residual obsolete Observation.valueQuantity profile element ids/paths in current source were corrected.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "e4978f73814d2dc45129c035b79d88b8952a4e17",
+    "ref": { "commit": "e4978f73814d2dc45129c035b79d88b8952a4e17" },
+    "summary": "FHIR-47136 BP profile cleanup added Observation.component:<slice>.value[x]:valueQuantity slices with path Observation.component.value[x] and sliceName valueQuantity.",
+    "learned": "This provides the current local pattern for typed choice constraints in related vital-sign profiles.",
+    "supports": ["additional_context", "source_change"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "61baf46c, 0c4fafcc, 6abb1454, 571498e",
+    "summary": "Later commits removed diagnostic-report lipid profiles, DeviceMetricObservation, CDS Hooks GuidanceResponse, and EBMRecommendation profile source.",
+    "learned": "The other profile ids in the original Jira list are no longer current build source-edit targets.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Post-edit source and XML checks",
+    "command": "rg -n '<element id=\"Observation\\.valueQuantity\"|<path value=\"Observation\\.valueQuantity\"|<element id=\"Observation\\.component:[^\"]+\\.valueQuantity\"|<path value=\"Observation\\.component\\.valueQuantity\"|<element id=\"GuidanceResponse\\.moduleUri\"|<path value=\"GuidanceResponse\\.moduleUri\"|<element id=\"Observation\\.effectiveDateTime\"|<path value=\"Observation\\.effectiveDateTime\"' source -g '*.xml'; git diff --check; python3 -c 'import xml.etree.ElementTree as ET; ...'",
+    "result_count": 0,
+    "summary": "No remaining obsolete in-scope element id/path patterns were found; changed XML files parse and the diff has no whitespace errors.",
+    "learned": "The source fix removed the residual patterns without structural or whitespace errors.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

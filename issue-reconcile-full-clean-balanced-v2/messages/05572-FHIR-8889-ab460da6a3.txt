@@ -1,0 +1,99 @@
+FHIR-8889: Require dateTime offset in regex
+
+Issue request:
+FHIR-8889 was a Published/Persuasive FHIR-core technical correction for the datatypes page. It reported that the dateTime regular expression allowed a time component without a timezone/UTC offset even though the datatype rule says an offset SHALL be populated when hours and minutes are specified.
+
+Initial application:
+The Jira comment records SVN revision 7195, and git-svn commit 02da8332d164281d0bbbd3ac45617afb7334c1da (#8889 - correct dateTime regex in narrative) updated the old datatype narrative regex to require the offset when time was present. Later datatype regex work for R5, especially FHIR-34355 and subsequent corrections, changed the active primitive regex shape and left the full-time offset optional again.
+
+Additional context:
+Current source/datatypes.html still states that a UTC offset SHALL be populated when hours and minutes are specified and renders the dateTime regex from the primitive datatype source. Later Published issue FHIR-38735 and Applied issue FHIR-52878 constrained offsets so they are allowed only with a time component, and the already-published FHIR-38735 reconciliation updated the primitive comment accordingly. Resolved-change-required FHIR-46453 explicitly identifies the remaining behavior as a regression of FHIR-8889. The FHIR-52878 Zulip thread notes that regexes need not enforce every possible rule, but it did not reverse the specific FHIR-8889/FHIR-46453 requirement that the displayed dateTime validation regex reject a full time without an offset.
+
+AutoFHIR reconciliation:
+Updated source/datatypes/primitives.xml so the dateTime regex keeps the later partial-date behavior while requiring a Z or signed UTC offset whenever the T time branch is used. This also rejects a bare + or - offset marker. No generated artifacts were edited.
+
+Recommendation:
+Keep this source fix. FHIR-46453 should not receive a separate commit in this default Applied/Published run, but this change should satisfy its source correction if that issue is later audited; a separate follow-up can add regression tests if the work group wants a dedicated regex test harness.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8889
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-34355: later-change - R5 datatype regex work allowed offsets beyond the original FHIR-8889 shape and is part of the regression history later narrowed by FHIR-38735 and FHIR-52878.
+FHIR-38735: later-change - Published correction confirmed timezone/UTC offset is only permitted when a full time is specified; it is already represented on the combined branch.
+FHIR-52878: later-change - Applied correction moved the offset syntax inside the time branch, preserving partial-date tightening that this commit keeps.
+FHIR-46453: supporting-decision - Resolved-change-required issue explicitly reports that R5 regressed FHIR-8889 by allowing dateTime values with time and no offset.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8889: Published/Persuasive technical correction for the dateTime regex requiring a timezone/UTC offset when time is supplied. Learned: this is the seed issue's final applied request.
+- E2 Git 02da8332d164281d0bbbd3ac45617afb7334c1da: git-svn commit for SVN revision 7195 changed the old datatype regex from optional to required offset after time. Learned: FHIR-8889 had an initial source application.
+- E3 Source source/datatypes/primitives.xml:193-198 and source/datatypes.html:175-184: the primitive row supplies the dateTime regex while the datatype page states the offset SHALL and renders [%regex dateTime%]. Learned: the current build-source regex was inconsistent with the current datatype prose and the seed decision.
+- E4 Jira FHIR-38735, FHIR-52878, and FHIR-46453: later dateTime regex decisions narrowed offsets to the time branch and then identified the no-offset full-time case as a FHIR-8889 regression. Learned: the fix should preserve partial-date tightening while requiring an offset for full times.
+- E5 Zulip #implementers > Timezone optionality and Confluence FHIR-I Minutes CC 2024-08-26: community evidence supports FHIR-52878's partial-date cleanup and records FHIR-46453 as a technical correction. Learned: no community evidence reverses the seed's offset-required rule.
+- E6 Verification command: parsed source/datatypes/primitives.xml as XML and tested dateTime regex cases. Learned: date-only values still match, partial-date offsets do not, full dateTimes without offsets no longer match, and full dateTimes with Z or signed offsets match.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8889",
+    "url": "https://jira.hl7.org/browse/FHIR-8889",
+    "snapshot_path": "contexts/FHIR-8889/jira/FHIR-8889.md",
+    "ref": { "jira_key": "FHIR-8889" },
+    "summary": "Published/Persuasive technical correction reporting that the dateTime regex made timezone/UTC offset optional when time was supplied.",
+    "learned": "The seed issue's final request is to require an offset in the validation regex whenever hours and minutes are present.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "02da8332d164281d0bbbd3ac45617afb7334c1da",
+    "ref": { "commit": "02da8332d164281d0bbbd3ac45617afb7334c1da" },
+    "summary": "Commit '#8889 - correct dateTime regex in narrative' applied SVN revision 7195 by making the old datatype regex require an offset after a time component.",
+    "learned": "FHIR-8889 was previously applied, so the current optional-offset behavior is a later regression rather than the original accepted state.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:193-198; source/datatypes.html:175-184",
+    "ref": { "path": "source/datatypes/primitives.xml", "lines": "193-198" },
+    "summary": "The active primitive datatype row contains the dateTime regex, and the datatype page states that a UTC offset SHALL be populated when hours and minutes are specified while rendering the dateTime regex placeholder.",
+    "learned": "The current source needed a one-line regex correction to align validation guidance with the datatype rule.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-38735, FHIR-52878, FHIR-46453",
+    "url": "https://jira.hl7.org/browse/FHIR-46453",
+    "ref": { "jira_key": "FHIR-46453" },
+    "summary": "Later dateTime regex issues first corrected partial-date offset behavior and then recorded the full-time-without-offset case as a FHIR-8889 regression.",
+    "learned": "The reconciliation should preserve the later partial-date restriction while making the time-branch offset mandatory.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > Timezone optionality; FHIR-I Minutes CC 2024-08-26",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Timezone%20optionality",
+    "snapshot_path": "contexts/FHIR-8889/confluence/265095943.md",
+    "summary": "The Zulip thread led to FHIR-52878's partial-date regex cleanup, and Confluence minutes list FHIR-46453 as a technical correction.",
+    "learned": "Community evidence supports the bounded regex cleanup and does not overturn the seed requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Targeted XML and regex validation",
+    "command": "python3 parse source/datatypes/primitives.xml dateTime row; git diff --check -- source/datatypes/primitives.xml",
+    "summary": "The spreadsheet parsed as XML; date-only values matched, partial-date offsets did not, full dateTimes without offsets did not, and full dateTimes with Z or signed offsets matched.",
+    "learned": "The source edit implements the intended validation behavior without XML or whitespace errors.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

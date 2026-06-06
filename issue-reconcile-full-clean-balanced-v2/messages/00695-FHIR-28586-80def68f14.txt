@@ -1,0 +1,100 @@
+FHIR-28586: Audit unsignedInt and positiveInt generator fix
+
+Issue request:
+FHIR-28586 is Published/Persuasive for an R4 technical correction applied for R5. It requested changing the StructureDefinition value element type for unsignedInt and positiveInt from http://hl7.org/fhirpath/System.String to http://hl7.org/fhirpath/System.Integer.
+
+Initial application:
+The primitive datatype source in source/datatypes/primitives.xml already models unsignedInt and positiveInt as integer-based primitives with JSON number representation, and the generated R5/current differentials expose positiveInt.value and unsignedInt.value with System.Integer. However, the generated snapshots still expose those same value elements as System.String. Jira also records Jean Duteau's comment that the remaining issue is a snapshot generator problem rather than a primitive source-row problem.
+
+Additional context:
+The current FHIR build depends on the external org.hl7.fhir:kindling publisher/generator artifact. HL7/kindling's ProfileGenerator currently uses type.getFHIRPathType() for the DefinedStringPattern differential but hard-codes System.String for the corresponding snapshot value element, which exactly explains the current build.fhir.org and R5 mismatch. The linked Zulip discussions confirm the intended result: the type code should be System.Integer, with the structuredefinition-fhir-type extension retaining positiveInt or unsignedInt.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no FHIR source change. The remaining correction belongs in HL7/kindling, not in the HL7/fhir source checkout; changing generated history files or duplicating source metadata in this repository would not correct the authoritative current build output.
+
+Recommendation:
+Keep this external-repo audit commit as-is for the FHIR combined branch. Fix HL7/kindling ProfileGenerator so the DefinedStringPattern snapshot value type uses type.getFHIRPathType() instead of hard-coded System.String, publish/use a corrected kindling version, then rebuild FHIR to make the current snapshot match the already-correct differential.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-28586
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-35853: later-change - introduced the formal FHIRPath type code system/value set context used by ElementDefinition.type.code, but did not resolve this snapshot-generation mismatch.
+FHIR-26937: background - discussed JSON representation of integer-like primitives and was cited in the originating Zulip thread; it does not change the FHIRPath type-code decision for this issue.
+FHIR-26374: background - requested known-issues/errata visibility using the same unsignedInt/positiveInt StructureDefinition error as an example.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-28586: Published/Persuasive technical correction says unsignedInt.value and positiveInt.value should use System.Integer; a later comment identifies snapshot generation as the remaining problem. Learned: the final WG intent is clear and points at generator behavior.
+- E2 Source source/datatypes/primitives.xml:311 and source/fhir.ini:75: primitive datatype source is in the datatypes build area and rows define unsignedInt/positiveInt as integer-based JSON numbers. Learned: the editable primitive source does not encode System.String for these value elements.
+- E3 Published/current build query: build.fhir.org and R5 primitive profiles still show snapshot System.String and differential System.Integer for both value elements. Learned: the current published/build surface remains semantically inconsistent.
+- E4 External source HL7/kindling ProfileGenerator.java:714,765: differential generation calls type.getFHIRPathType(), while snapshot generation hard-codes Constants.NS_SYSTEM_TYPE + "String" for DefinedStringPattern values. Learned: the actionable fix is in the external Kindling generator.
+- E5 Zulip #implementers and #conformance linked threads: participants, including Grahame Grieve, concluded the value type should be System.Integer while retaining positiveInt/unsignedInt as the fhir-type extension. Learned: community context matches the Jira request and rules out treating String as intentional.
+- E6 Confluence MnM Minutes 2020-11-25: tracker item FHIR-28586 recorded as Technical Correction: Will Fix. Learned: meeting minutes support the Jira final disposition.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-28586",
+    "url": "https://jira.hl7.org/browse/FHIR-28586",
+    "snapshot_path": "contexts/FHIR-28586/jira/FHIR-28586.md",
+    "ref": { "jira_key": "FHIR-28586" },
+    "summary": "Published/Persuasive technical correction requiring unsignedInt.value and positiveInt.value to use http://hl7.org/fhirpath/System.Integer rather than System.String.",
+    "learned": "This establishes final WG intent and records that the remaining issue is a snapshot generator problem.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:311-325 and source/fhir.ini:75-85",
+    "ref": { "path": "source/datatypes/primitives.xml", "lines": "311-325" },
+    "summary": "The active datatype source defines unsignedInt and positiveInt as integer-based primitives with JSON number representation.",
+    "learned": "The current FHIR source rows already point toward integer semantics and do not contain the erroneous System.String snapshot code.",
+    "supports": ["build_scope", "external_repo_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "command",
+    "locator": "build.fhir.org and R5 primitive profile check",
+    "command": "curl -fsSL https://build.fhir.org/positiveint.profile.json | jq ...; curl -fsSL https://build.fhir.org/unsignedint.profile.json | jq ...; curl -fsSL https://hl7.org/fhir/R5/positiveint.profile.json | jq ...; curl -fsSL https://hl7.org/fhir/R5/unsignedint.profile.json | jq ...",
+    "result_count": 4,
+    "summary": "Current build and R5 profiles report snapshot System.String but differential System.Integer for positiveInt.value and unsignedInt.value.",
+    "learned": "The issue is still visible in generated output, but only in the generated snapshot surface.",
+    "supports": ["current_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "web",
+    "locator": "HL7/kindling ProfileGenerator.java",
+    "url": "https://github.com/HL7/kindling/blob/main/src/main/java/org/hl7/fhir/definitions/generators/specification/ProfileGenerator.java#L711-L766",
+    "ref": { "repository": "HL7/kindling", "path": "src/main/java/org/hl7/fhir/definitions/generators/specification/ProfileGenerator.java" },
+    "summary": "Kindling differential generation uses type.getFHIRPathType(), but the DefinedStringPattern snapshot value type is hard-coded to System.String.",
+    "learned": "The necessary source fix belongs in the external Kindling generator used by the FHIR build.",
+    "supports": ["external_repo_scope", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > unsignedInt and positiveInt string in JSON and FHIRPath?; #conformance > Int type question in R4 StructureDef",
+    "url": "https://chat.fhir.org/#narrow/stream/179166-implementers/topic/unsignedInt.20and.20positiveInt.20string.20in.20JSON.20and.20FHIRPath.3F",
+    "summary": "Linked discussions concluded that the value type should be System.Integer while retaining positiveInt/unsignedInt as the structuredefinition-fhir-type extension value.",
+    "learned": "Community rationale supports the Jira resolution and contradicts leaving System.String as intentional.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "MnM Minutes CC 20201125 page 97466530",
+    "url": "https://confluence.hl7.org/spaces/MnM/pages/97466530/MnM+Minutes+CC+20201125",
+    "snapshot_path": "contexts/FHIR-28586/confluence/97466530.md",
+    "ref": { "confluence_page_id": 97466530 },
+    "summary": "MnM minutes list FHIR-28586 as a Technical Correction: Will Fix tracker item.",
+    "learned": "This corroborates the formal acceptance of the technical correction.",
+    "supports": ["issue_request", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,117 @@
+FHIR-17635: Audit use-context expansion deduplication
+
+Issue request:
+FHIR-17635 was a Published/Persuasive FHIR-core FHIR-I issue raised against STU3 and applied for STU3. It reported that valueset-use-context.html showed duplicate codes in the rendered expansion; the Jira resolution was auto-approved and the Jira comment identifies svn revision 14576 as the application.
+
+Initial application:
+The issue was applied in git commit 8a424ffcc6b1cf70bba4af7e5221930a2f6ca51e, the git-svn import of svn revision 14576. That commit changed the R4 ValueSetExpanderSimple implementation and regenerated the use-context terminology cache: vscache/-1232820885.json changed from 2,682 expansion rows with 1,682 duplicate system/code pairs to 1,000 rows with 1,000 unique system/code pairs and no duplicates. The current source tree no longer carries that old generated vscache or Java expander source as active spec source.
+
+Additional context:
+The active current value set source is source/terminologies/valueset-use-context.xml, referenced by the ConformanceUseContext binding in source/terminologies/bindings.xml and by UsageContext.value[x] in source/datatypes/usagecontext.xml. A later same-artifact issue, FHIR-20373, removed the duplicate urn:iso:std:iso:3166 compose include from this value set in commit 12520c35f53b239d3726e7668f5baf1d394e4e84 and is already represented on the combined branch by a no-change audit commit. Historical release3 archive data still reflects the old STU3 compose, but it is not an active current-build source location to edit for this reconciliation.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current build-scoped source contains one urn:iso:std:iso:3166 include and no exact duplicate compose include entries, while the original duplicate rendered expansion was already fixed by the recorded svn revision 14576 application.
+
+Recommendation:
+Keep this empty audit commit. No FHIR core source follow-up is recommended for FHIR-17635; if duplicate expansion rows reappear, investigate terminology expansion tooling or generated publication output rather than changing the current use-context value-set definition.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17635
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-20373: same-change-family - later Published issue removed a duplicate urn:iso:std:iso:3166 include from the same ValueSet/use-context source and is already audited on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17635: Published/Persuasive issue reporting duplicate codes in valueset-use-context.html expansion with comment "svn revision 14576". Learned: establishes the final issue request and the recorded application revision.
+- E2 Git 8a424ffcc6: git-svn import of svn revision 14576 changed ValueSetExpanderSimple and regenerated vscache/-1232820885.json. Learned: this is the historical application of the seed issue.
+- E3 Command duplicate-count comparison: vscache/-1232820885.json changed from total=2682 unique=1000 duplicates=1682 before 8a424ffcc6 to total=1000 unique=1000 duplicates=0 after it. Learned: the recorded application actually removed duplicate expansion entries for ValueSet/use-context.
+- E4 Source source/terminologies/valueset-use-context.xml:23-77, source/terminologies/bindings.xml:722-727, and source/datatypes/usagecontext.xml:5472-5476: current active source defines ValueSet/use-context and binds UsageContext value examples to it. Learned: the current build-scoped source surface was checked.
+- E5 Command current source duplicate check: XML parsing of source/terminologies/valueset-use-context.xml found 13 compose includes, zero exact duplicate include keys, and one urn:iso:std:iso:3166 include. Learned: no current source duplicate matching the issue family remains.
+- E6 Jira FHIR-20373 and git 12520c35f5: later Published same-artifact issue removed the duplicate ISO3166 include from current source. Learned: later source history reinforces that the remaining current source is intentionally deduplicated.
+- E7 Community search: direct FHIR-17635/use-context searches found only the automated Zulip tracker notification and no Confluence references; broader hits did not change the Jira/source conclusion. Learned: no discovered community evidence conflicts with the no-change decision.
+- E8 Build-scope search: source/fhir.ini and repository searches found active bindings but no active reference from current build configuration to tools/history/release3/valuesets.xml. Learned: archival STU3 data is not a current source-edit target for this issue.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17635",
+    "url": "https://jira.hl7.org/browse/FHIR-17635",
+    "snapshot_path": "contexts/FHIR-17635/jira/FHIR-17635.md",
+    "ref": { "jira_key": "FHIR-17635" },
+    "summary": "Published/Persuasive STU3 issue reporting duplicate codes in the valueset-use-context.html expansion, with Jira comment identifying svn revision 14576 as the fix.",
+    "learned": "This establishes the final issue request and the recorded application revision for reconciliation.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "8a424ffcc6b1cf70bba4af7e5221930a2f6ca51e",
+    "ref": { "commit": "8a424ffcc6b1cf70bba4af7e5221930a2f6ca51e" },
+    "summary": "The git-svn import of svn revision 14576 changed ValueSetExpanderSimple and regenerated terminology cache files, including the use-context expansion cache.",
+    "learned": "This is the historical application identified by the Jira comment.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "command",
+    "locator": "Historical duplicate-count comparison for vscache/-1232820885.json",
+    "command": "git grep -l '\"url\":\"http://hl7.org/fhir/ValueSet/use-context\"' 8a424ffcc6 -- vscache; git show REV:vscache/-1232820885.json | jq '[.expansion.contains[]? | select(.system and .code) | (.system+\"|\"+.code)] | length as $n | unique | length as $u | \"total=\\($n) unique=\\($u) duplicates=\\($n-$u)\"'",
+    "summary": "The use-context cache had total=2682 unique=1000 duplicates=1682 before 8a424ffcc6 and total=1000 unique=1000 duplicates=0 after it.",
+    "learned": "The recorded application removed the duplicate expansion entries described by FHIR-17635.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/terminologies/valueset-use-context.xml:23-77; source/terminologies/bindings.xml:722-727; source/datatypes/usagecontext.xml:5472-5476",
+    "ref": { "paths": "source/terminologies/valueset-use-context.xml; source/terminologies/bindings.xml; source/datatypes/usagecontext.xml" },
+    "summary": "Current active source defines ValueSet/use-context and binds UsageContext value examples through ConformanceUseContext/UsageContextValue.",
+    "learned": "The current build-scoped source surface relevant to the issue was inspected.",
+    "supports": ["source_state", "build_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current source duplicate include check",
+    "command": "python3 - <<'PY' ... parse source/terminologies/valueset-use-context.xml and count compose include keys ... PY",
+    "summary": "The current XML has 13 compose includes, zero exact duplicate include keys, and one urn:iso:std:iso:3166 include.",
+    "learned": "No current source duplicate matching the issue family remains.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-20373; 12520c35f53b239d3726e7668f5baf1d394e4e84",
+    "url": "https://jira.hl7.org/browse/FHIR-20373",
+    "snapshot_path": "contexts/FHIR-20373/jira/FHIR-20373.md",
+    "ref": { "jira_key": "FHIR-20373", "commit": "12520c35f53b239d3726e7668f5baf1d394e4e84" },
+    "summary": "Later Published same-artifact issue requested removing a duplicate ISO3166 include, which commit 12520c35f5 applied to source/terminologies/valueset-use-context.xml.",
+    "learned": "Later source history confirms current ValueSet/use-context source has already had duplicate include cleanup applied.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-17635 and use-context duplicate expansion",
+    "command": "bun run confluence:search refs jira FHIR-17635 --limit 10; bun run zulip:search fts '\"FHIR-17635\" OR \"valueset-use-context\" duplicate codes' --limit 10; bun run confluence:search fts 'valueset use context duplicate codes expansion' --limit 10",
+    "query": "FHIR-17635 valueset-use-context duplicate codes expansion",
+    "summary": "Direct searches found no Confluence references and only the automated Zulip tracker notification; broader searches found no conflicting rationale.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Build-scope search for release3 valuesets archive",
+    "command": "rg 'release3|tools/history|history/release|tools/history/release3/valuesets' source/fhir.ini . --glob '*.{java,xml,ini,md,html,properties,txt,json,pas,cs,ts,js}'",
+    "summary": "Searches found active current bindings for use-context but no active current build configuration reference to tools/history/release3/valuesets.xml.",
+    "learned": "The historical STU3 archive data is evidence, not a current source-edit target for this reconciliation.",
+    "supports": ["build_scope", "recommendation"]
+  }
+]
+</evidence-manifest>

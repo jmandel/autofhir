@@ -1,0 +1,110 @@
+FHIR-16549: Audit conditional update no-match upsert wording
+
+Issue request:
+FHIR-16549 was a Published FHIR-I change request for the core HTTP conditional update section, resolved Persuasive for STU3. It asked to clarify that a conditional update with no matches behaves like normal update/create-as-update behavior rather than implying unconditional server creation, and to add an "Update as Create" subheader tied to the same CapabilityStatement support.
+
+Initial application:
+The issue was explicitly applied by 098f965b5694f683ba3d593564f698c031777ef2, "GF#16549 - note about conditional update and create," which added the source/http.html upsert anchor and changed the conditional-update no-match wording from a direct create interaction to an Update as Create reference. That application was later refined by d69dfafe26d9ad9151c011ef743568a3ab2158fc for FHIR-17906 to distinguish no Resource.id from Resource.id-provided no-match behavior.
+
+Additional context:
+The current build-scope HTTP narrative is source/http.html, listed in publish.ini as http.html. Later finalized same-section decisions explain the current wording without reversing FHIR-16549: FHIR-17906 split the no-match and one-match conditional-update cases, FHIR-20390 clarified that "id provided" means Resource.id, FHIR-26688 removed the contradictory sentence saying a supplied id is ignored, and FHIR-36859 split the Resource.id-provided/no-match case when that id already exists. The Zulip thread opened after GF#16549 confirms the initial wording could be misread as disallowing server-assigned conditional upserts and led to FHIR-17906 rather than undoing the FHIR-16549 Update as Create linkage.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active HTTP source already has an "Update as Create" subsection, declares CapabilityStatement.rest.resource.updateCreate as the support flag, and the conditional-update no-match table now creates directly only when no Resource.id is provided while treating the Resource.id-provided/no-existing-resource case as Update as Create or rejection if unsupported. That preserves the seed clarification after later applied refinements.
+
+Recommendation:
+Keep this no-change audit commit as-is. No core source follow-up is needed for FHIR-16549; future changes to conditional update should be handled under separate finalized trackers because the seed behavior is already present and later family issues are already represented on the combined branch.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-16549
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17906: later-change - clarified the same conditional-update no-match rule by separating no Resource.id creation from Resource.id-provided Update as Create behavior and is already represented on the combined branch.
+FHIR-20390: later-change - clarified that conditional-update "id provided" means Resource.id and removed conflicting ignore-id wording; it is already represented on the combined branch.
+FHIR-26688: later-change - removed remaining contradictory conditional-update ignore-id language and is already represented on the combined branch.
+FHIR-36859: later-change - split the Resource.id-provided/no-match case into no-existing-resource Update as Create and existing-resource 409 Conflict outcomes and is already represented on the combined branch.
+FHIR-28495: background - nearby HTTP update guidance about If-None-Match and update-as-create semantics is already represented on the combined branch but does not change the seed decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-16549: Published/Persuasive issue requesting conditional update no-match behavior to be clarified as the same Update as Create behavior used by normal update, with a dedicated subheader and CapabilityStatement linkage. Learned: establishes the seed's final source requirement.
+- E2 Source source/http.html:801-820 and source/http.html:847-870 with publish.ini:295: the active HTTP page has the Update as Create subsection, updateCreate support flag, and conditional-update no-match rows that distinguish no Resource.id create from Resource.id-provided Update as Create/rejection. Learned: current build-scope source already satisfies the seed after later refinements.
+- E3 Git 098f965b5694f683ba3d593564f698c031777ef2: GF#16549 added the upsert anchor and changed conditional-update no-match wording from direct create to Update as Create. Learned: the seed was explicitly applied in source history.
+- E4 Git d69dfafe26d9ad9151c011ef743568a3ab2158fc and combined-branch FHIR-17906 audit c1ffcb4d3e8e591b9eb5e542f50b22a83b2f713e: later same-family work split no-match/no-id and no-match/id cases. Learned: current wording should be interpreted as a refinement of, not a regression from, FHIR-16549.
+- E5 Zulip #implementers > Transaction conditional create OR update: Eugene Lubarsky cited GF#16549 and noted the wording did not intend to disallow server-assigned conditional upserts; the thread led to FHIR-17906. Learned: community evidence supports the current split behavior and no source change for the seed.
+- E6 Community and related-issue searches: quoted FHIR-16549 Zulip search found no direct human key hits beyond GF#16549; Confluence refs for FHIR-16549 found no page; Jira search for conditional update and Update as Create found the finalized related family. Learned: no discovered final community/work-group record conflicts with the no-change conclusion.
+- E7 Verification command: idempotency check found no prior FHIR-16549 commit on the combined branch, current source/history checks matched the expected seed behavior, and whitespace check passed. Learned: an empty no-change audit commit is the correct reconciliation artifact.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-16549",
+    "url": "https://jira.hl7.org/browse/FHIR-16549",
+    "snapshot_path": "contexts/FHIR-16549/jira/FHIR-16549.md",
+    "ref": { "jira_key": "FHIR-16549" },
+    "summary": "Published/Persuasive FHIR-I issue asking that conditional update with no matches be clarified as normal Update as Create behavior rather than unconditional create, with a dedicated upsert subsection and CapabilityStatement linkage.",
+    "learned": "This establishes the seed's final source requirement for the current HTTP page.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/http.html:801-820; source/http.html:847-870; publish.ini:295",
+    "ref": { "path": "source/http.html", "start_line": 801, "end_line": 870 },
+    "summary": "The active HTTP page contains the Update as Create subsection, updateCreate CapabilityStatement support flag, and conditional-update no-match rows for no Resource.id creation and Resource.id-provided Update as Create or rejection.",
+    "learned": "The build-scope source already conveys FHIR-16549 with later precise Resource.id refinements.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "098f965b5694f683ba3d593564f698c031777ef2",
+    "ref": { "commit": "098f965b5694f683ba3d593564f698c031777ef2" },
+    "summary": "GF#16549 added the upsert anchor and changed conditional-update no-match text from direct create to Update as Create.",
+    "learned": "FHIR-16549 was explicitly applied in source history.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "d69dfafe26d9ad9151c011ef743568a3ab2158fc; c1ffcb4d3e8e591b9eb5e542f50b22a83b2f713e",
+    "ref": { "commit": "d69dfafe26d9ad9151c011ef743568a3ab2158fc" },
+    "summary": "FHIR-17906 later split conditional-update no-match and one-match behavior, and its no-change audit is already on the combined branch.",
+    "learned": "Current wording refines the seed behavior and prevents treating the no Resource.id direct-create row as a FHIR-16549 defect.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > Transaction conditional create OR update",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Transaction%20conditional%20create%20OR%20update",
+    "ref": { "stream": "implementers", "topic": "Transaction conditional create OR update", "message_id": 153995649 },
+    "summary": "The September 2018 thread cites GF#16549 and explains that it was not intended to disallow conditional upserts with server-assigned ids; the discussion led to FHIR-17906.",
+    "learned": "Community context supports interpreting current split behavior as a correct refinement of the seed issue.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community and related issue searches for FHIR-16549 conditional update",
+    "command": "bun run zulip:search fts '\"FHIR-16549\" conditional update' --limit 5 --json; bun run zulip:search fts '\"GF#16549\"' --limit 5 --json; bun run confluence:search refs jira FHIR-16549 --json; bun run jira:search fts '\"conditional update\" '\"Update as Create\"' --limit 10 --json",
+    "query": "FHIR-16549 conditional update; GF#16549; conditional update Update as Create",
+    "summary": "No direct FHIR-16549 Zulip or Confluence conflict was found; GF#16549 appears in the relevant implementers thread and Jira search returns the finalized same-section issue family.",
+    "learned": "No discovered final community or work-group record requires changing the current source for the seed.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Idempotency, source, history, and whitespace checks",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-16549' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n 'id=\"upsert\"|id=\"cond-update\"|No matches, no Resource\\.id|Update as Create' source/http.html publish.ini; git show 098f965b -- source/http.html; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol show --check --pretty=format: HEAD",
+    "summary": "No prior FHIR-16549 combined-branch commit existed; source/http.html contains the expected active wording; git history has the explicit GF#16549 application; whitespace check passed.",
+    "learned": "The seed can be safely reconciled with an empty no-change audit commit.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

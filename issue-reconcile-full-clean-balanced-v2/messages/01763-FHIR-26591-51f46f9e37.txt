@@ -1,0 +1,96 @@
+FHIR-26591: Confirm Goal description value set replacement
+
+Issue request:
+FHIR-26591 was an Applied Patient Care change request, resolved Persuasive with Modification, asking to replace the broad Goal.description example binding to all SNOMED CT clinical findings with a smaller example value set whose concepts better align with Goal.description as a desired objective of care.
+
+Initial application:
+The issue was applied in b04538a53a1926baaa4fc65b4484f0ecd1f8bc7e, which changed Goal.description from ValueSet/clinical-findings to ValueSet/goal-description and added the requested Goal Description value set. Later maintenance commits removed the shareable profile metadata and made the value set active/informative without changing the ten concepts.
+
+Additional context:
+Goal remains an active current-build resource in source/fhir.ini. The linked Zulip thread records the original concern that the broad clinical findings value set was misleading for goals, and Patient Care minutes/Jira comments record the 2023 curation and vote. No searched Zulip or Confluence evidence contradicted the applied Jira resolution.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Current source/goal/structuredefinition-Goal.xml binds Goal.description to http://hl7.org/fhir/ValueSet/goal-description, and source/goal/valueset-goal-description.xml contains the ten SNOMED CT concepts from the final Jira resolution, including 271651005 and 716424007.
+
+Recommendation:
+Keep this audit commit as-is. The current source already implements the applied decision; future terminology changes should go through a new Patient Care tracker rather than altering this historical reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26591
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-10623: background - older Published Goal binding QA issue referenced in the Zulip discussion as historical context for why a binding existed, but it does not require a separate reconciliation here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26591: Applied/Persuasive with Modification issue requests replacing the broad Goal.description clinical-findings binding with a curated SNOMED CT example set. Learned: this establishes the final Patient Care decision and target source state.
+- E2 Source source/fhir.ini:193 and source/goal/structuredefinition-Goal.xml:300-306: Goal is active in the current build and Goal.description binds to ValueSet/goal-description. Learned: the relevant source location is in build scope and points to the replacement value set.
+- E3 Source source/goal/valueset-goal-description.xml:24-58: Goal Description value set has ten SNOMED CT concepts matching the Jira resolution, including 2004005, 301475006, 282192007, 161922009, 228367002, 1157152000, 19063003, 700000006, 271651005, and 716424007. Learned: the requested replacement content is present.
+- E4 Git b04538a53a1926baaa4fc65b4484f0ecd1f8bc7e: J#26591 changed the Goal.description binding and added the new value set. Learned: the historical application directly matches this issue.
+- E5 Zulip/Confluence searches: the linked #implementers > Goal.description thread matches the concern, and Confluence refs found Patient Care minutes for 2020-03-19, 2023-05-25, and 2023-06-08. Learned: community evidence supports the same issue path and shows no conflicting instruction.
+- E6 Verification command/query: xmllint parsed the Goal source XML, the Goal Description value set has ten code entries, and rg confirmed the current binding. Learned: the checked source is structurally readable and matches the expected replacement state.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26591",
+    "url": "https://jira.hl7.org/browse/FHIR-26591",
+    "snapshot_path": "contexts/FHIR-26591/jira/FHIR-26591.md",
+    "ref": { "jira_key": "FHIR-26591" },
+    "summary": "Applied/Persuasive with Modification Patient Care issue requiring Goal.description to use a smaller curated example value set instead of all clinical findings.",
+    "learned": "This establishes the final decision and the expected replacement codes for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:193; source/goal/structuredefinition-Goal.xml:300-306",
+    "ref": { "file": "source/goal/structuredefinition-Goal.xml", "line": 306 },
+    "summary": "Goal is an active resource and Goal.description binds to http://hl7.org/fhir/ValueSet/goal-description.",
+    "learned": "The current build source uses the replacement value set in the authoritative Goal definition.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/goal/valueset-goal-description.xml:24-58",
+    "ref": { "file": "source/goal/valueset-goal-description.xml", "line": 24 },
+    "summary": "The Goal Description value set contains the ten SNOMED CT concepts listed in the Jira resolution.",
+    "learned": "The requested curated example content is present, including the two additional resolution codes.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "b04538a53a1926baaa4fc65b4484f0ecd1f8bc7e",
+    "ref": { "commit": "b04538a53a1926baaa4fc65b4484f0ecd1f8bc7e" },
+    "summary": "Commit 'J#26591 - Replace the Goal.description value set' changed the binding from clinical-findings to goal-description and added valueset-goal-description.xml.",
+    "learned": "This is the direct source application of FHIR-26591.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-26591 plus Goal.description",
+    "command": "bun run zulip:search fts '\"FHIR-26591\" \"Goal description\"' --limit 10; bun run zulip:search snapshot implementers 'Goal.description'; bun run confluence:search refs jira FHIR-26591",
+    "query": "FHIR-26591 Goal.description Goal description value set",
+    "result_count": 4,
+    "summary": "Search found the linked Zulip thread and three Patient Care Confluence minute pages; no contradictory community evidence was found.",
+    "learned": "Community evidence supports the same concern and work-group path as Jira.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Source verification commands",
+    "command": "xmllint --noout source/goal/valueset-goal-description.xml source/goal/structuredefinition-Goal.xml; rg -n '<code value=' source/goal/valueset-goal-description.xml | wc -l; rg -n '<valueSet value=\"http://hl7.org/fhir/ValueSet/goal-description\"' source/goal/structuredefinition-Goal.xml",
+    "summary": "The XML parsed, the value set had ten code entries, and the Goal.description binding points to ValueSet/goal-description.",
+    "learned": "The current source matches the expected final state without requiring an edit.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

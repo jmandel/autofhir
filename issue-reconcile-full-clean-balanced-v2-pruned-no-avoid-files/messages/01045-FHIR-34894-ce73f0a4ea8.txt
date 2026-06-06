@@ -1,0 +1,122 @@
+FHIR-34894: Restore Observation body site invariant
+
+Issue request:
+FHIR-34894 is a Published/Persuasive OO R5 change request asking Observation to add a 0..1 BodyStructure reference and an invariant making it mutually exclusive with Observation.bodySite.
+
+Initial application:
+The Jira comment points to PR #1916. Local history shows e48bf23f3e added Observation.bodyStructure as Reference(BodyStructure) plus obs-8, e90ce92f2e added its RIM mapping, and d6dedaf6fc merged the PR. The generated R5 history also contains obs-8 and condition markers on both Observation.bodySite and Observation.bodyStructure.
+
+Additional context:
+Observation and BodyStructure are active resources in source/fhir.ini. Later Applied issue FHIR-53203 converted Observation.bodyStructure to CodeableReference(BodyStructure) and deprecated Observation.bodySite, but its request did not approve using both elements together; the existing FHIR-53203 audit commit records the CodeableReference/deprecation application as no-change and leaves broader unresolved harmonization to later issues. FHIR-55603 later proposed a different two-element pattern with an invariant but was Resolved - No Change because further discussion was needed, while FHIR-54843 is Resolved - change required and not yet Applied/Published in this run scope. None of those later decisions supersedes the original mutual-exclusion rule for the current two Observation elements.
+
+AutoFHIR reconciliation:
+This commit restores the obs-8 constraint to the active Observation StructureDefinition, restores condition references on Observation.bodySite and Observation.bodyStructure, and adds invariant examples proving that an Observation with both elements fails while either element alone passes. The edit is in build scope because source/fhir.ini lists bodystructure=BodyStructure and observation=Observation in the active [resources] section.
+
+Recommendation:
+Keep this fix. Future applied work such as FHIR-54843 may revisit cardinality or broader bodyStructure guidance, but until such a change is applied the current specification should continue to prohibit simultaneous Observation.bodySite and Observation.bodyStructure use.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34894
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-53203: later-change - Converted Observation.bodyStructure to CodeableReference and deprecated Observation.bodySite; it accidentally removed obs-8 but did not approve allowing both elements together.
+FHIR-54033: supporting-decision - Resolved-No-Change ballot comment supports Observation.bodyStructure as CodeableReference, consistent with restoring only the mutual-exclusion invariant.
+FHIR-55603: background - Later harmonization proposal for a different bodySite/bodyStructure pattern was Resolved - No Change because more discussion was needed.
+FHIR-54843: later-change - Later Resolved-change-required bodyStructure guidance/cardinality issue remains outside this run's applied/published source-edit scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34894: Published/Persuasive issue requested Observation.bodyStructure Reference(BodyStructure) plus a mutually exclusive condition with Observation.bodySite. Learned: this is final WG intent for the seed.
+- E2 Confluence OO minutes 2022-01-06, 2022-01-18/21 WGM, and 2022-04-28 Main: minutes discussed adding the new element with an invariant and later recorded the block-vote acceptance. Learned: meeting evidence supports the Jira-requested invariant, not just the new element.
+- E3 Git e48bf23f3e, e90ce92f2e, d6dedaf6fc: PR #1916 added Observation.bodyStructure, obs-8, and mappings for FHIR-34894. Learned: the issue was initially applied with the invariant.
+- E4 Git 696ac9113f / Jira FHIR-53203: later Applied R6 work converted Observation.bodyStructure to CodeableReference and deprecated bodySite while removing obs-8. Learned: the current omission is a regression during later refactoring, not the seed's intended final state.
+- E5 Source source/fhir.ini:177,208 and source/observation/structuredefinition-Observation.xml:118,894,923: BodyStructure and Observation are active resources, and current source now has obs-8 plus condition markers on both affected elements. Learned: the fix is in current build scope and restores the conformance rule.
+- E6 Source source/condition/structuredefinition-Condition.xml:99-103 and source/procedure/structuredefinition-Procedure.xml:90-94: parallel resources still enforce the bodySite/bodyStructure mutual-exclusion pattern. Learned: the restored Observation invariant is consistent with neighboring resource modeling.
+- E7 Community/Jira later-context search: Zulip search for FHIR-34894 found no conflicting discussion; Jira snapshots for FHIR-54033, FHIR-55603, FHIR-54843, and the existing FHIR-53203 audit show later work did not supersede this rule. Learned: no discovered later final decision requires leaving both Observation elements concurrently usable.
+- E8 Verification command: XML parsing of edited files and git diff --check succeeded. Learned: the edited XML and whitespace are valid for this targeted source fix.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34894",
+    "url": "https://jira.hl7.org/browse/FHIR-34894",
+    "snapshot_path": "contexts/FHIR-34894/jira/FHIR-34894.md",
+    "ref": { "jira_key": "FHIR-34894" },
+    "summary": "Published/Persuasive OO R5 issue requesting Observation.bodyStructure Reference(BodyStructure) and an invariant making it mutually exclusive with Observation.bodySite.",
+    "learned": "This establishes final WG intent for both the new element and the mutual-exclusion rule.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "OO minutes 2022-01-06, 2022-01-18/21 WGM, and 2022-04-28 Main",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/94661912/2022-04-28+Main",
+    "ref": { "confluence_page_id": 94661912, "related_page_ids": "81024487,81030530" },
+    "summary": "OO minutes discuss FHIR-34894 in the context of replacing bodySite by adding a new element with an invariant, and later record block-vote acceptance.",
+    "learned": "Meeting evidence confirms the invariant was part of the approved approach.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "e48bf23f3e / e90ce92f2e / d6dedaf6fc / HL7/fhir#1916",
+    "url": "https://github.com/HL7/fhir/pull/1916",
+    "ref": { "commit_1": "e48bf23f3ebdec2a4b9dea28133b3bc96fbe4f27", "commit_2": "e90ce92f2ee3d999cf55f045b661447485cd9ad3", "merge_commit": "d6dedaf6fcb1fbd65dfb87604a1254b29a69bd77", "pr": 1916 },
+    "summary": "The original application added Observation.bodyStructure, obs-8, and the element mapping.",
+    "learned": "FHIR-34894 was initially applied with the mutual-exclusion invariant.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "696ac9113f / FHIR-53203",
+    "url": "https://jira.hl7.org/browse/FHIR-53203",
+    "snapshot_path": "contexts/FHIR-53203/jira/FHIR-53203.md",
+    "ref": { "commit": "696ac9113f1d1061e7fd4e4032043c744800f7a2", "jira_key": "FHIR-53203" },
+    "summary": "Later Applied R6 work converted Observation.bodyStructure to CodeableReference and deprecated Observation.bodySite while removing obs-8.",
+    "learned": "The current missing invariant arose during a later refactor whose Jira request did not approve concurrent use of bodySite and bodyStructure.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:177,208; source/observation/structuredefinition-Observation.xml:118,894,923",
+    "ref": { "paths": "source/fhir.ini; source/observation/structuredefinition-Observation.xml" },
+    "summary": "Observation and BodyStructure are active resources; the Observation source now contains obs-8 and condition markers on bodySite and bodyStructure.",
+    "learned": "The source-changing fix is in current build scope and restores the required conformance rule.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/condition/structuredefinition-Condition.xml:99-103; source/procedure/structuredefinition-Procedure.xml:90-94",
+    "ref": { "paths": "source/condition/structuredefinition-Condition.xml; source/procedure/structuredefinition-Procedure.xml" },
+    "summary": "Neighboring resources still enforce bodySite/bodyStructure mutual exclusion.",
+    "learned": "Restoring Observation obs-8 is consistent with parallel resource modeling.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Later-context Jira and community searches",
+    "command": "bun run zulip:search fts '\"FHIR-34894\" Observation bodyStructure bodySite' --limit 10; bun run confluence:search refs jira FHIR-34894; bun run jira:search snapshot FHIR-54033 FHIR-55603 FHIR-54843",
+    "query": "FHIR-34894 Observation bodyStructure bodySite",
+    "summary": "Zulip had no conflicting FHIR-34894 discussion; Confluence minutes supported the invariant; later Jira issues did not finally supersede the rule.",
+    "learned": "No discovered later final evidence requires leaving both Observation elements usable together.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted XML and whitespace validation",
+    "command": "xmllint --noout source/observation/structuredefinition-Observation.xml source/observation/invariant-tests/obs-8.f1.fail.xml source/observation/invariant-tests/obs-8.p1.pass.xml source/observation/invariant-tests/obs-8.p2.pass.xml; git diff --check",
+    "summary": "Edited XML parsed successfully and diff whitespace checks passed.",
+    "learned": "The targeted source change is structurally valid.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

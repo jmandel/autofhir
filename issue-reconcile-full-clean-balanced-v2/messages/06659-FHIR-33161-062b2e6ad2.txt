@@ -1,0 +1,128 @@
+FHIR-33161: Audit primitive type definition downloads
+
+Issue request:
+FHIR-33161 was Published/Persuasive for an R4B downloads issue. It reported that profiles-types.json primitive StructureDefinitions pointed at http://hl7.org/fhir/StructureDefinition/PrimitiveType even though PrimitiveType was not accessible in R4B, and that structuredefinition-fhir-type extension instances in profiles JSON used valueUri instead of the long-standing valueUrl. The accepted resolution said the valueUrl/valueUri point was handled by other trackers and that R4B references to the R5-only PrimitiveType construct would be reverted.
+
+Initial application:
+No commit explicitly tagged FHIR-33161 was found. The applied state is visible in the current checked-in R4B history artifacts and the published R4B download surface: tools/history/release4b/profiles-types.xml and https://hl7.org/fhir/R4B/profiles-types.json use Element as the baseDefinition for primitive types such as base64Binary and boolean, while the structuredefinition-fhir-type extension instances use valueUrl. FHIR-32105 and FHIR-31733 are the final Jira decisions that cover the valueUrl/valueUri portion named by this issue.
+
+Additional context:
+PrimitiveType is now a real current-build abstract type, not an inaccessible dangling URL. It is active in source/fhir.ini, has current narrative in source/types.html, and is defined from source/datatypes/primitivetype.xml as a DataType-specializing abstract type. The R5 published profiles-types.json correspondingly uses PrimitiveType as the primitive baseDefinition and includes a PrimitiveType StructureDefinition based on DataType. That later/current R5+ shape is consistent with the source model and should not be reverted as part of this R4B correction.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The R4B correction requested by FHIR-33161 is already reflected in the current R4B history/published artifacts, and changing the current R5/R6 source away from PrimitiveType would regress the active abstract type model.
+
+Recommendation:
+Keep this no-change audit as-is. Any further investigation of the valueUrl/valueUri portion should stay with FHIR-32105/FHIR-31733 or release-history tooling, not with a new current-spec edit for FHIR-33161.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-33161
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32105: supporting-decision - final Published/Persuasive tracker that decided structuredefinition-fhir-type instances should continue using valueUrl and be corrected in generated profile files.
+FHIR-31733: same-change-family - R4B ballot tracker for fhir-type extension differences; its resolution points to FHIR-32105 for the valueUrl/valueUri correction and separately handles the extension invariant.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-33161: Published/Persuasive R4B downloads issue; resolution says valueUrl/valueUri is handled elsewhere and R4B PrimitiveType references should be reverted. Learned: this establishes the exact requested correction and its R4B scope.
+- E2 Source tools/history/release4b/profiles-types.xml:631 and :663 plus published R4B profiles-types.json: primitive baseDefinition is Element. Learned: the R4B primitive-type problem is already corrected in the retained release artifact and published JSON surface.
+- E3 Source source/fhir.ini:63-71, source/types.html:209-223, and source/datatypes/primitivetype.xml:591-604: PrimitiveType is an active current-build abstract type defined as the parent for primitive datatypes. Learned: current R5/R6 PrimitiveType references are intentional and accessible.
+- E4 Published spec R5 profiles-types.json: base64Binary/boolean derive from PrimitiveType and PrimitiveType derives from DataType. Learned: the R5+ generated download shape matches the current active source model.
+- E5 Git cbdf7d1e55dc4bfa1dc30fc526edee0491e05782: rebuild abstract type framework added PrimitiveType source and fhir.ini wiring before R4B. Learned: PrimitiveType originated in source history as part of R5 abstract type modeling, explaining why it was inappropriate for R4B but correct for current builds.
+- E6 Jira FHIR-32105 and FHIR-31733: Published related trackers for structuredefinition-fhir-type valueUrl/valueUri behavior. Learned: the second half of FHIR-33161 was intentionally handled by separate final issues.
+- E7 Confluence FHIR Infrastructure Minutes WGM 202109 page 77365771: records the 19-0-0 FHIR-I motion for FHIR-33161. Learned: the Jira resolution is backed by meeting minutes and no contrary WG evidence was found.
+- E8 Verification commands: combined-branch grep found no prior FHIR-33161 audit; curl/jq checks confirmed R4B primitives use Element, R5 primitives use PrimitiveType with PrimitiveType defined, and R4B fhir-type extensions use valueUrl. Learned: the current decision is idempotent and supported by release-surface checks.
+- E9 Community search: Zulip full-text search for PrimitiveType/profiles/types/definitions found no relevant discussion, and Confluence refs found only the FHIR-I minutes page. Learned: no discovered community evidence conflicts with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-33161",
+    "url": "https://jira.hl7.org/browse/FHIR-33161",
+    "snapshot_path": "contexts/FHIR-33161/jira/FHIR-33161.md",
+    "ref": { "jira_key": "FHIR-33161" },
+    "summary": "Published/Persuasive R4B downloads issue reporting inaccessible PrimitiveType baseDefinitions and valueUri/valueUrl inconsistency in profile JSON downloads.",
+    "learned": "The final decision was to revert R4B PrimitiveType references while treating the valueUrl/valueUri portion as handled by other trackers.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "tools/history/release4b/profiles-types.xml:631 and :663; https://hl7.org/fhir/R4B/profiles-types.json",
+    "url": "https://hl7.org/fhir/R4B/profiles-types.json",
+    "summary": "The retained R4B profiles-types artifact and published R4B JSON show primitive definitions such as base64Binary and boolean deriving from Element.",
+    "learned": "The R4B PrimitiveType problem requested by FHIR-33161 is already corrected in the release surface it targeted.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:63-71; source/types.html:209-223; source/datatypes/primitivetype.xml:591-604",
+    "summary": "Current source actively registers PrimitiveType as an abstract infrastructure type and publishes its datatype definition.",
+    "learned": "In the current build, PrimitiveType is not inaccessible and should remain the primitive base type.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "https://hl7.org/fhir/R5/profiles-types.json",
+    "url": "https://hl7.org/fhir/R5/profiles-types.json",
+    "summary": "R5 profiles-types.json uses PrimitiveType as the primitive baseDefinition and includes PrimitiveType derived from DataType.",
+    "learned": "The R5+ download shape is coherent with the active source model and differs intentionally from R4B.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "cbdf7d1e55dc4bfa1dc30fc526edee0491e05782",
+    "ref": { "commit": "cbdf7d1e55dc4bfa1dc30fc526edee0491e05782" },
+    "summary": "The 'rebuild abstract type framework' commit added PrimitiveType source and fhir.ini wiring.",
+    "learned": "PrimitiveType was introduced as part of the R5 abstract type framework, explaining the R4B backport problem and current-build validity.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-32105 and FHIR-31733",
+    "url": "https://jira.hl7.org/browse/FHIR-32105",
+    "ref": { "jira_key": "FHIR-32105" },
+    "summary": "FHIR-32105 decided to keep structuredefinition-fhir-type values as valueUrl; FHIR-31733 references that decision for the same R4B fhir-type extension family.",
+    "learned": "The valueUrl/valueUri concern in FHIR-33161 has separate final Jira coverage and is not a new source-edit requirement here.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes WGM 202109 page 77365771",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/77365771/FHIR+Infrastructure+Minutes+WGM+202109",
+    "ref": { "confluence_page_id": 77365771 },
+    "summary": "FHIR-I minutes list FHIR-33161 as Persuasive with a Grahame Grieve/Michael Donnelly 19-0-0 motion.",
+    "learned": "Meeting evidence supports the final Jira disposition used for this audit.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Primitive baseDefinition and fhir-type verification commands",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-33161' ...; curl -fsSL https://hl7.org/fhir/R4B/profiles-types.json | jq ...; curl -fsSL https://hl7.org/fhir/R5/profiles-types.json | jq ...; curl -fsSL https://hl7.org/fhir/R4B/profiles-resources.json | jq ...",
+    "summary": "No prior combined-branch FHIR-33161 commit was present; R4B primitive bases are Element; R5 primitive bases are PrimitiveType with PrimitiveType defined; R4B fhir-type extensions use valueUrl.",
+    "learned": "The audit is idempotent and no current source correction is required.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Community search for FHIR-33161 and PrimitiveType profile terms",
+    "command": "bun run zulip:search fts 'PrimitiveType profiles types definitions' --limit 20; bun run confluence:search refs jira FHIR-33161",
+    "query": "PrimitiveType profiles types definitions; FHIR-33161",
+    "result_count": 1,
+    "summary": "Zulip search found no relevant discussion; Confluence references found the FHIR-I WGM minutes page.",
+    "learned": "No discovered community discussion conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

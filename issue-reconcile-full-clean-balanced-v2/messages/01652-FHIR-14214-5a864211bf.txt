@@ -1,0 +1,117 @@
+FHIR-14214: Audit Measure care gaps support
+
+Issue request:
+FHIR-14214 was Published with a Persuasive with Modification resolution for STU3. It asked for support for running care-gap/measure-report evaluation for all applicable measures for a single patient, resolved as a type-level Measure $care-gaps operation taking patient, periodStart, periodEnd, and an optional topic selector, with a FHIR Document Bundle containing a Composition and MeasureReport entries.
+
+Initial application:
+The historical application was SVN 14063, preserved as git commit 1ce7bae0e8d4457eb17aa85c120f207893e9c1fb, whose message explicitly says "GF#14214: Added $care-gaps operation to Measure" and which added the original care-gaps request/response examples, Measure spreadsheet operation content, and MeasureReport cleanup.
+
+Additional context:
+The current build has Measure and MeasureReport active in source/fhir.ini, includes OperationDefinition/Measure-care-gaps in source/measure/list-Measure-operations.xml, and defines the operation in source/measure/operationdefinition-Measure-care-gaps.xml. Later CQI decisions deliberately evolved the operation: FHIR-50485 aligned the base R6 operation with DEQM STU5, and its Jira comment records that the topic parameter should be removed because selecting all measures for a topic should be a separate client step. FHIR-56069 then aligned examples with the current parameters.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. The current source already supports the core FHIR-14214 outcome: Measure/$care-gaps is a type-level operation that calculates gaps in care for one or more measures, accepts periodStart and periodEnd plus subject selection, returns zero or more document Bundles through an operations Parameters response, and the checked example Bundle contains a Composition referencing multiple MeasureReport entries for one Patient. Re-adding the original topic parameter would contradict the later applied R6 reconciliation.
+
+Recommendation:
+Keep this no-change audit as-is. Do not reintroduce topic in core unless CQI opens and applies a new tracker; clients that want topic-based measure selection should discover the measure set separately and pass one or more measureUrl values.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14214
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-50485: later-change - Applied R6 decision aligning Measure/$care-gaps with DEQM and explicitly removing the topic parameter from the operation shape.
+FHIR-56069: supporting-decision - Applied R6 clarification updating care-gaps examples after parameter changes, including a response for a patient across two measures.
+FHIR-31056: background - R5 request to update $care-gaps was ultimately disposed no-change because the R6 FHIR-50485 work superseded it.
+FHIR-34138: background - Request to adopt DEQM $care-gaps into base was disposed no-change as duplicative/background to the later R6 work.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14214: Published/Persuasive with Modification request for a Measure $care-gaps operation returning a document Bundle with MeasureReport entries for applicable measures for a patient. Learned: this establishes the seed issue's final approved intent.
+- E2 Git 1ce7bae0e8d4457eb17aa85c120f207893e9c1fb: historical SVN 14063 application explicitly added $care-gaps for GF#14214 and added the original request/response examples. Learned: the seed was applied in source history rather than missed.
+- E3 Source source/measure/operationdefinition-Measure-care-gaps.xml:90-229: current operation calculates gaps for one or more measures, has type=true on Measure, accepts measureUrl 1..*, periodStart, periodEnd, subject/subjectGroup, and returns Bundle 0..*. Learned: current authoritative operation covers the multi-measure patient care-gaps behavior.
+- E4 Source source/fhir.ini:268-269 and source/measure/list-Measure-operations.xml:32-35: Measure and MeasureReport are active resources and the Measure operation list references OperationDefinition/Measure-care-gaps. Learned: the inspected operation is in current build scope.
+- E5 Jira FHIR-50485: Applied/Persuasive R6 issue to align base Measure/$care-gaps with DEQM STU5, with a comment to remove topic because topic-based measure discovery should be a separate step. Learned: the mismatch with the original FHIR-14214 topic sketch is an intentional later CQI decision.
+- E6 Git 833796a2f39ac36b1d05527d24dcb9e1362b79d0: implemented FHIR-50485 by replacing the old topic parameter with current subject/measureUrl and expanded return semantics. Learned: source history confirms the later operation shape is deliberate.
+- E7 Source source/measure/care-gaps-response.xml:1-140 and source/measure/$care-gaps-response.txt:1-4: current response example is a document Bundle for Patient/124 with a Composition and two MeasureReport entries. Learned: examples still demonstrate the seed's multi-measure single-patient response pattern.
+- E8 Command Zulip/Confluence search: direct searches for FHIR-14214 and care-gaps found no relevant conflicting community/minutes evidence. Learned: no discovered community record changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14214",
+    "url": "https://jira.hl7.org/browse/FHIR-14214",
+    "snapshot_path": "contexts/FHIR-14214/jira/FHIR-14214.md",
+    "ref": { "jira_key": "FHIR-14214" },
+    "summary": "Published/Persuasive with Modification request for a Measure $care-gaps operation returning a document Bundle with MeasureReport entries for applicable measures for a patient.",
+    "learned": "This establishes the seed issue's final approved intent.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "1ce7bae0e8d4457eb17aa85c120f207893e9c1fb",
+    "ref": { "commit": "1ce7bae0e8d4457eb17aa85c120f207893e9c1fb" },
+    "summary": "Historical SVN 14063 application explicitly added $care-gaps for GF#14214 and added the original request/response examples.",
+    "learned": "The seed was applied in source history rather than missed.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/measure/operationdefinition-Measure-care-gaps.xml:90-229",
+    "summary": "Current Measure/$care-gaps calculates gaps for one or more measures, is a type-level Measure operation, accepts measureUrl 1..*, periodStart, periodEnd, subject/subjectGroup, and returns Bundle 0..*.",
+    "learned": "The authoritative operation covers the multi-measure patient care-gaps behavior.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:268-269; source/measure/list-Measure-operations.xml:32-35",
+    "summary": "Measure and MeasureReport are active resources, and the Measure operation list references OperationDefinition/Measure-care-gaps.",
+    "learned": "The inspected operation is in current build scope.",
+    "supports": ["source_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-50485",
+    "url": "https://jira.hl7.org/browse/FHIR-50485",
+    "ref": { "jira_key": "FHIR-50485" },
+    "summary": "Applied/Persuasive R6 issue to align base Measure/$care-gaps with DEQM STU5, with a comment to remove topic because topic-based measure discovery should be a separate step.",
+    "learned": "The mismatch with the original FHIR-14214 topic sketch is an intentional later CQI decision.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "833796a2f39ac36b1d05527d24dcb9e1362b79d0",
+    "ref": { "commit": "833796a2f39ac36b1d05527d24dcb9e1362b79d0" },
+    "summary": "Implemented FHIR-50485 by replacing the old topic parameter with current subject/measureUrl and expanded return semantics.",
+    "learned": "Source history confirms the later operation shape is deliberate.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/measure/care-gaps-response.xml:1-140; source/measure/$care-gaps-response.txt:1-4",
+    "summary": "Current response example is a document Bundle for Patient/124 with a Composition and two MeasureReport entries.",
+    "learned": "Examples still demonstrate the seed's multi-measure single-patient response pattern.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-14214 plus care-gaps terms",
+    "command": "bun run zulip:search fts '\"FHIR-14214\" \"care-gaps\" \"Measure\"' --limit 10; bun run confluence:search refs jira FHIR-14214; bun run confluence:search fts '\"FHIR-14214\" \"care gaps\" \"Measure\"' --limit 10",
+    "query": "FHIR-14214 care-gaps Measure",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence hits were found for the seed issue.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

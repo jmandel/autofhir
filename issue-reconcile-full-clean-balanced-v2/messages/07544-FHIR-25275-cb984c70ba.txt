@@ -1,0 +1,111 @@
+FHIR-25275: Audit canonical fhir-type generator fix
+
+Issue request:
+FHIR-25275 was a Published/Persuasive FHIR-I technical correction raised against R4 for the canonical primitive StructureDefinition. The Jira report observed that canonical.value carried structuredefinition-fhir-type valueUrl "string" in the snapshot but "canonical" in the differential, and FHIR-I minutes recorded it as an auto-approved technical correction that would also be fixed in R4.
+
+Initial application:
+No FHIR core source commit mentioning FHIR-25275 was found. The application trail is the external Kindling generator work cited from Jira: HL7/kindling commit 1b0392b0, later included in the HL7/kindling#69 commit 962c1c66, changed primitive profile generation from a hard-coded fhir-type "string" to the primitive type code and explicitly named FHIR-25275.
+
+Additional context:
+The active current FHIR source defines canonical as a primitive based on uri with JSON string representation, and the ElementDefinition guidance explains that FHIRPath System.String values use structuredefinition-fhir-type to carry the FHIR primitive constraint. Although the original Jira wording called the snapshot "string" value correct, the accepted implementation and current primitive profile pattern align snapshot and differential to the primitive type code: string uses string, uri uses uri, uuid uses uuid, and canonical now uses canonical. The historical R4 canonical.profile.json still shows the old snapshot/differential mismatch, but R5 and the current CI build are consistent. The closely related Kindling fhir-type correction for FHIR-36036 is already represented on the combined branch.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current build-scope source does not contain a missing canonical.value fhir-type hunk, and current generated R5/CI canonical.profile.json already emits structuredefinition-fhir-type valueUrl "canonical" in both snapshot and differential. Changing the current source to force "string" would conflict with the generator fix and with the adjacent primitive profile pattern; editing historical R4 publication artifacts is outside this current-source reconciliation.
+
+Recommendation:
+Keep this no-change audit for the current FHIR core branch. If HL7 still wants the old R4 publication artifact corrected, handle that through the historical publication/generator path rather than by changing the current core source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25275
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-36036: same-change-family - the same Kindling fhir-type generator change also corrected Element/BackboneElement id metadata and is already audited on the combined branch.
+FHIR-25274: supporting-decision - documents the FHIRPath System.String plus structuredefinition-fhir-type pattern that explains why the extension carries the constrained FHIR primitive type rather than changing the base FHIRPath code.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25275: Published/Persuasive technical correction reporting inconsistent canonical.value structuredefinition-fhir-type values and linking HL7/kindling#69. Learned: this is a final issue and its application path was through generator tooling.
+- E2 Confluence FHIR-I Minutes CC 20200608 page 86966705: FHIR-25275 was recorded as a technical correction, auto-approved, with intent to also fix R4. Learned: work-group meeting evidence confirms the final disposition and historical-publication concern.
+- E3 Source source/datatypes/primitives.xml:294-300 and source/datatypes.html:125-142: canonical is an active primitive based on uri with JSON string representation and a generated canonical.profile.json link. Learned: current source defines the canonical primitive but does not carry a hand-authored fhir-type extension to edit.
+- E4 Source source/elementdefinition.html:346-353: ElementDefinition guidance says FHIRPath System.String may include structuredefinition-fhir-type to constrain the value to a corresponding FHIR datatype. Learned: valueUrl "canonical" is the current mechanism for retaining canonical primitive constraints while the base code remains FHIRPath System.String.
+- E5 Git HL7/kindling 1b0392b0 and 962c1c66: Kindling changed primitive profile generation from fhir-type "string" to type.getCode() and later cited FHIR-25275 in HL7/kindling#69 work. Learned: the initial application happened in external generator tooling and intentionally made primitive fhir-type values match their primitive code.
+- E6 Published/current profile checks: R5 and build.fhir.org canonical.profile.json emit canonical.value fhir-type valueUrl "canonical" in both snapshot and differential; current string, uri, and uuid profiles similarly match their primitive codes. Learned: the current generated specification output is consistent and no current source change is warranted.
+- E7 Command searches: no FHIR core commit or prior combined-branch FHIR-25275 audit was found; Zulip search for FHIR-25275/canonical/valueUrl found no relevant hits; Confluence refs found only the FHIR-I minutes. Learned: there is no conflicting community/source evidence and this audit commit is not a duplicate.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25275",
+    "url": "https://jira.hl7.org/browse/FHIR-25275",
+    "snapshot_path": "contexts/FHIR-25275/jira/FHIR-25275.md",
+    "ref": { "jira_key": "FHIR-25275" },
+    "summary": "Published/Persuasive technical correction reporting inconsistent canonical.value structuredefinition-fhir-type values and linking HL7/kindling#69.",
+    "learned": "This establishes the final issue request and that application was expected through generator tooling rather than a direct current FHIR source hunk.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20200608 page 86966705",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/86966705/FHIR+Infrastructure+Minutes+CC+20200608",
+    "snapshot_path": "contexts/FHIR-25275/confluence/86966705.md",
+    "ref": { "confluence_page_id": 86966705 },
+    "summary": "FHIR-I minutes record FHIR-25275 as a technical correction, auto-approved, with intent to also fix R4.",
+    "learned": "The meeting record confirms the final disposition and explains why historical R4 output was part of the original concern.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:294-300; source/datatypes.html:125-142",
+    "ref": { "path": "source/datatypes/primitives.xml", "start_line": 294, "end_line": 300 },
+    "summary": "The current source defines canonical as a uri-based primitive with JSON string representation, and the datatype page links to the generated canonical.profile.json.",
+    "learned": "The authoritative source defines the primitive but has no hand-authored canonical.value fhir-type extension to correct.",
+    "supports": ["source_state", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/elementdefinition.html:346-353",
+    "ref": { "path": "source/elementdefinition.html", "start_line": 346, "end_line": 353 },
+    "summary": "ElementDefinition guidance explains that FHIRPath System.String elements can carry structuredefinition-fhir-type to constrain them to a corresponding FHIR datatype.",
+    "learned": "This supports interpreting canonical.value valueUrl canonical as the intended constraint while the base code remains FHIRPath System.String.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "HL7/kindling commits 1b0392b0 and 962c1c66",
+    "url": "https://github.com/HL7/kindling/pull/69",
+    "ref": { "repo": "HL7/kindling", "pull": 69, "commit": "1b0392b0e5e8d7f9a3076edf364226eac35251fb" },
+    "summary": "Kindling changed primitive profile generation from hard-coded fhir-type string to type.getCode(), and the later PR commit explicitly cited FHIR-25275.",
+    "learned": "The initial application was an external generator fix that intentionally makes primitive fhir-type values match their primitive code.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "R5 and build.fhir.org canonical.profile.json checks",
+    "url": "https://build.fhir.org/canonical.profile.json",
+    "command": "curl -fsSL https://build.fhir.org/canonical.profile.json; curl -fsSL https://hl7.org/fhir/R5/canonical.profile.json; curl -fsSL https://build.fhir.org/string.profile.json; curl -fsSL https://build.fhir.org/uri.profile.json; curl -fsSL https://build.fhir.org/uuid.profile.json",
+    "summary": "R5 and current CI canonical.value emit fhir-type canonical in both snapshot and differential, and adjacent primitive profiles similarly use their primitive codes.",
+    "learned": "The current generated specification output is consistent and already reflects the generator correction.",
+    "supports": ["reconciliation", "verification"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "FHIR-25275 source, community, and duplicate checks",
+    "command": "git log --grep='FHIR-25275'; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-25275' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run zulip:search fts '\"FHIR-25275\" canonical valueUrl' --limit 10; bun run confluence:search refs jira FHIR-25275",
+    "query": "FHIR-25275 canonical valueUrl",
+    "result_count": 0,
+    "summary": "No core source commit or prior combined-branch audit was found; Zulip had no relevant hits; Confluence found only the FHIR-I minutes.",
+    "learned": "There is no duplicate audit or conflicting community/source evidence requiring a current source edit.",
+    "supports": ["idempotency", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

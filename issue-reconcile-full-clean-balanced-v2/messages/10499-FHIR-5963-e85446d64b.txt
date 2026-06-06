@@ -1,0 +1,106 @@
+FHIR-5963: Audit StructureDefinition root type consistency
+
+Issue request:
+FHIR-5963 was a Published FHIR-core StructureDefinition change request, resolved Persuasive for DSTU1, reporting that the ValueSet StructureDefinition rendered different root ElementDefinition.type values in snapshot and differential: ValueSet in the snapshot and DomainResource in the differential.
+
+Initial application:
+No original FHIR-5963-tagged source commit is present in the current git history. The Jira comments say the problem was fixed for another task, and later source/tooling evolution moved the current build to StructureDefinition.type/baseDefinition/derivation plus separate snapshot and differential components rather than relying on conflicting root ElementDefinition.type values.
+
+Additional context:
+ValueSet and StructureDefinition are active current build resources in source/fhir.ini. The current ValueSet StructureDefinition declares StructureDefinition.type = ValueSet and has a differential root element with path ValueSet and no ElementDefinition.type. Current ElementDefinition guidance explicitly allows type to be blank in a differential constraint and inherited from the resource. Existing combined-branch audits for FHIR-2887 and FHIR-6028 cover adjacent StructureDefinition diff/snapshot and generated-root-type history and do not require another source edit.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. A current-source scan found zero StructureDefinition first differential elements with an explicit root type and zero root differential types of DomainResource, so the reported mismatch is not present in active FHIR core source.
+
+Recommendation:
+Keep this no-change audit. If a modern publisher or external IG still emits inconsistent root ElementDefinition.type values, address that in the relevant tooling or IG; the current FHIR core source already avoids the DSTU1 ValueSet snapshot/differential mismatch.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5963
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-2887: same-change-family - already published on the combined branch as a no-change audit for the broader StructureDefinition differential/snapshot model that contextualizes this root-type issue.
+FHIR-6028: same-change-family - already published on the combined branch as a no-change audit for generated profile root ElementDefinition.type defects; its current-source scan supports the same no-current-mismatch conclusion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5963: Published/Persuasive DSTU1 issue reporting ValueSet snapshot/differential root ElementDefinition.type disagreement, with comments saying it was fixed for another task. Learned: the final issue request was a historical correction to generated StructureDefinition root typing.
+- E2 Source source/fhir.ini:226,258: active build configuration includes valueset=ValueSet and structuredefinition=StructureDefinition. Learned: the relevant resource definitions are in current build scope.
+- E3 Source source/valueset/structuredefinition-ValueSet.xml:76-90: current ValueSet StructureDefinition has type ValueSet, baseDefinition MetadataResource, derivation specialization, and a differential root path ValueSet without an ElementDefinition.type. Learned: the current source does not carry the reported DomainResource root type in the differential.
+- E4 Source source/structuredefinition/structuredefinition-StructureDefinition.xml:811-815,882-1014: current StructureDefinition defines type and separate snapshot/differential views with path/type consistency constraints. Learned: current conformance rules use StructureDefinition.type and element paths to align snapshot and differential roots.
+- E5 Source source/datatypes/elementdefinition.xml:1610-1626: ElementDefinition.type guidance says type can be left blank in a differential constraint and inherited from the resource. Learned: omitting the ValueSet root differential type is intentional and avoids the old mismatch.
+- E6 Command current StructureDefinition root-type audit: parsing source/*/structuredefinition-*.xml found zero explicit first differential root types and zero DomainResource root differential types. Learned: the reported defect is absent across current StructureDefinition source, not just ValueSet.
+- E7 Git/community search: exact git search found no original FHIR-5963 source commit beyond the existing FHIR-2887 audit mention; Jira exact concept search found only FHIR-5963, and Zulip/Confluence searches found no directly relevant conflicting evidence. Learned: no later evidence requires a current source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5963",
+    "url": "https://jira.hl7.org/browse/FHIR-5963",
+    "snapshot_path": "contexts/FHIR-5963/jira/FHIR-5963.md",
+    "ref": { "jira_key": "FHIR-5963" },
+    "summary": "Published/Persuasive DSTU1 issue reporting that ValueSet's snapshot and differential showed different root ElementDefinition.type values.",
+    "learned": "This establishes the historical correction request and the final workflow state to reconcile against current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:226,258",
+    "ref": { "path": "source/fhir.ini", "lines": "226,258" },
+    "summary": "The active resources list includes valueset=ValueSet and structuredefinition=StructureDefinition.",
+    "learned": "The relevant StructureDefinition resources are in current FHIR core build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/valueset/structuredefinition-ValueSet.xml:76-90",
+    "ref": { "path": "source/valueset/structuredefinition-ValueSet.xml", "lines": "76-90" },
+    "summary": "Current ValueSet declares StructureDefinition.type ValueSet and a differential root element with path ValueSet and no ElementDefinition.type.",
+    "learned": "The current source has no DomainResource root differential type to conflict with the ValueSet root.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/structuredefinition/structuredefinition-StructureDefinition.xml:811-1014",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml", "lines": "811-1014" },
+    "summary": "Current StructureDefinition defines type, snapshot, and differential, including constraints that snapshot and differential paths align with StructureDefinition.type.",
+    "learned": "The current model has explicit metadata and constraints to keep snapshot and differential roots consistent.",
+    "supports": ["current_source", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:1610-1626",
+    "ref": { "path": "source/datatypes/elementdefinition.xml", "lines": "1610-1626" },
+    "summary": "ElementDefinition.type guidance says type can be left blank in a differential constraint and inherited from the resource.",
+    "learned": "Leaving the ValueSet root differential type absent is consistent with current ElementDefinition rules.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "current StructureDefinition root-type audit",
+    "command": "python3 scan of source/*/structuredefinition-*.xml differential first elements for explicit type codes and DomainResource",
+    "summary": "The scan found zero StructureDefinition first differential elements with explicit ElementDefinition.type and zero DomainResource root differential types.",
+    "learned": "The reported mismatch is absent across current in-build StructureDefinition source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Git, Jira, Zulip, and Confluence searches for FHIR-5963 root type mismatch",
+    "command": "git log --all --fixed-strings --grep='FHIR-5963'; bun run jira:search fts '\"ElementDefn.Type\" snapshot differential' --limit 10; bun run zulip:search fts '\"FHIR-5963\" OR \"ElementDefn.Type\" OR \"ValueSet DomainResource differential\"' --limit 10; bun run confluence:search refs jira FHIR-5963",
+    "query": "FHIR-5963; ElementDefn.Type snapshot differential; ValueSet DomainResource differential",
+    "summary": "No original FHIR-5963 source commit was found; the exact Jira concept search found only FHIR-5963, and Zulip/Confluence searches found no directly relevant conflicting evidence.",
+    "learned": "No discovered history or community evidence changes the current-source no-change conclusion.",
+    "supports": ["initial_application", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,117 @@
+FHIR-13901: Use searchParam in medication filter examples
+
+Issue request:
+FHIR-13901 was a Published/Persuasive with Modification FHIR-core STU3 issue for DataRequirement. It asked to clarify that codeFilter.path and dateFilter.path do not silently traverse references, requiring constrained FHIRPath paths that are resolvable on the DataRequirement type, adding codeFilter/dateFilter searchParam 0..1, and requiring each filter to provide either path or searchParam with searchParam naming a defined SearchParameter for the DataRequirement type.
+
+Initial application:
+The issue was explicitly applied by SVN/git commit 74161b7e2037bc36b915e2d57d02743cc607ad3f, "GF#13593 - clarify datarequirements.mustSupport and GF#13901 - clarify DataRequirements filters". That commit added the constrained FHIRPath wording, codeFilter.searchParam/dateFilter.searchParam, and path/searchParam invariants to source/datatypes/datarequirement.xml. The active current source still contains those structural and definitional changes, but the CMS146 $data-requirements examples that predated the issue continued to use codeFilter.path="medication.code" for MedicationRequest and MedicationStatement.
+
+Additional context:
+source/fhir.ini keeps DataRequirement active and normative and keeps Library and Measure as active resources, so the edited Library/Measure examples feed the current build. In the current resource definitions, MedicationRequest.medication and MedicationStatement.medication are CodeableReference elements; the defined token SearchParameters named code on both resources point at medication.concept. Using codeFilter.searchParam="code" therefore expresses the medication code filter through the mechanism approved by FHIR-13901 without relying on implicit reference traversal. FHIR-13718, FHIR-13593, and FHIR-32373 are related DataRequirement filter/history issues already represented on the combined branch and are not re-decided here. Targeted Jira/Zulip/Confluence searches found no later conflicting final decision.
+
+AutoFHIR reconciliation:
+Updated the active CMS146 data-requirements examples in source/library/cms146_data_requirements.json, source/measure/cms146_data_requirements.json, and the corresponding Library example body/narrative in source/library/library-cms146-example.xml so the MedicationRequest and MedicationStatement medication code filters use searchParam="code" instead of the stale implicit traversal path medication.code.
+
+Recommendation:
+Keep this source-changing commit. It completes the remaining visible example correction for FHIR-13901 while preserving the already-applied DataRequirement datatype definitions; any future change to broaden or narrow the compatible type lists for DataRequirement filters should be handled as a separate work-group decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13901
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-13718: same-change-family - earlier DataRequirement filter simplification and path wording issue; already represented on the combined branch and used only as context.
+FHIR-13593: same-change-family - applied in the same historical commit for DataRequirement.mustSupport; already represented on the combined branch.
+FHIR-32373: later-change - later valueFilter addition affects the same datatype family; already represented on the combined branch and not re-decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13901: Published/Persuasive with Modification issue requiring constrained DataRequirement filter paths and adding searchParam as an alternative. Learned: establishes the seed's final request and the need to avoid implicit reference traversal in filter examples.
+- E2 Source source/datatypes/datarequirement.xml:965-1003,1090-1128,3537-3552: current DataRequirement code/date filters define path, searchParam, and XOR invariants. Learned: the datatype-level application is present in active source.
+- E3 Source source/fhir.ini:46,265-267,1009,1174-1178: DataRequirement, Library, and Measure are active current-build artifacts, and DataRequirement is normative. Learned: the inspected and edited files are in build scope.
+- E4 Source source/library/cms146_data_requirements.json:94-117; source/measure/cms146_data_requirements.json:70-85; source/library/library-cms146-example.xml:391-610: CMS146 examples used medication.code for MedicationRequest/MedicationStatement code filters before this reconciliation and now use searchParam code. Learned: the remaining issue was stale active example content, not the datatype definition.
+- E5 Source source/medicationrequest/structuredefinition-MedicationRequest.xml:416-426; source/medicationrequest/bundle-MedicationRequest-search-params.xml:47-59; source/medicationstatement/structuredefinition-MedicationStatement.xml:208-218; source/medicationstatement/bundle-MedicationStatement-search-params.xml:45-58: current medication elements are CodeableReference and both resources define a token code SearchParameter on medication.concept. Learned: searchParam="code" is the defined current-spec way to express these medication code filters.
+- E6 Git 74161b7 and 6b3d41e: SVN/git 74161b7 applied GF#13901 to DataRequirement definitions, while 6b3d41e introduced the CMS146 data-requirements examples containing medication.code. Learned: history explains why the definitions were correct but the examples remained stale.
+- E7 Community search command: Jira searches found only FHIR-13901 for the medication.code/type-list terms; Zulip found related DataRequirement path/searchParam discussion but no conflict; Confluence refs/FTS found no FHIR-13901 or conflicting filter record. Learned: no discovered community evidence changes the source-fix conclusion.
+- E8 Verification command: JSON parsing, XML parsing, diff whitespace check, and stale medication.code grep all passed after the edit. Learned: the edited examples are syntactically valid and no targeted stale DataRequirement example path remains.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13901",
+    "url": "https://jira.hl7.org/browse/FHIR-13901",
+    "snapshot_path": "contexts/FHIR-13901/jira/FHIR-13901.md",
+    "ref": { "jira_key": "FHIR-13901" },
+    "summary": "Published/Persuasive with Modification issue asking to clarify DataRequirement filter path traversal, require constrained FHIRPath, add searchParam, and require either path or searchParam.",
+    "learned": "This establishes that filter examples should not rely on implicit reference traversal and may use a defined searchParam instead.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/datarequirement.xml:965-1003,1090-1128,3537-3552",
+    "ref": { "path": "source/datatypes/datarequirement.xml" },
+    "summary": "The current DataRequirement spreadsheet defines code/date filter path and searchParam children and the path/searchParam invariants.",
+    "learned": "The datatype-level FHIR-13901 application is present in active source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:46,265-267,1009,1174-1178",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "DataRequirement, Library, and Measure are active current-build artifacts, and DataRequirement is marked normative.",
+    "learned": "The edited examples and inspected DataRequirement definitions are in current build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/library/cms146_data_requirements.json:94-117; source/measure/cms146_data_requirements.json:70-85; source/library/library-cms146-example.xml:391-610",
+    "ref": { "path": "source/library/cms146_data_requirements.json" },
+    "summary": "The CMS146 Library/Measure data-requirements examples now use searchParam code for MedicationRequest and MedicationStatement medication code filters.",
+    "learned": "This removes the stale medication.code implicit traversal examples while preserving the intended code filters.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "MedicationRequest/MedicationStatement medication elements and code SearchParameters",
+    "ref": { "path": "source/medicationrequest/bundle-MedicationRequest-search-params.xml" },
+    "summary": "MedicationRequest.medication and MedicationStatement.medication are CodeableReference elements, and both resources define a token SearchParameter with code code on medication.concept.",
+    "learned": "searchParam=\"code\" is a defined current-spec token search parameter compatible with DataRequirement.codeFilter.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "74161b7e2037bc36b915e2d57d02743cc607ad3f; 6b3d41e5942929df6a82eeda4debd668bbdfc3ec",
+    "ref": { "commit": "74161b7e2037bc36b915e2d57d02743cc607ad3f" },
+    "summary": "Commit 74161b7 applied GF#13901 to DataRequirement definitions; commit 6b3d41e introduced the CMS146 data-requirements examples containing medication.code.",
+    "learned": "Historical application fixed the datatype definition but left an older example pattern in current source.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-13901 and DataRequirement filter paths",
+    "command": "bun run jira:search fts '\"DataRequirement\" \"medication.code\"' --limit 10; bun run zulip:search fts '\"FHIR-13901\" OR \"DataRequirement\" \"medication.code\"' --limit 10; bun run zulip:search fts '\"DataRequirement\" \"codeFilter\" \"searchParam\"' --limit 10; bun run confluence:search refs jira FHIR-13901; bun run confluence:search fts '\"DataRequirement\" \"codeFilter\" \"searchParam\"' --limit 10",
+    "query": "FHIR-13901 DataRequirement medication.code codeFilter searchParam",
+    "summary": "Searches found FHIR-13901 and related DataRequirement path/searchParam discussion, with no Confluence reference or conflicting final community record.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted validation for FHIR-13901 edits",
+    "command": "python -m json.tool source/library/cms146_data_requirements.json; python -m json.tool source/measure/cms146_data_requirements.json; xmllint --noout source/library/library-cms146-example.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg -n '\"path\"\\s*:\\s*\"medication\\.code\"|<path value=\"medication\\.code\"|<span>medication\\.code</span>' source/library/cms146_data_requirements.json source/measure/cms146_data_requirements.json source/library/library-cms146-example.xml",
+    "summary": "The edited JSON and XML parsed successfully, whitespace checks passed, and the targeted stale medication.code example grep returned no matches.",
+    "learned": "The source edit is syntactically safe and removes the identified stale examples.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

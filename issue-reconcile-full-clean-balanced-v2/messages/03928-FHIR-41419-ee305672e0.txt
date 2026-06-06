@@ -1,0 +1,105 @@
+FHIR-41419: Audit Group characteristic binding fix
+
+Issue request:
+FHIR-41419 is Applied/Persuasive with Modification for FHIR-core Group. It asked to remove the broken example binding named GroupCharacteristicValue from Group.characteristic.value[x] because values depend on the characteristic code, and to add a usable example ValueSet for Group.characteristic.code.
+
+Initial application:
+The requested change was applied before this reconciliation in March 2025 history. Commit 191fa02f0491ac1c45c574c4cc95daef019aa472 explicitly lists FHIR-41419, removes the binding block from Group.characteristic.value[x], adds the http://hl7.org/fhir/ValueSet/example-characteristic-codes binding to Group.characteristic.code, and creates the Group example characteristic codes ValueSet. Commit 0e115c86c96da9921b9f9610b020fba08dbc210c then adds that ValueSet to source/fhir.ini's active [valuesets] list.
+
+Additional context:
+FHIR-I minutes from 2024-08-19 record the 7-0-0 decision to remove the Group.characteristic.value[x] ValueSet binding and create an example ValueSet for Group.characteristic.code. Zulip discussion shows the same background concern about Group bindings without value sets and also records Lloyd McKenzie's view that Group.characteristic.value can legitimately be anything, supporting removal rather than creation of a broad value binding. Current source still has a lone GroupCharacteristicValue entry in source/bindings.ini, but git grep finds no current authoritative StructureDefinition, narrative, or ValueSet use of that name outside the registry line.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scoped Group StructureDefinition has no binding under Group.characteristic.value[x], Group.characteristic.code is bound to the active example-characteristic-codes ValueSet, and source/fhir.ini includes the ValueSet in the active [valuesets] section.
+
+Recommendation:
+Keep this audit commit as-is. The applied source already matches the WG decision, so reopening FHIR-41419 for another source change would risk adding redundant or over-broad characteristic value guidance.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-41419
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-43501: same-change-family - the historical implementation commit used FHIR-43501 as its subject while also applying FHIR-41419 to the same Group StructureDefinition.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-41419: Applied/Persuasive with Modification, vote Josh Mandel / Yunwei Wang 7-0-0 on 2024-08-19. Learned: the final WG request was to remove Group.characteristic.value[x]'s binding and define an example ValueSet for Group.characteristic.code.
+- E2 Source source/group/structuredefinition-Group.xml:564-617: Group.characteristic.code has an example binding to http://hl7.org/fhir/ValueSet/example-characteristic-codes, while Group.characteristic.value[x] has no binding block. Learned: the authoritative current StructureDefinition implements both sides of the Jira resolution.
+- E3 Source source/fhir.ini:1286-1309 and source/group/valueset-example-characteristic-codes.xml:4-16: Group is an active resource, the example-characteristic-codes ValueSet is active in [valuesets], and the ValueSet defines common LOINC characteristic codes. Learned: the new code-binding target is in current build scope.
+- E4 Git 191fa02f0491ac1c45c574c4cc95daef019aa472 and 0e115c86c96da9921b9f9610b020fba08dbc210c: the March 2025 history removed GroupCharacteristicValue from value[x], added the code ValueSet reference and file, and registered the ValueSet in fhir.ini. Learned: the source was already applied before reconciliation.
+- E5 Confluence FHIR Infrastructure Minutes CC 2024-08-19 page 265094923: minutes record FHIR-41419 as Persuasive with Mod, removal of the Group.characteristic.value[x] binding, creation of an example ValueSet for Group.characteristic.code, and 7-0-0 vote. Learned: meeting evidence confirms the Jira disposition and scope.
+- E6 Zulip #committers > Group has missing bindings? and #committers > Bindings without value sets: discussion identified Group.characteristic.value's unlinked binding and later noted that Group.characteristic.value can legitimately be anything. Learned: community context supports not replacing the removed value binding with a broad example set.
+- E7 Verification command: Python XML/fhir.ini assertion checked code binding, absence of value[x] binding, and active fhir.ini ValueSet entry. Learned: the exact source state required by FHIR-41419 is present now.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-41419",
+    "url": "https://jira.hl7.org/browse/FHIR-41419",
+    "snapshot_path": "contexts/FHIR-41419/jira/FHIR-41419.md",
+    "ref": { "jira_key": "FHIR-41419" },
+    "summary": "Applied/Persuasive with Modification issue for FHIR-core Group requiring removal of the broken Group.characteristic.value[x] binding and creation of an example Group.characteristic.code ValueSet.",
+    "learned": "This establishes the final WG intent and the two source conditions to verify.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/group/structuredefinition-Group.xml:564-617",
+    "ref": { "path": "source/group/structuredefinition-Group.xml", "start_line": 564, "end_line": 617 },
+    "summary": "Group.characteristic.code is bound to http://hl7.org/fhir/ValueSet/example-characteristic-codes and Group.characteristic.value[x] has no binding block.",
+    "learned": "The current authoritative StructureDefinition already implements the requested semantic change.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:1286-1309; source/group/valueset-example-characteristic-codes.xml:4-16",
+    "ref": { "path": "source/fhir.ini", "start_line": 1286, "end_line": 1309 },
+    "summary": "The Group folder is build-scoped and fhir.ini actively registers example-characteristic-codes; the ValueSet file defines the common characteristic code set.",
+    "learned": "The new ValueSet target is a current build input, not an unused file.",
+    "supports": ["build_scope", "source_state"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "191fa02f0491ac1c45c574c4cc95daef019aa472; 0e115c86c96da9921b9f9610b020fba08dbc210c",
+    "ref": { "commit": "191fa02f0491ac1c45c574c4cc95daef019aa472" },
+    "summary": "March 2025 history explicitly lists FHIR-41419, removes GroupCharacteristicValue from value[x], adds the code ValueSet reference and file, and then registers the ValueSet in fhir.ini.",
+    "learned": "The issue had already been applied before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2024-08-19 page 265094923",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/265094923/FHIR+Infrastructure+Minutes+CC+2024-08-19",
+    "ref": { "confluence_page_id": 265094923 },
+    "summary": "Minutes record FHIR-41419 as Persuasive with Mod, removal of the Group.characteristic.value[x] binding, creation of an example ValueSet for Group.characteristic.code, and a 7-0-0 vote.",
+    "learned": "Meeting minutes confirm the Jira resolution scope.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#committers > Group has missing bindings?; #committers > Bindings without value sets",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/Group%20has%20missing%20bindings%3F",
+    "summary": "Zulip discussion identified Group.characteristic.value's unlinked binding and later noted that Group.characteristic.value can legitimately be anything.",
+    "learned": "Community context supports removing the value binding rather than inventing a broad value set.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local XML/fhir.ini verification",
+    "command": "python3 XML assertion for source/group/structuredefinition-Group.xml and source/fhir.ini",
+    "summary": "The verification asserted the expected Group.characteristic.code ValueSet, the absence of a Group.characteristic.value[x] binding, and active fhir.ini registration.",
+    "learned": "The current source satisfies FHIR-41419 without additional edits.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

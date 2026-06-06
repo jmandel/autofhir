@@ -1,0 +1,108 @@
+FHIR-12295: Audit ElementDefinition.base snapshot requirement
+
+Issue request:
+FHIR-12295 was Published/Persuasive for FHIR-core ElementDefinition after a 2018-02-26 FHIR-I vote. It asked to make ElementDefinition.base mandatory for tooling consistency, especially to expose original cardinality for XML/JSON conversion, and to remove the sentence saying the base information is only provided when an element definition is not the original definition.
+
+Initial application:
+The explicit application commit is 895710265113b796cb75d13c9abf5cfe4aabf207, "GF#12295 - make elementdefinition.base mandatory + GF#13363 - data type related chagnes". That commit removed the old limiting sentence from source/datatypes/elementdefinition.xml and added the statement that base information must always be populated in snapshot element definitions, while leaving the ElementDefinition.base datatype cardinality at 0..1.
+
+Additional context:
+ElementDefinition is an active normative infrastructure datatype and StructureDefinition is an active conformance resource in source/fhir.ini. Current source keeps ElementDefinition.base at 0..1 because ElementDefinition is also used in StructureDefinition.differential.element, where base is not required. The active StructureDefinition source instead carries the contextual rule: StructureDefinition.snapshot has sdf-8b, "All snapshot elements must have a base definition", with expression element.all(base.exists()), and StructureDefinition.snapshot.element lists sdf-8b as a condition. FHIR-9641 and FHIR-15929 are the same rule family: FHIR-9641 clarified base population for inherited snapshot elements, and FHIR-15929 split/enforced the snapshot base-definition invariant; FHIR-15929 is already represented on the combined branch.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already reflects the approved behavior: the old sentence is gone, the comment says snapshots must always populate base, and the StructureDefinition snapshot invariant enforces base.exists() for all snapshot elements. Changing ElementDefinition.base itself from 0..1 to 1..1 would be broader than the applied decision and would incorrectly make base mandatory in differential element definitions too.
+
+Recommendation:
+Keep this audit commit as-is. No core follow-up is needed unless FHIR-I makes a new decision to require base in all ElementDefinition uses, including differentials; that would be a separate substantive change rather than completion of FHIR-12295.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12295
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-9641: supporting-decision - earlier Published clarification that ElementDefinition.base should be populated for inherited elements included in snapshots.
+FHIR-15929: same-change-family - later Published issue split the StructureDefinition snapshot invariant so "All snapshot elements must have a base definition" could be enforced independently; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12295: Published/Persuasive issue requested mandatory ElementDefinition.base and removal of limiting definition sentence. Learned: establishes the seed issue and the tooling problem to satisfy.
+- E2 Source source/datatypes/elementdefinition.xml:1436-1452: ElementDefinition.base remains 0..1, the old limiting sentence is absent, and the comment says base information must always be populated in snapshots. Learned: the active datatype source already carries the applied snapshot-level rule.
+- E3 Source source/structuredefinition/structuredefinition-StructureDefinition.xml:897-917,943-964: StructureDefinition.snapshot has sdf-8b "All snapshot elements must have a base definition" with expression element.all(base.exists()), and snapshot.element lists the condition. Learned: the mandatory behavior is enforced in the snapshot context that motivated the issue.
+- E4 Git 895710265113b796cb75d13c9abf5cfe4aabf207: GF#12295 application commit changed the ElementDefinition.base definition/comment but left the base cardinality at 0..1. Learned: prior application intentionally implemented the request as contextual snapshot population rather than a global datatype min-cardinality change.
+- E5 Source source/structuredefinition/structuredefinition-StructureDefinition.xml:987-1040: StructureDefinition.differential.element also uses ElementDefinition but has no sdf-8b condition. Learned: making ElementDefinition.base globally 1..1 would overconstrain differentials.
+- E6 Jira FHIR-15929: Published/Persuasive issue described splitting the StructureDefinition snapshot invariant into independent checks including "All snapshot elements must have a base definition". Learned: later related WG action supports the current separate snapshot invariant representation.
+- E7 Command community search: Zulip/Confluence searches for FHIR-12295 and ElementDefinition.base mandatory found only bot notifications or unrelated/no Confluence references. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12295",
+    "url": "https://jira.hl7.org/browse/FHIR-12295",
+    "snapshot_path": "contexts/FHIR-12295/jira/FHIR-12295.md",
+    "ref": { "jira_key": "FHIR-12295" },
+    "summary": "Published/Persuasive FHIR-I issue requesting ElementDefinition.base be mandatory for tooling consistency and removal of the limiting sentence about non-original element definitions.",
+    "learned": "This establishes the final seed request and the tooling-driven purpose of the change.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:1436-1452",
+    "ref": { "path": "source/datatypes/elementdefinition.xml", "line_start": 1436, "line_end": 1452 },
+    "summary": "ElementDefinition.base is 0..1, the old limiting sentence is gone, and the comment says base information must always be populated in snapshot element definitions.",
+    "learned": "The active ElementDefinition source contains the applied snapshot-level requirement without globally mandating base for every ElementDefinition use.",
+    "supports": ["initial_application", "reconciliation", "source_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/structuredefinition/structuredefinition-StructureDefinition.xml:897-917,943-964",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml", "line_start": 897, "line_end": 964 },
+    "summary": "StructureDefinition.snapshot defines sdf-8b, 'All snapshot elements must have a base definition', with expression element.all(base.exists()), and snapshot.element declares that condition.",
+    "learned": "The current StructureDefinition source enforces mandatory base in the snapshot context needed by tools.",
+    "supports": ["reconciliation", "source_scope", "recommendation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "895710265113b796cb75d13c9abf5cfe4aabf207",
+    "ref": { "commit": "895710265113b796cb75d13c9abf5cfe4aabf207" },
+    "summary": "GF#12295 application commit changed the ElementDefinition.base prose and added the snapshot population statement while leaving ElementDefinition.base cardinality at 0..1.",
+    "learned": "Historical application matches the current contextual implementation and does not support an unqualified 1..1 datatype change.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/structuredefinition/structuredefinition-StructureDefinition.xml:987-1040",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml", "line_start": 987, "line_end": 1040 },
+    "summary": "StructureDefinition.differential.element also uses ElementDefinition but does not carry the sdf-8b base.exists() condition.",
+    "learned": "A global ElementDefinition.base min-cardinality change would incorrectly apply the snapshot-only rule to differentials.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-15929",
+    "url": "https://jira.hl7.org/browse/FHIR-15929",
+    "snapshot_path": "contexts/FHIR-15929/jira/FHIR-15929.md",
+    "ref": { "jira_key": "FHIR-15929" },
+    "summary": "Published/Persuasive issue noting that the StructureDefinition snapshot invariant should be split so 'All snapshot elements must have a base definition' is enforced independently.",
+    "learned": "Related later WG action supports the current separate snapshot base-definition invariant.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-12295 and ElementDefinition.base mandatory",
+    "command": "bun run zulip:search fts '\"ElementDefinition.base\" mandatory' --limit 10; bun run confluence:search refs jira FHIR-12295; bun run confluence:search fts '\"ElementDefinition.base\" mandatory' --limit 10",
+    "query": "FHIR-12295 ElementDefinition.base mandatory",
+    "summary": "Zulip returned only bot tracker/commit notifications and Confluence had no direct FHIR-12295 references; the only FTS page was unrelated minutes text containing 'mandatory'.",
+    "learned": "No substantive community record was found that changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

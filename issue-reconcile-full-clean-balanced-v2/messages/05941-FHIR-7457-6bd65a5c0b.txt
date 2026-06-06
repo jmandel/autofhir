@@ -1,0 +1,98 @@
+FHIR-7457: Audit ConceptMap translate outputs
+
+Issue request:
+FHIR-7457 was a Published/Persuasive with Modification vocabulary issue for the DSTU1 ConceptMap $translate operation. It asked to allow multiple Coding results instead of a single out parameter outcome 0..1 Coding; the accepted resolution was to allow multiple codings for translate, but with no primary marking per FHIR-7454 and no userSelected flag unless a client truly knew the user selected that Coding.
+
+Initial application:
+The Jira comment says the issue was applied in svn revision 5518. The imported git commit b1e826a4b83ef9617115bf221f0df040c5e39951 is titled "#7457 - multiple return values from $translate" and also applies FHIR-7454. In the old ConceptMap spreadsheet it replaced the single translate.outcome shape with repeated translate.match entries, each carrying a translate.match.concept Coding, and added wording that the returned Coding would never have userSelected = true.
+
+Additional context:
+ConceptMap is an active resource in source/fhir.ini, and the current build source for the operation is source/conceptmap/operationdefinition-ConceptMap-translate.xml after later source refactors. That current OperationDefinition returns a 0..* match parameter, states that there may be multiple matches, and has a Coding concept part whose documentation preserves the FHIR-7454-related rule that translate-generated codings are not userSelected. FHIR-7454 is relevant background but was not separately decided here because it is a datatypes-wide Coding issue beyond the ConceptMap $translate source checked for this seed.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current source already implements the issue's semantic requirement through repeated match results rather than the obsolete top-level outcome parameter, and it continues to avoid primary/userSelected marking on translated codings.
+
+Recommendation:
+Keep this no-change audit for FHIR-7457 as-is. No ConceptMap source follow-up is needed for this seed; a separate FHIR-7454 audit, if desired, should inspect the Coding datatype and CodeableConcept guidance independently.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7457
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7454: same-change-family - FHIR-7457's resolution relies on the Coding.primary-to-userSelected decision, which explains why translate results should not mark a primary/user-selected Coding.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7457: Published/Persuasive with Modification; asks ConceptMap $translate to allow multiple Coding outcomes while avoiding primary marking. Learned: this establishes the seed request and final decision.
+- E2 Jira FHIR-7454: Published/Persuasive with Modification; renames Coding.primary to userSelected and allows more than one or none to be flagged by agreement. Learned: this explains the no-primary/no-userSelected part of FHIR-7457's resolution.
+- E3 Git b1e826a4b83ef9617115bf221f0df040c5e39951: imported svn r5518 commit titled for FHIR-7457 and FHIR-7454; the old spreadsheet changed from translate.outcome to translate.match/translate.match.concept with userSelected=false guidance. Learned: the issue was explicitly applied historically.
+- E4 Source source/conceptmap/operationdefinition-ConceptMap-translate.xml:224-244: current $translate output has match 0..* with multiple-match documentation and a Coding concept part that says it would never have userSelected = true. Learned: the current authoritative operation source already conveys the accepted rule.
+- E5 Source source/fhir.ini:1118 and source/fhir.ini:1344: ConceptMap is active and approved in the current build configuration. Learned: the checked OperationDefinition is in build scope through the active ConceptMap resource folder.
+- E6 Command Zulip/Confluence searches for FHIR-7457 and ConceptMap translate primary/userSelected terms: no directly relevant hits. Learned: no discovered community evidence conflicts with the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7457",
+    "url": "https://jira.hl7.org/browse/FHIR-7457",
+    "snapshot_path": "contexts/FHIR-7457/jira/FHIR-7457.md",
+    "ref": { "jira_key": "FHIR-7457" },
+    "summary": "Published/Persuasive with Modification issue requesting multiple Coding results from ConceptMap $translate while avoiding primary marking.",
+    "learned": "This is the final seed decision and defines the target behavior to check in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-7454",
+    "url": "https://jira.hl7.org/browse/FHIR-7454",
+    "snapshot_path": "contexts/FHIR-7454/jira/FHIR-7454.md",
+    "ref": { "jira_key": "FHIR-7454" },
+    "summary": "Published/Persuasive with Modification issue changing Coding.primary to userSelected and clarifying that more than one or none may be flagged.",
+    "learned": "This supporting decision explains why FHIR-7457 should not add primary/userSelected markings to translate results.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "b1e826a4b83ef9617115bf221f0df040c5e39951",
+    "ref": { "commit": "b1e826a4b83ef9617115bf221f0df040c5e39951" },
+    "summary": "Imported svn r5518 commit titled for FHIR-7457 and FHIR-7454 changed the old ConceptMap spreadsheet from translate.outcome to repeatable translate.match entries with Coding concept parts.",
+    "learned": "This confirms the historical application and shows the obsolete outcome parameter became the repeatable match structure used today.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/conceptmap/operationdefinition-ConceptMap-translate.xml:224-244",
+    "ref": { "path": "source/conceptmap/operationdefinition-ConceptMap-translate.xml", "start_line": 224, "end_line": 244 },
+    "summary": "Current $translate output defines match 0..* with multiple-match documentation and a Coding concept part whose documentation says it would never have userSelected = true.",
+    "learned": "The current source already satisfies the multiple-output and no-userSelected semantics requested by the seed.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:1118, source/fhir.ini:1344",
+    "ref": { "path": "source/fhir.ini", "lines": "1118,1344" },
+    "summary": "ConceptMap is active in the resources list and marked approved in the build configuration.",
+    "learned": "The ConceptMap operation source inspected for this audit is part of the current build scope.",
+    "supports": ["source_scope", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-7457 ConceptMap translate outcome primary userSelected",
+    "command": "bun run zulip:search fts '\"FHIR-7457\" ConceptMap translate outcome primary userSelected' --limit 10; bun run zulip:search fts 'ConceptMap translate outcome primary userSelected' --limit 10; bun run confluence:search refs jira FHIR-7457; bun run confluence:search fts '\"FHIR-7457\" ConceptMap translate outcome primary userSelected' --limit 10; bun run confluence:search fts 'ConceptMap translate outcome primary userSelected' --limit 10",
+    "query": "FHIR-7457 ConceptMap translate outcome primary userSelected",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

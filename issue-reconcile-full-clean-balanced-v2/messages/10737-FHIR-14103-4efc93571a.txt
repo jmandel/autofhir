@@ -1,0 +1,108 @@
+FHIR-14103: Correct identifier modifier definition
+
+Issue request:
+FHIR-14103 was Published as Persuasive with Modification for STU3. It asked for logical-reference search support by adding a reference search modifier, :identifier, that matches Reference.identifier, and for the search page to clarify that chaining, reverse chaining, and includes are only defined for references with explicit resolvable reference values rather than logical-only identifiers.
+
+Initial application:
+The issue was initially applied in git-svn commit 50ab308d337b68e176336b281e7179a935140d7a, corresponding to SVN revision 13428, which added :identifier prose and examples to source/search.html. Later search-page work retained and refined that rule, including FHIR-29410/FHIR-37424 identifier-chain clarification and FHIR-45252 non-Reference reference clarification. The current source/search.html text already distinguishes :identifier from chaining and says :identifier searches Reference.identifier.
+
+Additional context:
+The active search page links to the search-modifier-code CodeSystem as the authoritative modifier code system, and the active search-modifier-code ValueSet includes that CodeSystem. The CodeSystem's identifier concept still said the modifier applied to "the identifier on the resource, not the reference," which conflicts with the current search page, the original FHIR-14103 resolution, and later FHIR-29410/FHIR-37424 decisions that .identifier chaining searches the referenced resource while :identifier searches Reference.identifier.
+
+AutoFHIR reconciliation:
+Updated source/searchparameter/codesystem-search-modifier-code.xml so the identifier modifier definition says it applies to Reference.identifier instead of Reference.reference. No broader search-page wording was changed because later applied issues already carry the current chaining/include/canonical guidance.
+
+Recommendation:
+Keep this commit as-is. The edit fixes an active terminology definition that would otherwise mislead implementers about :identifier semantics while preserving later work-group decisions about chaining, includes, and canonical/non-Reference references.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14103
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-29410: later-change - confirms :identifier and .identifier chaining are intentionally distinct and clients may need both searches.
+FHIR-37424: supporting-decision - records the same distinction, explicitly saying one matches Reference.identifier and the other matches References.resolve().identifier.
+FHIR-43073: later-change - clarified search-page language around reference search types and Reference/canonical targets.
+FHIR-45252: later-change - already represented on the combined branch; it supplied the current non-Reference reference wording around chaining, includes, and reverse includes.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14103: Published/Persuasive with Modification issue requested a :identifier reference search modifier and clarified limits for chaining, reverse chaining, and includes with logical references. Learned: the final WG intent is to search Reference.identifier directly, not the referenced resource's identifier.
+- E2 Git 50ab308d337b68e176336b281e7179a935140d7a: GF#14103 / SVN r13428 added :identifier prose and examples to source/search.html. Learned: the seed was applied to the search narrative, but not to the later extracted modifier CodeSystem definition.
+- E3 Source source/search.html:1175 and source/search.html:3439: the current active search page says :identifier tests Reference.identifier rather than Reference.reference and documents the token-style example. Learned: the narrative rule is already correct and should be mirrored by the CodeSystem.
+- E4 Source source/searchparameter/codesystem-search-modifier-code.xml:208: the identifier modifier concept now defines Reference.identifier instead of Reference.reference. Learned: the active terminology surface no longer contradicts the search page.
+- E5 Jira/Zulip FHIR-29410, FHIR-37424, #implementers > :identifier modifier: later decisions and discussion distinguish :identifier from .identifier chaining. Learned: changing the CodeSystem to Reference.identifier is consistent with later clarification and not a reversal.
+- E6 Jira/Git FHIR-45252 and f75650eca9e1eea18b4e20ee07ffd4891c740ea4: later applied work changed the chaining/include wording for non-Reference references and is already on the combined branch. Learned: no additional search.html change is needed for FHIR-14103.
+- E7 Verification command: python XML parse plus git diff --check on source/searchparameter/codesystem-search-modifier-code.xml succeeded. Learned: the edited XML is well-formed and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14103",
+    "url": "https://jira.hl7.org/browse/FHIR-14103",
+    "snapshot_path": "contexts/FHIR-14103/jira/FHIR-14103.md",
+    "ref": { "jira_key": "FHIR-14103" },
+    "summary": "Published/Persuasive with Modification issue requesting a :identifier modifier for reference searches and clearer limits on chaining, reverse chaining, and includes for logical references.",
+    "learned": "The final WG intent is that :identifier matches Reference.identifier directly rather than searching the referenced resource.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "50ab308d337b68e176336b281e7179a935140d7a",
+    "ref": { "commit": "50ab308d337b68e176336b281e7179a935140d7a" },
+    "summary": "GF#14103 / SVN r13428 added :identifier modifier prose and examples to source/search.html.",
+    "learned": "The original application updated the search narrative before the modifier CodeSystem source was extracted and later left stale.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/search.html:1175 and source/search.html:3439",
+    "ref": { "path": "source/search.html", "lines": "1175,3439-3459" },
+    "summary": "The active search page says :identifier tests Reference.identifier rather than Reference.reference and shows the token-style reference identifier search example.",
+    "learned": "The narrative source already has the correct FHIR-14103 semantics and provides the wording model for the CodeSystem fix.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/searchparameter/codesystem-search-modifier-code.xml:208",
+    "ref": { "path": "source/searchparameter/codesystem-search-modifier-code.xml", "line": 208 },
+    "summary": "The identifier concept definition now says the modifier applies to Reference.identifier instead of Reference.reference.",
+    "learned": "The active terminology definition now matches the search page and the Jira resolution.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Later Jira and Zulip checks for identifier modifier semantics",
+    "command": "bun run jira:search snapshot FHIR-29410; bun run jira:search snapshot FHIR-37424; bun run zulip:search snapshot implementers ':identifier modifier'",
+    "query": "FHIR-29410 FHIR-37424 :identifier modifier",
+    "summary": "Later Jira decisions and Zulip discussion distinguish :identifier, which matches Reference.identifier, from .identifier chaining, which searches the resolved referenced resource's identifier.",
+    "learned": "The CodeSystem correction is consistent with later WG clarification and does not collapse the two search behaviors.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "f75650eca9e1eea18b4e20ee07ffd4891c740ea4 / FHIR-45252",
+    "ref": { "commit": "f75650eca9e1eea18b4e20ee07ffd4891c740ea4", "jira_key": "FHIR-45252" },
+    "summary": "FHIR-45252 already clarified the current search.html language around non-Reference references, chaining, includes, and reverse includes.",
+    "learned": "No additional narrative search-page edit is needed for FHIR-14103 beyond fixing the stale modifier CodeSystem definition.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "python - <<'PY' ... ET.parse('source/searchparameter/codesystem-search-modifier-code.xml') ... PY; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/searchparameter/codesystem-search-modifier-code.xml",
+    "summary": "The edited XML parsed successfully and git diff --check reported no whitespace errors.",
+    "learned": "The source edit is syntactically safe for this reconciliation.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

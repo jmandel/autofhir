@@ -1,0 +1,109 @@
+FHIR-13684: Audit date regex year-zero correction
+
+Issue request:
+FHIR-13684 was a Published/Persuasive STU3 FHIR-core datatypes issue reporting that the informative regular expressions for date and dateTime allowed year 0000 and day 00 examples such as 0000-01-00. The accepted resolution was to replace the four-digit year component with a non-zero-year expression in date and in the leading date portion of dateTime, and to align validator behavior.
+
+Initial application:
+The issue was applied in git-svn commit f2b3f28b2ff336fda895e176b2bdb2690ade688b, whose subject explicitly says "#13685 and #13684: validation improvements to date/time regex (leap seconds, year 0)" and whose patch replaced `-?[0-9]{4}` with the current non-zero-year expression for both date and dateTime. The Jira comment records svn revision 12460, matching that commit.
+
+Additional context:
+The current build-scope primitive datatype source is source/datatypes/primitives.xml. source/fhir.ini routes primitive datatype pages to datatypes, and source/datatypes.html renders the date and dateTime regexes with [%regex date%] and [%regex dateTime%]. The historical release files show the old STU3-style `-?[0-9]{4}` regex in release3 and the corrected non-zero-year expression in release4 and later. Later related issue FHIR-52866 asked to simplify this exact year expression with a negative look-ahead, but was resolved No Change because FHIR limits these regexes to widely supported constructs.
+
+AutoFHIR reconciliation:
+Made no source change. The current date and dateTime primitive regexes already use the non-zero-year expression requested by FHIR-13684 and reject 0000, 0000-01, 0000-01-00, and 9999-12-00 while accepting ordinary partial and full dates. The current wording that dates SHALL be valid dates remains the normative guardrail for calendar validity beyond the regex.
+
+Recommendation:
+Keep this audit commit as-is. No core source edit is needed for FHIR-13684; future changes to readability or cross-language regex style should proceed under a new current-version tracker or the already resolved FHIR-52866 discussion rather than reopening the STU3 year-zero correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13684
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13685: same-change-family - co-implemented in the same 2017 regex commit, but it concerns leap-second support rather than year-zero exclusion and is already represented on the combined branch.
+FHIR-14094: same-change-family - related STU3 dateTime schema regex audit already represented on the combined branch; it confirms the same primitive regex source path and later regex context.
+FHIR-52866: later-change - 2025 Resolved - No Change issue proposing to simplify the FHIR-13684 year expression with look-ahead syntax; it confirms the current expression is intentionally retained for portability.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13684: Published/Persuasive STU3 issue asks to stop date and dateTime regexes from allowing year 0000 and day 00 cases. Learned: establishes the final WG request and target behavior for the seed.
+- E2 Source source/datatypes/primitives.xml:182-198: active primitive rows for date and dateTime contain the non-zero-year expression and day range `(0[1-9]|[1-2][0-9]|3[0-1])`. Learned: current authoritative regex source already implements the requested year-zero/day-zero exclusion.
+- E3 Source source/datatypes.html:161-184 and source/fhir.ini:75-85: datatype pages render the date/dateTime regex placeholders and primitive type pages route to datatypes. Learned: the inspected primitive source is in current build scope for the implementer-facing datatype page.
+- E4 Git f2b3f28b2ff336fda895e176b2bdb2690ade688b: 2017 git-svn commit explicitly references #13684/#13685 and changes the date/dateTime regexes from `-?[0-9]{4}` to the non-zero-year expression. Learned: identifies the original application matching Jira's svn revision 12460 comment.
+- E5 Source tools/history/release3/profiles-types.xml and tools/history/release4/profiles-types.xml: release3 contains the old `-?[0-9]{4}` regex while release4 contains the corrected non-zero-year expression. Learned: confirms the change crossed the publication boundary after STU3.
+- E6 Zulip #implementers > date regular expression and #implementers > Simplify date/datetime regex?: the 2017 thread led directly to FHIR-13684, and the 2025 thread led to FHIR-52866's no-change simplification decision. Learned: community evidence supports both the original correction and retaining the current portable expression.
+- E7 Command search/test: Confluence refs/FTS found no FHIR-13684 minutes, and parsing source/datatypes/primitives.xml confirmed date/dateTime reject 0000, 0000-01, 0000-01-00, and 9999-12-00 while accepting 2017, 2017-01, and 2017-01-31. Learned: no discovered community record changes the Jira/source conclusion, and current regex behavior satisfies the issue request.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13684",
+    "url": "https://jira.hl7.org/browse/FHIR-13684",
+    "snapshot_path": "contexts/FHIR-13684/jira/FHIR-13684.md",
+    "ref": { "jira_key": "FHIR-13684" },
+    "summary": "Published/Persuasive STU3 issue requesting date and dateTime regex changes so year 0000 and day 00 values are not accepted.",
+    "learned": "This establishes the final WG request and the expected behavior to verify in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:182-198",
+    "ref": { "path": "source/datatypes/primitives.xml", "lines": "182-198" },
+    "summary": "The active date and dateTime primitive rows use the non-zero-year expression and exclude day 00 in the day component.",
+    "learned": "The authoritative primitive regex source already implements the requested year-zero and day-zero correction.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes.html:161-184; source/fhir.ini:75-85",
+    "ref": { "path": "source/datatypes.html", "lines": "161-184" },
+    "summary": "The datatype page renders date/dateTime regex placeholders, and primitive type pages route to datatypes.",
+    "learned": "The inspected primitive spreadsheet is in the current build path for the public datatype regex surface.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "f2b3f28b2ff336fda895e176b2bdb2690ade688b",
+    "ref": { "commit": "f2b3f28b2ff336fda895e176b2bdb2690ade688b" },
+    "summary": "The 2017 git-svn commit explicitly references #13684/#13685 and replaces `-?[0-9]{4}` with the non-zero-year expression for date and dateTime.",
+    "learned": "This is the original application corresponding to Jira's svn revision 12460 comment.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "tools/history/release3/profiles-types.xml; tools/history/release4/profiles-types.xml",
+    "ref": { "path": "tools/history/release4/profiles-types.xml", "lines": "1376,1544" },
+    "summary": "The checked historical release artifacts show the old regex in release3 and the corrected non-zero-year expression in release4.",
+    "learned": "The FHIR-13684 change was reflected after STU3 and remains present in later release history.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > date regular expression; #implementers > Simplify date/datetime regex?",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/date%20regular%20expression",
+    "ref": { "stream": "implementers", "topic": "date regular expression" },
+    "summary": "The 2017 thread created FHIR-13684 after confirming year 0000 was not intended, and the 2025 thread concluded look-ahead syntax should not replace the current expression.",
+    "learned": "Community discussion supports the original correction and reveals no later reason to change the current portable regex.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Confluence search and current regex validation",
+    "command": "bun run confluence:search refs jira FHIR-13684; bun run confluence:search fts '\"FHIR-13684\" \"date regex\"' --limit 10; python3 parse source/datatypes/primitives.xml date/dateTime rows",
+    "query": "FHIR-13684 date regex 0000",
+    "result_count": 0,
+    "summary": "No directly relevant Confluence records were found, and regex validation confirmed the current date/dateTime expressions reject the reported invalid values while accepting ordinary valid dates.",
+    "learned": "No discovered community record changes the Jira/source conclusion, and current regex behavior satisfies the issue request.",
+    "supports": ["absence_of_conflict", "verification"]
+  }
+]
+</evidence-manifest>

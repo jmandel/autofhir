@@ -1,0 +1,122 @@
+FHIR-20994: Audit Account parent cardinality
+
+Issue request:
+FHIR-20994 was Published/Persuasive for R5 and asked to change Account.partOf cardinality from 0..1 to 0..* so an account could be part of multiple related parent accounts.
+
+Initial application:
+The request was not applied as a direct Account.partOf max-cardinality edit. The linked R5 tracker FHIR-20997 explicitly said it would overwrite FHIR-20994 and was implemented by git commit ebc4150af999256bac52f7e2db925c9804a829d9, which replaced Account.partOf with Account.relatedAccount 0..* carrying relationship and account children.
+
+Additional context:
+The current R6 source is governed by later Applied/Persuasive-with-Modification tracker FHIR-44682. That decision found Account.relatedAccount problematic and resolved to split the two supported cases into Account.parent 0..1 and Account.guarantor.account 0..1. Git commit 8b7413dafcb1d98ad5db1460c978d1c6295e2a91 applied that model. Current fhir.ini keeps Account active and maps the old Account.partOf name to Account.parent, while the R5-to-R6 notes say Account.relatedAccount moved to guarantor or parent depending on relationship type. Confluence minutes show PA/FM revisited this relationship model in 2024-2025 and approved FHIR-44682; Zulip searches found no conflicting seed-specific decision.
+
+AutoFHIR reconciliation:
+This audit intentionally makes no source change. The active Account StructureDefinition currently has Account.parent with max 1 and no Account.relatedAccount element, matching the later R6 decision rather than the superseded R5 relatedAccount model. Reintroducing Account.partOf 0..* or changing Account.parent to 0..* would contradict FHIR-44682.
+
+Recommendation:
+Keep this no-change audit. If implementers need multiple parent-account links in R6, that should be raised as a new PA/FM tracker because the current source already reflects the later decision that superseded FHIR-20994's original cardinality request.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20994
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-20997: supersedes - R5 tracker that explicitly overwrote FHIR-20994 by replacing Account.partOf with Account.relatedAccount 0..*.
+FHIR-44682: later-change - R6 tracker that replaced Account.relatedAccount with Account.parent 0..1 and Account.guarantor.account.
+FHIR-31366: background - separate Account partOf/parent search-parameter issue already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20994: Published/Persuasive R5 request to change Account.partOf from 0..1 to 0..*. Learned: this is the seed request, but a later comment says it was superseded by the linked tracker.
+- E2 Jira FHIR-20997: Published/Persuasive tracker says it will overwrite FHIR-20994 by replacing Account.partOf with Account.relatedAccounts 0..* plus relationship and account. Learned: the approved R5 application path was a broader related-account backbone, not a direct partOf cardinality edit.
+- E3 Git ebc4150af999256bac52f7e2db925c9804a829d9: commit message names both FHIR-20997 and FHIR-20994 and replaces Account.partOf with Account.relatedAccount. Learned: source history confirms how FHIR-20994 was initially applied.
+- E4 Jira FHIR-44682: Applied/Persuasive with Modification for R6 resolves to add Account.guarantor.account and update Account.relatedAccount to Account.parent 0..1. Learned: later final WG intent narrows the current parent relationship back to a single Account reference.
+- E5 Git 8b7413dafcb1d98ad5db1460c978d1c6295e2a91: implements FHIR-44682 by removing relatedAccount examples/tests and adding guarantor.account while converting the relationship search parameter. Learned: the R6 source change was intentional and broad, not an accidental omission.
+- E6 Source source/fhir.ini:263,1563,2081-2084 and source/account/structuredefinition-Account.xml:683-688: Account is active, Account.partOf maps to Account.parent, R5 relatedAccount maps to parent/guarantor, and current Account.parent has max 1. Learned: the active current build source matches the later R6 mapping model.
+- E7 Confluence PA minutes 2024-12-03 and 2025-03-11: PA/FM discussion re-opened FHIR-44682, noted FHIR-20997/FHIR-20994 history and migration concerns, then approved FHIR-44682 7-0-0. Learned: meeting evidence supports treating FHIR-44682 as the current controlling decision.
+- E8 Verification/community commands: xmllint parsed Account XML files, rg confirmed Account.parent/source mappings, diff --check passed, and Zulip searches for FHIR-20994/FHIR-20997/FHIR-44682 Account relationship terms found no conflicting seed-specific discussion. Learned: no source or community evidence requires changing current Account.parent cardinality.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20994",
+    "url": "https://jira.hl7.org/browse/FHIR-20994",
+    "snapshot_path": "contexts/FHIR-20994/jira/FHIR-20994.md",
+    "ref": { "jira_key": "FHIR-20994" },
+    "summary": "Published/Persuasive R5 request to change Account.partOf cardinality from 0..1 to 0..* for multiple related parent accounts.",
+    "learned": "This establishes the seed request, while its later comment says the requirement was superseded by another tracker.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-20997",
+    "url": "https://jira.hl7.org/browse/FHIR-20997",
+    "snapshot_path": "contexts/FHIR-20994/jira/FHIR-20997.md",
+    "ref": { "jira_key": "FHIR-20997" },
+    "summary": "Published/Persuasive R5 tracker to represent non-parent Account relationships using Account.relatedAccounts 0..* with relationship and account children.",
+    "learned": "It explicitly says it overwrites FHIR-20994, explaining why the seed was not applied as a simple partOf cardinality change.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "ebc4150af999256bac52f7e2db925c9804a829d9",
+    "ref": { "commit": "ebc4150af999256bac52f7e2db925c9804a829d9" },
+    "summary": "Source commit named FHIR-20997 and FHIR-20994 and replaced Account.partOf with Account.relatedAccount in Account source.",
+    "learned": "The historical implementation path for FHIR-20994 was the relatedAccount backbone.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-44682",
+    "url": "https://jira.hl7.org/browse/FHIR-44682",
+    "snapshot_path": "contexts/FHIR-20994/jira/FHIR-44682.md",
+    "ref": { "jira_key": "FHIR-44682" },
+    "summary": "Applied/Persuasive with Modification R6 tracker resolving that Account.relatedAccount should become Account.parent 0..1 and Account.guarantor.account 0..1.",
+    "learned": "This later final decision controls current R6 source and supersedes the broader R5 relatedAccount model.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "8b7413dafcb1d98ad5db1460c978d1c6295e2a91",
+    "ref": { "commit": "8b7413dafcb1d98ad5db1460c978d1c6295e2a91" },
+    "summary": "Implementation commit for FHIR-44682 removed relatedAccount usages and updated Account source toward parent and guarantor.account.",
+    "learned": "The current one-parent source shape is an intentional later implementation, not an accidental regression of FHIR-20994.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:263,1563,2081-2084; source/account/structuredefinition-Account.xml:683-688",
+    "summary": "Account is active in the build; R4 Account.partOf maps to Account.parent; R5 Account.relatedAccount maps to parent or guarantor; current Account.parent has max 1.",
+    "learned": "The active source already reflects the later R6 Account relationship model.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "PA minutes 2024-12-03 page 288396792 and 2025-03-11 page 324965270",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/288396792/2024-12-03+Conference+Call+Minutes",
+    "snapshot_path": "contexts/FHIR-20994/confluence/288396792.md",
+    "ref": { "confluence_page_id": 288396792 },
+    "summary": "PA minutes revisited FHIR-44682, cited FHIR-20997/FHIR-20994 and migration from partOf to parent-related account, and later minutes record approval of FHIR-44682 7-0-0.",
+    "learned": "Meeting evidence supports using FHIR-44682 as the current controlling decision.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Source verification and community search",
+    "command": "xmllint --noout source/account/structuredefinition-Account.xml source/account/bundle-Account-search-params.xml source/account/codesystem-account-relationship.xml source/account/valueset-account-relationship.xml; rg -n 'account=Account|Account.partOf=@Account.parent|Account.parent=\\+copy|Account.relatedAccount=->' source/fhir.ini; rg -n 'Account.parent|Account-parent' source/account; bun run zulip:search fts '\"FHIR-20994\" Account partOf' --limit 10; bun run zulip:search fts '\"FHIR-44682\" Account relatedAccount' --limit 10",
+    "query": "FHIR-20994/FHIR-20997/FHIR-44682 Account partOf relatedAccount parent",
+    "summary": "Account XML parsed, source mappings were present, whitespace check passed, and Zulip searches found no conflicting seed-specific relationship decision.",
+    "learned": "No verification or community evidence indicates that current Account.parent cardinality needs to change.",
+    "supports": ["verification", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

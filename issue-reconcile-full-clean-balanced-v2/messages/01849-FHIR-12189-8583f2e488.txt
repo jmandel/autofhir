@@ -1,0 +1,116 @@
+FHIR-12189: Audit ImagingStudy procedure split
+
+Issue request:
+FHIR-12189 was a Published/Persuasive with Modification DSTU2 Imaging Integration change request to clarify ImagingStudy.procedure by renaming the original procedure element to procedureReference, adding a separate procedureCode CodeableConcept with ProcedureCodeSequence as an alternate name and an example LOINC/RSNA Radiology Playbook binding, and adding a procedureCode search parameter with a note that Procedure.code is not searched.
+
+Initial application:
+The issue appears to have been applied in commit d6c6d61a72, whose subject explicitly references GF#12189. That commit changed the historical ImagingStudy spreadsheet source from ImagingStudy.procedure to ImagingStudy.procedureReference, added ImagingStudy.procedureCode with ImagingProcedureCode binding metadata, and updated related ImagingStudy narrative/examples. The current source no longer carries those old spreadsheet files, but the history shows the DSTU2 request was applied before later resource redesigns.
+
+Additional context:
+Later final ImagingStudy decisions changed the representation that FHIR-12189 introduced. FHIR-17427 clarified the procedureReference description, FHIR-19637 replaced procedureCode/procedureReference with a repeating procedure construct to support multiple performed procedures, FHIR-20166 updated the ImagingProcedureCode binding target while procedure codes were still represented, and FHIR-53025 now establishes the current R6 design: ImagingStudy.procedure is a repeating Reference(Procedure) for performed procedures, with the procedure search parameter targeting ImagingStudy.procedure. The current build actively includes ImagingStudy, and source/fhir.ini records the historical procedureCode/procedureReference merge into procedure.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current authoritative ImagingStudy StructureDefinition has ImagingStudy.procedure 0..* Reference(Procedure), the active procedure search parameter points at ImagingStudy.procedure, and no active ImagingStudy.procedureCode or ImagingStudy.procedureReference element remains to update. Reintroducing the literal DSTU2 split would conflict with later accepted ImagingStudy decisions and already-published related reconciliations.
+
+Recommendation:
+Keep this audit commit as-is. Do not restore the obsolete procedureCode/procedureReference split in current core; any future desire to search performed procedure codes should be handled through a new current-version work-group decision rather than by replaying the DSTU2 wording.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12189
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17427: same-change-family - later clarified the old procedureReference description before the element was redesigned.
+FHIR-19637: later-change - replaced procedureCode/procedureReference with repeating procedure content to support multiple performed procedures; an audit commit for this issue is already on the combined branch.
+FHIR-20166: same-change-family - updated the ImagingProcedureCode value set target while procedureCode/codeable procedure content was still current.
+FHIR-53025: later-change - establishes the current R6 ImagingStudy.procedure Reference(Procedure) design and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12189: Published/Persuasive with Modification issue requesting procedureReference, procedureCode, an ImagingProcedureCode example binding, and a procedureCode search parameter. Learned: this is the seed's final historical request.
+- E2 Git d6c6d61a72: commit explicitly referencing GF#12189 changed the historical ImagingStudy spreadsheet from procedure to procedureReference and added procedureCode. Learned: the seed had an initial source application.
+- E3 Source source/imagingstudy/structuredefinition-ImagingStudy.xml:417: current active ImagingStudy.procedure is 0..* Reference(Procedure) with performed-procedure wording. Learned: the current authoritative element reflects the later performed-procedure design, not the old split.
+- E4 Source source/imagingstudy/bundle-ImagingStudy-search-params.xml:399: current procedure search parameter is a reference search over ImagingStudy.procedure. Learned: the active search surface matches the current element.
+- E5 Source source/fhir.ini:1820 and source/fhir.ini:2776: version-diff mappings record procedureCode/procedureReference being merged into procedure and the older procedure-to-procedureReference mapping. Learned: the source history explicitly tracks the representation changes that explain the current shape.
+- E6 Jira FHIR-19637 and FHIR-53025: later final decisions changed the FHIR-12189 split into a repeated procedure representation and then into the current Reference(Procedure) procedure element. Learned: current source should be judged against later decisions rather than literal DSTU2 wording.
+- E7 Community search: quoted Zulip and Confluence searches for FHIR-12189 plus ImagingStudy procedure terms found no directly relevant or conflicting records. Learned: no discovered community record changes the Jira/source/history conclusion.
+- E8 Verification command: xmllint parsed the active ImagingStudy XML sources, targeted rg found ImagingStudy.procedure 0..* Reference(Procedure) and the matching procedure search parameter, and targeted rg found no active procedureCode/procedureReference elements in ImagingStudy source. Learned: the no-change decision matches current build source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12189",
+    "url": "https://jira.hl7.org/browse/FHIR-12189",
+    "snapshot_path": "contexts/FHIR-12189/jira/FHIR-12189.md",
+    "ref": { "jira_key": "FHIR-12189" },
+    "summary": "Published/Persuasive with Modification ImagingStudy issue requesting procedureReference, procedureCode, an ImagingProcedureCode example binding, and a procedureCode search parameter.",
+    "learned": "This establishes the seed's final historical request.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "d6c6d61a72",
+    "ref": { "commit": "d6c6d61a72" },
+    "summary": "Commit explicitly referencing GF#12189 changed the historical ImagingStudy spreadsheet from procedure to procedureReference and added procedureCode with ImagingProcedureCode binding metadata.",
+    "learned": "FHIR-12189 was initially applied before later ImagingStudy redesigns.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/imagingstudy/structuredefinition-ImagingStudy.xml:417",
+    "summary": "The current active StructureDefinition defines ImagingStudy.procedure as 0..* Reference(Procedure) with performed-procedure wording.",
+    "learned": "The authoritative current element reflects a later accepted design, not the obsolete DSTU2 split.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/imagingstudy/bundle-ImagingStudy-search-params.xml:399",
+    "summary": "The active procedure search parameter is a reference search with expression ImagingStudy.procedure.",
+    "learned": "The current search surface matches the current procedure element.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:1820; source/fhir.ini:2776",
+    "summary": "Version-diff mappings record procedureCode/procedureReference being merged into procedure and the older procedure-to-procedureReference mapping.",
+    "learned": "The source configuration explains why the current build no longer has active procedureCode/procedureReference elements.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-19637 and FHIR-53025",
+    "url": "https://jira.hl7.org/browse/FHIR-53025",
+    "summary": "Later final ImagingStudy decisions replaced the old procedureCode/procedureReference split with repeated procedure content and ultimately the current R6 ImagingStudy.procedure Reference(Procedure) design.",
+    "learned": "Current source should be judged against the later accepted design rather than literal DSTU2 wording.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-12189 ImagingStudy procedure",
+    "command": "bun run zulip:search fts '\"FHIR-12189\" ImagingStudy procedure' --limit 10; bun run zulip:search fts 'ImagingStudy procedureReference procedureCode' --limit 10; bun run confluence:search refs jira FHIR-12189; bun run confluence:search fts '\"FHIR-12189\" ImagingStudy procedure' --limit 10",
+    "query": "FHIR-12189 ImagingStudy procedure; ImagingStudy procedureReference procedureCode",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence records were found for the seed issue and procedure split terms.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted current-source verification",
+    "command": "xmllint --noout source/imagingstudy/structuredefinition-ImagingStudy.xml source/imagingstudy/bundle-ImagingStudy-search-params.xml source/imagingstudy/imagingstudy-notes.xml; rg -n '<element id=\"ImagingStudy\\.procedure\"|<path value=\"ImagingStudy\\.procedure\"|<max value=\"\\*\"|<code value=\"Reference\"|targetProfile value=\"http://hl7.org/fhir/StructureDefinition/Procedure\"' source/imagingstudy/structuredefinition-ImagingStudy.xml; rg -n 'ImagingStudy-procedure|<code value=\"procedure\"|<type value=\"reference\"|<expression value=\"ImagingStudy\\.procedure\"' source/imagingstudy/bundle-ImagingStudy-search-params.xml; ! rg -n '<element id=\"ImagingStudy\\.procedure(Code|Reference)\"|<path value=\"ImagingStudy\\.procedure(Code|Reference)\"' source/imagingstudy",
+    "summary": "The active XML parsed; ImagingStudy.procedure and its search parameter were found; no active old procedureCode/procedureReference elements were found in ImagingStudy source.",
+    "learned": "The no-change decision matches current build source.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,128 @@
+FHIR-32295: Audit Slot eligibility search support
+
+Issue request:
+FHIR-32295 was a Published FHIR-core Slot change request, resolved Persuasive with Modification for R5, asking how Slot availability could express eligibility or constraints such as insurance plan, sex, or size requirements. The approved resolution chose not to add eligibility fields directly to Slot; instead, Slot.serviceType would reference HealthcareService and HealthcareService would be searchable by eligibility and characteristic for chained Slot discovery.
+
+Initial application:
+The resolution was applied in two steps. FHIR-22687 first changed Slot.serviceType to CodeableReference(HealthcareService) and added the Slot service-type-reference search parameter in commit fb45d82237b60ab7d01a326d649ba620e6a26e87. FHIR-32295 then added the HealthcareService eligibility search parameter in commit 4cb0d550b72c100c3e9e5c441590e37980d0751f; HealthcareService.characteristic search support was already present.
+
+Additional context:
+source/fhir.ini actively includes both Slot and HealthcareService as PA-owned resources in the current build. The linked Zulip scheduling discussion supports the FHIR-22687 serviceType/HealthcareService modeling direction. PA minutes in May and September 2022 record that FHIR-32295 was handled through the HealthcareService catalog updates and voted Persuasive with Modification. Later FHIR-39127 reported that this did not satisfy every Slot-level eligibility use case, but PA resolved that later issue as Resolved - No Change and recommended a local Slot extension rather than a core Slot element. FHIR-41782 later expanded HealthcareService.eligibility itself, reinforcing that eligibility remains modeled on HealthcareService.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already provides the approved chain: Slot.serviceType.reference points to HealthcareService, Slot has service-type-reference for reference search, and HealthcareService has eligibility and characteristic token search parameters.
+
+Recommendation:
+Keep this audit commit as-is. Do not add redundant Slot-level eligibility prose or elements for FHIR-32295; any project needing Slot-specific constraints beyond HealthcareService can follow the later FHIR-39127 guidance and use a local extension unless PA makes a new core change.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32295
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-22687: same-change-family - made Slot.serviceType a CodeableReference to HealthcareService and added the reference search parameter used by the FHIR-32295 chain.
+FHIR-39127: later-change - reopened the same Slot-level eligibility concern after R5, but PA resolved it Resolved - No Change with local extension guidance rather than changing core Slot.
+FHIR-41782: supporting-decision - later expanded HealthcareService.eligibility, confirming the eligibility model remains on HealthcareService.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32295: Published/Persuasive with Modification; requested Slot eligibility/constraints and resolved to HealthcareService eligibility/characteristic chained search through Slot.serviceType. Learned: establishes final WG intent and the target source behavior.
+- E2 Source source/fhir.ini:170-239,560-629,1378-1435: Slot and HealthcareService are active PA resources in the current build. Learned: the inspected source files are in build scope.
+- E3 Source source/slot/structuredefinition-Slot.xml:128-137 and source/slot/bundle-Slot-search-params.xml:103-115: Slot.serviceType is CodeableReference(HealthcareService) and has service-type-reference over Slot.serviceType.reference. Learned: Slot can reference HealthcareService and expose that reference for chained search.
+- E4 Source source/healthcareservice/bundle-HealthcareService-search-params.xml:27-57 and source/healthcareservice/structuredefinition-HealthcareService.xml:390-461: HealthcareService has characteristic and eligibility search parameters and the eligibility backbone. Learned: HealthcareService supports the search surface required by the FHIR-32295 resolution.
+- E5 Git fb45d82237b60ab7d01a326d649ba620e6a26e87 and 4cb0d550b72c100c3e9e5c441590e37980d0751f: FHIR-22687 added Slot.serviceType CodeableReference/search support; FHIR-32295 added the HealthcareService eligibility search parameter. Learned: the current source has explicit implementation history for the Jira resolution.
+- E6 Zulip #implementers > Scheduling Service Type Representation: September 2021 discussion considered using HealthcareService as the schedulable service resource and links to FHIR-22687. Learned: community context supports the modeling path used by the Jira resolution.
+- E7 Confluence PA minutes 2022 May/September and 2023-05-31: May notes say FHIR-32295 was handled by HealthcareService catalog updates and Slot/Schedule serviceType references; September notes record a 3-0-0 Persuasive with Modification vote; 2023 notes identify the later Slot-specific concern that became local-extension guidance. Learned: minutes confirm the current source is the intended core-spec path and later concerns did not supersede it.
+- E8 Jira FHIR-39127 and FHIR-41782: FHIR-39127 was Resolved - No Change with local Slot extension guidance; FHIR-41782 later expanded HealthcareService.eligibility. Learned: later related decisions do not require changing Slot for FHIR-32295.
+- E9 Verification command/query: rg checks found HealthcareService-eligibility, HealthcareService-characteristic, Slot-service-type-reference, and Slot.serviceType.reference in current source; combined-branch grep found no existing FHIR-32295 audit commit. Learned: publishing this empty audit commit is necessary and non-duplicative.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32295",
+    "url": "https://jira.hl7.org/browse/FHIR-32295",
+    "snapshot_path": "contexts/FHIR-32295/jira/FHIR-32295.md",
+    "ref": { "jira_key": "FHIR-32295" },
+    "summary": "Published/Persuasive with Modification issue asking for Slot eligibility/constraints support and resolving to HealthcareService eligibility/characteristic chained search through Slot.serviceType.",
+    "learned": "This establishes the approved target behavior for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-239,560-629,1378-1435",
+    "summary": "Slot and HealthcareService are active resources, assigned to PA, and marked approved in the current build configuration.",
+    "learned": "The inspected Slot and HealthcareService source files are in build scope.",
+    "supports": ["additional_context", "source_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/slot/structuredefinition-Slot.xml:128-137; source/slot/bundle-Slot-search-params.xml:103-115",
+    "summary": "Slot.serviceType is CodeableReference targeting HealthcareService and Slot has a service-type-reference search parameter over Slot.serviceType.reference.",
+    "learned": "Slot exposes the HealthcareService reference needed for chained Slot discovery.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/healthcareservice/bundle-HealthcareService-search-params.xml:27-57; source/healthcareservice/structuredefinition-HealthcareService.xml:390-461",
+    "summary": "HealthcareService defines characteristic and eligibility search parameters and the eligibility backbone element.",
+    "learned": "The current source provides the HealthcareService search surface requested by FHIR-32295.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "fb45d82237b60ab7d01a326d649ba620e6a26e87; 4cb0d550b72c100c3e9e5c441590e37980d0751f",
+    "ref": { "commit_1": "fb45d82237b60ab7d01a326d649ba620e6a26e87", "commit_2": "4cb0d550b72c100c3e9e5c441590e37980d0751f" },
+    "summary": "FHIR-22687 added Slot.serviceType CodeableReference/search support and FHIR-32295 added HealthcareService eligibility search support.",
+    "learned": "The issue resolution was explicitly implemented in source history.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Scheduling Service Type Representation",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Scheduling%20Service%20Type%20Representation",
+    "snapshot_path": "contexts/FHIR-32295/zulip/implementers--Scheduling-Service-Type-Representation.md",
+    "ref": { "stream": "implementers", "topic": "Scheduling Service Type Representation" },
+    "summary": "The linked September 2021 thread discussed representing schedulable services with HealthcareService and pointed to FHIR-22687.",
+    "learned": "Community discussion supports the modeling premise used by FHIR-32295.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "PA minutes 2022 May, 2022 September, and 2023-05-31",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/139659113/2022+September+WGM+-+Patient+Administration",
+    "snapshot_path": "contexts/FHIR-32295/confluence/139659113.md",
+    "ref": { "confluence_page_id": 139659113 },
+    "summary": "PA minutes record FHIR-32295 as handled by HealthcareService catalog/serviceType updates and later voted Persuasive with Modification; 2023 minutes describe a later Slot-specific concern.",
+    "learned": "Meeting evidence confirms the current core path and shows later Slot-level concerns did not change this resolution.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-39127; FHIR-41782",
+    "url": "https://jira.hl7.org/browse/FHIR-39127",
+    "ref": { "jira_key_1": "FHIR-39127", "jira_key_2": "FHIR-41782" },
+    "summary": "FHIR-39127 was later Resolved - No Change with local Slot extension guidance; FHIR-41782 expanded HealthcareService.eligibility.",
+    "learned": "Later related Jira decisions do not require a FHIR-32295 source change.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Current source and idempotency checks",
+    "command": "rg -n 'HealthcareService-eligibility|HealthcareService-characteristic|Slot-service-type-reference|Slot.serviceType.reference' source/healthcareservice/bundle-HealthcareService-search-params.xml source/slot/bundle-Slot-search-params.xml source/slot/structuredefinition-Slot.xml; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-32295' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "The current source contains the required search surfaces, and the combined branch had no existing FHIR-32295 reconciliation commit.",
+    "learned": "An empty no-change audit commit is appropriate and non-duplicative.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

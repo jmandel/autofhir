@@ -1,0 +1,116 @@
+FHIR-10481: Audit QuestionnaireResponse recursion model
+
+Issue request:
+FHIR-10481 was Published with a Not Persuasive with Modification resolution. It asked to collapse QuestionnaireResponse nesting to a single recursion point by eliminating QuestionnaireResponse.item.answer.item; the approved disposition rejected that removal because items must be able to nest under answers for repeating questions and under items for groups, and called for an invariant preventing item and answer from appearing together.
+
+Initial application:
+Git 9f82d09805 applied the issue in the historical spreadsheet source by adding the QuestionnaireResponse.item invariant with expression (answer.exists() and item.exists()).not(). The current XML StructureDefinition, produced after later source refactors, still contains qrs-1 with the same rule and applies it to QuestionnaireResponse.item.answer.
+
+Additional context:
+Later final issues in the same family did not reverse FHIR-10481. FHIR-12071, FHIR-20768, FHIR-31357, and FHIR-38853 added or refined guidance explaining that item.item is for groups and item.answer.item is for child items under question answers. QuestionnaireResponse remains active in source/fhir.ini, and both the 2016 origin Zulip thread and later Questionnaire stream discussion document the same rationale and confusion addressed by the current guidance.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. The current source preserves both recursion points, carries the qrs-1 invariant required by FHIR-10481, and includes later explanatory guidance that makes the retained model understandable.
+
+Recommendation:
+Keep this audit commit as-is. Do not remove QuestionnaireResponse.item.answer.item for FHIR-10481; any future simplification would require a new work-group decision because it would alter the approved nesting semantics for repeated question answers.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-10481
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12071: same-change-family - later Published clarification requested explicit guidance differentiating the two nesting approaches.
+FHIR-20768: same-change-family - later Published request again asked to remove item.answer.item but resolved to add clearer guidance.
+FHIR-31357: later-change - Published issue added the current QuestionnaireResponse narrative guidance about nested questions.
+FHIR-38853: later-change - Published issue refined repeating-group wording while preserving the same nesting model.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-10481: Published/Not Persuasive with Modification issue asking to eliminate QuestionnaireResponse.item.answer.item, with resolution explaining why both recursion points are needed and calling for an invariant. Learned: final WG intent was no removal plus qrs-1-style validation.
+- E2 Zulip #implementers > Nested QuestionnaireResposne items: 2016 origin discussion linked from Jira records the confusion, Lloyd McKenzie's repeated-question example, and the suggestion to add a constraint. Learned: the Jira request and resolution match the documented rationale.
+- E3 Git 9f82d09805: historical application commit added the QuestionnaireResponse.item invariant expression (answer.exists() and item.exists()).not(). Learned: the issue was applied to source history.
+- E4 Source source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:391-394,496: current qrs-1 says Item cannot contain both item and answer and is referenced by answer. Learned: the approved invariant survives in current source.
+- E5 Source source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:384,566-584 and questionnaireresponse-notes.xml:74-82: current comments and narrative explain group versus question-answer nesting. Learned: later guidance closes the clarity gap without changing the model.
+- E6 Jira FHIR-20768/FHIR-12071/FHIR-31357/FHIR-38853: later final issues repeatedly clarify, rather than remove, the two-recursion-point design. Learned: no later final decision found in this bounded trail supersedes FHIR-10481.
+- E7 Zulip #questionnaire > QuestionnaireResponse item.item vs item.answer.item: 2024 discussion restates the repeating-answer use case and notes clearer R5 documentation. Learned: community context remains aligned with the current source.
+- E8 Verification command/query: combined-branch idempotency checks found no existing Issue-Reconcile-Key for FHIR-10481, while related FHIR-12071, FHIR-31357, FHIR-6906, and FHIR-38853 are already represented. Learned: publishing this audit does not duplicate an existing reconciliation commit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-10481",
+    "url": "https://jira.hl7.org/browse/FHIR-10481",
+    "ref": { "jira_key": "FHIR-10481" },
+    "summary": "Published/Not Persuasive with Modification issue asking to eliminate QuestionnaireResponse.item.answer.item but resolving to keep both recursion points and add an invariant.",
+    "learned": "The final decision was to preserve answer-level nesting for repeating questions while preventing item and answer from being present together.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Nested QuestionnaireResposne items",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Nested%20QuestionnaireResposne%20items",
+    "ref": { "stream": "implementers", "topic": "Nested QuestionnaireResposne items" },
+    "summary": "The 2016 thread linked from Jira discusses why two recursion points were confusing and includes Lloyd McKenzie's example showing answer-specific child questions.",
+    "learned": "The community rationale aligns with the Jira resolution and the retained model.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "9f82d09805",
+    "ref": { "commit": "9f82d098055987a7913dff68e7a1dcd0ae199932" },
+    "summary": "#10481 - QuestionnaireResponse invariant for nested items added the expression (answer.exists() and item.exists()).not() to the historical spreadsheet source.",
+    "learned": "The invariant requested by the FHIR-10481 resolution was applied in source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:391-394,496",
+    "summary": "Current qrs-1 says Item cannot contain both item and answer and uses (answer.exists() and item.exists()).not().",
+    "learned": "The FHIR-10481 invariant remains present in the authoritative current StructureDefinition.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:384,566-584; source/questionnaireresponse/questionnaireresponse-notes.xml:74-82",
+    "summary": "Current source explains that groups use item.item and questions nest child items inside each answer using item.answer.item.",
+    "learned": "The retained model is now explained in both definitions and narrative guidance.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-12071, FHIR-20768, FHIR-31357, FHIR-38853",
+    "url": "https://jira.hl7.org/browse/FHIR-20768",
+    "summary": "Later final issues in the same QuestionnaireResponse nesting family clarified item.item versus item.answer.item instead of removing either recursion point.",
+    "learned": "No later final issue in the bounded trail supersedes the FHIR-10481 model.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#questionnaire > QuestionnaireResponse item.item vs item.answer.item",
+    "url": "https://chat.fhir.org/#narrow/stream/questionnaire/topic/QuestionnaireResponse%20item.item%20vs%20item.answer.item",
+    "ref": { "stream": "questionnaire", "topic": "QuestionnaireResponse item.item vs item.answer.item" },
+    "summary": "A 2024 thread restates the use case for child questions under each answer and notes that R5 has clearer documentation.",
+    "learned": "Later community discussion supports the current no-change conclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Combined-branch idempotency checks for related QuestionnaireResponse nesting issues",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-10481' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; for key in FHIR-12071 FHIR-31357 FHIR-6906 FHIR-38853; do git log --fixed-strings --grep=\"Issue-Reconcile-Key: $key\" --format='%H %s' -n 3 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; done",
+    "summary": "No existing FHIR-10481 reconciliation commit was found, while related FHIR-12071, FHIR-31357, FHIR-6906, and FHIR-38853 commits already exist.",
+    "learned": "This opportunistic audit is not a duplicate and should not republish already-decided related issues.",
+    "supports": ["idempotency", "confidence"]
+  }
+]
+</evidence-manifest>

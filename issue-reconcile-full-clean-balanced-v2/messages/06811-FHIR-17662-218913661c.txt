@@ -1,0 +1,102 @@
+FHIR-17662: Audit OO encounter element application
+
+Issue request:
+FHIR-17662 was a Published/Persuasive STU3 OO change request asking that all applicable OO event and request resources change their .context element back to .encounter, cardinality 0..1 Reference(Encounter), and that the event/workflow episode-of-care extension be usable at the resource level.
+
+Initial application:
+The Jira comment names commit 7ea8dbba47af731f137a84550120bf1963408ca3, which applied the context-to-encounter change to DiagnosticReport, Media, NutritionOrder, ServiceRequest, their examples, and compartments. Earlier GF#17662 commits efd2a28750 and e6887f2aa8 applied the same change to DeviceRequest, and 886a9c0976 handled Task as a parallel OO resource.
+
+Additional context:
+FHIR-17661 is the linked Observation-specific precedent and confirms the intended split between Encounter and EpisodeOfCare. Current fhir.ini shows DeviceRequest, DiagnosticReport, NutritionOrder, and ServiceRequest as active core resources, while Media is retired and DeviceUseStatement is only a rename entry to DeviceUsage. Current core module pages link DeviceUsage to the OO incubator IG rather than an active core resource; the remaining local DeviceUsage.context definition is therefore not a current-core build-scope miss. The former eventEpisodeOfCare extension now lives in the FHIR Extension Pack as workflow-episodeOfCare and includes contexts/search bases for the relevant resource family.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change because the active current core resources still in scope for FHIR-17662 already expose .encounter as 0..1 Reference(Encounter), and their search parameters use code encounter. The only old-style local element found, DeviceUsage.context, is outside active core build scope and should not be changed in this core reconciliation.
+
+Recommendation:
+Keep this no-change audit. If DeviceUsage is later repatriated from the OO incubator into core, the work group should make a separate current-version decision about whether its context element should be renamed or modeled differently.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17662
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17661: supporting-decision - Observation-specific context-to-encounter issue that FHIR-17662 explicitly referenced for the same Encounter/EpisodeOfCare split.
+FHIR-43445: later-change - later Applied DeviceUseStatement/DeviceUsage workflow-mapping issue that treats DeviceUsage.context as mapping to Event.encounter but does not bring DeviceUsage back into active core build scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17662: Published/Persuasive STU3 issue requested .context to .encounter for applicable OO event/request resources and resource-level episode-of-care extension context. Learned: this is final WG intent for the seed.
+- E2 Git 7ea8dbba47af731f137a84550120bf1963408ca3 plus efd2a28750/e6887f2aa8/886a9c0976: GF#17662 commits changed historical OO spreadsheets/examples from context to encounter. Learned: the issue was previously applied in the STU3 source line.
+- E3 Source source/devicerequest/structuredefinition-DeviceRequest.xml:561, source/diagnosticreport/structuredefinition-DiagnosticReport.xml:352, source/nutritionorder/structuredefinition-NutritionOrder.xml:333, source/servicerequest/structuredefinition-ServiceRequest.xml:760. Learned: active current core resources in scope define .encounter as 0..1 Reference(Encounter).
+- E4 Source source/fhir.ini:186-213,1456-1491,1703,2763-2823 and source/device-module.html:49. Learned: DeviceRequest/DiagnosticReport/NutritionOrder/ServiceRequest are active; Media is retired; DeviceUseStatement is renamed to DeviceUsage; current pages link DeviceUsage externally to the OO incubator.
+- E5 Source /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-workflow-episodeOfCare.xml:87-109,207-209,267-268 and SearchParameter-workflow-EpisodeOfCare.xml:42-45,65,73. Learned: the episode-of-care extension context/search surface is maintained in the Extension Pack for the relevant resource family.
+- E6 Zulip #committers > Observation changes, 2018-10-10. Learned: committers distinguished FHIR-17662 as the non-Observation OO follow-up to the already-applied Observation tracker and noted partial application before completion.
+- E7 Command checks: idempotency grep found no existing Issue-Reconcile-Key commit on the combined branch; source searches found no active in-scope .context element for the seed resources. Learned: publishing a single no-change audit is safe and non-duplicative.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17662",
+    "url": "https://jira.hl7.org/browse/FHIR-17662",
+    "snapshot_path": "contexts/FHIR-17662/jira/FHIR-17662.md",
+    "ref": { "jira_key": "FHIR-17662" },
+    "summary": "Published/Persuasive STU3 OO change request to rename applicable .context elements back to .encounter and allow the episode-of-care extension at resource level.",
+    "learned": "This establishes final WG intent for the seed reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "7ea8dbba47af731f137a84550120bf1963408ca3; efd2a28750; e6887f2aa8; 886a9c0976",
+    "ref": { "commit": "7ea8dbba47af731f137a84550120bf1963408ca3" },
+    "summary": "GF#17662 commits applied the context-to-encounter changes to historical OO spreadsheets/examples including DiagnosticReport, Media, NutritionOrder, ServiceRequest, DeviceRequest, and Task.",
+    "learned": "The seed was previously implemented rather than left unapplied.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/devicerequest/structuredefinition-DeviceRequest.xml:561; source/diagnosticreport/structuredefinition-DiagnosticReport.xml:352; source/nutritionorder/structuredefinition-NutritionOrder.xml:333; source/servicerequest/structuredefinition-ServiceRequest.xml:760",
+    "summary": "Current active core definitions use DeviceRequest.encounter, DiagnosticReport.encounter, NutritionOrder.encounter, and ServiceRequest.encounter with max 1 and Encounter target profiles.",
+    "learned": "The active current core source already matches the requested element name and type.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:186-213,1456-1491,1703,2763-2823; source/device-module.html:49",
+    "summary": "fhir.ini lists the in-scope current resources and renames/retirements; current module pages link DeviceUsage to the OO incubator IG.",
+    "learned": "DeviceUsage.context is not an active core build-scope defect for this seed, while Media is retired from core.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-workflow-episodeOfCare.xml:87-109,207-209,267-268; SearchParameter-workflow-EpisodeOfCare.xml:42-45,65,73",
+    "summary": "The workflow-episodeOfCare extension and search parameter in the FHIR Extension Pack include contexts/bases for DeviceRequest, DeviceUsage/DeviceUseStatement, DiagnosticReport, NutritionOrder, and ServiceRequest.",
+    "learned": "The extension-related part of the old issue is now maintained outside core and is present for the relevant family.",
+    "supports": ["additional_context", "external_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#committers > Observation changes",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/Observation%20changes",
+    "summary": "2018 committers discussion says FHIR-17662 was for resources outside Observation and was partially applied before Eric Haas completed it.",
+    "learned": "This supports interpreting FHIR-17662 as the non-Observation companion to FHIR-17661 and confirms no contrary community conclusion was found.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local idempotency and source-scope checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-17662' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg '<path value=\"(DeviceRequest|DiagnosticReport|NutritionOrder|ServiceRequest|Media|DeviceUseRequest|DeviceUseStatement|DeviceUsage)\\.(context|encounter)\"' source",
+    "summary": "No existing reconcile commit was present, and current searches found encounter on active in-scope resources with only out-of-scope DeviceUsage retaining context.",
+    "learned": "A single empty no-change audit commit is the correct non-duplicative publication.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

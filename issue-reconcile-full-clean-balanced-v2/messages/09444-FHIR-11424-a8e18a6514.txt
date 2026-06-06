@@ -1,0 +1,121 @@
+FHIR-11424: Audit Request requester organization handling
+
+Issue request:
+FHIR-11424 was Published/Persuasive with Modification for DSTU2. It asked for Request.requester to support identifying both the requesting practitioner/device/agent and the organization, with the final resolution changing Request.requester from one Reference to a backbone with requester.agent 1..1 and requester.onBehalfOf 0..1 Organization plus an invariant limiting onBehalfOf to Practitioner or Device agents.
+
+Initial application:
+The 2016 workflow batch commit 839bf586d6c1cf9a322e122852f0cc49bcfed263 applied the resolution by adding Request.requester.agent and Request.requester.onBehalfOf and the onBehalfOf invariant to source/request/request-spreadsheet.xml. Later workflow-pattern history intentionally replaced that backbone: FHIR-13159/SVN#12374 in commit 5064224bd079b7f4ef4023d3ead9111b57bd8bff dropped agent/onBehalfOf and made Request.requester a direct Reference including PractitionerRole, and commit 14b69a1c6dd33918b20d53ffd6cfbab523f840ba removed the stale onBehalfOf invariant.
+
+Additional context:
+source/fhir.ini lists request as an active logical model, so source/request/request-spreadsheet.xml is the relevant current build input. Current Request.requester is 0..1 Reference(Practitioner|PractitionerRole|Organization|Patient|RelatedPerson|Device), which preserves the practitioner-plus-organization use case through PractitionerRole rather than the old onBehalfOf backbone. Related final decisions FHIR-13159 and FHIR-15128 are already represented on the combined branch: FHIR-13159 audits the PractitionerRole replacement, and FHIR-15128 declined bringing onBehalfOf back to workflow patterns and fixed the remaining stale requester search path.
+
+AutoFHIR reconciliation:
+This is an empty audit commit. No source change is needed because the current Request pattern already supports identifying a practitioner acting for an organization via PractitionerRole, and later Published workflow decisions intentionally superseded the original FHIR-11424 backbone representation.
+
+Recommendation:
+Keep this audit as-is. Do not restore Request.requester.agent/onBehalfOf without a new work-group decision reversing the later PractitionerRole-based workflow pattern; no current FHIR-core follow-up is needed for FHIR-11424.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11424
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13159: later-change - replaced Request.requester.agent/onBehalfOf with a direct Reference that includes PractitionerRole; already audited on the combined branch.
+FHIR-15128: supporting-decision - asked to bring onBehalfOf back to workflow patterns, but the Published resolution declined and retained PractitionerRole; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11424: Published/Persuasive with Modification issue requested Request.requester.agent plus requester.onBehalfOf with an invariant. Learned: establishes the original 2016 workflow-pattern request.
+- E2 Git 839bf586d6: 2016 workflow batch added Request.requester.agent, Request.requester.onBehalfOf, and the onBehalfOf invariant. Learned: the issue was initially applied as requested.
+- E3 Jira FHIR-13159: Published/Persuasive with Modification resolution directed dropping Request.requester agent/onBehalfOf and adding PractitionerRole to the direct Reference. Learned: a later final workflow decision superseded FHIR-11424's representation.
+- E4 Git 5064224bd0 and 14b69a1c6d: SVN#12374 changed Request.requester to Reference including PractitionerRole, and the 2018 pattern update removed the stale onBehalfOf invariant. Learned: source history matches the later Jira decisions.
+- E5 Jira FHIR-15128: Published/Not Persuasive with Modification declined restoring workflow onBehalfOf and directed removing the stale Request constraint. Learned: final WG intent is not to bring back Request.requester.onBehalfOf.
+- E6 Source source/fhir.ini:154-158 and source/request/request-spreadsheet.xml:1398-1414: request is an active logical model and current Request.requester is a direct Reference including PractitionerRole. Learned: the current build input supports the use case through the intended current structure.
+- E7 Zulip #implementers > FMM5 Patient Change - GeneralPracitioner: Lloyd McKenzie stated updated workflow patterns eliminate onBehalfOf and use PractitionerRole. Learned: community discussion supports the later pattern direction.
+- E8 Verification commands: combined-branch grep found no existing FHIR-11424 audit commit while finding FHIR-13159 and FHIR-15128 audits; rg found no Request.requester.agent/onBehalfOf paths in source/request. Learned: this commit is needed only as an audit, not as a source fix or duplicate related decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11424",
+    "url": "https://jira.hl7.org/browse/FHIR-11424",
+    "snapshot_path": "contexts/FHIR-11424/jira/FHIR-11424.md",
+    "ref": { "jira_key": "FHIR-11424" },
+    "summary": "Published/Persuasive with Modification issue requesting Request.requester.agent plus requester.onBehalfOf with an invariant limiting onBehalfOf to Practitioner or Device agents.",
+    "learned": "This establishes the original 2016 work-group decision and the source shape that had to be reconciled against later workflow decisions.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "839bf586d6c1cf9a322e122852f0cc49bcfed263",
+    "ref": { "commit": "839bf586d6c1cf9a322e122852f0cc49bcfed263" },
+    "summary": "The 2016 workflow batch commit added Request.requester.agent, Request.requester.onBehalfOf, and the onBehalfOf invariant to the Request pattern spreadsheet.",
+    "learned": "FHIR-11424 was initially applied in source, so the current absence of onBehalfOf needed later-history explanation rather than a fresh edit.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-13159",
+    "url": "https://jira.hl7.org/browse/FHIR-13159",
+    "snapshot_path": "contexts/FHIR-11424/jira/FHIR-13159.md",
+    "ref": { "jira_key": "FHIR-13159" },
+    "summary": "Published/Persuasive with Modification issue whose resolution dropped Request.requester agent/onBehalfOf and added PractitionerRole to the direct Reference type list.",
+    "learned": "This later final decision intentionally replaced the FHIR-11424 backbone representation with PractitionerRole.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "5064224bd079b7f4ef4023d3ead9111b57bd8bff; 14b69a1c6dd33918b20d53ffd6cfbab523f840ba",
+    "ref": { "commit": "5064224bd079b7f4ef4023d3ead9111b57bd8bff" },
+    "summary": "SVN#12374 changed Request.requester to a direct Reference including PractitionerRole, and a later pattern update removed the old onBehalfOf invariant.",
+    "learned": "Source history reflects intentional replacement and cleanup rather than an accidental loss of FHIR-11424.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-15128",
+    "url": "https://jira.hl7.org/browse/FHIR-15128",
+    "snapshot_path": "contexts/FHIR-11424/jira/FHIR-15128.md",
+    "ref": { "jira_key": "FHIR-15128" },
+    "summary": "Published/Not Persuasive with Modification issue asking to bring onBehalfOf back to workflow patterns, resolved by retaining PractitionerRole and removing the stale Request constraint.",
+    "learned": "This confirms current core should not re-add Request.requester.onBehalfOf for the FHIR-11424 use case.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:154-158; source/request/request-spreadsheet.xml:1398-1414",
+    "ref": { "path": "source/request/request-spreadsheet.xml", "line": 1398 },
+    "summary": "The active Request logical model defines Request.requester as 0..1 Reference(Practitioner|PractitionerRole|Organization|Patient|RelatedPerson|Device).",
+    "learned": "The current build input already supports identifying a practitioner acting for an organization through PractitionerRole.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > FMM5 Patient Change - GeneralPracitioner",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/FMM5%20Patient%20Change%20-%20GeneralPracitioner",
+    "snapshot_path": "contexts/FHIR-11424/zulip/implementers--FMM5-Patient-Change-GeneralPracitioner.md",
+    "ref": { "stream": "implementers", "topic": "FMM5 Patient Change - GeneralPracitioner" },
+    "summary": "A January 2018 implementers thread says updated workflow patterns eliminate onBehalfOf and use PractitionerRole in those situations.",
+    "learned": "Community evidence supports the later PractitionerRole direction and does not reveal a conflict requiring source changes.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Idempotency and obsolete-path checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-11424' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13159' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-15128' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n 'Request\\.requester\\.agent|Request\\.requester\\.onBehalfOf|onBehalfOf for Practitioner or Device' source/request",
+    "summary": "No existing FHIR-11424 audit was found; FHIR-13159 and FHIR-15128 are already represented; no obsolete Request.requester.agent/onBehalfOf paths remain in source/request.",
+    "learned": "The seed needs one no-change audit commit and no duplicate related commits or source edits.",
+    "supports": ["idempotency", "verification"]
+  }
+]
+</evidence-manifest>

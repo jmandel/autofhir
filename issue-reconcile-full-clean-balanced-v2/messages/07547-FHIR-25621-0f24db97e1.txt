@@ -1,0 +1,94 @@
+FHIR-25621: Package generated ShEx artifacts
+
+Issue request:
+FHIR-25621 was Published/Persuasive for R5 and asked that fhir.schema.shex.zip include all generated ShEx artifacts, not only fhir.shex, so consumers can use granular schemas such as resource- or datatype-specific ShEx files.
+
+Initial application:
+No git history entry mentioning FHIR-25621 or 25621 was found. The earlier FHIR-20561/GF#20561 history fixed the existence/linkage of fhir.schema.shex.zip, but not the later requirement to include all ShEx artifacts. The current CI build still serves fhir.schema.shex.zip with only fhir.shex.
+
+Additional context:
+FHIR-I minutes for 2020-01-27 record FHIR-25621 as Persuasive by Grahame/Eric 9-0-0. The current build separately exposes granular ShEx content, including raw resource ShEx such as patient.shex and generated ShEx HTML pages such as integer.shex with an embedded ShEx pre block, so the missing piece is packaging those generated artifacts into the downloadable ZIP. The root Gradle build is in scope because README.md and publish.sh direct editors and CI to run ./gradlew publish, which executes build.gradle.kts tasks.
+
+AutoFHIR reconciliation:
+Updated build.gradle.kts so publish and publishFull refresh publish/fhir.schema.shex.zip after the publisher succeeds. The packager collects generated .shex and .shex.html artifacts from publish/, extracts raw ShEx from generated ShEx HTML pages when necessary, prefers raw .shex files over duplicate HTML renderings, and fails explicitly if no ShEx artifacts are available. A standalone packageShexSchemas task was also added for direct validation or recovery use.
+
+Recommendation:
+Keep this source fix. A full publisher run should now produce a multi-entry fhir.schema.shex.zip containing raw granular ShEx entries; if kindling later changes where ShEx artifacts are emitted, revisit the publishDir scan rather than reverting to a single fhir.shex ZIP.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25621
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-20561: background - a prior Published issue fixed the missing fhir.schema.shex.zip link/file, establishing the ZIP artifact family but not the all-artifacts packaging requested by FHIR-25621.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25621: Published/Persuasive, vote Grahame Grieve/Eric Haas 9-0-0, requested that the build include all ShEx files in fhir.schema.shex.zip. Learned: this is final WG intent for the source fix.
+- E2 Confluence FHIR-I Minutes 2020-01-27 page 75170111: minutes record FHIR-25621 as Persuasive, Grahame/Eric 9-0-0. Learned: meeting evidence confirms the Jira disposition.
+- E3 Published spec https://build.fhir.org/fhir.schema.shex.zip plus sample ShEx URLs: the ZIP has one entry, fhir.shex, while patient.shex is raw ShEx and integer.shex contains a generated ShEx pre block. Learned: current build output still misses granular ZIP packaging even though granular ShEx content exists.
+- E4 Source build.gradle.kts:90-154: root Gradle publish tasks now refresh the ShEx ZIP after successful publish/publishFull runs. Learned: the source change is in the current build path documented by README.md and publish.sh.
+- E5 Git history query: git log found no FHIR-25621/25621 implementation commit; b675387b only fixed GF#20561 broken-link behavior. Learned: there was no prior application of the all-artifacts packaging request in this checkout.
+- E6 Verification command: ./gradlew --no-daemon packageShexSchemas --quiet against a synthetic publish directory produced ZIP entries A.shex and B.shex and extracted raw ShEx from an HTML ShEx page. Learned: the new packager handles both raw and generated-HTML ShEx artifacts.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25621",
+    "url": "https://jira.hl7.org/browse/FHIR-25621",
+    "snapshot_path": "contexts/FHIR-25621/jira/FHIR-25621.md",
+    "ref": { "jira_key": "FHIR-25621" },
+    "summary": "Published/Persuasive issue requesting fhir.schema.shex.zip to include all generated ShEx artifacts, not only fhir.shex.",
+    "learned": "This establishes final WG intent and the target behavior for the build output.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20200127 page 75170111",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/75170111/FHIR+Infrastructure+Minutes+CC+20200127",
+    "ref": { "confluence_page_id": 75170111 },
+    "summary": "FHIR-I minutes record FHIR-25621 as Persuasive, Grahame/Eric 9-0-0.",
+    "learned": "The minutes corroborate the Jira vote and do not narrow the requested packaging change.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/fhir.schema.shex.zip and sample ShEx pages",
+    "command": "curl -fsSL https://build.fhir.org/fhir.schema.shex.zip; unzip -Z1; curl -fsSL https://build.fhir.org/patient.shex; curl -fsSL https://build.fhir.org/integer.shex",
+    "summary": "The ZIP contains only fhir.shex, while granular generated ShEx content is present outside the ZIP.",
+    "learned": "The current build has the precise packaging gap described by FHIR-25621.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "build.gradle.kts:90-154",
+    "summary": "The root Gradle build now packages generated .shex and .shex.html ShEx artifacts into publish/fhir.schema.shex.zip after publish and publishFull.",
+    "learned": "The fix is wired into the documented current FHIR build path.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "git log --all --grep FHIR-25621/25621 and GF#20561",
+    "command": "git log --all --grep='FHIR-25621\\|25621'; git log --all --grep='GF#20561\\|FHIR-20561\\|20561'",
+    "summary": "No FHIR-25621 implementation commit was found; b675387b fixed only the older broken fhir.schema.shex.zip link/file issue.",
+    "learned": "The all-artifacts packaging request had not already been applied in this checkout.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Synthetic Gradle packageShexSchemas validation",
+    "command": "./gradlew --no-daemon packageShexSchemas --quiet; unzip -Z1 publish/fhir.schema.shex.zip; unzip -p publish/fhir.schema.shex.zip B.shex",
+    "summary": "The task produced A.shex and B.shex entries and decoded raw ShEx from a generated HTML ShEx page.",
+    "learned": "The new packaging logic handles both raw .shex files and generated ShEx HTML artifacts.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

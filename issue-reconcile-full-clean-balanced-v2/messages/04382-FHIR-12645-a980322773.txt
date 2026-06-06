@@ -1,0 +1,97 @@
+FHIR-12645: Audit CarePlan activity Task replacement
+
+Issue request:
+FHIR-12645 was a Published/Persuasive Patient Care change request for DSTU2. It asked to change CarePlan.activity.reference from ProcessRequest to Task because ProcessRequest was being reduced in scope and Task was the better target for CarePlan activities.
+
+Initial application:
+No git commit explicitly mentions FHIR-12645, but the 2017 FMG Zulip thread records that GF#12645 had been misapplied by removing ProcedureRequest instead of ProcessRequest. Git commit c0df469417 corrected the old CarePlan spreadsheet source by removing ProcessRequest from CarePlan.activity.reference while keeping Task and restoring ProcedureRequest. A follow-up workflow Zulip thread confirms that the current build included Task in the CarePlan activity reference types immediately after that correction.
+
+Additional context:
+CarePlan remains an active resource in source/fhir.ini, Task is active, and ProcessRequest is commented out with the deleted-resource note "ProcessRequest=approved use Task". The current authoritative CarePlan source now models the successor element as CarePlan.activity.plannedActivityReference, and its allowed targets include Task but not ProcessRequest. A direct source search found no remaining ProcessRequest reference under source/careplan.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scope CarePlan definition already reflects the requested replacement, and editing would only restate or disturb an already-correct target list.
+
+Recommendation:
+Keep this no-change audit commit as-is. No core FHIR follow-up is needed for FHIR-12645 unless a future Patient Care decision reopens which request resources CarePlan activity references should allow.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12645
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12645: Published/Persuasive; resolution says to change CarePlan.activity.reference from ProcessRequest to Task. Learned: this establishes the final issue request.
+- E2 Zulip #fmg > QA - GF#12645 - Approved: Lloyd McKenzie explains GF#12645 intended to drop ProcessRequest and replace it with Task, and that the earlier application removed the wrong type. Learned: the 2017 application trail and approved correction are explicit.
+- E3 Git c0df469417: changed the old CarePlan spreadsheet type from Reference(...|Task|ProcessRequest|...) to Reference(...|Task|ProcedureRequest|...). Learned: the historical source correction removed ProcessRequest while retaining Task.
+- E4 Source source/careplan/structuredefinition-CarePlan.xml:685-708: current CarePlan.activity.plannedActivityReference target profiles include Task and do not include ProcessRequest. Learned: the current authoritative CarePlan source is already correct.
+- E5 Source source/fhir.ini:179,261,272,1497: CarePlan and Task are active resources, ProcessRequest is commented out, and the deleted-resource note says to use Task. Learned: the relevant current build scope no longer includes ProcessRequest as a live resource.
+- E6 Command/source search: rg -n "ProcessRequest" source/careplan returned no matches; Confluence refs/FTS found no FHIR-12645 conflict. Learned: no remaining CarePlan source or discovered meeting evidence requires a source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12645",
+    "url": "https://jira.hl7.org/browse/FHIR-12645",
+    "snapshot_path": "contexts/FHIR-12645/jira/FHIR-12645.md",
+    "ref": { "jira_key": "FHIR-12645" },
+    "summary": "Published/Persuasive Patient Care issue requesting CarePlan.activity.reference be changed from ProcessRequest to Task.",
+    "learned": "The Jira snapshot establishes the final request and issue status for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#fmg > QA - GF#12645 - Approved",
+    "url": "https://chat.fhir.org/#narrow/stream/fmg/topic/QA%20-%20GF%2312645%20-%20Approved",
+    "snapshot_path": "contexts/FHIR-12645/zulip/fmg--QA-GF12645-Approved.md",
+    "ref": { "stream": "fmg", "topic": "QA - GF#12645 - Approved" },
+    "summary": "2017 FMG thread says GF#12645 should remove ProcessRequest, keep Task, and restore ProcedureRequest after an incorrect application.",
+    "learned": "This confirms how the issue was meant to be applied in source.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "c0df469417",
+    "ref": { "commit": "c0df469417b5ac953e7c5295d192eff6d12c484a" },
+    "summary": "Commit c0df469417 changed the old CarePlan spreadsheet type list by replacing ProcessRequest with ProcedureRequest while Task remained allowed.",
+    "learned": "This historical patch removed ProcessRequest from CarePlan.activity.reference after the GF#12645 correction discussion.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/careplan/structuredefinition-CarePlan.xml:685-708",
+    "ref": { "path": "source/careplan/structuredefinition-CarePlan.xml", "start_line": 685, "end_line": 708 },
+    "summary": "Current CarePlan.activity.plannedActivityReference target profiles include Task and omit ProcessRequest.",
+    "learned": "The active CarePlan source already expresses the requested current behavior.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:179,261,272,1497",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "fhir.ini lists CarePlan and Task as active resources, comments out ProcessRequest, and records 'ProcessRequest=approved use Task'.",
+    "learned": "The build configuration supports treating Task as the current replacement and ProcessRequest as out of current build scope.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "CarePlan ProcessRequest and community conflict searches",
+    "command": "rg -n 'ProcessRequest' source/careplan; bun run confluence:search refs jira FHIR-12645; bun run confluence:search fts '\"FHIR-12645\"' --limit 10",
+    "query": "ProcessRequest in source/careplan and FHIR-12645 Confluence references",
+    "result_count": 0,
+    "summary": "No ProcessRequest references remain in source/careplan, and no Confluence references or exact-key FTS hits were found.",
+    "learned": "No discovered source residue or meeting evidence changes the no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

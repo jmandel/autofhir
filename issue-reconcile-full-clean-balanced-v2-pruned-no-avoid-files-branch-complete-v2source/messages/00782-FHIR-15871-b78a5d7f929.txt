@@ -1,0 +1,97 @@
+FHIR-15871: Enforce MedicationRequest initial fill details
+
+Issue request:
+FHIR-15871 was Published as Persuasive for the STU3 Pharmacy MedicationPrescription/MedicationRequest artifact. It asked for support for refill duration and refill quantity when they differ from the initial dispense; the approved resolution was to add MedicationRequest.dispenseRequest.initialFill with quantity and duration children, each 0..1, and a constraint that at least one of the two is populated.
+
+Initial application:
+The Jira comments point to GForge/SVN build r13840. In git history this is 3ca8aaddb2c50c08732cad49f8ab68f086ba8c83, which added initialFill, initialFill.quantity, and initialFill.duration to the old medicationrequest spreadsheet source. That application also added comment text saying either quantity or duration must be included, but no formal invariant was carried forward.
+
+Additional context:
+MedicationRequest is active in the current build through source/fhir.ini, and the source has since been refactored from spreadsheets into source/medicationrequest/structuredefinition-MedicationRequest.xml. Current source already contains the initialFill backbone and the quantity/duration children with the requested 0..1 cardinalities and SimpleQuantity/Duration types. Focused Jira, Zulip, and Confluence searches found no later decision or community record reversing the at-least-one requirement.
+
+AutoFHIR reconciliation:
+Added the missing mps-1 error invariant to MedicationRequest.dispenseRequest.initialFill with the FHIRPath expression quantity.exists() or duration.exists(). This keeps the existing elements and narrative comment while making the approved at-least-one rule machine-verifiable in the active StructureDefinition source.
+
+Recommendation:
+Keep this source fix as-is. No separate decisions are made for the other r13840 tracker issues because they concern different MedicationRequest or MedicationDispense/MedicationKnowledge changes and have their own reconciliation paths.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15871
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-15941: same-change-family - shared the historical r13840 implementation commit but concerns MedicationRequest doNotPerform/reason semantics and is already represented on the combined branch.
+FHIR-15870: same-change-family - shared the historical r13840 implementation commit but concerns a separate MedicationRequest change and was not decided here.
+FHIR-15819: same-change-family - shared the historical r13840 implementation commit but concerns MedicationDispense/MedicationKnowledge category alignment and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15871: Published/Persuasive Pharmacy issue requesting first-fill quantity and duration support with an at-least-one constraint. Learned: the final work-group decision includes both the element additions and a formal one-of-two rule.
+- E2 Source source/fhir.ini:203,1185 and source/medicationrequest/structuredefinition-MedicationRequest.xml:904-947: MedicationRequest is active and current source contains initialFill, quantity, and duration with the requested types/cardinalities. Learned: the remaining gap is the missing invariant, not the data elements themselves.
+- E3 Git 3ca8aaddb2c50c08732cad49f8ab68f086ba8c83: SVN r13840 application added the initialFill backbone and children to the old spreadsheet source. Learned: the issue was partially applied historically, but only as elements plus comment text.
+- E4 Git 33b409a4b6d544598262f2f074ebb4b6dc466157: source refactor moved MedicationRequest from spreadsheet source into structuredefinition-MedicationRequest.xml while preserving initialFill without an invariant. Learned: the active source location for reconciliation is the XML StructureDefinition.
+- E5 Community search: focused Jira/Zulip/Confluence searches for FHIR-15871, MedicationRequest initialFill, first fill, refill quantity, and refill duration found the seed and unrelated/implementation-profile discussion but no conflicting later decision. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E6 Verification command: parsed structuredefinition-MedicationRequest.xml, asserted mps-1 exists exactly once on initialFill with expression quantity.exists() or duration.exists(), and ran a CRLF-aware whitespace check. Learned: the edited XML contains the intended invariant cleanly.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15871",
+    "url": "https://jira.hl7.org/browse/FHIR-15871",
+    "snapshot_path": "contexts/FHIR-15871/jira/FHIR-15871.md",
+    "ref": { "jira_key": "FHIR-15871" },
+    "summary": "Published/Persuasive Pharmacy issue requesting MedicationRequest support for different first-fill quantity or duration, with initialFill.quantity and initialFill.duration and an at-least-one constraint.",
+    "learned": "This establishes the final work-group intent and the missing conformance rule to check in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:203,1185; source/medicationrequest/structuredefinition-MedicationRequest.xml:904-947",
+    "ref": { "file_path": "source/medicationrequest/structuredefinition-MedicationRequest.xml", "start_line": 904, "end_line": 947 },
+    "summary": "MedicationRequest is active, and current source contains initialFill plus 0..1 quantity and duration children with SimpleQuantity and Duration types.",
+    "learned": "The current build-scope source already has the requested elements, so the necessary reconciliation is limited to the missing invariant.",
+    "supports": ["build_scope", "source_state", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "3ca8aaddb2c50c08732cad49f8ab68f086ba8c83",
+    "ref": { "commit": "3ca8aaddb2c50c08732cad49f8ab68f086ba8c83" },
+    "summary": "SVN r13840 application commit added MedicationRequest.dispenseRequest.initialFill, quantity, and duration to the old spreadsheet source.",
+    "learned": "The issue was historically partially applied, but the formal one-of-two invariant was not present in the source inspected for this reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "33b409a4b6d544598262f2f074ebb4b6dc466157",
+    "ref": { "commit": "33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "The 2021 source refactor moved MedicationRequest content from spreadsheet source into structuredefinition-MedicationRequest.xml while preserving initialFill without an invariant.",
+    "learned": "The active XML StructureDefinition is the correct source file to update for the current build.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Community search for FHIR-15871 and MedicationRequest initialFill",
+    "command": "bun run jira:search fts '\"FHIR-15871\" OR \"first fill\" OR \"initialFill\" OR \"refill duration\" OR \"refill quantity\" MedicationRequest' --limit 20; bun run confluence:search refs jira FHIR-15871; bun run zulip:search fts 'initialFill MedicationRequest' --limit 10; bun run zulip:search fts '\"first fill\" MedicationRequest' --limit 10; bun run zulip:search fts '\"refill quantity\" \"refill duration\"' --limit 10; bun run confluence:search fts 'initialFill MedicationRequest \"first fill\"' --limit 10",
+    "query": "FHIR-15871; MedicationRequest initialFill; first fill; refill quantity; refill duration",
+    "summary": "Searches found the seed and a few unrelated or implementation-profile discussions, no Confluence references, and no conflicting later decision about the core initialFill constraint.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "MedicationRequest XML constraint assertion",
+    "command": "python - <<'PY' ... assert mps-1 exists once on MedicationRequest.dispenseRequest.initialFill with expression quantity.exists() or duration.exists() ... PY; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The edited XML parsed successfully, the mps-1 invariant was found exactly once with the intended expression, and the whitespace check passed.",
+    "learned": "The source edit is structurally valid and implements the intended rule.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

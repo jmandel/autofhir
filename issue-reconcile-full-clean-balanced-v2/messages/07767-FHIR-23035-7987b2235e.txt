@@ -1,0 +1,108 @@
+FHIR-23035: Clarify resolve discriminator targetProfiles
+
+Issue request:
+FHIR-23035 was Published with a Persuasive with Modification resolution for FHIR-core StructureDefinition profiling documentation. It asked the Discriminator section to explain that path elements after resolve() are interpreted in the referenced targetProfile and the approved resolution also said to explain how resolve() works when multiple targetProfile values are present.
+
+Initial application:
+The issue was initially applied by git commit 97dac7c066ececda81f3d3176017fb0f307e6ad4, which added the resolve() note to source/profiling.html for R5. That application covered the targetProfile location and fixed/pattern rule, but the current source still did not describe the multiple-targetProfile case approved in the Jira resolution and FHIR-I minutes.
+
+Additional context:
+source/profiling.html is an active built narrative page through source/hierarchy.xml. ElementDefinition.type.targetProfile is repeatable and its definition says that when profiles are specified, the content must conform to at least one of them. Later Zulip discussion confirms the intended validation model for resolve().property discriminators: validators use the applicable targetProfile to find the fixed value, pattern, or required value set for the post-resolve element, while slice authors remain responsible for distinguishable slices. No later Jira or community evidence was found that reverses the FHIR-23035 decision.
+
+AutoFHIR reconciliation:
+This commit updates the existing resolve() discriminator note in source/profiling.html to explain that, when a reference element lists multiple targetProfile values, the discriminator is evaluated against the targetProfile(s) that apply to the resolved resource. It also states that discriminator constraints may therefore live in different target profiles for different targets, while uniqueness and non-overlap across slices remain the profile author's responsibility, and fixes a nearby misspelling of discriminator.
+
+Recommendation:
+Keep this source change. It completes the published FHIR-23035 clarification in the active core profiling page without changing conformance rules or examples; any future machine-checkable invariant for resolve() targetProfile availability would need separate work-group review.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-23035
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-24056: same-change-family - neighboring Published issue corrected a profiling example to use resolve().code for a reference-boundary discriminator; it supports the same documentation area but does not address multiple targetProfile values.
+FHIR-13399: background - earlier Published issue clarified profile discriminators over references and targetProfile semantics, which is background for the current resolve() wording.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-23035: Published/Persuasive with Modification; requested resolve() discriminator documentation and explicitly included multiple targetProfile behavior. Learned: this is final WG intent for the source change.
+- E2 Source source/profiling.html:787: active Discriminator note already explained the single applicable targetProfile case but omitted multiple targetProfile behavior. Learned: the current source was partially applied and needed a narrow wording fix.
+- E3 Git 97dac7c066ececda81f3d3176017fb0f307e6ad4: original R5 application added the resolve() note to source/profiling.html. Learned: the issue was applied historically but not completely relative to the resolution text.
+- E4 Confluence 66924817: FHIR-I 2019-10-14 minutes record the motion to add the suggested clarification and describe multiple targetProfile elements. Learned: the Jira resolution's multiple-targetProfile scope was part of the approved meeting disposition.
+- E5 Source source/datatypes/elementdefinition.xml:1709: targetProfile is defined as repeatable and requiring conformance to at least one listed target profile. Learned: current core source supports the multiple targetProfile scenario that the profiling page needed to explain.
+- E6 Zulip #implementers > Slicing type:value, path with resolve().property: Lloyd McKenzie explained that resolve().foo discriminators check foo against fixed value, pattern, or required value set in the declared profile. Learned: the added wording is consistent with current implementer guidance.
+- E7 Verification command: git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/profiling.html. Learned: the CRLF-aware whitespace check passed for the edited source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-23035",
+    "url": "https://jira.hl7.org/browse/FHIR-23035",
+    "snapshot_path": "contexts/FHIR-23035/jira/FHIR-23035.md",
+    "ref": { "jira_key": "FHIR-23035" },
+    "summary": "Published/Persuasive with Modification issue asking to clarify resolve() behavior in slicing discriminator paths, including multiple targetProfile behavior.",
+    "learned": "This establishes final WG intent and the exact documentation gap to reconcile.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/profiling.html:787",
+    "ref": { "path": "source/profiling.html", "line": 787 },
+    "summary": "The active profiling page contained the resolve() discriminator note but only described an applicable singular targetProfile.",
+    "learned": "The issue was partially applied in build-scope source and required a narrow clarification for multiple targetProfiles.",
+    "supports": ["initial_application", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "97dac7c066ececda81f3d3176017fb0f307e6ad4",
+    "ref": { "commit": "97dac7c066ececda81f3d3176017fb0f307e6ad4" },
+    "summary": "Commit FHIR-23035 added the resolve() discriminator note to source/profiling.html for R5.",
+    "learned": "The historical application explains why the current source already had most of the requested text but not the multiple-targetProfile clarification.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20191014 page 66924817",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/66924817/FHIR+Infrastructure+Minutes+CC+20191014",
+    "snapshot_path": "contexts/FHIR-23035/confluence/66924817.md",
+    "ref": { "confluence_page_id": 66924817 },
+    "summary": "FHIR-I minutes record the 9-0-0 motion to add the suggested resolve() clarification and describe multiple targetProfile elements.",
+    "learned": "The multiple-targetProfile wording was not speculative; it was part of the approved disposition.",
+    "supports": ["issue_request", "additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:1709",
+    "ref": { "path": "source/datatypes/elementdefinition.xml", "line": 1709 },
+    "summary": "ElementDefinition.type.targetProfile is repeatable and requires target content to conform to at least one specified profile.",
+    "learned": "The profiling clarification can rely on existing targetProfile semantics rather than introducing a new conformance rule.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Slicing type:value, path with resolve().property",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Slicing%20type%3Avalue%2C%20path%20with%20resolve().property",
+    "ref": { "stream": "implementers", "topic": "Slicing type:value, path with resolve().property" },
+    "summary": "Lloyd McKenzie explained that resolve().foo discriminators check the resolved resource element against fixed value, pattern, or required value set constraints declared in the profile.",
+    "learned": "This supports the added explanation that applicable target profiles supply the discriminator constraints.",
+    "supports": ["additional_context", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "CRLF-aware whitespace check for profiling.html",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/profiling.html",
+    "summary": "The edited source passed the repository's CRLF-aware whitespace check.",
+    "learned": "The source change is syntactically safe for the CRLF narrative file.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

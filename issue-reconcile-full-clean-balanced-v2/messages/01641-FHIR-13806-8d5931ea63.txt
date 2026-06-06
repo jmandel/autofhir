@@ -1,0 +1,116 @@
+FHIR-13806: Audit Consent notOrg example
+
+Issue request:
+FHIR-13806 was Published/Persuasive for the FHIR-core Consent resource. It reported that consent-example-notOrg is an opt-in consent that excludes a named organization and therefore the provision needed type=deny in the STU3 Consent model.
+
+Initial application:
+The request was applied in commit ce4c96b9c3, which explicitly said it corrected CR #13806 and added the deny provision to source/consent/consent-example-notOrg.xml. Later Consent example/model refactors retained the same scenario while adapting the representation to newer Consent structures.
+
+Additional context:
+Consent is an active current-build resource in source/fhir.ini, and source/consent/list-Consent-examples.xml includes consent-example-notOrg. Later Published Consent decisions changed the model: FHIR-32817 split policy context from computable policy structure, and FHIR-39597 moved provision.type to Consent.decision while making provisions and subprovisions inferred reverse decisions of the previous level. The current source therefore should not reintroduce the removed STU3 provision.type element.
+
+AutoFHIR reconciliation:
+No source change was made. The current example sets Consent.decision to permit, then has a provision scoped to Organization/f001 with access/correct actions and a no-read/no-write comment; under the current Consent definition and FHIR-39597 resolution, that provision is the denial exception to the opt-in permit base decision. Organization/f001 is the Burgers University Medical Center named in the narrative.
+
+Recommendation:
+Keep this no-change audit commit. Revisit only if CBCC later changes the current Consent provision inference semantics or wants an additional explicit narrative note, not as part of FHIR-13806.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13806
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32817: supporting-decision - later Published Consent issue separated regulatory/policy basis from computable policy handling and set up the current default-decision model.
+FHIR-39597: later-change - later Published Consent issue removed provision zero, moved provision.type to Consent.decision, and made provisions inferred reverse decisions of the prior level.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13806: Published/Persuasive CBCC issue said consent-example-notOrg was intended as opt-in consent excluding a named organization and needed provision type=deny in STU3. Learned: this establishes the original work-group intent.
+- E2 Source source/fhir.ini:265 and source/consent/list-Consent-examples.xml:79: Consent is active and consent-example-notOrg is listed in the current example collection. Learned: the example is current build-scope source.
+- E3 Source source/consent/consent-example-notOrg.xml:37: the example has an opt-in/permit base decision and a provision scoped to Organization/f001 for access/correct actions. Learned: the current example still expresses an organizational disclosure exception.
+- E4 Source source/consent/structuredefinition-Consent.xml:518: Consent.decision is the base permit/deny decision and provisions are assumed to negate the previous level. Learned: the current model represents the old type=deny request through Consent.decision plus an exception provision.
+- E5 Git ce4c96b9c3 and e8f77ac72e: the first commit explicitly corrected CR #13806 with type=deny; the later FHIR-39597 commit replaced nested provision type coding with Consent.decision=permit and an inferred exception provision. Learned: the current absence of provision.type is a later intentional model adaptation, not a missed rollback.
+- E6 Jira FHIR-39597: Published/Persuasive issue resolved to move .provision.type to .decision and infer provisions/subprovisions as reverse decisions of the previous level. Learned: this later final decision governs how FHIR-13806 should be interpreted now.
+- E7 Community search and Zulip thread: exact FHIR-13806 Zulip/Confluence searches found no direct hits; a broader 2020 #Security and Privacy Consent Provision type thread documented confusion about provision type semantics and root context. Learned: community evidence supports the later model-change context and found no conflict with no-change reconciliation.
+- E8 Verification command: parsed consent-example-notOrg.xml and confirmed Consent.decision=permit, provision actor Organization/f001, access/correct actions, clean diff, and no existing FHIR-13806 combined-branch audit. Learned: the current source satisfies the issue intent and this audit is not a duplicate.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13806",
+    "url": "https://jira.hl7.org/browse/FHIR-13806",
+    "snapshot_path": "contexts/FHIR-13806/jira/FHIR-13806.md",
+    "ref": { "jira_key": "FHIR-13806" },
+    "summary": "Published/Persuasive CBCC issue saying consent-example-notOrg is an opt-in consent excluding a named organization and needed provision type=deny in STU3.",
+    "learned": "The issue establishes the original final work-group intent for this example.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:265; source/consent/list-Consent-examples.xml:79",
+    "ref": { "paths": "source/fhir.ini, source/consent/list-Consent-examples.xml" },
+    "summary": "Consent is active in fhir.ini and the notOrg example is listed in the current Consent examples list.",
+    "learned": "The checked example is current build-scope source.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/consent/consent-example-notOrg.xml:37-72; source/organization/organization-example-f001-burgers.xml:4,29",
+    "ref": { "paths": "source/consent/consent-example-notOrg.xml, source/organization/organization-example-f001-burgers.xml" },
+    "summary": "The current example has a permit base decision and a provision for Organization/f001 with access/correct actions; Organization/f001 is Burgers University Medical Center.",
+    "learned": "The example still targets the named organization with the intended disclosure exception.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/consent/structuredefinition-Consent.xml:518-536,552-562",
+    "ref": { "path": "source/consent/structuredefinition-Consent.xml" },
+    "summary": "Consent.decision defines the base permit/deny decision and its binding description says provisions are assumed to negate the previous level.",
+    "learned": "Under the current model, the old type=deny intent is represented by a permit decision with an exception provision.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "ce4c96b9c3; e8f77ac72e",
+    "ref": { "commits": "ce4c96b9c327283d3166a799545e6483ef0d480c,e8f77ac72e93779d5ff23eda48ac3445f8a0e64c" },
+    "summary": "ce4c96b9c3 explicitly corrected CR #13806 by adding type=deny; e8f77ac72e later applied FHIR-39597 and replaced nested provision type coding with Consent.decision=permit plus an inferred exception provision.",
+    "learned": "The current source is a later model adaptation of the applied change, not an unapplied issue.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-39597",
+    "url": "https://jira.hl7.org/browse/FHIR-39597",
+    "ref": { "jira_key": "FHIR-39597" },
+    "summary": "Published/Persuasive Consent issue resolved to move .provision.type to .decision and infer provisions/subprovisions as reverse decisions of the previous level.",
+    "learned": "This later final decision explains why re-adding provision.type would be wrong in the current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#Security and Privacy > Consent Provision type",
+    "url": "https://chat.fhir.org/#narrow/stream/Security%20and%20Privacy/topic/Consent%20Provision%20type",
+    "summary": "A 2020 discussion documented confusion around Consent.provision.type, root provision context, and whether exceptions should be inferred from the surrounding policy.",
+    "learned": "The community context aligns with later model-change issues and does not contradict the no-change decision for FHIR-13806.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Current source and idempotency verification",
+    "command": "python3 ElementTree check of source/consent/consent-example-notOrg.xml; xmllint --noout source/consent/consent-example-notOrg.xml; git diff --check; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13806' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "The example parsed successfully, has decision=permit with Organization/f001 and access/correct provision actions, had no whitespace diff, and no existing combined-branch FHIR-13806 audit commit was found.",
+    "learned": "The source check supports no-change and confirms publishing an audit commit will not duplicate an existing reconciliation.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

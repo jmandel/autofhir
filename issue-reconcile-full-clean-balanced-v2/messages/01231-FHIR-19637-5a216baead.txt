@@ -1,0 +1,107 @@
+FHIR-19637: Audit ImagingStudy procedure cardinality
+
+Issue request:
+FHIR-19637 was a Published/Persuasive with Modification Imaging Integration issue raised against STU3. It reported that ImagingStudy.procedureReference was limited to 0..1 even though a single imaging study can satisfy multiple procedures, and the accepted R5 resolution replaced procedureCode/procedureReference with a repeating procedure element carrying Reference(Procedure) or CodeableConcept content. The resolution also mentioned an R4 compatibility extension for additional procedure references.
+
+Initial application:
+The issue was explicitly applied in commit e64cab69affa7913fed6bd2f23cfe30728893ab2, whose subject included GF#19637. That commit changed the ImagingStudy spreadsheet and XR example from procedureReference/procedureCode to repeating procedure entries with valueReference and valueCodeableConcept. No separate source-changing reconciliation is needed for the historical R5 application.
+
+Additional context:
+Later published/applied ImagingStudy decisions changed the representation without reintroducing the original 0..1 problem. FHIR-32719 converted the backbone/value[x] shape to CodeableReference, FHIR-32793 lowered the procedure code binding to preferred, FHIR-50894 briefly moved performed procedures to partOf, and FHIR-53025 restored the current ImagingStudy.procedure relationship as a repeated Reference(Procedure). Related audit/fix commits for FHIR-32719, FHIR-32793, and FHIR-53025 are already present on the combined branch. The current build actively includes ImagingStudy, and the active StructureDefinition has ImagingStudy.procedure 0..* Reference(Procedure) with a matching procedure search parameter. Direct searches found no current core or Extension Pack definition for the historical R4 compatibility extension, so that part of the old resolution is outside the current FHIR core build rather than a current-source defect.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current spec no longer contains active ImagingStudy.procedureReference or ImagingStudy.procedureCode elements, the repeated performed-procedure relationship exists as ImagingStudy.procedure, and later accepted R6 decisions explain why the current type is Reference(Procedure) rather than the exact R5 backbone/value[x] wording from FHIR-19637.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce the obsolete procedureReference/procedureCode or R5 backbone shape in current core; if the R4 compatibility extension is still desired, it should be reviewed as extension-pack or release-maintenance work rather than edited into the current core resource.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19637
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32719: later-change - replaced the FHIR-19637 backbone/value[x] procedure shape with CodeableReference for R5.
+FHIR-32793: same-change-family - adjusted the binding strength on the procedure code concept while the R5 CodeableReference form was current.
+FHIR-50894: later-change - temporarily moved the performed-procedure relationship from ImagingStudy.procedure to ImagingStudy.partOf for R6.
+FHIR-53025: supersedes - reversed FHIR-50894 and establishes the current repeated ImagingStudy.procedure Reference(Procedure) design.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19637: Published/Persuasive with Modification issue requiring multiple ImagingStudy procedure references by replacing procedureCode/procedureReference with repeating procedure content for R5. Learned: this is the seed's final WG intent and the original cardinality defect.
+- E2 Git e64cab69affa7913fed6bd2f23cfe30728893ab2: ImagingStudy update commit explicitly mentioning GF#19637 changed the example and spreadsheet to repeating procedure/value[x]. Learned: the seed had an initial source application.
+- E3 Source source/fhir.ini:196, source/imagingstudy/structuredefinition-ImagingStudy.xml:417, and source/imagingstudy/bundle-ImagingStudy-search-params.xml:399: ImagingStudy is active, procedure is 0..* Reference(Procedure), and the procedure search parameter uses ImagingStudy.procedure. Learned: the current authoritative source preserves the needed repeatability.
+- E4 Jira FHIR-32719/FHIR-32793/FHIR-50894/FHIR-53025: later final decisions changed the procedure representation from backbone/value[x] to CodeableReference, then to the current Reference(Procedure) procedure element. Learned: current source should not be forced back to the literal 2019 R5 wording.
+- E5 Git combined-branch search: related reconciliations for FHIR-32719, FHIR-32793, and FHIR-53025 already exist on robo-spec-combined-issue-reconcile-full-clean-balanced-v2. Learned: those related issues are context, not duplicate decisions for this worker.
+- E6 Zulip #imaging > Procedure references and direct FHIR-19637 community searches: the 2025 thread discussed procedure vs partOf and requested/performed procedure wording; direct FHIR-19637 Zulip and Confluence searches found no conflicting community record. Learned: community evidence supports later context and does not change the no-change conclusion.
+- E7 Verification command: xmllint parsed the active ImagingStudy XML sources, targeted rg confirmed ImagingStudy.procedure 0..* Reference(Procedure) and the matching search parameter, and targeted rg found no active procedureReference/procedureCode element in ImagingStudy source. Learned: the current source satisfies the seed's cardinality concern.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19637",
+    "url": "https://jira.hl7.org/browse/FHIR-19637",
+    "snapshot_path": "contexts/FHIR-19637/jira/FHIR-19637.md",
+    "ref": { "jira_key": "FHIR-19637" },
+    "summary": "Published/Persuasive with Modification ImagingStudy issue requiring the old procedureReference 0..1 cardinality to be replaced by repeating procedure content for R5.",
+    "learned": "This establishes the seed request and the original multiple-procedure cardinality problem.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e64cab69affa7913fed6bd2f23cfe30728893ab2",
+    "ref": { "commit": "e64cab69affa7913fed6bd2f23cfe30728893ab2" },
+    "summary": "The ImagingStudy update commit explicitly mentioning GF#19637 changed procedureReference/procedureCode usage to repeating procedure entries with valueReference and valueCodeableConcept.",
+    "learned": "The seed was initially applied in source history before later representation changes.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:196; source/imagingstudy/structuredefinition-ImagingStudy.xml:417; source/imagingstudy/bundle-ImagingStudy-search-params.xml:399",
+    "summary": "ImagingStudy is an active resource; the current StructureDefinition defines ImagingStudy.procedure as 0..* Reference(Procedure), and the procedure search parameter targets ImagingStudy.procedure.",
+    "learned": "The current built source preserves the multiple-procedure capability needed by FHIR-19637.",
+    "supports": ["additional_context", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-32719, FHIR-32793, FHIR-50894, FHIR-53025",
+    "url": "https://jira.hl7.org/browse/FHIR-53025",
+    "ref": { "jira_key": "FHIR-53025" },
+    "summary": "Later final ImagingStudy decisions changed the procedure shape from backbone/value[x] to CodeableReference and eventually to the current repeated Reference(Procedure) element.",
+    "learned": "The current source should be judged against the later accepted design rather than the literal FHIR-19637 R5 wording.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Combined-branch related issue idempotency check",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-32719' ...; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-32793' ...; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-53025' ...",
+    "summary": "The combined branch already contains related reconciliation commits for FHIR-32719, FHIR-32793, and FHIR-53025.",
+    "learned": "Those related issues should not be republished by this worker.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#imaging > Procedure references; direct FHIR-19637 community searches",
+    "url": "https://chat.fhir.org/#narrow/stream/imaging/topic/Procedure%20references",
+    "summary": "The linked 2025 discussion covered requested vs performed procedure wording and procedure vs partOf; direct FHIR-19637 Zulip and Confluence searches found no conflicting record.",
+    "learned": "Community context supports the later procedure/partOf history and does not contradict the source conclusion for the seed.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted current-source verification",
+    "command": "xmllint --noout source/imagingstudy/structuredefinition-ImagingStudy.xml source/imagingstudy/bundle-ImagingStudy-search-params.xml source/imagingstudy/imagingstudy-notes.xml; rg ... ImagingStudy.procedure ...; ! rg ... procedureReference|procedureCode ...",
+    "summary": "The active XML parsed, ImagingStudy.procedure and its search parameter were found, and no active old procedureReference/procedureCode element remained in ImagingStudy source.",
+    "learned": "The no-change decision is supported by current source verification.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

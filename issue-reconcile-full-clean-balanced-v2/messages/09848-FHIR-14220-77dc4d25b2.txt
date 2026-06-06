@@ -1,0 +1,110 @@
+FHIR-14220: Confirm Questionnaire answerOption invariant
+
+Issue request:
+FHIR-14220 was a Published/Persuasive STU3 FHIR-core Questionnaire change request. It reported that invariant que-5 made only valueCoding usable on the option property, preventing integer, date, time, and string answer-option values, and its resolution was to modify the invariant to support the additional choice types.
+
+Initial application:
+The Jira comments record application in svn revision 13258. No FHIR-14220-labelled git commit is present in the current repository history, but the imported git lineage before the later FHIR-20396 redesign already had que-5 allowing choice/open-choice plus decimal, integer, date, dateTime, time, string, and quantity, and answerOption.value[x] already included integer, date, time, string, Coding, and Reference.
+
+Additional context:
+Later Questionnaire decisions changed the surrounding model. FHIR-20396 removed the choice/open-choice item.type codes and introduced answerConstraint/Coding-oriented wording. FHIR-40780 then aligned que-5 with answerOption.value[x], limited que-5 to answerOption, added que-5b for answerValueSet, and added a type-matching invariant. The linked Questionnaire Zulip thread for FHIR-40780 confirms that answerOption was intentionally broadened while answerValueSet was tightened.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. source/fhir.ini actively includes the Questionnaire resource, and current source/questionnaire/structuredefinition-Questionnaire.xml already says que-5 allows coding, decimal, integer, date, dateTime, time, string, quantity, reference, and uri items to have answerOption. The answerOption.value[x] choice list includes the corresponding value types, so the implementer-facing problem reported by FHIR-14220 is no longer present in the current build.
+
+Recommendation:
+Keep this no-change audit as-is for FHIR-14220. Any further tuning of the broader answerOption/answerValueSet type model belongs under later issues such as FHIR-40780 rather than this STU3 invariant fix.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14220
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-20396: later-change - removed choice/open-choice from Questionnaire.item.type and reframed the option-list behavior through answerConstraint, changing how the old STU3 wording maps to current source.
+FHIR-40780: later-change - aligned que-5, answerOption.value[x], answerValueSet restrictions, and type-matching rules in the current Questionnaire source.
+FHIR-30922: same-change-family - corrected answerOption definition wording after the option types had been opened beyond choice/open-choice.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14220: Published/Persuasive STU3 issue requesting que-5 allow option values beyond valueCoding. Learned: this is the final seed request and target behavior.
+- E2 Source source/questionnaire/structuredefinition-Questionnaire.xml:762-766 and 1338-1378: current que-5 permits coding, decimal, integer, date, dateTime, time, string, quantity, reference, and uri answerOption use, and answerOption.value[x] defines the corresponding choices. Learned: the current active source already satisfies the seed request.
+- E3 Git history ae142a024a^ and repository grep: the pre-FHIR-20396 imported source already allowed decimal/integer/date/dateTime/time/string/quantity in que-5, while no FHIR-14220-labelled git commit exists; Jira records svn revision 13258. Learned: the original application predates or was imported into git history rather than appearing as a labelled git commit.
+- E4 Jira FHIR-40780: Applied/Persuasive with Modification issue aligning que-5 and answerOption.value[x], adding answerValueSet-specific restrictions, and requiring type alignment. Learned: later final work explains why current que-5 is broader and split from answerValueSet.
+- E5 Zulip #questionnaire > Invariants: FHIR-40780 discussion says answerValueSet restrictions were tightened while answerOption would broaden. Learned: community discussion supports the current post-FHIR-40780 interpretation and does not reopen FHIR-14220.
+- E6 Source source/fhir.ini:169-220: Questionnaire is listed as an active resource. Learned: the inspected StructureDefinition source is in current build scope.
+- E7 Command community/idempotency searches: combined-branch grep found no existing FHIR-14220 audit commit; Confluence refs and Zulip key search found no direct seed discussion. Learned: publishing one audit commit is needed and no discovered community evidence conflicts with the source/Jira conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14220",
+    "url": "https://jira.hl7.org/browse/FHIR-14220",
+    "snapshot_path": "contexts/FHIR-14220/jira/FHIR-14220.md",
+    "ref": { "jira_key": "FHIR-14220" },
+    "summary": "Published/Persuasive STU3 Questionnaire issue requiring que-5 to allow additional option value types beyond valueCoding.",
+    "learned": "This establishes the final seed request and the behavior that must be checked in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/questionnaire/structuredefinition-Questionnaire.xml:762-766,1338-1378",
+    "ref": { "path": "source/questionnaire/structuredefinition-Questionnaire.xml", "lines": "762-766,1338-1378" },
+    "summary": "Current que-5 allows coding, decimal, integer, date, dateTime, time, string, quantity, reference, and uri items to have answerOption; answerOption.value[x] lists the corresponding types.",
+    "learned": "The current source already permits the additional answerOption value types required by FHIR-14220.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "ae142a024a^ and git log --grep=FHIR-14220",
+    "command": "git show ae142a024a^:source/questionnaire/structuredefinition-Questionnaire.xml | rg -n -A6 -B2 'que-5|answerOption.value\\[x\\]'; git log --all --format='%H %s' --grep='FHIR-14220'",
+    "summary": "The imported pre-FHIR-20396 source already included the expanded que-5 type list, and no FHIR-14220-labelled git commit was found.",
+    "learned": "The Jira-recorded svn revision 13258 appears to be the initial application evidence for this issue in the current available history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-40780",
+    "url": "https://jira.hl7.org/browse/FHIR-40780",
+    "ref": { "jira_key": "FHIR-40780" },
+    "summary": "Applied/Persuasive with Modification issue aligning que-5, answerOption.value[x], answerValueSet restrictions, and type-matching rules.",
+    "learned": "Later final Questionnaire work explains the current broader answerOption type list and the separate answerValueSet invariant.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#questionnaire > Invariants",
+    "url": "https://chat.fhir.org/#narrow/stream/questionnaire/topic/Invariants",
+    "ref": { "stream": "questionnaire", "topic": "Invariants" },
+    "summary": "Discussion of FHIR-40780 says answerValueSet would be tightened while answerOption would broaden.",
+    "learned": "Community discussion supports the current interpretation and provides no conflict requiring a FHIR-14220 source edit.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-220",
+    "ref": { "path": "source/fhir.ini", "lines": "169-220" },
+    "summary": "The [resources] list includes questionnaire=Questionnaire.",
+    "learned": "The inspected Questionnaire StructureDefinition source is in active current-build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Idempotency and community searches for FHIR-14220",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-14220' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run confluence:search refs jira FHIR-14220; bun run zulip:search fts '\"FHIR-14220\"' --limit 10",
+    "query": "FHIR-14220",
+    "result_count": 0,
+    "summary": "No existing combined-branch audit commit, Confluence reference, or direct Zulip hit was found for the seed issue.",
+    "learned": "One audit commit is needed and no discovered community record changes the source/Jira conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

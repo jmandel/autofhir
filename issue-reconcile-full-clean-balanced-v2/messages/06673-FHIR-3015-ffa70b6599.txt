@@ -1,0 +1,98 @@
+FHIR-3015: Audit Questionnaire subject scope
+
+Issue request:
+FHIR-3015 was a Published FHIR-core Patient Care change request with a Persuasive with Modification resolution. It asked whether Questionnaire/QuestionnaireAnswers subject should be limited to Patient|RelatedPerson when questionnaires could be about devices, medications, organizations, practitioners, and other resources; the recorded resolution was to change the subject from Patient|RelatedPerson to Any, with comments clarifying that Questionnaire itself is a form definition and subject-specific answers belong on QuestionnaireAnswers/QuestionnaireResponse.
+
+Initial application:
+No explicit FHIR-3015-tagged source commit was found. The issue appears to have been applied in the early Questionnaire split: commit 54ddc30bbb split Questionnaire into Questionnaire and QuestionnaireAnswers and applied outstanding Questionnaire change requests, removing the old Questionnaire.subject Reference(Patient|RelatedPerson) row and creating QuestionnaireAnswers.subject as Resource(Any) with text saying the subject could be a patient, organization, practitioner, device, etc. Later, FHIR-6044 added Questionnaire.subjectType because QuestionnaireAnswers.subject was already Reference(Any), and the QuestionnaireAnswers to QuestionnaireResponse rename preserved that model.
+
+Additional context:
+The current build includes both Questionnaire and QuestionnaireResponse as active resources in source/fhir.ini. Current Questionnaire has Questionnaire.subjectType 0..* with the comment "If none are specified, then the subject is unlimited." Current QuestionnaireResponse.subject is Reference(Resource) with definition text that examples patient, organization, practitioner, device, etc., and FHIR-11004 added the clarifying comment that a Questionnaire.subjectType limits the referenced resource when present. No current build-scope Questionnaire/QuestionnaireResponse source still defines Questionnaire.subject or restricts QuestionnaireResponse.subject to Patient|RelatedPerson.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already represents the FHIR-3015 outcome: Questionnaire is subject-independent, QuestionnaireResponse.subject is unrestricted Any/Resource, and optional Questionnaire.subjectType provides an author-declared constraint rather than a base-spec limitation.
+
+Recommendation:
+Keep this no-change audit commit as-is. Related subjectType and section/item-subject work should remain separate audits or issue decisions because FHIR-3015's base subject limitation is already resolved in current source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3015
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-6044: same-change-family - added Questionnaire.subjectType after confirming QuestionnaireAnswers.subject was Reference(Any), providing the optional type constraint that current source still uses.
+FHIR-11004: later-change - clarified how Questionnaire.subjectType relates to QuestionnaireResponse.subject, supporting the current comment on QuestionnaireResponse.subject.
+FHIR-6843: supporting-decision - answered that Questionnaire is not linked back to patient/related person and QuestionnaireAnswers can link to Patient, RelatedPerson, or anything else.
+FHIR-3254: background - concerned section/group subject handling rather than the base QuestionnaireResponse.subject scope, so it was not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3015: Published/Persuasive with Modification; requested changing subject from Patient|RelatedPerson to Any and discussed other possible subjects. Learned: this is the final seed decision to evaluate against current source.
+- E2 Source source/fhir.ini:219-220 plus source/questionnaire/structuredefinition-Questionnaire.xml:366-388 and source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:225-238: active resources show Questionnaire.subjectType is optional/unlimited when absent and QuestionnaireResponse.subject targets Resource. Learned: current build-scope source already allows any subject except when an individual Questionnaire narrows subjectType.
+- E3 Git 54ddc30bbb: split Questionnaire into Questionnaire/QuestionnaireAnswers and applied outstanding Questionnaire change requests, replacing the old Questionnaire.subject Patient|RelatedPerson model with QuestionnaireAnswers.subject Resource(Any). Learned: the historical application path removed the original base limitation even though no FHIR-3015 tag was present.
+- E4 Jira/Git FHIR-6044 / 26e8b597d5 and FHIR-11004 / 76675fcc91: subjectType was added because QuestionnaireAnswers.subject was Reference(Any), and the later clarification tied subjectType to QuestionnaireResponse.subject. Learned: later decisions refined, not reversed, the unrestricted base subject model.
+- E5 Community search: quoted FHIR-3015 Zulip search and Confluence refs/FTS search found no relevant hits. Learned: no discovered community record contradicts the Jira/source/history conclusion.
+- E6 Verification search: rg over current Questionnaire and QuestionnaireResponse source found no Questionnaire.subject or Patient|RelatedPerson subject restriction, only Questionnaire.subjectType and QuestionnaireResponse.subject. Learned: no stale in-scope source location needs editing for the seed issue.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3015",
+    "url": "https://jira.hl7.org/browse/FHIR-3015",
+    "snapshot_path": "contexts/FHIR-3015/jira/FHIR-3015.md",
+    "ref": { "jira_key": "FHIR-3015" },
+    "summary": "Published/Persuasive with Modification FHIR-core issue asking why Questionnaire/QuestionnaireAnswers subject was limited to Patient|RelatedPerson and recording a resolution to change it to Any.",
+    "learned": "This establishes the seed decision: the base questionnaire answer/response subject should not be limited to Patient and RelatedPerson.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:219-220; source/questionnaire/structuredefinition-Questionnaire.xml:366-388; source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:225-238",
+    "summary": "Questionnaire and QuestionnaireResponse are active resources; Questionnaire.subjectType is optional and unlimited when absent; QuestionnaireResponse.subject is Reference(Resource).",
+    "learned": "The current build-scope source already permits any QuestionnaireResponse subject unless a particular Questionnaire declares subjectType.",
+    "supports": ["current_source", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "54ddc30bbb",
+    "ref": { "commit": "54ddc30bbb" },
+    "summary": "Early Questionnaire split commit removed the old Questionnaire.subject Reference(Patient|RelatedPerson) model and introduced QuestionnaireAnswers.subject as Resource(Any) with broad subject definition text.",
+    "learned": "This is the likely historical application of FHIR-3015 despite the absence of an explicit issue key in the commit message.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "26e8b597d5; 76675fcc91; Jira FHIR-6044 and FHIR-11004 snapshots",
+    "ref": { "commits": "26e8b597d5,76675fcc91", "jira_keys": "FHIR-6044,FHIR-11004" },
+    "summary": "FHIR-6044 added Questionnaire.subjectType because QuestionnaireAnswers.subject was Reference(Any), and FHIR-11004 clarified that subjectType constrains QuestionnaireResponse.subject when declared.",
+    "learned": "Later related decisions preserve the unrestricted base subject while allowing Questionnaire authors to declare narrower subject types.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence searches for FHIR-3015",
+    "command": "bun run zulip:search fts '\"FHIR-3015\" Questionnaire subject' --limit 10; bun run confluence:search refs jira FHIR-3015; bun run confluence:search fts '\"FHIR-3015\" Questionnaire subject RelatedPerson' --limit 10",
+    "query": "FHIR-3015 Questionnaire subject RelatedPerson",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found for the seed key and subject terms.",
+    "learned": "No discovered community evidence changes the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current source verification search",
+    "command": "rg -n 'patient or relatedPerson|patient or related person|Patient\\|RelatedPerson|Resource\\(Patient\\|RelatedPerson\\)|Questionnaire\\.subject|QuestionnaireAnswers\\.subject|QuestionnaireAnswers' source/questionnaire source/questionnaireresponse",
+    "summary": "Current source contains Questionnaire.subjectType and the QuestionnaireAnswers alias only; no current Questionnaire.subject or Patient|RelatedPerson subject restriction remains.",
+    "learned": "There is no stale build-scope source hunk to change for FHIR-3015.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

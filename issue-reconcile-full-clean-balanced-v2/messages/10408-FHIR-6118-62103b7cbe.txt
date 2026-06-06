@@ -1,0 +1,120 @@
+FHIR-6118: Audit HTTP 409 contention status guidance
+
+Issue request:
+FHIR-6118 was a Published/Persuasive FHIR-core HTTP change request from DSTU1. It asked why update/version conflict handling used 409 when update ignores meta.versionId, requested that the rejecting-updates status-code list link down to Managing Resource Contention, and recorded the then-approved DSTU1 rule that 409 was the actual conflict status while 412 was for a server-required contention-management precondition such as a missing ETag/If-Match header.
+
+Initial application:
+The Jira comments cite svn revision 5962. In git history this is d26d81284b80a97dd876119b88e0f14846d25fb1, which changed source/http.html to make the status-code list link to #concurrency and changed the resource-contention text to say a non-matching If-Match returned 409 Conflict while a missing required If-Match returned 412 Pre-condition failed.
+
+Additional context:
+The current combined branch source/http.html is the active RESTful API page linked from the Exchange module. The FHIR-6118 cross-reference is still present in the rejecting-updates status-code list. The old 409/412 mapping should not be restored because later Published/Persuasive FHIR-16096 explicitly corrected the HTTP semantics: failed client If-Match preconditions now return 412 Precondition Failed, a server requiring If-Match can return 400 Bad Request when it is absent, and 409 Conflict remains available for server-detected conflicts such as pessimistic locking. FHIR-16096 is already represented on the combined branch by audit commit a07984311cda53cd6da7401cb4ce412dfa5fbbb9. Later FHIR-31927 was Resolved - No Change and did not add an alternate contention mechanism.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The remaining part of FHIR-6118 that is still valid for the current specification, the down-link from the update error list to Managing Resource Contention, is already present. The parts that differ from the original DSTU1 application were deliberately superseded by FHIR-16096 and match current HTTP precondition guidance.
+
+Recommendation:
+Keep this audit commit as-is. Do not reapply the original FHIR-6118 409-on-If-Match-failure wording; any future changes to contention status-code policy should be handled through a new FHIR-I HTTP decision that also accounts for FHIR-16096.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6118
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-16096: superseded-by - later Published/Persuasive HTTP issue corrected the FHIR-6118 409/412 mapping and is already audited on the combined branch.
+FHIR-31927: background - later Resolved - No Change issue considered alternate resource-contention guidance without changing the current If-Match-based approach.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6118: Published/Persuasive DSTU1 issue for FHIR-core-http asking to correct 409/412 version-conflict guidance and link the update error list to Managing Resource Contention. Learned: this establishes the seed request and the svn revision cited for initial application.
+- E2 Git d26d81284b80a97dd876119b88e0f14846d25fb1: #6118 / svn revision 5962 changed source/http.html to point 409/412 version conflict management to #concurrency and to use 409 for non-matching If-Match plus 412 for missing required If-Match. Learned: the seed was applied historically in the REST source.
+- E3 Source source/http.html:842: current combined source says 409 Conflict/412 Precondition Failed version conflict management should see #concurrency below. Learned: the surviving cross-reference requested by FHIR-6118 is present in the active REST source.
+- E4 Source source/http.html:934: current combined source says a non-matching If-Match returns 412 Precondition Failed, while source/http.html:938 says a missing required If-Match can return 400 Bad Request and 409 Conflict can be used for server-detected conflicts. Learned: the current source intentionally reflects later HTTP semantics rather than the older FHIR-6118 mapping.
+- E5 Jira/Git FHIR-16096 and 8a1c698f33ad8bd8939ff3cdf3b6c221b81e1a4b: later Published/Persuasive issue and svn revision 13891 corrected the 409/412 guidance for If-Match. Learned: this supersedes the old status-code mapping and explains why no source fix should restore it.
+- E6 Existing audit a07984311cda53cd6da7401cb4ce412dfa5fbbb9: combined branch already contains Issue-Reconcile-Key FHIR-16096. Learned: the related later issue must not receive a duplicate reconciliation commit.
+- E7 Jira FHIR-31927: Resolved - No Change issue declined alternate resource-contention mechanisms. Learned: no later decision found requires expanding the current source beyond If-Match guidance.
+- E8 Command community/source searches: Zulip and Confluence searches for FHIR-6118, 409/412, If-Match, and contention found no directly relevant community record; source links show http.html is the active RESTful API page. Learned: no discovered community or build-scope evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6118",
+    "url": "https://jira.hl7.org/browse/FHIR-6118",
+    "snapshot_path": "contexts/FHIR-6118/jira/FHIR-6118.md",
+    "ref": { "jira_key": "FHIR-6118" },
+    "summary": "Published/Persuasive FHIR-core HTTP issue asking to correct 409/412 version-conflict guidance and link the update error list to Managing Resource Contention.",
+    "learned": "This is the seed decision and identifies svn revision 5962 as the historical application.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "d26d81284b80a97dd876119b88e0f14846d25fb1",
+    "ref": { "commit": "d26d81284b80a97dd876119b88e0f14846d25fb1" },
+    "summary": "Commit #6118 / svn revision 5962 changed source/http.html to link 409/412 version conflict management to #concurrency and apply the original DSTU1 409/412 mapping.",
+    "learned": "The Jira-cited application revision is present in git history and applied the seed issue to the REST source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/http.html:842",
+    "ref": { "path": "source/http.html", "line": 842 },
+    "summary": "The current combined REST source lists 409 Conflict/412 Precondition Failed for version conflict management and links to #concurrency below.",
+    "learned": "The cross-reference part of FHIR-6118 remains present in the current active source.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/http.html:934-940",
+    "ref": { "path": "source/http.html", "line": 934 },
+    "summary": "The current contention section uses 412 for failed If-Match, 400 for a missing required If-Match, and 409 for other server-detected conflicts.",
+    "learned": "The current source intentionally follows later HTTP precondition guidance rather than the older FHIR-6118 status-code mapping.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-16096",
+    "url": "https://jira.hl7.org/browse/FHIR-16096",
+    "snapshot_path": "contexts/FHIR-16096/jira/FHIR-16096.md",
+    "ref": { "jira_key": "FHIR-16096" },
+    "summary": "Published/Persuasive issue requiring 412 for failed If-Match preconditions, 400 for missing required If-Match, and 409 for other conflicts.",
+    "learned": "This later final decision supersedes the FHIR-6118 status-code mapping and supports leaving current source unchanged.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "a07984311cda53cd6da7401cb4ce412dfa5fbbb9; 8a1c698f33ad8bd8939ff3cdf3b6c221b81e1a4b",
+    "ref": { "commits": "a07984311cda53cd6da7401cb4ce412dfa5fbbb9,8a1c698f33ad8bd8939ff3cdf3b6c221b81e1a4b" },
+    "summary": "The combined branch already contains an FHIR-16096 audit commit, and the underlying svn revision 13891 source commit changed source/http.html to the later 412/400/409 policy.",
+    "learned": "The related later issue is already reconciled and should not be duplicated for this seed.",
+    "supports": ["additional_context", "idempotency"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-31927",
+    "url": "https://jira.hl7.org/browse/FHIR-31927",
+    "ref": { "jira_key": "FHIR-31927" },
+    "summary": "Resolved - No Change issue declined adding alternate guidance for managing resource contention on updates.",
+    "learned": "No later decision found requires expanding the current source beyond the existing If-Match/contention guidance.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community and build-scope searches for FHIR-6118 HTTP contention terms",
+    "command": "bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-6118%' OR content LIKE '%409 status code%' ...\"; bun run zulip:search fts '\"409\" \"412\" \"If-Match\" \"contention\"' --limit 20; bun run confluence:search refs jira FHIR-6118; bun run confluence:search fts '\"FHIR-6118\" OR \"409\" \"412\" \"If-Match\"' --limit 10; rg -n 'href=\"http\\.html|RESTful API' source/*.html",
+    "query": "FHIR-6118; 409 412 If-Match contention; http.html RESTful API links",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence record was found, and source links identify http.html as the RESTful API page used from the current source set.",
+    "learned": "No community or build-scope evidence changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "source_scope", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,125 @@
+FHIR-35888: Include Group root in compartment matrix
+
+Issue request:
+FHIR-35888 was Published/Persuasive with Modification for R5. It asked whether a compartment's identity resource belongs to its own compartment, and the approved resolution says every compartment implicitly includes its root resource and that compartment content rendering should include the resource itself.
+
+Initial application:
+The issue appears to have been applied by git commit c2ddea7415c6952f2988e332315c5e1becdf9bd0, which added the Base Resource narrative to the CompartmentDefinition page, adjusted the compartment template, and changed the Patient resource row to include {def}. Existing Encounter, RelatedPerson, Practitioner, and Device rows already had {def} markers.
+
+Additional context:
+FHIR-48863 later added a Group compartment in source/compartments.xml and was already represented on the combined branch by commit 9608dfed9a86ec8e5c5b6ecf3e076a3efb026284. That later application left the Group resource row without a {def} marker in the Group compartment column, making the current source inconsistent with FHIR-35888's general root-resource rule. Group and CompartmentDefinition are active current resources in source/fhir.ini, and source/compartments.xml is the authoritative compartment matrix used for the generated compartment content.
+
+AutoFHIR reconciliation:
+This commit adds {def} to the Group row's Group compartment column in source/compartments.xml. The change is intentionally limited to the missing root-resource marker and does not broaden Group membership through Group.member, preserving FHIR-48863's distinction that Group members and resources linked only to members are not included in the Group compartment.
+
+Recommendation:
+Keep this source fix. It completes FHIR-35888 for the later-added Group compartment while leaving separate Group compartment boundary questions to the already-published FHIR-48863 reconciliation or future trackers.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-35888
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-48863: later-change - added the Group compartment after FHIR-35888 and created the only current compartment root missing a {def} marker; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-35888: Published/Persuasive with Modification issue requiring the compartment root resource to be included in its own compartment and in compartment content rendering. Learned: this is final WG intent for the root-resource rule.
+- E2 Zulip #implementers > Is a compartment identity resource in its own compartment?: discussion that led Lee Surprenant to file FHIR-35888 after Josh Mandel said the spec should say the identity resource is part of the compartment. Learned: confirms the ambiguity and intended clarification.
+- E3 Confluence FHIR Infrastructure Minutes WGM 202205 page 101355607: minutes record FHIR-35888 as Persuasive with Mod, motion Josh Mandel/John Moehrke, 21-0-1. Learned: confirms work-group approval.
+- E4 Git c2ddea7415c6952f2988e332315c5e1becdf9bd0: added CompartmentDefinition Base Resource narrative and changed Patient to {def} | link. Learned: shows prior application of FHIR-35888's rule to the then-current compartment matrix.
+- E5 Source source/compartmentdefinition/compartmentdefinition-notes.xml:8 and source/compartmentdefinition/compartmentdefinition-introduction.xml:35: current narrative says a compartment implicitly includes its root, and .param entries define listed resource membership. Learned: the Group row needs {def} to match the current narrative and generated-membership convention.
+- E6 Source source/compartments.xml:121-129 and source/compartments.xml:472-476: Group is an active compartment column and the Group resource row lacked a Group-column {def} before this commit. Learned: this was the remaining current-source inconsistency for FHIR-35888.
+- E7 Source source/fhir.ini:193 and source/fhir.ini:270: Group and CompartmentDefinition are active resources in the current build. Learned: the compartment matrix fix feeds current build-scope artifacts.
+- E8 Git 9608dfed9a86ec8e5c5b6ecf3e076a3efb026284: existing combined-branch FHIR-48863 reconciliation corrected Group compartment narrative but did not add the root {def}. Learned: FHIR-48863 is related context, not a duplicate issue to republish.
+- E9 Verification command: XML parse, compartment-root matrix check, and CRLF-aware git diff --check passed. Learned: all active compartment roots now include {def} and the edited spreadsheet XML remains valid.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-35888",
+    "url": "https://jira.hl7.org/browse/FHIR-35888",
+    "snapshot_path": "contexts/FHIR-35888/jira/FHIR-35888.md",
+    "ref": { "jira_key": "FHIR-35888" },
+    "summary": "Published/Persuasive with Modification issue requiring a compartment's root resource to be included in its own compartment and in rendered compartment content.",
+    "learned": "This is final WG intent for the root-resource rule applied by this commit.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Is a compartment identity resource in its own compartment?",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Is%20a%20compartment%20identity%20resource%20in%20its%20own%20compartment%3F",
+    "snapshot_path": "contexts/FHIR-35888/zulip/implementers--Is-a-compartment-identity-resource-in-its-own-compartment.md",
+    "ref": { "stream": "implementers", "topic": "Is a compartment identity resource in its own compartment?" },
+    "summary": "The discussion asks whether Patient/123 is returned by Patient/123/Patient and records that the spec should say the identity resource is part of the compartment.",
+    "learned": "This confirms the ambiguity FHIR-35888 was intended to resolve.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes WGM 202205 page 101355607",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/101355607/FHIR+Infrastructure+Minutes+WGM+202205",
+    "snapshot_path": "contexts/FHIR-35888/confluence/101355607.md",
+    "ref": { "confluence_page_id": 101355607 },
+    "summary": "Minutes record FHIR-35888 as Persuasive with Mod, motion Josh Mandel/John Moehrke, 21-0-1.",
+    "learned": "This confirms work-group approval for the Jira disposition.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "c2ddea7415c6952f2988e332315c5e1becdf9bd0",
+    "ref": { "commit": "c2ddea7415c6952f2988e332315c5e1becdf9bd0" },
+    "summary": "Initial compartment clarification commit added Base Resource narrative and changed the Patient compartment matrix row to {def} | link.",
+    "learned": "The seed was applied for then-current compartments but the later Group compartment inherited no root marker.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/compartmentdefinition/compartmentdefinition-notes.xml:8; source/compartmentdefinition/compartmentdefinition-introduction.xml:35",
+    "summary": "Current CompartmentDefinition narrative says a compartment implicitly includes its root and that .param entries identify listed resources in the compartment.",
+    "learned": "The resource matrix should use {def} for each compartment's own resource row to match the narrative.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/compartments.xml:121-129,472-476",
+    "summary": "The resources worksheet defines Group as a compartment column and the Group resource row previously lacked a Group-column {def} marker.",
+    "learned": "Adding {def} is the minimal source correction needed for FHIR-35888 in the current matrix.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/fhir.ini:193,270",
+    "summary": "Group and CompartmentDefinition are active current resource entries.",
+    "learned": "The edited compartment source feeds current build-scope artifacts rather than retired content.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "git",
+    "locator": "9608dfed9a86ec8e5c5b6ecf3e076a3efb026284",
+    "ref": { "commit": "9608dfed9a86ec8e5c5b6ecf3e076a3efb026284" },
+    "summary": "Combined-branch FHIR-48863 reconciliation corrected Group compartment narrative after Group was added.",
+    "learned": "FHIR-48863 is related later context and already represented, so this commit only addresses FHIR-35888's missing root marker.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Scoped XML and compartment-root validation",
+    "command": "python3 XML parse/root {def} matrix check; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/compartments.xml",
+    "summary": "The edited spreadsheet XML parses, every active compartment root row includes {def}, and diff --check reports no whitespace errors.",
+    "learned": "The source correction is syntactically valid and satisfies the seed's matrix-level requirement.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

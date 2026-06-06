@@ -1,0 +1,107 @@
+FHIR-24861: Allow coded normal reference ranges
+
+Issue request:
+FHIR-24861 was Published/Persuasive with Modification for Observation. It asked for Observation.referenceRange to support a coded reference value instead of forcing qualitative normals such as NEG through referenceRange.text. The approved resolution was to add ReferenceRange.normalValue to Observation as a CodeableConcept.
+
+Initial application:
+The R5 application added Observation.referenceRange.normalValue as a CodeableConcept in commit 26dd9e3c28, and later source history added the binding and Observation reference range normal-value terminology. The Jira comment points to PR commit bf05dda, but the current branch history shows 26dd9e3c28 as the content commit that introduced the element. The current source already had the element, terminology binding, and later FHIR-50532 binding-strength relaxation, but the parent obs-3 invariant still required low, high, or text and therefore rejected a referenceRange containing only normalValue.
+
+Additional context:
+The original Zulip thread shows the problem was qualitative coded normal values such as NEG for protein or HIV observations, and the OO minutes record the 2022-02-15 vote to add normalValue. FHIR-50532 later relaxed the normalValue binding to Example, which this change preserves. FHIR-55269 is a later Resolved - change required THO-migration proposal for the same normal-value code system, but it is not yet Applied/Published and does not change the invariant needed for FHIR-24861.
+
+AutoFHIR reconciliation:
+Updated source/observation/structuredefinition-Observation.xml, which is in build scope through the active fhir.ini Observation=observation resource entry, so obs-3 accepts normalValue as a sufficient referenceRange payload and the normalValue element is marked as satisfying obs-3. Added source/observation/invariant-tests/obs-3.p4.pass.xml alongside the existing obs-3 invariant cases to cover a referenceRange with a coded normalValue and no low/high/text.
+
+Recommendation:
+Keep this commit. It completes the applied FHIR-24861 model change without altering the later FHIR-50532 Example binding. Handle FHIR-55269 separately if and when the THO migration is applied.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-24861
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-50532: later-change - Relaxed Observation.referenceRange.normalValue binding to Example; current source already reflects this and the invariant fix preserves it.
+FHIR-55269: background - Later Resolved - change required proposal to move the normal-value CodeSystem to THO; not final Applied/Published source-edit scope for this reconciliation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-24861: Published/Persuasive with Modification; resolution says to add ReferenceRange.normalValue to Observation as a CodeableConcept. Learned: final OO intent requires a first-class coded normal reference value.
+- E2 Zulip #implementers > Observation.referenceRange with code: reporter asked how to represent NEG as a code under Observation.referenceRange and filed GF#24861 after workaround discussion. Learned: a coded-only normal reference value is the motivating use case.
+- E3 Confluence OO 2022-02-15 FHIR minutes page 90351841: minutes record FHIR-24861 as fixed in R5 and the motion to add ReferenceRange.normalValue as CodeableConcept, 5-0-0. Learned: confirms work-group approval and intended application.
+- E4 Git 26dd9e3c28 and 1093c8babc/32f80fd081: history added normalValue, later added its binding, and then relaxed it to Example for FHIR-50532. Learned: the element exists, but later binding work did not address the parent invariant.
+- E5 Source source/fhir.ini:169,945 and source/observation/structuredefinition-Observation.xml:1059: Observation is an active resource and obs-3 previously required only low/high/text. Learned: the authoritative current source was in build scope and still blocked normalValue-only reference ranges.
+- E6 Source source/observation/structuredefinition-Observation.xml:1135 and source/observation/invariant-tests/obs-3.p4.pass.xml: this commit includes normalValue in obs-3 and adds a pass case. Learned: the reconciled source now permits the coded reference requested by FHIR-24861.
+- E7 Verification command: xmllint --noout source/observation/structuredefinition-Observation.xml source/observation/invariant-tests/obs-3.p4.pass.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check. Learned: edited XML parses and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-24861",
+    "url": "https://jira.hl7.org/browse/FHIR-24861",
+    "snapshot_path": "contexts/FHIR-24861/jira/FHIR-24861.md",
+    "ref": { "jira_key": "FHIR-24861" },
+    "summary": "Published/Persuasive with Modification issue requesting coded support under Observation.referenceRange, resolved by adding ReferenceRange.normalValue as CodeableConcept.",
+    "learned": "This establishes the final OO-approved model change and target behavior for reconciliation.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Observation.referenceRange with code",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Observation.referenceRange%20with%20code",
+    "snapshot_path": "contexts/FHIR-24861/zulip/implementers--Observation.referenceRange-with-code.md",
+    "ref": { "stream": "implementers", "topic": "Observation.referenceRange with code" },
+    "summary": "The reporter asked how to express qualitative normal values such as NEG as codes and then filed GF#24861.",
+    "learned": "The issue is specifically about enabling coded normal values without relying on referenceRange.text workarounds.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "OO 2022-02-15 FHIR minutes page 90351841",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/90351841/2022-02-15+FHIR",
+    "snapshot_path": "contexts/FHIR-24861/confluence/90351841.md",
+    "ref": { "confluence_page_id": 90351841 },
+    "summary": "Minutes say FHIR-24861 looked fixed in R5 and record the Persuasive with Modification motion to add ReferenceRange.normalValue as CodeableConcept, 5-0-0.",
+    "learned": "This confirms work-group approval and the intended application target.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "26dd9e3c28; 1093c8babc; 32f80fd081",
+    "ref": { "commits": "26dd9e3c28,1093c8babc,32f80fd081" },
+    "summary": "Source history added normalValue, later added its binding, and relaxed that binding to Example for FHIR-50532.",
+    "learned": "The element and binding were applied, but no later commit fixed obs-3 to allow a normalValue-only referenceRange.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,945; source/observation/structuredefinition-Observation.xml:1059",
+    "summary": "Observation is an active resource, and the pre-reconciliation obs-3 invariant accepted only low, high, or text.",
+    "learned": "The remaining mismatch was in authoritative build-scope source and prevented the coded-only use case requested by FHIR-24861.",
+    "supports": ["build_scope", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-Observation.xml:1059; source/observation/invariant-tests/obs-3.p4.pass.xml",
+    "summary": "The reconciliation includes normalValue in obs-3 and adds a pass invariant example using a coded normalValue.",
+    "learned": "The source now permits the coded normal reference range that the issue approved.",
+    "supports": ["reconciliation", "source_changes"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML parse and whitespace validation",
+    "command": "xmllint --noout source/observation/structuredefinition-Observation.xml source/observation/invariant-tests/obs-3.p4.pass.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Edited XML parsed successfully and the patch had no whitespace errors.",
+    "learned": "The focused source edit is syntactically valid and clean for publication.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

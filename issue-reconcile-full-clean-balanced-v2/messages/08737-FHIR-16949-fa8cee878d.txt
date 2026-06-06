@@ -1,0 +1,120 @@
+FHIR-16949: Qualify profile canonical targets
+
+Issue request:
+FHIR-16949 was a Published/Persuasive STU3 FHIR-I change request asking that canonical declarations be qualified like Reference declarations. It specifically said bare canonical should appear only when all knowledge/structure resources are valid targets, and the resolution said the remaining unqualified canonical declarations would be qualified and tooling would render those qualifiers.
+
+Initial application:
+The issue was explicitly applied in SVN revision 13903, preserved as git commit 6c55fe476ebd, which changed JsonSpecGenerator and SvgGenerator so canonical target parameters render like Reference target parameters. Later source-history work such as commit 3dc81b908557 and the already-published FHIR-16769 reconciliation qualified CDS/CQI knowledge-resource canonicals, but current source still had a few later-added profile/ruleset canonical elements without targetProfile metadata.
+
+Additional context:
+Current source/fhir.ini lists DocumentReference, Endpoint, StructureDefinition, and ExampleScenario as active current-build resources. A current audit found nine bare canonical type blocks before this reconciliation; six are intentionally broad or generic value surfaces, while Endpoint.payload.profileCanonical, DocumentReference.content.profile.value[x], and ExampleScenario.instance.structureProfile[x] all describe FHIR profiles, content profiles, templates, rulesets, or profile canonicals whose FHIR canonical target is StructureDefinition. FHIR-39616's applied Endpoint resolution explicitly requested Canonical(StructureDefinition)|URI, and FHIR-37895's published ExampleScenario resolution introduced structureProfile[x] for FHIR profiles with uri|canonical choices.
+
+AutoFHIR reconciliation:
+This commit adds targetProfile="http://hl7.org/fhir/StructureDefinition/StructureDefinition" to the canonical type on Endpoint.payload.profileCanonical, DocumentReference.content.profile.value[x], and ExampleScenario.instance.structureProfile[x]. It intentionally leaves RequestOrchestration.instantiatesCanonical, GuidanceResponse.module[x], ArtifactAssessment.artifact[x], Task input/output value[x], and Parameters.parameter.value[x] unqualified because their current definitions are broad or generic enough that narrowing them would require a targeted work-group decision.
+
+Recommendation:
+Keep this source fix as-is. It completes the clear current-source FHIR-16949 gaps without over-constraining broad canonical values; any future narrowing of the remaining broad/ambiguous bare canonical elements should be handled by specific Jira decisions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-16949
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-16765: same-change-family - related Published CDS issue for canonical target qualification on ActivityDefinition, already audited separately with no source change needed.
+FHIR-16769: same-change-family - related Published CDS/CQI issue whose reconciliation already fixed remaining bounded PlanDefinition and Measure canonical target-profile gaps.
+FHIR-39616: later-change - applied Endpoint issue that introduced Endpoint.payload.profileCanonical semantics and explicitly requested Canonical(StructureDefinition)|URI.
+FHIR-37895: later-change - published ExampleScenario issue that introduced structureProfile[x] as a uri|canonical profile/ruleset choice.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-16949: Published/Persuasive request to qualify canonical declarations and reserve bare canonical for all knowledge/structure-resource targets. Learned: establishes the required target-profile audit rule.
+- E2 Git 6c55fe476ebd: SVN 13903 changed canonical rendering tooling for JSON/SVG output. Learned: the historical application addressed rendering but did not prevent later source declarations from lacking targetProfile metadata.
+- E3 Source source/fhir.ini:189,233,258,282: DocumentReference, Endpoint, StructureDefinition, and ExampleScenario are active current-build resources. Learned: the edited StructureDefinition files are in build scope.
+- E4 Source source/endpoint/structuredefinition-Endpoint.xml:349-357, source/documentreference/structuredefinition-DocumentReference.xml:1217-1230, source/examplescenario/structuredefinition-ExampleScenario.xml:667-675: profile/ruleset canonical elements now target StructureDefinition. Learned: the clear remaining profile canonical gaps are fixed.
+- E5 Jira/Git FHIR-39616 and FHIR-37895: later final issues introduced Endpoint profileCanonical and ExampleScenario structureProfile[x] with profile/StructureDefinition semantics. Learned: later source evolution explains why these post-STU3 elements needed reconciliation now.
+- E6 Source audit: after the edit, the remaining bare canonical type blocks are RequestOrchestration.instantiatesCanonical, GuidanceResponse.module[x], ArtifactAssessment.artifact[x], Task input/output value[x], and Parameters.parameter.value[x]. Learned: remaining bare canonicals are broad or generic value surfaces and were not safely narrowed by this seed.
+- E7 Community search: Zulip and Confluence searches for FHIR-16949 and canonical qualifier terms found no direct conflicting discussion; Zulip only surfaced the related commit notification for GF#16769/GF#16765. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+- E8 Verification command: XML parsing, whitespace diff check, and a targetProfile audit passed for the edited files. Learned: the edited source is syntactically valid and satisfies the bounded reconciliation check.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-16949",
+    "url": "https://jira.hl7.org/browse/FHIR-16949",
+    "snapshot_path": "contexts/FHIR-16949/jira/FHIR-16949.md",
+    "ref": { "jira_key": "FHIR-16949" },
+    "summary": "Published/Persuasive STU3 FHIR-I request to qualify canonical declarations and reserve bare canonical for all knowledge/structure-resource targets.",
+    "learned": "This establishes the final target-profile audit rule for current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "6c55fe476ebd",
+    "ref": { "commit": "6c55fe476ebdd93ff12b97863efb1c59687d1af0" },
+    "summary": "SVN 13903/GF#16949 changed JsonSpecGenerator and SvgGenerator so canonical target parameters render like Reference target parameters.",
+    "learned": "The historical application addressed rendering, while later source additions still needed current targetProfile metadata checks.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:189,233,258,282",
+    "ref": { "path": "source/fhir.ini", "lines": "189,233,258,282" },
+    "summary": "DocumentReference, Endpoint, StructureDefinition, and ExampleScenario are listed as active resources in the current build configuration.",
+    "learned": "The edited StructureDefinition files are current build inputs.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/endpoint/structuredefinition-Endpoint.xml:349-357; source/documentreference/structuredefinition-DocumentReference.xml:1217-1230; source/examplescenario/structuredefinition-ExampleScenario.xml:667-675",
+    "ref": { "path": "source/endpoint/structuredefinition-Endpoint.xml; source/documentreference/structuredefinition-DocumentReference.xml; source/examplescenario/structuredefinition-ExampleScenario.xml", "lines": "349-357; 1217-1230; 667-675" },
+    "summary": "Endpoint.payload.profileCanonical, DocumentReference.content.profile.value[x], and ExampleScenario.instance.structureProfile[x] now qualify canonical with targetProfile StructureDefinition.",
+    "learned": "The clear profile/ruleset canonical declarations now satisfy FHIR-16949.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-39616; FHIR-37895",
+    "url": "https://jira.hl7.org/browse/FHIR-39616",
+    "snapshot_path": "contexts/FHIR-16949/jira/FHIR-39616.md",
+    "ref": { "jira_key": "FHIR-39616" },
+    "summary": "FHIR-39616 requested Endpoint.payload.profile as Canonical(StructureDefinition)|URI; FHIR-37895 introduced ExampleScenario.structureProfile[x] for FHIR profiles as uri|canonical.",
+    "learned": "Later final issues confirm the StructureDefinition target semantics for two of the edited elements.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Remaining bare canonical audit",
+    "command": "python3 XML audit over source/**/structuredefinition-*.xml for canonical type blocks without targetProfile",
+    "summary": "After the edit, the remaining bare canonical type blocks are RequestOrchestration.instantiatesCanonical, GuidanceResponse.module[x], ArtifactAssessment.artifact[x], Task input/output value[x], and Parameters.parameter.value[x].",
+    "learned": "The remaining bare canonicals are broad or generic value surfaces and were not safely narrowed by this seed.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-16949 canonical qualifiers",
+    "command": "bun run zulip:search fts '\"FHIR-16949\" canonical' --limit 10; bun run zulip:search fts '\"canonical references\" qualifiers' --limit 10; bun run confluence:search refs jira FHIR-16949; bun run confluence:search fts '\"canonical references\" qualifiers' --limit 10",
+    "query": "FHIR-16949 canonical; canonical references qualifiers",
+    "summary": "No direct Zulip or Confluence discussion for FHIR-16949 was found; only a related GF#16769/GF#16765 commit notification appeared.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML and targetProfile validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; python3 XML parse; python3 targetProfile audit",
+    "summary": "Whitespace, XML parsing, and targetProfile checks passed for the edited files.",
+    "learned": "The edited source is syntactically valid and satisfies the bounded reconciliation check.",
+    "supports": ["confidence", "reconciliation"]
+  }
+]
+</evidence-manifest>

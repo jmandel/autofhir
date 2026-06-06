@@ -1,0 +1,115 @@
+FHIR-17285: Audit Condition recorded date reconciliation
+
+Issue request:
+FHIR-17285 was a Published/Persuasive Patient Care change request for STU3 asking to clarify how Condition.clinicalStatus and assertedDate should be understood over time. The approved resolution applied to both AllergyIntolerance and Condition: move assertedDate from the core resources to an extension, define it as the date the allergy/intolerance/condition was first asserted or acknowledged, and add core recordedDate as the date this particular record was created in the EHR/system.
+
+Initial application:
+The issue appears to have been applied by git commit 722ed5c93f4bc9828e96f0f5b476bedc3486fb92 on 2018-06-19. That commit explicitly cites GF#14643, GF#15781, and GF#17285, moved AllergyIntolerance.assertedDate and Condition.assertedDate out to extension spreadsheets, renamed the core elements to AllergyIntolerance.recordedDate and Condition.recordedDate, and updated examples/search definitions. The current converted StructureDefinition sources preserve GF#17285 committee notes on the recordedDate elements.
+
+Additional context:
+FHIR-14643 and FHIR-15781 are same-family Published trackers for Condition.assertedDate and AllergyIntolerance.assertedDate ambiguity; their comments state that GF#17285 superseded them for the recorded-vs-asserted clarification. The original Zulip thread records the uncertainty around whether clinicalStatus was tied to assertedDate and the later Patient Care summary: move assertedDate to an extension and add recordedDate to core. The current core build actively includes AllergyIntolerance and Condition. Core no longer carries the assertedDate extension definitions after the R5 source cleanup; the FHIR Extension Pack now carries condition-assertedDate for both Condition and AllergyIntolerance, while allergyintolerance-assertedDate is retired/deprecated in favor of condition-assertedDate.
+
+AutoFHIR reconciliation:
+No source change was made. Current core source already has AllergyIntolerance.recordedDate and Condition.recordedDate with definitions/comments that distinguish first recording from the current recorder/asserter, has no core AllergyIntolerance.assertedDate or Condition.assertedDate element to continue the old ambiguity, and keeps R3 rename aliases from assertedDate to recordedDate for compatibility. The remaining asserted-date extension source belongs to the Extension Pack and already reflects the assertion-vs-recording distinction.
+
+Recommendation:
+Keep this audit commit as-is. No core follow-up is needed for FHIR-17285 unless a future Patient Care decision wants to change the external asserted-date extension text or the later extension-pack consolidation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17285
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-14643: superseded-by - Condition.assertedDate short/long definition inconsistency was superseded by FHIR-17285's broader recorded-vs-asserted decision.
+FHIR-15781: superseded-by - AllergyIntolerance.assertedDate ambiguity was superseded by FHIR-17285's broader recorded-vs-asserted decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17285: Published/Persuasive issue requesting clarification of clinicalStatus/assertedDate with a resolution to move assertedDate to an extension and add recordedDate to AllergyIntolerance and Condition. Learned: this is the final seed decision to reconcile.
+- E2 Source source/fhir.ini:1090,1121,1324,1347 and 2638,2645: AllergyIntolerance and Condition are active approved resources, and R3 rename aliases map assertedDate to recordedDate. Learned: the checked source locations are in current build scope and preserve compatibility for the renamed element.
+- E3 Source source/condition/structuredefinition-Condition.xml:535-542 and 562-569: Condition.recordedDate is present with GF#17285 committee note, 0..1 dateTime cardinality, and comments distinguishing recordedDate from recorder/asserter. Learned: Condition core source already reflects the approved semantic separation.
+- E4 Source source/allergyintolerance/structuredefinition-AllergyIntolerance.xml:412-419 and 438-445: AllergyIntolerance.recordedDate is present with GF#17285 committee note and comments distinguishing recordedDate from recorder/asserter. Learned: AllergyIntolerance core source already reflects the approved semantic separation.
+- E5 Git 722ed5c93f4bc9828e96f0f5b476bedc3486fb92: implementation commit explicitly cites GF#17285 and changed both resources from assertedDate to recordedDate while adding assertedDate extensions. Learned: the historical application path matches the Jira resolution.
+- E6 Zulip #implementers/use of Condition.clinicalStatus: the linked thread shows the ambiguity and Michelle Miller's 2018-06-14 summary to move assertedDate to an extension and add recordedDate to core. Learned: community discussion supports the same interpretation as Jira and git history.
+- E7 Source /home/jmandel/work/fhir-extensions/input/definitions/Condition/StructureDefinition-condition-assertedDate.xml:41-57 and AllergyIntolerance/StructureDefinition-allergyintolerance-assertedDate.xml:11-18,45-57: Extension Pack owns the asserted-date extensions; condition-assertedDate covers both resources and allergyintolerance-assertedDate is retired/deprecated in favor of it. Learned: absence of core assertedDate extension definitions is an intentional repository move, not a missing core fix.
+- E8 Confluence PC minutes 2018-06-07 and 2018-06-14: Patient Care minutes list GF#17285 for discussion and then as resolved. Learned: no discovered community/minutes evidence conflicts with the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17285",
+    "url": "https://jira.hl7.org/browse/FHIR-17285",
+    "snapshot_path": "contexts/FHIR-17285/jira/FHIR-17285.md",
+    "ref": { "jira_key": "FHIR-17285" },
+    "summary": "Published/Persuasive Patient Care change request to clarify Condition clinicalStatus/assertedDate semantics by moving assertedDate to an extension and adding recordedDate to AllergyIntolerance and Condition.",
+    "learned": "This establishes the final seed decision that current source must satisfy.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1090,1121,1324,1347,2638,2645",
+    "summary": "AllergyIntolerance and Condition are active approved resources, and R3 rename aliases map AllergyIntolerance.assertedDate and Condition.assertedDate to recordedDate.",
+    "learned": "The inspected resources are in build scope and current compatibility aliases preserve the old element names without retaining core assertedDate elements.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/condition/structuredefinition-Condition.xml:535-542,562-569",
+    "summary": "Condition.recordedDate is present with GF#17285 committee note and text describing when the Condition record was created in the system; recorder comments distinguish authoring responsibility from first recording.",
+    "learned": "Condition already carries the core recordedDate semantics required by FHIR-17285.",
+    "supports": ["reconciliation", "absence_of_core_gap"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/allergyintolerance/structuredefinition-AllergyIntolerance.xml:412-419,438-445",
+    "summary": "AllergyIntolerance.recordedDate is present with GF#17285 committee note and text describing when the record was created in the system; recorder comments distinguish responsibility from first recording.",
+    "learned": "AllergyIntolerance already carries the core recordedDate semantics required by FHIR-17285.",
+    "supports": ["reconciliation", "absence_of_core_gap"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "722ed5c93f4bc9828e96f0f5b476bedc3486fb92",
+    "ref": { "commit": "722ed5c93f4bc9828e96f0f5b476bedc3486fb92" },
+    "summary": "2018-06-19 implementation commit explicitly cites GF#17285 and changes AllergyIntolerance/Condition assertedDate handling to recordedDate plus extensions.",
+    "learned": "The historical application matches the Jira resolution and explains why current source has recordedDate rather than core assertedDate.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > use of Condition.clinicalStatus",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/use%20of%20Condition.clinicalStatus",
+    "snapshot_path": "contexts/FHIR-17285/zulip/implementers--use-of-Condition-clinicalStatus.md",
+    "ref": { "stream": "implementers", "topic": "use of Condition.clinicalStatus" },
+    "summary": "Thread records the clinicalStatus/assertedDate ambiguity and the Patient Care summary to move assertedDate to an extension and add recordedDate to core.",
+    "learned": "Community discussion supports the Jira resolution and does not indicate a remaining source gap.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/Condition/StructureDefinition-condition-assertedDate.xml and AllergyIntolerance/StructureDefinition-allergyintolerance-assertedDate.xml",
+    "summary": "The Extension Pack defines condition-assertedDate for Condition and AllergyIntolerance and marks the older allergyintolerance-assertedDate extension retired/deprecated in favor of it.",
+    "learned": "The assertedDate extension now belongs outside core and already distinguishes assertion date from recordedDate.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "PC minutes 2018-06-07 page 17663305 and 2018-06-14 page 17663319",
+    "url": "https://confluence.hl7.org/spaces/PC/pages/17663319/2018-06-14+Patient+Care+FHIR+Conference+Call",
+    "snapshot_path": "contexts/FHIR-17285/confluence/17663319.md",
+    "ref": { "confluence_page_id": 17663319 },
+    "summary": "Patient Care minutes list GF#17285 for discussion and then as resolved.",
+    "learned": "No WG minutes evidence conflicts with the Jira/source conclusion.",
+    "supports": ["additional_context", "confidence"]
+  }
+]
+</evidence-manifest>

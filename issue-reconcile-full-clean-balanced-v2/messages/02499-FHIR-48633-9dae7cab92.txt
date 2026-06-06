@@ -1,0 +1,100 @@
+FHIR-48633: Audit SampledData search indexing reconciliation
+
+Issue request:
+FHIR-48633 was an Applied/Persuasive Orders and Observations change request for R6. It reported that the search page said SampledData is not used in search while Observation quantity search parameters still described and indexed SampledData bounds; the adopted resolution was to drop SampledData from Observation combo-value-quantity, component-value-quantity, and value-quantity descriptions and FHIRPath expressions.
+
+Initial application:
+The current source already contains the required application. Commit 4628e558178cb6196743b3cafab9cb255533da6e, although not Jira-tagged, changed source/observation/bundle-Observation-search-params.xml to remove SampledData from the three affected Observation quantity search parameter descriptions and expressions.
+
+Additional context:
+Observation is an active current-build resource in source/fhir.ini, and source/search.html still states that SampledData is not used in search. Confluence minutes from FHIR-I and OO record the rationale that core has no SampledData search type and should not allow SampledData in search FHIRPath. Older Zulip discussion confirms the prior inconsistency had been known, but no discovered later decision conflicts with the R6 removal.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change because the active Observation search parameter source already implements the Jira resolution and is consistent with the search page's SampledData matrix entry.
+
+Recommendation:
+Keep this audit commit as-is. No core follow-up is needed unless a future work group defines a dedicated SampledData search type and reopens how Observation SampledData values should be indexed.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-48633
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-48633: Applied/Persuasive issue requests removing SampledData from Observation quantity search parameters. Learned: this is the final WG intent for R6.
+- E2 Source source/fhir.ini:209: observation=Observation is active. Learned: the Observation search parameter bundle is in current build scope.
+- E3 Source source/observation/bundle-Observation-search-params.xml:266,390,733: the affected combo-value-quantity, component-value-quantity, and value-quantity search parameters now reference only Quantity. Learned: the source already implements the requested removal.
+- E4 Source source/search.html:6863: SampledData remains marked Not used in search. Learned: after E3, the search page statement is no longer contradicted by Observation search parameters.
+- E5 Git 4628e558178c: changed the affected Observation search parameter descriptions and expressions to drop SampledData. Learned: the Jira request appears to have been applied before this reconciliation.
+- E6 Confluence FHIR-I WGM 2025-01 and OO minutes 2025-04: FHIR-I/OO noted core has no SampledData search type and does not provide sampledData searches. Learned: community minutes support leaving SampledData out of search parameters.
+- E7 Verification command: targeted rg checks found no SampledData expressions or bounds prose in source/observation/bundle-Observation-search-params.xml and confirmed the active search page matrix entry. Learned: no source hunk is required now.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-48633",
+    "url": "https://jira.hl7.org/browse/FHIR-48633",
+    "snapshot_path": "contexts/FHIR-48633/jira/FHIR-48633.md",
+    "ref": { "jira_key": "FHIR-48633" },
+    "summary": "Applied/Persuasive R6 issue requiring Observation quantity search parameters to drop SampledData descriptions and FHIRPath expressions.",
+    "learned": "This establishes the final requested source state for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:209",
+    "summary": "The current build configuration contains an active observation=Observation resource entry.",
+    "learned": "Observation source files, including the search parameter bundle, are in current build scope.",
+    "supports": ["build_scope", "source_check"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/observation/bundle-Observation-search-params.xml:266,390,733",
+    "summary": "Observation combo-value-quantity, component-value-quantity, and value-quantity now describe Quantity-only indexing and their expressions contain no SampledData branch.",
+    "learned": "The active source already implements the Jira resolution.",
+    "supports": ["reconciliation", "no_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/search.html:6863",
+    "summary": "The SampledData row in the search page matrix says Not used in search.",
+    "learned": "With Observation SampledData indexing removed, the matrix statement is internally consistent.",
+    "supports": ["reconciliation", "no_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "4628e558178cb6196743b3cafab9cb255533da6e",
+    "ref": { "commit": "4628e558178cb6196743b3cafab9cb255533da6e" },
+    "summary": "The May 2025 commit modified source/observation/bundle-Observation-search-params.xml to remove SampledData from the affected descriptions and expressions.",
+    "learned": "This is the initial application event found in history, even though it did not mention FHIR-48633.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "FHIR-I WGM 202501 and OO on FHIR 2025-04 minutes",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/281219681/FHIR+Infrastructure+Minutes+WGM+202501+-+Virtual",
+    "summary": "FHIR-I minutes say core has no SampledData search type and should not allow SampledData in search FHIRPath; OO minutes say FHIR-I does not provide sampledData searches in core.",
+    "learned": "Meeting evidence supports the choice to remove SampledData rather than change the search matrix to permit it.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted source consistency checks",
+    "command": "rg -n '^observation=Observation$' source/fhir.ini; rg -q 'ofType\\(SampledData\\)|as SampledData|bounds of the values in sampled data' source/observation/bundle-Observation-search-params.xml; rg -n '<%xcmchk SampledData%>Not used in search' source/search.html",
+    "summary": "Observation is active, the Observation search parameter bundle has no SampledData search expression or bounds prose, and the search page still marks SampledData as not used in search.",
+    "learned": "The current source is already consistent with FHIR-48633, so an empty no-change audit commit is appropriate.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

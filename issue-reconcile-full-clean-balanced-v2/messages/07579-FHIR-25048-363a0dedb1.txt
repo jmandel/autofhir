@@ -1,0 +1,97 @@
+FHIR-25048: Audit choice-type search parameter filtering
+
+Issue request:
+FHIR-25048 was Published with resolution Persuasive with Modification. It asked that search parameters whose expressions point at choice elements, specifically Procedure-date on Procedure.occurrence[x], not expose irrelevant datatypes; the accepted resolution said the filter should be created by tooling based on the declared search type.
+
+Initial application:
+The issue was applied in d1f2f1ca6e, which updated checked-in search parameter bundles for Procedure-date and parallel choice-type search parameters to add type filters such as dateTime, Period, and Timing. A later cleanup in 7b140eccee changed Procedure-date from the FHIRPath as() form to ofType() after FHIRPath behavior was clarified.
+
+Additional context:
+Procedure remains an active resource in source/fhir.ini, and source/procedure/bundle-Procedure-search-params.xml is the current build-scope search parameter bundle. Related Procedure occurrence datatype work, including FHIR-20627, is already represented on the combined branch and supports the current Procedure.occurrence[x] datatype set that includes Timing. ChargeItem and MedicationUsage historical files touched by the original commit are no longer active current core resource directories; MedicationStatement carries the corresponding filtered effective[x] expression in the current source.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current Procedure-date has path Procedure.occurrence[x], type date, and expression Procedure.occurrence.ofType(dateTime) | Procedure.occurrence.ofType(Period) | Procedure.occurrence.ofType(Timing). A strict scan of current search parameter bundles found no non-template choice search parameter block matching this issue's unfiltered pattern after excluding boolean existence searches and already-explicit FHIRPath type filters.
+
+Recommendation:
+Keep this audit commit as-is. The current source already implements the published FHIR-25048 decision, and adding redundant prose or re-editing generated search parameter bundles would not change implementer understanding.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25048
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-20627: later-change - Procedure.occurrence[x] Timing support is already audited on the combined branch and explains why the current Procedure-date filter includes Timing.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25048: Published/Persuasive with Modification issue requesting datatype filtering for Procedure-date and similar choice-type search parameters. Learned: this is the final WG intent for the reconciliation.
+- E2 Confluence FHIR-I Minutes 2020-04-06 page 80119814: minutes record the FHIR-25048 motion and state that tooling should pick up search filters based on search type. Learned: the vote and rationale align with Jira's resolution.
+- E3 Source source/procedure/bundle-Procedure-search-params.xml:65-76 and source/fhir.ini:169-212: Procedure is active, and Procedure-date now filters Procedure.occurrence[x] to dateTime, Period, and Timing with ofType(). Learned: the current build-scope Procedure source already conveys the requested behavior.
+- E4 Git d1f2f1ca6e and 7b140eccee: the issue-tagged implementation added choice-type filters to search parameter bundles, and a later commit changed Procedure-date to ofType(). Learned: the historical application exists and the current wording is an intentional FHIRPath form, not a missing application.
+- E5 Verification command: strict block scan of source/**/bundle-*-search-params.xml found no unfiltered non-template choice search parameter blocks after excluding boolean existence searches and explicit FHIRPath type filters. Learned: no current broad source fix is needed for the pattern raised by FHIR-25048.
+- E6 Community search: Jira search for Procedure-date/Procedure.occurrence found FHIR-25048 plus background Procedure issues, Zulip search found no direct FHIR-25048 discussion, and Confluence refs found the approving minutes. Learned: no later discovered community evidence conflicts with the no-change decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25048",
+    "url": "https://jira.hl7.org/browse/FHIR-25048",
+    "snapshot_path": "contexts/FHIR-25048/jira/FHIR-25048.md",
+    "ref": { "jira_key": "FHIR-25048" },
+    "summary": "Published/Persuasive with Modification issue requesting datatype filtering for Procedure-date and similar choice-type search parameters.",
+    "learned": "This establishes the final WG intent to ensure search parameters over choice elements are filtered by search type.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2020-04-06 page 80119814",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/80119814/FHIR+Infrastructure+Minutes+CC+20200406",
+    "snapshot_path": "contexts/FHIR-25048/confluence/80119814.md",
+    "ref": { "confluence_page_id": 80119814 },
+    "summary": "Minutes record the FHIR-25048 motion and the note that tooling should pick up search filters based on search type.",
+    "learned": "This confirms the vote and resolution rationale reflected in Jira.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/procedure/bundle-Procedure-search-params.xml:65-76; source/fhir.ini:169-212",
+    "ref": { "path": "source/procedure/bundle-Procedure-search-params.xml", "line_start": 65, "line_end": 76 },
+    "summary": "Procedure-date has path Procedure.occurrence[x], type date, and an ofType() expression limited to dateTime, Period, and Timing; Procedure is active in fhir.ini.",
+    "learned": "The current build-scope source already implements the requested Procedure-date filtering.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "d1f2f1ca6e; 7b140eccee",
+    "ref": { "commit": "d1f2f1ca6e0e60870e329fb6ed4d8bd4c6d667de" },
+    "summary": "The issue-tagged commit added type filters to Procedure-date and similar choice-type search parameters; a later commit switched Procedure-date from as() to ofType().",
+    "learned": "The current expression is the result of deliberate application history rather than an unapplied issue.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Strict current choice search parameter scan",
+    "command": "rg -l '<valueString value=\"[^\"]+\\[x\\]\"' source -g 'bundle-*-search-params.xml' | perl block scan excluding ofType(), .as(), FHIRPath as Type, and boolean existence searches",
+    "result_count": 0,
+    "summary": "No unfiltered non-template choice search parameter blocks matching the FHIR-25048 pattern were found in current source.",
+    "learned": "The broader review requested by the issue does not reveal a current source correction in scope for this reconciliation.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-25048, Procedure-date, and Procedure.occurrence",
+    "command": "bun run jira:search fts '\"Procedure-date\" OR \"choice types\" OR \"Procedure.occurrence\"' --limit 20; bun run zulip:search fts '\"FHIR-25048\" \"Procedure-date\" \"Procedure.occurrence\"' --limit 20; bun run confluence:search refs jira FHIR-25048",
+    "summary": "Jira returned FHIR-25048 and background Procedure issues, Zulip had no direct FHIR-25048 hits, and Confluence found the approving FHIR-I minutes.",
+    "learned": "No discovered community evidence conflicts with the conclusion that the current source is already correct.",
+    "supports": ["additional_context", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,95 @@
+FHIR-18300: Audit PATCH transaction ordering
+
+Issue request:
+FHIR-18300 was a Published/Persuasive FHIR-core HTTP issue asking to clarify where PATCH belongs in transaction processing order. The final resolution treated patch semantics as equivalent to update semantics and requested the transaction list read DELETE, POST, PUT or PATCH, and GET or HEAD.
+
+Initial application:
+The issue appears to have been applied by commit 2b62df68e0e1b63cdd6e06c5979a97963d88eacd ("GF#18300 - note about patch in transaction"), which changed source/http.html so the transaction order processed PUT or PATCH together and GET or HEAD together.
+
+Additional context:
+The originating Zulip implementers thread raised the PATCH-in-transaction ordering question and later noted that a change request had been approved for R4. A later Published issue, FHIR-34060, refactored the same transaction list to name FHIR interactions rather than only HTTP verbs, but preserved the FHIR-18300 semantics by keeping update (PUT) or patch (PATCH) together and GET or HEAD interactions together. source/http.html is the active RESTful API page linked from the core documentation and exchanging pages.
+
+AutoFHIR reconciliation:
+This commit makes no source change because current source/http.html already contains the required transaction processing order: delete, create, update (PUT) or patch (PATCH), read/vread/search/history (GET or HEAD), then conditional reference resolution.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up source work is recommended for FHIR-18300 unless a future work group decision changes transaction ordering semantics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-18300
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-34060: later-change - later Published R5 issue refactored the same transaction list to use FHIR interaction names while preserving the FHIR-18300 PUT/PATCH and GET/HEAD grouping.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-18300: Published/Persuasive issue requested adding PATCH beside PUT and HEAD beside GET in transaction ordering. Learned: this establishes the final requested clarification.
+- E2 Source source/http.html:1786-1806: current Transaction Processing Rules list update (PUT) or patch (PATCH), then GET or HEAD interactions. Learned: the active source already reflects the requested behavior.
+- E3 Git 2b62df68e0e1b63cdd6e06c5979a97963d88eacd: original GF#18300 patch changed PUT to PUT or PATCH and GET to GET or HEAD. Learned: the issue was applied in source history.
+- E4 Git faaaefb02fd5801ae42a282443d030a423b04cee: FHIR-34060 refactored the list to FHIR interaction names while preserving PATCH and HEAD placement. Learned: later history did not reverse the FHIR-18300 change.
+- E5 Zulip #implementers > Patch in Transactions: the reporter asked the ordering question and Lloyd McKenzie later confirmed an R4 change request was approved. Learned: community context matches the Jira request and does not expand current reconciliation scope.
+- E6 Verification commands: Jira search for PATCH transaction HEAD PUT returned only FHIR-18300, Confluence issue-key searches found no directly relevant conflicting records, and current source searches found the required list. Learned: no discovered related final decision requires a source change for this issue.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-18300",
+    "url": "https://jira.hl7.org/browse/FHIR-18300",
+    "snapshot_path": "contexts/FHIR-18300/jira/FHIR-18300.md",
+    "ref": { "jira_key": "FHIR-18300" },
+    "summary": "Published/Persuasive FHIR-core HTTP issue requesting transaction ordering clarify PATCH with PUT and HEAD with GET.",
+    "learned": "This is the final work-group request used to judge the current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/http.html:1786-1806",
+    "ref": { "path": "source/http.html", "start_line": 1786, "end_line": 1806 },
+    "summary": "Current Transaction Processing Rules process update (PUT) or patch (PATCH) together and GET or HEAD interactions together.",
+    "learned": "The active HTTP source already carries the FHIR-18300 clarification.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "2b62df68e0e1b63cdd6e06c5979a97963d88eacd",
+    "ref": { "commit": "2b62df68e0e1b63cdd6e06c5979a97963d88eacd", "path": "source/http.html" },
+    "summary": "Original GF#18300 commit changed the transaction list from separate PUT and GET entries to PUT or PATCH and GET or HEAD entries.",
+    "learned": "The requested clarification was applied in source history.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "faaaefb02fd5801ae42a282443d030a423b04cee",
+    "ref": { "commit": "faaaefb02fd5801ae42a282443d030a423b04cee", "jira_key": "FHIR-34060", "path": "source/http.html" },
+    "summary": "Later FHIR-34060 commit refactored transaction ordering to interaction names while preserving PATCH with update and HEAD with GET-style interactions.",
+    "learned": "Later source history preserves rather than supersedes FHIR-18300.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > Patch in Transactions",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Patch%20in%20Transactions",
+    "ref": { "stream": "implementers", "topic": "Patch in Transactions" },
+    "summary": "Thread records the original PATCH transaction ordering question, the GF#18300 filing, and confirmation that a change request had been approved.",
+    "learned": "The community trail aligns with the Jira/source application and reveals no broader current change requirement.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence/source verification searches for FHIR-18300 PATCH transaction ordering",
+    "command": "bun run jira:search fts 'PATCH transaction HEAD PUT' --limit 20; bun run zulip:search snapshot implementers 'Patch in Transactions'; bun run confluence:search refs jira FHIR-18300; bun run confluence:search fts '\"FHIR-18300\" PATCH transaction' --limit 10; rg -n 'PATCH interactions|GET or HEAD|trules' source/http.html",
+    "summary": "Jira neighborhood search returned FHIR-18300, the relevant Zulip thread matched the issue, Confluence had no direct issue-key conflict, and source contains the requested ordering.",
+    "learned": "No discovered evidence requires changing the current source for this issue.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

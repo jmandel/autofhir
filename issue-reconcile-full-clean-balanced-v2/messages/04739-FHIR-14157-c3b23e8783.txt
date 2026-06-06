@@ -1,0 +1,117 @@
+FHIR-14157: Audit Encounter reorganization remainder
+
+Issue request:
+FHIR-14157 was Published/Persuasive with Modification for R5. It asked to reorganize time-varying Encounter tracking by creating EncounterHistory, removing Encounter.statusHistory and Encounter.classHistory from Encounter, moving specialArrangement and specialCourtesy out of hospitalization to top-level Encounter elements, updating the special-arrangement search parameter, clarifying specialCourtesy versus security labels, and removing dietPreference from Encounter in favor of an extension after Patient Care discussion.
+
+Initial application:
+The main source work was applied before R5 publication. Commit 2c0f3a8733 removed Encounter.statusHistory and Encounter.classHistory, moved the hospitality fields including dietPreference/specialArrangement/specialCourtesy to top-level Encounter, and updated Encounter source shape. Commit 53538c40d6 added the first EncounterHistory resource draft, commit 935d04e828 completed EncounterHistory narrative and location structure while also citing FHIR-38856, and commit 90f631ea1f clarified Encounter.specialCourtesy versus VIP/security-label use. The implementation deliberately did not remove Encounter.dietPreference; the applying editor stated on Zulip that the conversion to an extension would be deferred out of scope pending PA/PC follow-up.
+
+Additional context:
+Current source/fhir.ini has Encounter as an active resource and maps R4/R5 class/status histories to EncounterHistory, while source/encounter/structuredefinition-Encounter.xml no longer contains Encounter.statusHistory or Encounter.classHistory. Encounter.specialArrangement and Encounter.specialCourtesy are top-level elements and the special-arrangement search parameter points to Encounter.specialArrangement. Encounter.dietPreference remains a top-level element and the example still uses it. Patient Care minutes and FHIR-10028 show preference modeling was not settled, and searches did not find a later final dietPreference-extension ticket. Separately, current core no longer carries EncounterHistory as an active resource because later R6 cleanup moved it out of the current build and current Encounter narrative links to the PA admin-incubator EncounterHistory page; FHIR-38856 already has a no-change audit commit on the combined branch for the R5 inclusion question.
+
+AutoFHIR reconciliation:
+This is an empty human-review audit commit. No source change is safe here: the mechanical EncounterHistory/status/class/specialArrangement/specialCourtesy parts are already represented in the current source lineage, re-adding EncounterHistory to current core would contradict later R6 build-scope changes, and removing Encounter.dietPreference now would be a breaking change whose own PA/PC follow-up was explicitly deferred and not found as a final applied decision.
+
+Recommendation:
+Keep this audit commit as-is and have PA/PC decide whether Encounter.dietPreference should still be converted to a standard extension or left as a core Encounter element. If the work group still wants the extension path, file or locate a dedicated final tracker and apply that targeted change there rather than reopening the already-applied EncounterHistory restructuring in FHIR-14157.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14157
+Issue-Reconcile-Decision: human-review
+
+<related-jiras>
+FHIR-38856: same-change-family - later Published R5 issue asking that the FHIR-14157 EncounterHistory changes be included in R5; already represented on the combined branch by a no-change audit commit.
+FHIR-10028: background - unresolved Patient Care preference-modeling issue cited during the dietPreference discussion, showing the extension/removal question was not settled enough for an automatic edit.
+FHIR-22767: background - retracted historical question about Encounter.hospitalization grouping that was superseded by the broader FHIR-14157 Encounter reorganization.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14157: Published/Persuasive with Modification R5 issue creating EncounterHistory, removing status/class histories, moving special fields, and requesting dietPreference removal/extension discussion. Learned: this establishes the seed's intended source-change family and the unresolved dietPreference subpart.
+- E2 Source source/fhir.ini:190 and source/fhir.ini:1717-1741: Encounter is active and R4/R5 mappings point status/class history to EncounterHistory while mapping hospitalization special fields to top-level Encounter. Learned: the current build recognizes the applied reorganization lineage.
+- E3 Source source/encounter/structuredefinition-Encounter.xml:963-1021 and source/encounter/bundle-Encounter-search-params.xml:450-461: dietPreference, specialArrangement, and specialCourtesy are top-level Encounter elements and special-arrangement searches Encounter.specialArrangement. Learned: most requested field movement is applied, but dietPreference remains core.
+- E4 Git 2c0f3a8733, 53538c40d6, 935d04e828, 90f631ea1f: these FHIR-14157 implementation commits removed status/class histories, added/completed EncounterHistory, and clarified specialCourtesy. Learned: the seed was substantively applied before R5.
+- E5 Zulip #patient administration WG > Diet Preference: Brian Postlethwaite said FHIR-14157's dietPreference-removal/extension part had not been discussed with Patient Care and would be deferred out of scope. Learned: automatic removal of dietPreference would outrun the implementation-time work-group follow-up.
+- E6 Zulip #patient administration WG > Encounter History and PA/PC Confluence minutes: implementation discussion confirmed EncounterHistory location/narrative details and PA/PC preference-modeling uncertainty. Learned: community evidence supports the EncounterHistory application but not a unilateral dietPreference removal.
+- E7 Git f956f26211 and 71567db3ee: the combined branch already audits FHIR-38856, and later R6 cleanup removed current core EncounterHistory links/source in favor of the admin-incubator IG. Learned: current absence of an active core EncounterHistory resource is a later build-scope decision, not a FHIR-14157 defect.
+- E8 Verification command/query: rg confirmed no Encounter.statusHistory or Encounter.classHistory elements remain in current Encounter source, and Jira searches for dietPreference extension follow-up found only FHIR-14157/FHIR-22767. Learned: no bounded final follow-up decision was found for the remaining dietPreference question.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14157",
+    "url": "https://jira.hl7.org/browse/FHIR-14157",
+    "snapshot_path": "contexts/FHIR-14157/jira/FHIR-14157.md",
+    "ref": { "jira_key": "FHIR-14157" },
+    "summary": "Published/Persuasive with Modification issue for R5 to create EncounterHistory, remove Encounter status/class histories, move special fields, and remove dietPreference via an extension after Patient Care discussion.",
+    "learned": "This establishes the approved Encounter reorganization family and identifies dietPreference as the only material unresolved subpart in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:190; source/fhir.ini:1717-1741",
+    "summary": "Encounter is active in the current build and R4/R5 mappings point status/class history to EncounterHistory while mapping hospitalization special fields to top-level Encounter.",
+    "learned": "The current build configuration reflects the FHIR-14157 reorganization lineage.",
+    "supports": ["initial_application", "source_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/encounter/structuredefinition-Encounter.xml:963-1021; source/encounter/bundle-Encounter-search-params.xml:450-461",
+    "summary": "Current Encounter has top-level dietPreference, specialArrangement, and specialCourtesy, and the special-arrangement search parameter uses Encounter.specialArrangement.",
+    "learned": "The special field movement and search parameter update are applied, but dietPreference remains a core element.",
+    "supports": ["initial_application", "human_review_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "2c0f3a8733; 53538c40d6; 935d04e828; 90f631ea1f",
+    "ref": { "commits": "2c0f3a8733,53538c40d6,935d04e828,90f631ea1f" },
+    "summary": "FHIR-14157 implementation commits removed Encounter status/class histories, added and completed EncounterHistory, and clarified specialCourtesy.",
+    "learned": "The seed was substantively implemented before R5 publication.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#patient administration WG > Diet Preference",
+    "url": "https://chat.fhir.org/#narrow/stream/179254-patient-administration-WG/topic/Diet.20Preference",
+    "ref": { "stream": "patient administration WG", "topic": "Diet Preference" },
+    "summary": "Brian Postlethwaite noted the FHIR-14157 dietPreference removal/extension piece had not been discussed with Patient Care and would be deferred out of scope while doing only the property-location shuffle.",
+    "learned": "Removing Encounter.dietPreference now would require renewed PA/PC decision rather than automatic reconciliation.",
+    "supports": ["additional_context", "human_review_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "PA 2022 Jan WGM page 81029757; PC 2023-02-09 page 156534693",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/81029757/2022+Jan+WGM+-+Patient+Administration",
+    "ref": { "confluence_page_id": 81029757 },
+    "summary": "PA minutes record the EncounterHistory restructuring and added EncounterHistory properties; PC minutes cite FHIR-10028 as related preference-modeling context.",
+    "learned": "Formal minutes support the main EncounterHistory work while showing diet preference modeling was a separate PC concern.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "f956f26211; 71567db3ee",
+    "ref": { "commits": "f956f26211,71567db3ee" },
+    "summary": "The combined branch already audits FHIR-38856, and later R6 cleanup removed current core EncounterHistory source/links in favor of the admin-incubator IG.",
+    "learned": "Current absence of an active core EncounterHistory resource is an intentional later build-scope state, not a reason to edit FHIR-14157 now.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Current source and follow-up-ticket checks",
+    "command": "rg 'id=\"Encounter\\.(statusHistory|classHistory)\"|path value=\"Encounter\\.(statusHistory|classHistory)\"' source/encounter/structuredefinition-Encounter.xml; bun run jira:search fts 'dietPreference extension Encounter EpisodeOfCare' --limit 30; bun run jira:search fts '\"dietPreference\" extension' --limit 30",
+    "query": "Encounter statusHistory/classHistory; dietPreference extension Encounter EpisodeOfCare",
+    "summary": "No current Encounter statusHistory/classHistory source elements were found, and dietPreference extension searches found no final follow-up issue beyond FHIR-14157/FHIR-22767.",
+    "learned": "The main reorganization is present and the remaining dietPreference conversion lacks a bounded final tracker for automatic source editing.",
+    "supports": ["verification", "human_review_scope"]
+  }
+]
+</evidence-manifest>

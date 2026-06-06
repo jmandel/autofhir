@@ -1,0 +1,116 @@
+FHIR-15727: Align ServiceRequest location model surfaces
+
+Issue request:
+FHIR-15727 is Published/Persuasive for FHIR-core ServiceRequest. It asked to add ServiceRequest location support for preferred service delivery locations, with 0..* locationCode as CodeableConcept and 0..* locationReference as Reference(Location).
+
+Initial application:
+The current ServiceRequest StructureDefinition already has the issue-applied element, now represented for R6 as ServiceRequest.location 0..* CodeableReference(Location) with the original [#15727] committee note. Git history shows the older R4B draft form as locationCode/locationReference with [#15727], while the current new-build source has the merged CodeableReference location. source/fhir.ini records the compatibility mapping from ServiceRequest.locationCode and ServiceRequest.locationReference to ServiceRequest.location.concept and .reference.
+
+Additional context:
+ServiceRequest is active in the current build through source/fhir.ini. The current ServiceRequest search-parameter bundle already exposes both ServiceRequest.location.concept and ServiceRequest.location.reference. The separate Applied search-parameter issue FHIR-37618 is already represented on the combined branch, so this commit does not republish it. No directly relevant Zulip or Confluence record was found for FHIR-15727. While the authoritative ServiceRequest element was correct, the current Library FHIR ModelInfo and the ActivityDefinition-to-ServiceRequest mapping/narrative still used the old split locationCode/locationReference or locationReference target path.
+
+AutoFHIR reconciliation:
+Updated the FHIR ModelInfo ServiceRequest entry to expose location as a 0..* FHIR.CodeableReference and updated the ActivityDefinition ServiceRequest map plus its narrative copy to target ServiceRequest.location. Left the fhir.ini migration aliases intact because they document the intended old-to-new element mapping.
+
+Recommendation:
+Keep this source-changing commit. It preserves the applied FHIR-15727 semantics in the authoritative StructureDefinition and aligns the remaining built model/mapping surfaces with the current R6 CodeableReference representation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15727
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-37618: same-change-family - separate Applied request for ServiceRequest locationReference search support; current source has the location-reference search parameter and the combined branch already has Issue-Reconcile-Key: FHIR-37618, so it was not republished here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15727: Published/Persuasive OO change request adding ServiceRequest preferred service delivery locationCode and locationReference, both 0..*. Learned: final WG intent requires ServiceRequest to carry coded and Location-reference preferred locations.
+- E2 Source source/servicerequest/structuredefinition-ServiceRequest.xml:1039: current ServiceRequest.location is 0..* CodeableReference(Location) with [#15727]. Learned: the authoritative resource element already preserves the issue request using the current merged representation.
+- E3 Source source/fhir.ini:169 and source/fhir.ini:213: ServiceRequest is an active resource; source/fhir.ini:2051 maps locationCode/locationReference into ServiceRequest.location.concept/reference. Learned: the edited surfaces are in current build scope and the old names are intentional migration aliases, not current element names.
+- E4 Source source/servicerequest/bundle-ServiceRequest-search-params.xml:199: current search parameters cover ServiceRequest.location.concept and ServiceRequest.location.reference. Learned: no seed-driven search parameter fix was missing.
+- E5 Git c69d71aa/33b409a4: history shows [#15727] first as locationCode/locationReference in the R4B draft source and as the current ServiceRequest.location CodeableReference in the new build source. Learned: the source changed representation while retaining the FHIR-15727 semantics.
+- E6 Source source/library/library-fhir-model-definition-content.xml:7526 and source/activitydefinition/activitydefinition-map-ServiceRequest.fhirmap:46: this commit changes stale legacy location surfaces to ServiceRequest.location CodeableReference. Learned: the reconciliation fixes the remaining current-source inconsistency.
+- E7 Command Zulip/Confluence search for FHIR-15727 and ServiceRequest location: no directly relevant hits; Confluence refs for FHIR-15727 returned none. Learned: no discovered community record changes the Jira/source conclusion.
+- E8 Verification command: git diff --check with CRLF-aware whitespace and xmllint over the edited XML files passed. Learned: the edited files remain syntactically well-formed and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15727",
+    "url": "https://jira.hl7.org/browse/FHIR-15727",
+    "snapshot_path": "contexts/FHIR-15727/jira/FHIR-15727.md",
+    "ref": { "jira_key": "FHIR-15727" },
+    "summary": "Published/Persuasive OO change request to add 0..* ServiceRequest locationCode and 0..* locationReference for preferred service delivery locations.",
+    "learned": "This establishes final WG intent for coded and referenced preferred locations on ServiceRequest.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:1039",
+    "ref": { "path": "source/servicerequest/structuredefinition-ServiceRequest.xml", "line": 1039 },
+    "summary": "Current ServiceRequest.location is 0..* CodeableReference targeting Location and carries the [#15727] committee note.",
+    "learned": "The authoritative resource definition already implements the issue using the current merged CodeableReference representation.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,213,2051-2053",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "ServiceRequest is active in [resources], and fhir.ini maps old locationCode/locationReference names to ServiceRequest.location.concept/reference.",
+    "learned": "The edits are in current build scope, while fhir.ini preserves intentional migration aliases rather than current element definitions.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/servicerequest/bundle-ServiceRequest-search-params.xml:199",
+    "ref": { "path": "source/servicerequest/bundle-ServiceRequest-search-params.xml", "line": 199 },
+    "summary": "Current search parameters expose ServiceRequest.location.concept and ServiceRequest.location.reference.",
+    "learned": "No seed-driven search-parameter correction was missing.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "c69d71aa213de86d55e0261339c15e4bacd509e6 and 33b409a4b6d544598262f2f074ebb4b6dc466157",
+    "ref": { "commits": "c69d71aa213de86d55e0261339c15e4bacd509e6,33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "Git history shows [#15727] on the older locationCode/locationReference draft and on the current CodeableReference location source.",
+    "learned": "The current naming is a representation merge, not a reversal of the Jira decision.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:7526 and source/activitydefinition/activitydefinition-map-ServiceRequest.fhirmap:46",
+    "ref": { "paths": "source/library/library-fhir-model-definition-content.xml; source/activitydefinition/activitydefinition-map-ServiceRequest.fhirmap" },
+    "summary": "The reconciliation changes remaining ServiceRequest location model/mapping surfaces from legacy split paths to ServiceRequest.location CodeableReference.",
+    "learned": "These are the current-source inconsistencies this commit fixes.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-15727 and ServiceRequest location",
+    "command": "bun run zulip:search fts '\"FHIR-15727\" \"ServiceRequest\" \"location\"' --limit 10; bun run confluence:search refs jira FHIR-15727; bun run confluence:search fts '\"FHIR-15727\" \"ServiceRequest\" \"location\"' --limit 10",
+    "query": "FHIR-15727 ServiceRequest location",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found for the seed issue.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/activitydefinition/activitydefinition-map-ServiceRequest.fhirmap source/activitydefinition/activitydefinition-notes.xml source/library/library-fhir-model-definition-content.xml; xmllint --noout source/activitydefinition/activitydefinition-notes.xml source/library/library-fhir-model-definition-content.xml",
+    "summary": "Whitespace check and XML parsing passed for the edited files.",
+    "learned": "The narrow source changes are syntactically valid.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

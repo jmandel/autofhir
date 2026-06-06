@@ -1,0 +1,120 @@
+FHIR-12866: Match item-subject search to true marker
+
+Issue request:
+FHIR-12866 was a Published/Persuasive with Modification FHIR-core Questionnaire issue for DSTU2. It asked to remove QuestionnaireResponse.item.subject, add boolean isSubject extensions for Questionnaire.item and QuestionnaireResponse.item, allow the Questionnaire.item marker only on reference questions, and define a reference SearchParameter item-subject for QuestionnaireResponses by items with isSubject=true.
+
+Initial application:
+The Jira application comment cites svn revision 13986, represented in git as b6facb155a295bc977faa219f300c573aeb8034f. That commit disabled QuestionnaireResponse.item.subject in the QuestionnaireResponse spreadsheet and added isSubject rows to the then-current Questionnaire and QuestionnaireResponse extension spreadsheets. Later source refactors replaced those spreadsheets with the current active StructureDefinition and search-parameter bundle sources.
+
+Additional context:
+Questionnaire and QuestionnaireResponse remain active resources in source/fhir.ini, and the current QuestionnaireResponse StructureDefinition no longer contains QuestionnaireResponse.item.subject. FHIR-19527 later moved questionnaire-isSubject and questionnaireresponse-isSubject out of core to SDC, and the combined branch already has the FHIR-19527 fix that points the item-subject search parameter at http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaireresponse-isSubject. FHIR-31479 corrected the old invalid hasExtension(...) function to extension(...).exists(), and FHIR-49784 later made the item traversal recursive; neither later decision changed the FHIR-12866 requirement that the search parameter select items where the boolean marker is true.
+
+AutoFHIR reconciliation:
+Updated source/questionnaireresponse/bundle-QuestionnaireResponse-search-params.xml so the active QuestionnaireResponse-item-subject SearchParameter keeps the SDC canonical URL and recursive traversal, but filters on extension(...).value = true instead of extension(...).exists(). No core extension definition was restored because the isSubject definitions now belong in SDC.
+
+Recommendation:
+Keep this commit. It preserves the later SDC move and recursive search behavior while making the active core search parameter match the original isSubject=true semantics; any future changes to the extension definitions themselves should be made in the SDC IG, not by reintroducing core extension definitions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12866
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-19527: later-change - moved questionnaire-isSubject and questionnaireresponse-isSubject out of core to SDC; this reconciliation keeps that ownership and uses the SDC response extension URL.
+FHIR-31479: same-change-family - corrected the old invalid hasExtension(...) item-subject expression to extension(...).exists(); this reconciliation preserves valid FHIRPath while refining the boolean test required by FHIR-12866.
+FHIR-49784: later-change - made QuestionnaireResponse item search expressions recursive; this reconciliation preserves that traversal.
+FHIR-10991: background - earlier SDC no-change issue confirmed the use case for item-level subjects but did not require SDC support at that time.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12866: Published/Persuasive with Modification issue requests removing QuestionnaireResponse.item.subject, adding boolean isSubject markers, and defining item-subject for isSubject=true items. Learned: this establishes the target current-source semantics.
+- E2 Git b6facb155a: svn revision 13986 disabled QuestionnaireResponse.item.subject and added isSubject extension spreadsheet rows. Learned: the issue was initially applied in the historical core source.
+- E3 Source source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:374-594: current QuestionnaireResponse.item children omit item.subject. Learned: the element-removal portion remains applied in active source.
+- E4 Source source/fhir.ini:1217-1218 and source/questionnaireresponse/bundle-QuestionnaireResponse-search-params.xml:251-264: QuestionnaireResponse is in build scope and item-subject is active. Learned: the edited search parameter is authoritative current build input.
+- E5 SDC source IsSubjectExtension.fsh and IsSubjectResponseExtension.fsh: SDC defines active boolean isSubject extensions for Questionnaire.item and QuestionnaireResponse.item. Learned: the extension definitions moved outside core and the current core expression should reference SDC rather than recreate core extensions.
+- E6 Jira/git FHIR-31479 and FHIR-49784: later changes replaced hasExtension with extension(...).exists() and made QuestionnaireResponse item search recursive. Learned: the reconciliation must preserve valid FHIRPath and recursive traversal while matching true-value semantics.
+- E7 Community search: Zulip found the GF#12866 commit bot notification and item-subject maintenance threads; Confluence refs/FTS for FHIR-12866 found none. Learned: no community evidence was found that conflicts with the Jira/source conclusion.
+- E8 Verification command: XML parse and CRLF-aware git diff check passed after the source edit. Learned: the targeted XML change is well formed and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12866",
+    "url": "https://jira.hl7.org/browse/FHIR-12866",
+    "snapshot_path": "contexts/FHIR-12866/jira/FHIR-12866.md",
+    "ref": { "jira_key": "FHIR-12866" },
+    "summary": "Published/Persuasive with Modification issue requiring removal of QuestionnaireResponse.item.subject, boolean isSubject markers on Questionnaire.item and QuestionnaireResponse.item, and an item-subject reference search parameter for items with isSubject=true.",
+    "learned": "This establishes the final work-group semantics to check in current QuestionnaireResponse source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "b6facb155a295bc977faa219f300c573aeb8034f",
+    "ref": { "commit": "b6facb155a295bc977faa219f300c573aeb8034f", "svn_revision": 13986 },
+    "summary": "Historical GF#12866 application disabled QuestionnaireResponse.item.subject and added isSubject rows to the Questionnaire and QuestionnaireResponse extension spreadsheets.",
+    "learned": "The issue was initially applied in source before later spreadsheet and extension-ownership refactors.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:374-594",
+    "ref": { "path": "source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml", "lines": "374-594" },
+    "summary": "The current QuestionnaireResponse.item backbone includes linkId, definition, text, answer, answer.value, answer.item, and item.item, but no QuestionnaireResponse.item.subject element.",
+    "learned": "The element-removal part of FHIR-12866 remains applied in the active StructureDefinition source.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:1217-1218; source/questionnaireresponse/bundle-QuestionnaireResponse-search-params.xml:251-264",
+    "ref": { "paths": "source/fhir.ini,source/questionnaireresponse/bundle-QuestionnaireResponse-search-params.xml" },
+    "summary": "Questionnaire and QuestionnaireResponse are active resources, and the active QuestionnaireResponse-item-subject SearchParameter now filters the SDC isSubject extension by value = true before returning Reference answers.",
+    "learned": "The edited file is current build input and the predicate now matches the isSubject=true search semantics.",
+    "supports": ["source_change_scope", "source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "web",
+    "locator": "HL7/sdc isSubject extension FSH sources",
+    "url": "https://github.com/HL7/sdc/blob/master/input/fsh/extensions/IsSubjectResponseExtension.fsh",
+    "ref": { "repo": "HL7/sdc", "paths": "input/fsh/extensions/IsSubjectExtension.fsh,input/fsh/extensions/IsSubjectResponseExtension.fsh" },
+    "summary": "The SDC source defines active boolean sdc-questionnaire-isSubject and sdc-questionnaireresponse-isSubject extensions with Questionnaire.item and QuestionnaireResponse.item contexts.",
+    "learned": "The current extension definitions live in SDC, so core should reference the SDC response extension rather than restoring moved core extension definitions.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-31479 / FHIR-49784",
+    "url": "https://jira.hl7.org/browse/FHIR-31479",
+    "ref": { "jira_keys": "FHIR-31479,FHIR-49784", "commit": "19c145d3bec65c1d0fa7f4618fbe06c16d400d3e" },
+    "summary": "FHIR-31479 fixed the invalid hasExtension item-subject expression, and FHIR-49784 later made QuestionnaireResponse item searches recursive.",
+    "learned": "Those later decisions should be preserved while refining the predicate to test the boolean marker value.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-12866 and item-subject",
+    "command": "bun run zulip:search fts '\"FHIR-12866\" OR \"QuestionnaireResponse.item.subject\" OR \"item-subject\" \"isSubject\"' --limit 20; bun run confluence:search refs jira FHIR-12866; bun run confluence:search fts '\"FHIR-12866\" \"QuestionnaireResponse.item.subject\" \"isSubject\"' --limit 10",
+    "query": "FHIR-12866 QuestionnaireResponse.item.subject item-subject isSubject",
+    "summary": "Zulip found the GF#12866 commit notification and later item-subject maintenance discussions; Confluence references and FTS for FHIR-12866 found no results.",
+    "learned": "No discovered community record conflicts with the Jira, source, and git-history conclusion.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted XML and whitespace validation",
+    "command": "python3 -c 'import xml.etree.ElementTree as ET; ET.parse(\"source/questionnaireresponse/bundle-QuestionnaireResponse-search-params.xml\")'; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The changed XML parsed successfully and git diff --check reported no whitespace errors.",
+    "learned": "The targeted source edit is syntactically safe.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

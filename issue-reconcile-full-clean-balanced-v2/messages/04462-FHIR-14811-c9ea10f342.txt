@@ -1,0 +1,96 @@
+FHIR-14811: Audit Account status cardinality
+
+Issue request:
+FHIR-14811 was a Published/Persuasive with Modification Patient Administration change request for Account from STU3. It asked for Account.status to be 1..1 so every Account declares whether it is active/usable; the approved resolution also added status escape-valve codes, applied as on-hold and unknown in accordance with the status-codes pattern, and noted the separate lifecycle/billing-status question later tracked as FHIR-14963.
+
+Initial application:
+The issue was explicitly applied by d31043d92152aa8ac19ffdd0df2322e781a729df, which changed the historical source/account/account-spreadsheet.xml Account.status cardinality from 0..1 to 1..1, expanded the status short display from active/inactive/entered-in-error to active/inactive/entered-in-error/on-hold/unknown, and added on-hold and unknown status-code rows. Later source refactoring from spreadsheet to XML preserved the requested Account.status cardinality and status terminology in the current Account sources.
+
+Additional context:
+Account is an active current-build resource in source/fhir.ini. Same-family FHIR-14813 removed Account.active separately, making Account.status the status field; later FHIR-14963 added Account.billingStatus for billing/lifecycle processing and is already represented on the combined branch by f18430c5af6d4524b83c05e5d87df7ebfc161dfd. Community searches found no final Zulip or Confluence guidance conflicting with the Jira/source outcome; the only direct Zulip hit was a committers bot notification for the original GF#14811 commit.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current authoritative Account StructureDefinition has Account.status with min 1, max 1, a required binding to ValueSet/account-status, and a short display containing active, inactive, entered-in-error, on-hold, and unknown. The current Account status CodeSystem and ValueSet include the expected status code set, and the generated/search-parameter source surfaces use the same status-code list.
+
+Recommendation:
+Keep this no-change audit commit as-is. No FHIR core source follow-up is needed for FHIR-14811 unless a future work-group decision changes Account status or billing/lifecycle status modeling.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14811
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-14813: same-change-family - separate Published Account issue that removed Account.active and renamed Account.period to servicePeriod; it is already represented on the combined branch and explains why mandatory Account.status is now the Account status field.
+FHIR-14963: later-change - separate Published Account lifecycle/billing-status issue referenced by FHIR-14811 and already represented on the combined branch; it added Account.billingStatus without changing the FHIR-14811 conclusion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14811: Published/Persuasive with Modification request to make Account.status 1..1 and add status escape-valve codes. Learned: establishes the final WG request and target Account.status state.
+- E2 Source source/fhir.ini:262 and source/account/structuredefinition-Account.xml:106-126: Account is active in the current build and Account.status is 1..1 with the required AccountStatus binding and expected short display. Learned: the authoritative current source implements the cardinality and binding needed by FHIR-14811.
+- E3 Source source/account/codesystem-account-status.xml:50-74, source/account/valueset-account-status.xml:48-52, source/account/bundle-Account-search-params.xml:104-115, and source/status-codes.xml:363-380: the Account status CodeSystem/ValueSet/search parameter/status-code pattern data include active, inactive, entered-in-error, on-hold, and unknown. Learned: parallel current status surfaces are aligned with the applied issue.
+- E4 Git d31043d92152aa8ac19ffdd0df2322e781a729df: GF#14811 source commit made Account.status mandatory and added on-hold/unknown in the historical Account spreadsheet. Learned: the issue was explicitly applied before later source refactoring.
+- E5 Git f18430c5af6d4524b83c05e5d87df7ebfc161dfd and 7d82db3f6e887031dd3b6451c46ae2fcddfe15dd: related FHIR-14963 and FHIR-14813 audit commits are already on the combined branch. Learned: related Account status/lifecycle decisions are accounted for separately and do not require another seed edit.
+- E6 Community search: quoted Jira/Zulip/Confluence searches for FHIR-14811 and Account.status/on-hold/unknown found the seed Jira, no Confluence hits, and only a Zulip committers bot notification for the original implementation. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14811",
+    "url": "https://jira.hl7.org/browse/FHIR-14811",
+    "snapshot_path": "contexts/FHIR-14811/jira/FHIR-14811.md",
+    "ref": { "jira_key": "FHIR-14811" },
+    "summary": "Published/Persuasive with Modification PA issue requesting Account.status 1..1 and adding status escape-valve codes, applied as on-hold and unknown.",
+    "learned": "This is the final WG request that must be checked against current Account source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:262; source/account/structuredefinition-Account.xml:106-126",
+    "ref": { "path": "source/account/structuredefinition-Account.xml", "start_line": 106, "end_line": 126 },
+    "summary": "Account is an active resource and Account.status is present as 1..1 code with the expected short display and required binding to ValueSet/account-status.",
+    "learned": "The current authoritative source implements the cardinality and binding requested by FHIR-14811.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/account/codesystem-account-status.xml:50-74; source/account/valueset-account-status.xml:48-52; source/account/bundle-Account-search-params.xml:104-115; source/status-codes.xml:363-380",
+    "ref": { "path": "source/account/codesystem-account-status.xml", "start_line": 50, "end_line": 74 },
+    "summary": "The Account status CodeSystem contains active, inactive, entered-in-error, on-hold, and unknown; the ValueSet includes that CodeSystem, and related status/search surfaces show the same code set.",
+    "learned": "The status-code additions from FHIR-14811 are present and aligned across current source surfaces.",
+    "supports": ["source_state", "absence_of_conflict"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "d31043d92152aa8ac19ffdd0df2322e781a729df",
+    "ref": { "commit": "d31043d92152aa8ac19ffdd0df2322e781a729df" },
+    "summary": "GF#14811 commit changed historical Account.status from 0..1 to 1..1 and added on-hold and unknown status rows in source/account/account-spreadsheet.xml.",
+    "learned": "The issue had an explicit source application that matches the current source state.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "combined branch commits f18430c5af6d4524b83c05e5d87df7ebfc161dfd and 7d82db3f6e887031dd3b6451c46ae2fcddfe15dd",
+    "ref": { "commit": "f18430c5af6d4524b83c05e5d87df7ebfc161dfd" },
+    "summary": "Related Account decisions FHIR-14963 and FHIR-14813 are already represented on the combined branch with separate audit commits.",
+    "learned": "Those status/lifecycle changes are accounted for separately and do not indicate a missing FHIR-14811 source edit.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Jira, Zulip, and Confluence searches for FHIR-14811 plus Account.status/on-hold/unknown",
+    "command": "bun run jira:search fts '\"FHIR-14811\" Account status' --limit 10; bun run jira:search fts '\"Account.status\" \"on-hold\" unknown' --limit 10; bun run zulip:search fts '\"FHIR-14811\" Account status' --limit 10; bun run zulip:search fts '\"Account.status\" \"on-hold\" unknown' --limit 10; bun run confluence:search refs jira FHIR-14811; bun run confluence:search fts '\"FHIR-14811\" Account status' --limit 10",
+    "query": "FHIR-14811 Account status; Account.status on-hold unknown",
+    "summary": "Searches found the seed Jira, no Confluence references, and one Zulip committers bot notification for the GF#14811 implementation, with no conflicting final community guidance.",
+    "learned": "No discovered community record changes the conclusion drawn from Jira, source, and git evidence.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

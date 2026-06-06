@@ -1,0 +1,93 @@
+FHIR-27789: Require absolute canonical URL regex
+
+Issue request:
+FHIR-27789 was Published/Persuasive for R5 and asked FHIR-core to make clear that canonical URLs are absolute, specifically that CanonicalResource.url SHALL be an absolute URI and that the computable regex require a colon in addition to the no-spaces URI baseline.
+
+Initial application:
+The Jira-tagged source commit 356b6a87ae updated the CanonicalResource.url short description from "URI" to "absolute URI", while the definition already said "An absolute URI". A later related commit, 5c702608fa for FHIR-30697, added the cnl-1 canonical URL invariant across CanonicalResource.url and inherited canonical-resource URL elements, but that invariant only excluded '|', '#', and spaces and still allowed relative values without a URI scheme colon.
+
+Additional context:
+FHIR-I WGM minutes for the FHIR-27789 vote explicitly say canonicals must be absolute URIs rather than relative URLs, that OID URNs remain valid, and that the regex should require a colon. The current datatype narrative already says canonical URLs are never relative, and later CanonicalResource/MetadataResource refactors did not reverse the absolute-URI decision.
+
+AutoFHIR reconciliation:
+Updated CanonicalResource.url and the active canonical-resource URL element definitions that carry the cnl-1 invariant so the regex now requires a URI scheme and colon while preserving the existing exclusions for '|', '#', and spaces. Also aligned the stale concrete-resource short descriptions from "represented as a URI" to "represented as an absolute URI" where those elements inherit the CanonicalResource canonical URL semantics. These source files are active build inputs through source/fhir.ini resource/interface entries and the checked source StructureDefinitions.
+
+Recommendation:
+Keep this source-changing commit. It completes the missing computable portion of the published FHIR-27789 decision without changing the existing allowance for URN-based canonical URLs.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27789
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-30697: same-change-family - introduced the cnl-1 canonical URL invariant that this reconciliation tightens to also require an absolute URI scheme colon.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27789: Published/Persuasive, vote 15-0-0, requested absolute CanonicalResource.url wording and a regex requiring ':'. Learned: this is the final work-group decision being reconciled.
+- E2 Confluence 97478828: FHIR-I WGM 202101 minutes record that canonicals must be absolute URIs vs relative URLs, OID URNs are still OK, and the regex should require a colon. Learned: meeting evidence confirms the exact intended computable change.
+- E3 Source source/canonicalresource/structuredefinition-CanonicalResource.xml:97-113 and implementing source/*/structuredefinition-*.xml cnl-1 constraints. Learned: the current build source had absolute wording but the invariant allowed relative canonical URLs until this commit.
+- E4 Git 356b6a87ae and 5c702608fa: prior commits partially applied FHIR-27789 wording and later added cnl-1 without the colon requirement. Learned: the remaining gap was the regex, not a later reversal.
+- E5 Source source/fhir.ini:128-134 and source/fhir.ini:169ff. Learned: CanonicalResource and the affected resource StructureDefinitions are active build-scope source inputs.
+- E6 Command validation: git diff --check, XML parsing of 31 changed files, and source regex counts all passed. Learned: the edited XML is well-formed and all old cnl-1 canonical URL regexes were replaced.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27789",
+    "url": "https://jira.hl7.org/browse/FHIR-27789",
+    "snapshot_path": "contexts/FHIR-27789/jira/FHIR-27789.md",
+    "ref": { "jira_key": "FHIR-27789" },
+    "summary": "Published/Persuasive FHIR-core issue requiring CanonicalResource.url to be an absolute URI and the regex to require a colon.",
+    "learned": "This establishes the final WG intent for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I WGM 202101 minutes page 97478828",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/97478828/FHIR+Infrastructure+Minutes+WGM+202101",
+    "ref": { "confluence_page_id": 97478828 },
+    "summary": "Minutes record the FHIR-27789 motion: canonicals must be absolute URIs rather than relative URLs, OID URNs remain OK, and the regex should require a colon.",
+    "learned": "The meeting record confirms the Jira resolution's colon-regex requirement and preserves URN schemes.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/canonicalresource/structuredefinition-CanonicalResource.xml:97-113",
+    "summary": "CanonicalResource.url already said absolute URI, but cnl-1 only excluded '|', '#', and spaces before this commit.",
+    "learned": "The authoritative interface source was still missing the required colon/scheme check.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "356b6a87ae; 5c702608fa",
+    "ref": { "commits": "356b6a87ae,5c702608fa" },
+    "summary": "356b6a87ae applied FHIR-27789 wording; 5c702608fa added cnl-1 for FHIR-30697 without requiring a colon.",
+    "learned": "History shows a partial application and the exact invariant that needed tightening.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:128-134; source/fhir.ini:169ff",
+    "summary": "fhir.ini lists CanonicalResource as an active resource-infrastructure interface and lists active resource source folders.",
+    "learned": "The edited StructureDefinition source files are in current FHIR build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Validation commands for FHIR-27789 source edits",
+    "command": "git diff --check -- source; python3 XML parse of git diff --name-only -- source; rg fixed/old canonical URL regex patterns",
+    "summary": "31 changed XML files parsed successfully, diff whitespace checks passed, 31 new absolute-URI regexes were present, and no old cnl-1 regexes remained.",
+    "learned": "The source edits are syntactically valid and consistently applied to the active canonical URL invariant copies.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

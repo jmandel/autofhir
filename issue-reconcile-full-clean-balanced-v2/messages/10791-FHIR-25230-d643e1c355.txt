@@ -1,0 +1,109 @@
+FHIR-25230: Audit MedicationKnowledge patientCharacteristic model
+
+Issue request:
+FHIR-25230 was a Published/Persuasive Pharmacy change request for R5. It asked to fix MedicationKnowledge AdministrationGuideline.patientCharacteristic so it could represent a characteristic name/value pair rather than the unusable R4 shape.
+
+Initial application:
+The request was applied in git commit 48438a7205421769bebb35c255e22d24aaa57251, which changed the MedicationKnowledge spreadsheet from patientCharacteristic.characteristic[x] plus repeatable value to patientCharacteristic.type plus patientCharacteristic.value[x]. The source was later migrated into structuredefinition-MedicationKnowledge.xml, preserving the type/value split.
+
+Additional context:
+MedicationKnowledge is active in source/fhir.ini. Later R5 Pharmacy work renamed the original AdministrationGuideline path into MedicationKnowledge.indicationGuideline.dosingGuideline.patientCharacteristic, and FHIR-30089 explicitly kept patientCharacteristic.value[x] at 0..1 while broadening its value choices to Quantity and Range and adding repeated-characteristic interpretation guidance. FHIR-24831 explains the pediatric-use use case that prompted FHIR-25230, but does not require a different current shape.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active StructureDefinition already has patientCharacteristic as a repeating BackboneElement with required type 1..1 CodeableConcept and optional value[x] 0..1 CodeableConcept, Quantity, or Range. The obsolete MedicationKnowledge.administrationGuideline.patientCharacteristic.characteristic[x] path is absent from current source, and making value[x] mandatory would conflict with the later accepted FHIR-30089 cardinality.
+
+Recommendation:
+Keep this audit commit as-is. No core FHIR source follow-up is needed for FHIR-25230 unless Pharmacy makes a new decision to change the later patientCharacteristic cardinality or semantics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25230
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-24831: background - a No Change pediatric-use request whose comment says a separate issue would be raised to make patientCharacteristic a name/value pair.
+FHIR-30089: later-change - later Published/Persuasive patientCharacteristic issue that retained value[x] 0..1, added Quantity/Range, and supplied repeated-characteristic guidance.
+FHIR-30093: later-change - R5 MedicationKnowledge remodel that renamed AdministrationGuideline/DosingGuideline and explains the current indicationGuideline.dosingGuideline path.
+FHIR-30090: background - same R5 MedicationKnowledge administration-guideline batch that touched the current dosingGuideline neighborhood.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25230: Published/Persuasive request to make MedicationKnowledge patientCharacteristic a name/value pair. Learned: final WG intent was to split the characteristic name from its value in R5.
+- E2 Git 48438a7205421769bebb35c255e22d24aaa57251: changed patientCharacteristic.characteristic[x] and repeatable value into type 1..1 and value[x] 0..1. Learned: the requested name/value pair was explicitly applied in source history.
+- E3 Source source/fhir.ini:580,726,870: medicationknowledge has active build entries. Learned: the inspected MedicationKnowledge StructureDefinition is in current build scope.
+- E4 Source source/medicationknowledge/structuredefinition-MedicationKnowledge.xml:492-528: current source has patientCharacteristic, required type, and value[x] choices CodeableConcept, Quantity, and Range. Learned: the active source already carries the intended name/value representation.
+- E5 Jira FHIR-30089 and git 1683ac64141af807564d62a28932d70133142fb3: later Published issue changed value[x] to Quantity/Range while explicitly preserving 0..1 cardinality. Learned: optional value[x] is not a missed FHIR-25230 fix.
+- E6 Command community/source search: no direct Zulip or Confluence references for FHIR-25230 were found, and no stale AdministrationGuideline.patientCharacteristic.characteristic[x] path remains under source/. Learned: no discovered community or source evidence contradicts the no-change decision.
+- E7 Verification command: XML parse and ElementTree inspection found patientCharacteristic 0..*, type 1..1 CodeableConcept, and value[x] 0..1 CodeableConcept/Quantity/Range. Learned: the source shape matches the reconciled model.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25230",
+    "url": "https://jira.hl7.org/browse/FHIR-25230",
+    "snapshot_path": "contexts/FHIR-25230/jira/FHIR-25230.md",
+    "ref": { "jira_key": "FHIR-25230" },
+    "summary": "Published/Persuasive Pharmacy request to make MedicationKnowledge AdministrationGuideline.patientCharacteristic represent a name/value pair.",
+    "learned": "This establishes final work-group intent to split the patient characteristic name from its value for R5.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "48438a7205421769bebb35c255e22d24aaa57251",
+    "ref": { "commit": "48438a7205421769bebb35c255e22d24aaa57251" },
+    "summary": "The original application commit changed the MedicationKnowledge spreadsheet from patientCharacteristic.characteristic[x] plus repeatable value to patientCharacteristic.type and patientCharacteristic.value[x].",
+    "learned": "The requested name/value-pair shape was applied in source history before later source migration.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:580,726,870",
+    "summary": "MedicationKnowledge has active fhir.ini entries for work group, business categorization, and maturity level.",
+    "learned": "The MedicationKnowledge StructureDefinition source is within the current FHIR build scope.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationknowledge/structuredefinition-MedicationKnowledge.xml:492-528",
+    "summary": "The active StructureDefinition defines patientCharacteristic 0..*, type 1..1 CodeableConcept, and value[x] 0..1 with CodeableConcept, Quantity, and Range choices.",
+    "learned": "The current source already represents the accepted name/value model.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-30089",
+    "url": "https://jira.hl7.org/browse/FHIR-30089",
+    "snapshot_path": "contexts/FHIR-30089/jira/FHIR-30089.md",
+    "ref": { "jira_key": "FHIR-30089" },
+    "summary": "Later Published/Persuasive patientCharacteristic issue requested value[x] 0..1 with CodeableConcept, Quantity, and Range, plus interpretation guidance for repeated characteristics.",
+    "learned": "This later final decision confirms that value[x] remaining optional is intentional rather than an incomplete FHIR-25230 application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community and stale-path searches for FHIR-25230",
+    "command": "bun run zulip:search fts '\"FHIR-25230\" patientCharacteristic MedicationKnowledge' --limit 10; bun run confluence:search refs jira FHIR-25230; rg 'MedicationKnowledge\\.administrationGuideline\\.patientCharacteristic|patientCharacteristic\\.characteristic\\[x\\]' source",
+    "query": "FHIR-25230 patientCharacteristic MedicationKnowledge",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence FHIR-25230 hits were found, and current source no longer contains the obsolete patientCharacteristic.characteristic[x] shape.",
+    "learned": "No discovered community or stale-source evidence changes the Jira/source-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and ElementTree inspection of MedicationKnowledge patientCharacteristic",
+    "command": "python3 - <<'PY' ... ET.parse('source/medicationknowledge/structuredefinition-MedicationKnowledge.xml') ... PY; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/medicationknowledge/structuredefinition-MedicationKnowledge.xml source/fhir.ini",
+    "summary": "The XML parsed, diff --check reported no whitespace errors, and the inspected cardinalities/types were patientCharacteristic 0..*, type 1..1 CodeableConcept, value[x] 0..1 CodeableConcept/Quantity/Range.",
+    "learned": "The current source shape matches the reconciled name/value model.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

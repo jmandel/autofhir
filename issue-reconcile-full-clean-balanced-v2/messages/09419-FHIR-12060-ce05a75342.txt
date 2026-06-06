@@ -1,0 +1,115 @@
+FHIR-12060: Audit Element.id and Extension.url representation
+
+Issue request:
+FHIR-12060 was a Published FHIR-core/fhir-i change request, resolved Persuasive with Modification for DSTU2, asking that Element.id and Extension.url not be modeled as ordinary FHIR primitive Elements. The accepted resolution was to remove the ordinary type-code treatment for those fields and use compiler-supplied type metadata instead.
+
+Initial application:
+The issue was applied in git-svn commit e8c22a3727455852300b359fe317824ad3ae2224, whose message includes GF#12060 and svn revision 14528. That commit did not rewrite the spreadsheet rows directly; it changed the generation/tooling path to special-case Element.id and Extension.url so their generated ElementDefinitions used compiler metadata rather than normal primitive Element typing.
+
+Additional context:
+Later FHIR-I decisions refined the representation without reversing the seed. FHIR-31656 added explicit prose that extensions are not allowed on Extension.url or Element.id. FHIR-25274 documented the current System.String plus structuredefinition-fhir-type pattern for simple values where FHIR primitive inheritance is not wanted. FHIR-38684 and FHIR-41183 corrected Element.id-derived metadata to use fhir-type string rather than id. FHIR-45989 confirmed the later distinction that Resource.id is constrained as fhir-type id, while Element.id remains fhir-type string with no extensions.
+
+AutoFHIR reconciliation:
+This audit intentionally makes no source change. The active current build inputs still define Element and Extension as core infrastructure types, the current narrative says xmlAttr elements and specifically Extension.url/Element.id cannot carry extensions, and the current generated publication surface represents Element.id and Extension.url as http://hl7.org/fhirpath/System.String with structuredefinition-fhir-type values string and uri respectively. That preserves the seed's semantic requirement that these fields are simple wire values, not ordinary FHIR primitive Elements with id/extension children.
+
+Recommendation:
+Keep this no-change audit. Do not edit the source spreadsheets merely to remove the visible string/uri entries unless the active generator contract changes; the important implementer-facing semantics are already present in the built specification. Unresolved Resource.id/Patient.id fhir-type questions, such as FHIR-57383, are a separate Resource.id inheritance issue and should not be folded into FHIR-12060.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12060
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-31656: supporting-decision - later Published clarification that Extension.url and Element.id cannot have extensions.
+FHIR-19246: supporting-decision - Resolved - No Change issue confirming that missing ordinary type codes for Element.id and Extension.url were deliberate.
+FHIR-22493: same-change-family - later Published issue about preserving the compiler-magic type metadata in Element-derived profile snapshots.
+FHIR-25274: later-change - later Published documentation of the System.String plus structuredefinition-fhir-type mechanism used for primitive-like values without primitive id/extension inheritance.
+FHIR-38684: later-change - later Published correction requiring Element.id's fhir-type value to be string rather than id.
+FHIR-41183: later-change - Applied R5/R6 correction for ElementDefinition.id metadata inherited from Element.id.
+FHIR-45989: supporting-decision - later Resolved - No Change decision confirming Resource.id and Element.id intentionally differ: Resource.id is fhir-type id, Element.id is fhir-type string.
+FHIR-57383: background - unresolved Resource.id/Patient.id regression report, outside this seed because it does not change Element.id or Extension.url.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12060: Published/Persuasive with Modification; resolution says to remove the ordinary type-code treatment from Element.id and Extension.url and use compiler-magic type extensions. Learned: this is the final seed requirement to check against the current build.
+- E2 Git e8c22a3727455852300b359fe317824ad3ae2224: applied GF#12060 in svn revision 14528 by changing tooling/generation logic for Element.id and Extension.url. Learned: the original application lived in generator behavior, not only in the visible spreadsheet cells.
+- E3 Source source/fhir.ini:63 and source/fhir.ini:72 plus source/datatypes/element.xml:616 and source/datatypes/extension.xml:843: Element and Extension are active infrastructure definitions and the affected rows remain in active datatype source. Learned: the checked source locations are in current build scope.
+- E4 Source source/extensibility.html:66 and source/elementdefinition.html:346: current narrative says extensions are not allowed on Extension.url or Element.id and explains FHIRPath System.String plus structuredefinition-fhir-type for simple values without FHIR primitive inheritance. Learned: implementer-facing prose matches the seed semantics.
+- E5 Published-spec query of build.fhir.org element.profile.json and extension.profile.json: Element.id and Extension.url have representation xmlAttr and type code http://hl7.org/fhirpath/System.String with fhir-type string/uri. Learned: the current built conformance surface is not modeling them as ordinary FHIR primitive Elements.
+- E6 Jira FHIR-25274 and FHIR-45989: later decisions explain and preserve the current System.String/fhir-type mechanism and the difference between Resource.id and Element.id. Learned: later issue history supports keeping the current representation.
+- E7 Community search: Confluence refs for FHIR-12060 found no references; Zulip exact key search found zero human hits and only one noisy tracker bot title mention. Learned: no discovered community discussion conflicts with the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12060",
+    "url": "https://jira.hl7.org/browse/FHIR-12060",
+    "snapshot_path": "contexts/FHIR-12060/jira/FHIR-12060.md",
+    "ref": { "jira_key": "FHIR-12060" },
+    "summary": "Published/Persuasive with Modification issue requesting Element.id and Extension.url not be modeled as ordinary FHIR primitive Elements.",
+    "learned": "This establishes the seed requirement: preserve simple non-extensible wire-value semantics for Element.id and Extension.url.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e8c22a3727455852300b359fe317824ad3ae2224",
+    "ref": { "commit": "e8c22a3727455852300b359fe317824ad3ae2224" },
+    "summary": "Historical git-svn commit for svn revision 14528 includes GF#12060 and special-cased Element.id and Extension.url in generation/tooling.",
+    "learned": "The issue was initially applied through generator behavior rather than by simply deleting spreadsheet cells.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:63-72; source/datatypes/element.xml:616-620; source/datatypes/extension.xml:843-848",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "Element and Extension are active infrastructure types and the affected id/url rows remain in the active datatype source spreadsheets.",
+    "learned": "The checked source is in current build scope for this seed decision.",
+    "supports": ["build_scope", "source_review"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/extensibility.html:66; source/elementdefinition.html:346-352",
+    "ref": { "path": "source/extensibility.html" },
+    "summary": "Current narrative says extensions are not allowed on Extension.url or Element.id and explains System.String plus structuredefinition-fhir-type for simple values without FHIR primitive inheritance.",
+    "learned": "The current prose conveys the non-extensible simple-value semantics requested by the seed and later clarifications.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "build.fhir.org Element and Extension profiles",
+    "url": "https://build.fhir.org/element.profile.json",
+    "command": "curl -fsSL https://build.fhir.org/element.profile.json https://build.fhir.org/extension.profile.json | jq ...",
+    "summary": "Element.id and Extension.url are represented as xmlAttr fields with type code http://hl7.org/fhirpath/System.String and fhir-type values string and uri.",
+    "learned": "The built conformance surface does not treat these fields as ordinary FHIR primitive Elements with id/extension children.",
+    "supports": ["verification", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-25274; FHIR-45989",
+    "url": "https://jira.hl7.org/browse/FHIR-25274",
+    "ref": { "jira_key": "FHIR-25274" },
+    "summary": "Later FHIR-I decisions document the System.String plus structuredefinition-fhir-type mechanism and confirm Resource.id intentionally differs from Element.id.",
+    "learned": "Later issue history supports the current interpretation rather than an edit back to ordinary primitive typing.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-12060 and Element.id/Extension.url terms",
+    "command": "bun run confluence:search refs jira FHIR-12060; bun run zulip:search sql \"SELECT COUNT(*) FROM messages WHERE content LIKE '%FHIR-12060%'\"",
+    "query": "FHIR-12060 Element.id Extension.url",
+    "result_count": 0,
+    "summary": "Confluence had no direct FHIR-12060 references; Zulip exact key search had no human discussion hits, only a noisy tracker bot title mention by title search.",
+    "learned": "No discovered community record conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

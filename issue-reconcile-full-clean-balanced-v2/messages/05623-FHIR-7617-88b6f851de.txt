@@ -1,0 +1,97 @@
+FHIR-7617: Audit Condition working status removal
+
+Issue request:
+FHIR-7617 was Published with resolution Persuasive with Modification for the DSTU1 Condition resource. It asked whether systems really distinguish Working from Confirmed in Condition.clinicalStatus and requested guidance for systems without an explicit distinction. The approved resolution was to drop "working", use "provisional" instead, and use an extension if an implementation really needs to differentiate.
+
+Initial application:
+The historical application is commit 0a6643ad13 ("Split Condition.status {#7581} {#7617} {#7864}"). That commit split the old Condition.status/clinicalStatus content into separate clinicalStatus and verificationStatus concepts, changed examples that had clinicalStatus="working" to active clinical status plus differential verification status, and added the post-split condition-clinical value set. No later source-changing reconciliation is needed for the seed request.
+
+Additional context:
+Related status-split trackers FHIR-7581 and FHIR-7864 explain that lifecycle state and verification/confirmation state were separated; FHIR-7851 records the corresponding v2 mapping distinction. Current source has evolved since the 2015 wording: Condition.clinicalStatus is bound to lifecycle codes such as active, recurrence, relapse, inactive, remission, resolved, and unknown, while Condition.verificationStatus is bound to verification codes including provisional and confirmed. The remaining source file valueset-condition-status-present.xml still contains an old "working" concept, but source search finds no active references to that value set except its OID reservation, source/fhir.ini does not list it in current standalone value sets, and build.fhir.org returns 404 for valueset-condition-status-present.html/json.
+
+AutoFHIR reconciliation:
+This empty audit commit intentionally makes no source change. The current built Condition definition already satisfies FHIR-7617 by omitting "working" from Condition.clinicalStatus and preserving provisional/confirmed under verificationStatus. Editing or deleting the unused condition-status-present residue would not improve current implementer-facing specification behavior and could be a broader cleanup outside this issue.
+
+Recommendation:
+Keep this audit commit as-is. If a future cleanup campaign removes obsolete unreferenced terminology source files, valueset-condition-status-present.xml can be reviewed then, but FHIR-7617 itself is already correctly reflected in the current Condition specification.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7617
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7581: same-change-family - Defines the broader split of Condition clinical lifecycle status from verification status that implemented the FHIR-7617 decision.
+FHIR-7864: same-change-family - Duplicate/related tracker for separating record/verification status from clinical status; already audited on the combined branch.
+FHIR-7851: supporting-decision - Mapping issue documents the post-split clinicalStatus versus verificationStatus distinction; already audited on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7617: Published/Persuasive with Modification; resolution says to drop "working", use provisional, and use an extension if differentiation is needed. Learned: this establishes the seed's required spec outcome.
+- E2 Git 0a6643ad13: historical commit "Split Condition.status {#7581} {#7617} {#7864}" changed Condition examples and source around the status split. Learned: the seed was applied as part of the original Condition status split.
+- E3 Source source/condition/structuredefinition-Condition.xml:143-190: current clinicalStatus short is lifecycle codes only, and verificationStatus contains provisional and confirmed. Learned: current authoritative Condition source satisfies the requested distinction.
+- E4 Source/build-scope check for source/condition/valueset-condition-status-present.xml and source/fhir.ini: the old value set contains "working" but has no active source references beyond source/oids.ini, is absent from fhir.ini current valuesets, and build.fhir.org returns 404 for its page/json. Learned: the stale file is not current implementer-facing Condition.clinicalStatus content.
+- E5 Community/Jira search: quoted Zulip and Confluence searches for FHIR-7617 plus Condition status terms found no relevant community records; Jira neighborhood search found only the same Condition status-split family. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E6 Published spec https://build.fhir.org/condition-definitions.html#Condition.clinicalStatus: CI build shows clinicalStatus without working and verificationStatus with provisional/confirmed. Learned: generated current publication surface matches the source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7617",
+    "url": "https://jira.hl7.org/browse/FHIR-7617",
+    "snapshot_path": "contexts/FHIR-7617/jira/FHIR-7617.md",
+    "ref": { "jira_key": "FHIR-7617" },
+    "summary": "Published/Persuasive with Modification issue asking to drop Working from Condition.clinicalStatus and use provisional instead.",
+    "learned": "This is the final seed decision and establishes that current Condition.clinicalStatus should not include working.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "0a6643ad13",
+    "ref": { "commit": "0a6643ad139240e0f578cbe596e007d6c516df3e" },
+    "summary": "Historical commit 'Split Condition.status {#7581} {#7617} {#7864}' changed Condition status source and examples.",
+    "learned": "FHIR-7617 was applied through the broader split of lifecycle clinical status from verification status.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/condition/structuredefinition-Condition.xml:143-190",
+    "ref": { "path": "source/condition/structuredefinition-Condition.xml", "lines": "143-190" },
+    "summary": "Current Condition.clinicalStatus short lists lifecycle codes and Condition.verificationStatus lists unconfirmed/provisional/differential/confirmed/refuted/entered-in-error.",
+    "learned": "The authoritative current Condition definition no longer exposes working as a clinicalStatus value and retains provisional as a verification value.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Source/build-scope checks for condition-status-present",
+    "command": "rg -n 'condition-status-present|ConditionStatusPresent|http://hl7.org/fhir/condition-status' . /home/jmandel/work/fhir-extensions; rg -n 'condition-status-present|condition-clinical|condition-ver-status' source/fhir.ini; fetch https://build.fhir.org/valueset-condition-status-present.html/json",
+    "summary": "Only source/condition/valueset-condition-status-present.xml and source/oids.ini mention the old value set, fhir.ini does not list it as a current valueset, and build.fhir.org returned 404 for the page and JSON.",
+    "learned": "The remaining working code occurrence is stale/unreferenced residue, not a current Condition.clinicalStatus artifact needing a source fix for this issue.",
+    "supports": ["build_scope", "no_source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Community and Jira neighborhood search for FHIR-7617 Condition status terms",
+    "command": "bun run zulip:search fts '\"FHIR-7617\" Condition working provisional confirmed clinicalStatus' --limit 10; bun run confluence:search refs jira FHIR-7617; bun run confluence:search fts '\"FHIR-7617\" Condition working provisional confirmed clinicalStatus' --limit 10; bun run jira:search fts 'Condition clinicalStatus working provisional confirmed' --limit 20",
+    "query": "FHIR-7617 Condition working provisional confirmed clinicalStatus",
+    "summary": "No Zulip or Confluence hits were found; Jira search surfaced FHIR-7581, FHIR-7864, FHIR-7851, and FHIR-7617 as the same Condition status-split family.",
+    "learned": "No discovered community record conflicts with the Jira/source conclusion, and the related Jira issues explain the status split context.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/condition-definitions.html#Condition.clinicalStatus",
+    "url": "https://build.fhir.org/condition-definitions.html#Condition.clinicalStatus",
+    "summary": "The CI build shows clinicalStatus as active/recurrence/relapse/inactive/remission/resolved/unknown and verificationStatus as unconfirmed/provisional/differential/confirmed/refuted/entered-in-error.",
+    "learned": "The current generated publication surface matches the source finding that FHIR-7617 is already satisfied.",
+    "supports": ["published_surface", "confidence"]
+  }
+]
+</evidence-manifest>

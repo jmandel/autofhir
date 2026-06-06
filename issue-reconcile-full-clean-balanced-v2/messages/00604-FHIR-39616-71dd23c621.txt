@@ -1,0 +1,108 @@
+FHIR-39616: Add Endpoint payload profile ModelInfo
+
+Issue request:
+FHIR-39616 was Applied with a Persuasive resolution for R5. It asked to support FHIR profile identifiers on Endpoint payloads by adding Endpoint.payload.profile as 0..* Canonical(StructureDefinition) | URI, so Endpoint can advertise expected resource/profile content without overloading payload.type.
+
+Initial application:
+The issue was initially applied in core by 63638211f47be5c334babed5e0d868891e177695, which added Endpoint.payload.profile[x]. Follow-up commit d58d7f95864558e6c61aa74084d91599e96874ff made an editorial punctuation correction, and 776045a35d350696534e4448b84c40d3f7ea4938 split the choice into current Endpoint.payload.profileCanonical and Endpoint.payload.profileUri elements.
+
+Additional context:
+FHIR-40247 had already introduced the Endpoint.payload backbone, and the immediately preceding reconciliation commit aligned the active FHIR ModelInfo Library with that backbone for payload.type and payload.mimeType. Current Endpoint source includes profileCanonical/profileUri and a payload-profile search parameter over both fields, but the active ModelInfo Library still lacked those nested payload profile elements.
+
+AutoFHIR reconciliation:
+This commit adds profileCanonical as List<FHIR.canonical> and profileUri as List<FHIR.uri> to FHIR.Endpoint.Payload in source/library/library-fhir-model-definition-content.xml, then regenerates the Library.data attachment in source/library/library-fhir-model-definition.xml so the built Library remains synchronized.
+
+Recommendation:
+Keep this source fix as-is. It reconciles the current split profileCanonical/profileUri representation on the active core ModelInfo surface and does not alter the already-correct Endpoint StructureDefinition or search parameter sources.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-39616
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-40247: same-change-family - it introduced the Endpoint.payload backbone that this later profile metadata depends on, and it is reconciled by the preceding commit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-39616: Applied/Persuasive issue requested a new Endpoint.payload.profile 0..* Canonical(StructureDefinition) | URI property. Learned: establishes the final related issue target, later represented as split canonical and URI elements.
+- E2 Confluence Endpoint Payload page 175609369 and PA 2023-10-04 minutes page 193659704: records the Endpoint payload issue family and FHIR-39616 being reviewed by PA. Learned: confirms this was part of the same Endpoint payload work stream.
+- E3 Git 63638211f47be5c334babed5e0d868891e177695, d58d7f95864558e6c61aa74084d91599e96874ff, and 776045a35d350696534e4448b84c40d3f7ea4938: added Endpoint.payload.profile[x], then split it into profileCanonical/profileUri. Learned: explains why current source uses two concrete elements rather than the original choice syntax.
+- E4 Source source/endpoint/structuredefinition-Endpoint.xml:349-372 and source/endpoint/bundle-Endpoint-search-params.xml:103-115: current Endpoint defines payload.profileCanonical/profileUri and the payload-profile search parameter over both. Learned: the authoritative Endpoint and search parameter sources already match the applied issue after later refinement.
+- E5 Source source/fhir.ini:266, publish.ini:206, and source/library/library-fhir-model-definition-content.xml:6560-6573: Library is active, ModelInfo content is copied into the build, and this commit adds the missing Endpoint.Payload profileCanonical/profileUri metadata. Learned: the active core model-definition Library was the remaining build-scope surface needing a fix for FHIR-39616.
+- E6 Command community searches for FHIR-39616 and Endpoint payload profile terms: Confluence refs found PA minutes and the Endpoint Payload page; direct Zulip key and term searches found no directly relevant discussion. Learned: no discovered community discussion conflicts with the Jira/source conclusion.
+- E7 Verification command: parsed the edited ModelInfo XML, decoded and compared the Library.data attachment, asserted Endpoint.Payload has type, mimeType, profileCanonical, and profileUri in order, and ran a CRLF-aware whitespace check. Learned: the edited source is syntactically valid, internally synchronized, and whitespace-clean.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-39616",
+    "url": "https://jira.hl7.org/browse/FHIR-39616",
+    "snapshot_path": "contexts/FHIR-40247/jira/FHIR-39616.md",
+    "ref": { "jira_key": "FHIR-39616" },
+    "summary": "Applied/Persuasive issue requesting Endpoint.payload.profile as a repeatable Canonical(StructureDefinition) or URI profile indicator.",
+    "learned": "This establishes the final related issue target and explains why profile metadata belongs under Endpoint.payload.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "PA Endpoint Payload page 175609369 and 2023-10-04 minutes page 193659704",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/175609369/Endpoint+Payload",
+    "snapshot_path": "contexts/FHIR-40247/confluence/175609369.md; contexts/FHIR-40247/confluence/193659704.md",
+    "ref": { "confluence_page_id": 175609369 },
+    "summary": "PA Endpoint Payload page groups FHIR-39616 with the Endpoint payload issue family, and 2023-10-04 minutes list FHIR-39616 as reviewed.",
+    "learned": "This confirms the issue was part of the same Endpoint payload work stream as the seed.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "63638211f47be5c334babed5e0d868891e177695; d58d7f95864558e6c61aa74084d91599e96874ff; 776045a35d350696534e4448b84c40d3f7ea4938",
+    "ref": { "commits": "63638211f47be5c334babed5e0d868891e177695,d58d7f95864558e6c61aa74084d91599e96874ff,776045a35d350696534e4448b84c40d3f7ea4938" },
+    "summary": "Core commits added Endpoint.payload.profile[x], made a punctuation correction, and then split the choice into Endpoint.payload.profileCanonical and Endpoint.payload.profileUri.",
+    "learned": "The current two-element representation is a later refinement of the applied Jira request.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/endpoint/structuredefinition-Endpoint.xml:349-372; source/endpoint/bundle-Endpoint-search-params.xml:103-115",
+    "ref": { "paths": "source/endpoint/structuredefinition-Endpoint.xml,source/endpoint/bundle-Endpoint-search-params.xml" },
+    "summary": "Current Endpoint source defines payload.profileCanonical/profileUri and the payload-profile SearchParameter expression over both fields.",
+    "learned": "The authoritative Endpoint definition and search parameter already match FHIR-39616 after the split refinement.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:266; publish.ini:206; source/library/library-fhir-model-definition-content.xml:6560-6573",
+    "ref": { "paths": "source/fhir.ini,publish.ini,source/library/library-fhir-model-definition-content.xml" },
+    "summary": "Library is active, the ModelInfo content is copied into the build, and this commit adds profileCanonical/profileUri to FHIR.Endpoint.Payload.",
+    "learned": "The active core model-definition Library was the remaining build-scope source surface requiring a fix for FHIR-39616.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-39616 Endpoint payload profile",
+    "command": "bun run confluence:search refs jira FHIR-39616; bun run confluence:search fts '\"FHIR-39616\" Endpoint payload profileCanonical profileUri' --limit 10; bun run zulip:search fts '\"FHIR-39616\" Endpoint payload profileCanonical profileUri' --limit 10; bun run zulip:search fts 'Endpoint payload profile canonical URI StructureDefinition' --limit 10",
+    "query": "FHIR-39616 Endpoint payload profileCanonical profileUri",
+    "result_count": 6,
+    "summary": "Confluence refs found PA minutes and an Endpoint Payload page; direct Zulip key and term searches found no directly relevant discussion.",
+    "learned": "No discovered community discussion conflicts with the Jira, source, and git-history conclusion.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "ModelInfo XML, embedded data, and whitespace verification",
+    "command": "python3 - <<'PY' ... parse content, compare Library.data, assert Endpoint.Payload type/mimeType/profileCanonical/profileUri ... PY; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/library/library-fhir-model-definition-content.xml source/library/library-fhir-model-definition.xml",
+    "summary": "The edited XML parses, the Library.data attachment decodes to the content file, Endpoint.Payload has type/mimeType/profileCanonical/profileUri, and whitespace check passes.",
+    "learned": "The source fix is syntactically valid and internally synchronized.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

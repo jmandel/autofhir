@@ -1,0 +1,110 @@
+FHIR-53200: Complete PaymentReconciliation processNote alignment
+
+Issue request:
+FHIR-53200 was Applied/Persuasive for R6 by FM. It asked to match PaymentReconciliation.processNote to ClaimResponse and add a 0..* allocation-level note reference so allocations can point to process notes.
+
+Initial application:
+The Jira-tagged implementation commit 4291efa10d83fd2679fc5c5b3f6113795298ee98, merged by HL7/fhir#3796, added PaymentReconciliation.allocation.noteNumber plus processNote.class and processNote.number. That left the source only partially aligned with ClaimResponse because PaymentReconciliation.processNote.type stayed a required code, text stayed 0..1, language was absent, and the explicit backbone type name remained plural.
+
+Additional context:
+PaymentReconciliation is an active current-build resource in source/fhir.ini. ClaimResponse is the requested comparison target and currently defines processNote as Note with class, number, CodeableConcept/extensible type, required markdown text, and optional language. Related history shows the ClaimResponse shape came from applied/published FM decisions such as FHIR-31678, FHIR-50483, and FHIR-39562/FHIR-39586. Negative Zulip and Confluence searches found no conflicting community guidance.
+
+AutoFHIR reconciliation:
+This commit completes the remaining PaymentReconciliation.processNote structural alignment to ClaimResponse by changing the backbone type name to Note, changing processNote.type to CodeableConcept with an extensible note-type binding, making processNote.text 1..1, and adding processNote.language with the same language binding pattern. The PaymentReconciliation example was updated from primitive code syntax to CodeableConcept syntax for processNote.type so it remains valid.
+
+Recommendation:
+Keep this source fix. It is a focused completion of the applied Jira request in an active resource and avoids touching generated SVG output; future generated artifacts should be refreshed by the normal build pipeline.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-53200
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-31678: supporting-decision - changed ClaimResponse and ExplanationOfBenefit processNote.type to CodeableConcept/extensible, establishing part of the ClaimResponse shape mirrored here.
+FHIR-50483: supporting-decision - added processNote.class to ClaimResponse and ExplanationOfBenefit, which the initial FHIR-53200 commit partially copied to PaymentReconciliation.
+FHIR-39586: supporting-decision - changed PaymentReconciliation.processNote.text to markdown and was part of the same processNote family.
+FHIR-39562: supporting-decision - changed ClaimResponse.processNote.text to markdown, part of the requested comparison target history.
+FHIR-53175: background - unresolved terminology follow-up for processNote.class, so it is not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-53200: Applied/Persuasive R6 FM issue requesting PaymentReconciliation.processNote to match ClaimResponse and adding a 0..* allocation note reference. Learned: this is final WG intent and establishes the reconciliation target.
+- E2 Source source/fhir.ini:242,253: ClaimResponse and PaymentReconciliation are active resources in the current build. Learned: the edited PaymentReconciliation StructureDefinition is in build scope.
+- E3 Source source/paymentreconciliation/structuredefinition-PaymentReconciliation.xml:678-825 and source/claimresponse/structuredefinition-ClaimResponse.xml:2081-2190: current PaymentReconciliation already had allocation.noteNumber but lacked the full ClaimResponse processNote shape before this fix. Learned: a source change was needed to complete the applied request.
+- E4 Git 4291efa10d83fd2679fc5c5b3f6113795298ee98 / HL7/fhir#3796: initial application added allocation.noteNumber plus processNote.class and processNote.number only. Learned: the earlier Jira-tagged application was real but incomplete.
+- E5 Jira FHIR-31678, FHIR-50483, FHIR-39586, FHIR-39562: related FM decisions explain the ClaimResponse processNote type/class/text shape and PaymentReconciliation markdown text. Learned: later/current source alignment should mirror the already applied ClaimResponse structure rather than the older required-code shape.
+- E6 Community search: Zulip and Confluence searches for FHIR-53200 plus PaymentReconciliation/processNote/ClaimResponse found no directly relevant hits. Learned: no discovered community record changes the Jira/source conclusion.
+- E7 Verification command/query: git diff --check, XML parsing, and a script comparing PaymentReconciliation.processNote against ClaimResponse passed. Learned: the edited files are well-formed and the relevant processNote element structure now matches the target.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-53200",
+    "url": "https://jira.hl7.org/browse/FHIR-53200",
+    "snapshot_path": "contexts/FHIR-53200/jira/FHIR-53200.md",
+    "ref": { "jira_key": "FHIR-53200" },
+    "summary": "Applied/Persuasive R6 FM issue requesting PaymentReconciliation.processNote to match ClaimResponse and adding a 0..* allocation note reference.",
+    "learned": "This is final WG intent and establishes the reconciliation target for the current source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:242,253",
+    "summary": "source/fhir.ini lists claimresponse=ClaimResponse and paymentreconciliation=PaymentReconciliation as active resources.",
+    "learned": "PaymentReconciliation source edits are in current FHIR build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/paymentreconciliation/structuredefinition-PaymentReconciliation.xml:678-825; source/claimresponse/structuredefinition-ClaimResponse.xml:2081-2190",
+    "summary": "PaymentReconciliation had allocation.noteNumber but its processNote still differed from ClaimResponse on type, text cardinality, language, and explicit type name before this fix.",
+    "learned": "The applied Jira request was only partially reflected in current source.",
+    "supports": ["initial_application", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "4291efa10d83fd2679fc5c5b3f6113795298ee98 / HL7/fhir#3796",
+    "url": "https://github.com/HL7/fhir/pull/3796",
+    "ref": { "commit": "4291efa10d83fd2679fc5c5b3f6113795298ee98", "pr": 3796 },
+    "summary": "The initial FHIR-53200 implementation added PaymentReconciliation.allocation.noteNumber and processNote.class/number.",
+    "learned": "The issue was applied, but the implementation omitted remaining ClaimResponse processNote alignment details.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-31678, FHIR-50483, FHIR-39586, FHIR-39562",
+    "url": "https://jira.hl7.org/browse/FHIR-31678",
+    "ref": { "jira_key": "FHIR-31678" },
+    "summary": "Related FM issues changed ClaimResponse/EOB processNote.type to CodeableConcept/extensible, added processNote.class, and changed processNote.text to markdown.",
+    "learned": "These decisions explain why PaymentReconciliation should now mirror the current ClaimResponse processNote structure.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-53200 PaymentReconciliation processNote ClaimResponse",
+    "command": "bun run zulip:search fts '\"FHIR-53200\" PaymentReconciliation processNote ClaimResponse' --limit 10; bun run confluence:search refs jira FHIR-53200; bun run confluence:search fts '\"FHIR-53200\" PaymentReconciliation processNote' --limit 10",
+    "query": "FHIR-53200 PaymentReconciliation processNote ClaimResponse",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local validation commands",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/paymentreconciliation/structuredefinition-PaymentReconciliation.xml source/paymentreconciliation/paymentreconciliation-example.xml; python3 XML parse and processNote comparison script",
+    "summary": "Whitespace check, XML parsing, and processNote structural comparison passed.",
+    "learned": "The edited XML is well-formed and the relevant PaymentReconciliation processNote structure now matches ClaimResponse.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

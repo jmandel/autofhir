@@ -1,0 +1,91 @@
+FHIR-5471: Show multiple requests in GHP example
+
+Issue request:
+FHIR-5471 was a Published/Persuasive OO ballot comment for FHIR-core DiagnosticReport. The reporter asked how requests, results, and specimens relate when they appear at the same level, and the final resolution was to extend the DiagnosticReport examples so at least one shows more than one request, specifically diagnosticreport-example-ghp.
+
+Initial application:
+The issue appears to have been pre-applied by git commit be15b4bd48b0f4a6958edb6e43fd73a33c47d55a, which added the GHP DiagnosticReport example with multiple specimens and panels. Current history shows that example was later migrated into a Bundle and kept current through many DiagnosticReport example refactors, but before this reconciliation the current GHP example had no DiagnosticReport.basedOn references and no bundled ServiceRequest resources, so the multiple-request part of the approved request was still not represented.
+
+Additional context:
+DiagnosticReport is an active resource in source/fhir.ini, and source/diagnosticreport/list-DiagnosticReport-examples.xml actively lists diagnosticreport-example-ghp. The current DiagnosticReport.basedOn definition is 0..* and targets ServiceRequest among other request resources, while ServiceRequest.requisition describes the current way to link multiple independent requests ordered together. A 2020 Zulip thread about the GHP example also points to ServiceRequest as the right order-level structure for preserving panel grouping. No Confluence reference for FHIR-5471 was found.
+
+AutoFHIR reconciliation:
+This commit adds three basedOn references from the GHP DiagnosticReport to separate ServiceRequest resources for the chemistry panel, CBC, and urinalysis entries in the same example Bundle. Each ServiceRequest has its own placer identifier and shares a common requisition, showing multiple requested panels on the same report while preserving the existing specimen and result structure. The DiagnosticReport examples list description now states that the GHP example covers multiple specimens, requests, and panels.
+
+Recommendation:
+Keep this source fix. It completes the published FHIR-5471 example request using current DiagnosticReport.basedOn and ServiceRequest.requisition modeling without changing unrelated DiagnosticReport semantics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5471
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5471: Published/Persuasive OO issue requiring DiagnosticReport examples to show more than one request, with diagnosticreport-example-ghp named in the resolution. Learned: this is the final approved request this commit must satisfy.
+- E2 Source source/fhir.ini:187 and source/diagnosticreport/list-DiagnosticReport-examples.xml:117: DiagnosticReport is active and the GHP example is listed for the current build. Learned: the edited files are in build scope.
+- E3 Source source/diagnosticreport/diagnosticreport-example-ghp.xml:17: the reconciled GHP report now has three basedOn ServiceRequest references, and lines 71ff add matching ServiceRequest entries. Learned: the current example now actually represents more than one request.
+- E4 Git be15b4bd48b0f4a6958edb6e43fd73a33c47d55a: historical pre-apply commit added the GHP example for #5471 but current source had zero basedOn references before this reconciliation. Learned: the original application trail existed but was incomplete against the final request.
+- E5 Zulip #implementers > DiagnosticReport.code - broader granularity or an extension: discussion of Diagnosticreport-example-ghp notes that ServiceRequest can model the order and preserve panel grouping for GHP-style reports. Learned: community discussion supports using ServiceRequest rather than only broad DiagnosticReport.code prose.
+- E6 Verification command/query: xmllint parsed the edited XML, basedOn references were checked against bundled ServiceRequest ids, git diff --check passed with CRLF-aware whitespace settings, and ./gradlew --no-daemon classes --quiet completed. Learned: the local source edit is structurally safe without running the full publisher.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5471",
+    "url": "https://jira.hl7.org/browse/FHIR-5471",
+    "snapshot_path": "contexts/FHIR-5471/jira/FHIR-5471.md",
+    "ref": { "jira_key": "FHIR-5471" },
+    "summary": "Published/Persuasive OO issue requiring DiagnosticReport examples to show more than one request, naming diagnosticreport-example-ghp in the resolution.",
+    "learned": "This establishes the final approved example change to reconcile.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:187; source/diagnosticreport/list-DiagnosticReport-examples.xml:117",
+    "summary": "DiagnosticReport is active in fhir.ini and the examples list includes diagnosticreport-example-ghp.",
+    "learned": "The edited DiagnosticReport example and examples list are in current build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/diagnosticreport/diagnosticreport-example-ghp.xml:17",
+    "summary": "The reconciled GHP report has three basedOn references to bundled ServiceRequest resources for chemistry, CBC, and urinalysis.",
+    "learned": "The current example now demonstrates multiple requests on the same DiagnosticReport.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "be15b4bd48b0f4a6958edb6e43fd73a33c47d55a",
+    "ref": { "commit": "be15b4bd48b0f4a6958edb6e43fd73a33c47d55a" },
+    "summary": "Historical commit titled 'pre-apply #5471 add DR example with multiple specimens and multiple requests' added the GHP example.",
+    "learned": "There was a known application trail, but the current source lacked request references before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > DiagnosticReport.code - broader granularity or an extension",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/DiagnosticReport.code%20-%20broader%20granularity%20or%20an%20extension",
+    "summary": "A 2020 GHP discussion says ServiceRequest can model the order and keep panel grouping for General Health Profile style reports.",
+    "learned": "This supports adding request resources instead of only relying on a broad DiagnosticReport.code.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Local validation commands",
+    "command": "xmllint --noout source/diagnosticreport/diagnosticreport-example-ghp.xml source/diagnosticreport/list-DiagnosticReport-examples.xml; grep basedOn/ServiceRequest references; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; ./gradlew --no-daemon classes --quiet",
+    "summary": "Edited XML parsed, added references resolved to bundled ServiceRequest ids, whitespace check passed, and Gradle classes completed.",
+    "learned": "The fix is locally consistent and does not break the lightweight repository build check.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

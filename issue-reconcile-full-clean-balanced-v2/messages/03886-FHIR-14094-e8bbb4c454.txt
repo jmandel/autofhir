@@ -1,0 +1,115 @@
+FHIR-14094: Audit dateTime schema regex reconciliation
+
+Issue request:
+FHIR-14094 was a Published/Persuasive STU3 correction for FHIR-core datatypes. It reported that fhir-base.xsd allowed dateTime values with hours and minutes but no time zone, while the datatype page said a time zone SHALL be populated when hours and minutes are specified. The requested resolution was to correct the validation schema to use the same regex as the spec and verify that it only forces a time zone when hours and minutes are specified.
+
+Initial application:
+No commit in the current git history explicitly names FHIR-14094. The Jira comment says the change had already happened under a different task, and the surrounding Oct. 30, 2017 datatype work matches that: commit f2b3f28b2ff336fda895e176b2bdb2690ade688b for FHIR-13684/FHIR-13685 updated the primitive dateTime regex to require the offset in the time branch, and commit ffb483245175ff499a837bc605277a047ffa7b12 for FHIR-12959/FHIR-12960 added primitive regex publication and validation work.
+
+Additional context:
+The current build no longer has a checked-in fhir-base.xsd source file to edit directly; the active primitive datatype source is source/datatypes/primitives.xml, with source/datatypes.html rendering the dateTime regex through the [%regex dateTime%] placeholder and source/fhir.ini routing primitive types to datatypes. Later final decisions changed the intended regex family: FHIR-34355 allowed dateTime partial-date work to revisit the offset position, FHIR-38735 corrected date-only dateTime handling and confirmed that time zone is only permitted with full time, and FHIR-52878 approved the current R6 regex shape while the linked Zulip discussion records that regexes do not need to enforce every datatype rule. A prior AutoFHIR FHIR-38735 commit already fixed the stale primitive comment so it now says UTC offset is allowed only when a time is specified.
+
+AutoFHIR reconciliation:
+Made no source change. The current source already reflects the later approved dateTime regex family: it rejects offsets on date-only and partial-date values, allows full dateTime values with or without an offset, and leaves the normative SHALL about offset presence in the datatype narrative. Re-tightening the regex for FHIR-14094 would undo the later FHIR-52878-approved pattern rather than reconcile the current specification.
+
+Recommendation:
+Keep this audit commit as-is. If the work group wants the current schema regex to enforce the narrative SHALL for full dateTime offsets, that should be raised as a new current-version tracker or a reconsideration of the FHIR-52878/related dateTime decisions, not applied retroactively under the STU3 FHIR-14094 audit.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14094
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13684: same-change-family - 2017 Published/Persuasive date/dateTime regex correction whose implementation matches the Jira comment that FHIR-14094 had already been handled under another task.
+FHIR-13685: same-change-family - 2017 Published/Persuasive leap-second regex correction applied in the same commit that tightened the dateTime time branch.
+FHIR-12959: same-change-family - 2017 Published/Persuasive primitive regex documentation/source task applied immediately after the dateTime regex correction.
+FHIR-12960: same-change-family - 2017 Published/Persuasive primitive datatype validation example task applied with FHIR-12959.
+FHIR-34355: later-change - Published/Not Persuasive with Modification R5 date/dateTime issue that later changed the dateTime regex family.
+FHIR-38735: later-change - Published/Persuasive R5 technical correction for date-only dateTime values; a prior AutoFHIR commit already reconciled its stale comment.
+FHIR-52878: later-change - Applied/Persuasive R6 clarification approving the current regex shape and supporting not forcing every datatype rule into the regex.
+FHIR-22818: background - FHIRPath-only Applied clarification about timezone offsets with dateTime literals, relevant as background but outside the core source decision here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14094: Published/Persuasive STU3 issue says the validation schema dateTime regex should match the spec and enforce a time zone when hours and minutes are specified. Learned: establishes the seed request and final historical intent.
+- E2 Source source/datatypes/primitives.xml:193-198: the active dateTime primitive row contains the narrative, comment, and current regex. Learned: current source allows full dateTime without offset but disallows offsets on date-only and partial-date values.
+- E3 Source source/fhir.ini:75-85 and source/datatypes.html:175-185: primitive datatype pages are routed to datatypes and the dateTime page renders [%regex dateTime%]. Learned: the inspected primitive source is in current build scope.
+- E4 Git f2b3f28b2ff336fda895e176b2bdb2690ade688b and ffb483245175ff499a837bc605277a047ffa7b12: 2017 datatype regex/validation commits for FHIR-13684/FHIR-13685/FHIR-12959/FHIR-12960. Learned: explains the Jira comment that the schema correction had already happened under another task.
+- E5 Jira/Git FHIR-34355, FHIR-38735, and FHIR-52878: later final dateTime regex decisions changed and then tightened the regex family. Learned: current source must be judged against later approved behavior, not only the STU3 request.
+- E6 Zulip #implementers > Timezone optionality and Confluence FHIR-I Minutes CC 2025-09-22: discussion says regexes need not enforce every rule, and minutes approve FHIR-52878 10-0-0. Learned: community evidence supports leaving the current approved regex behavior unchanged.
+- E7 Command search/test: no human Zulip or Confluence discussion specific to FHIR-14094 was found beyond the tracker bot; parsing source/datatypes/primitives.xml showed the current regex matches 2025-09-16T12:34:56 and 2025-09-16T12:34:56Z but rejects 2025-09Z and 2025-09-16+01:00. Learned: confirms the current source behavior and absence of seed-specific conflicting community evidence.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14094",
+    "url": "https://jira.hl7.org/browse/FHIR-14094",
+    "snapshot_path": "contexts/FHIR-14094/jira/FHIR-14094.md",
+    "ref": { "jira_key": "FHIR-14094" },
+    "summary": "Published/Persuasive STU3 correction asking that fhir-base.xsd use the same dateTime regex as the spec and require a timezone when hours and minutes are specified.",
+    "learned": "This establishes the seed request and explains why the original schema mismatch mattered.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:193-198",
+    "ref": { "path": "source/datatypes/primitives.xml", "lines": "193-198" },
+    "summary": "The active dateTime primitive row contains the current narrative, comment, and regex.",
+    "learned": "The current regex intentionally disallows offsets on date-only values while still allowing full dateTime values without making the offset mandatory.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:75-85; source/datatypes.html:175-185",
+    "ref": { "path": "source/fhir.ini", "lines": "75-85" },
+    "summary": "Primitive datatype pages route to datatypes and datatypes.html renders the dateTime regex placeholder.",
+    "learned": "The inspected primitive spreadsheet is the current build-scope source for the dateTime regex surface.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "f2b3f28b2ff336fda895e176b2bdb2690ade688b; ffb483245175ff499a837bc605277a047ffa7b12",
+    "ref": { "commit": "f2b3f28b2ff336fda895e176b2bdb2690ade688b" },
+    "summary": "Oct. 30, 2017 datatype regex and validation commits applied FHIR-13684/FHIR-13685 and FHIR-12959/FHIR-12960 work.",
+    "learned": "These commits are the likely historical application referenced by the FHIR-14094 Jira comment.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-34355, FHIR-38735, FHIR-52878",
+    "url": "https://jira.hl7.org/browse/FHIR-52878",
+    "ref": { "jira_key": "FHIR-52878", "commit": "65790c792003e57c5c12a0b1243f4539922fa008" },
+    "summary": "Later final dateTime regex issues changed date-only handling and approved the current R6 regex shape.",
+    "learned": "The current source must preserve later approved behavior rather than restore the original STU3 enforcement-only regex.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Timezone optionality; FHIR-I Minutes CC 2025-09-22",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Timezone%20optionality",
+    "ref": { "stream": "implementers", "topic": "Timezone optionality", "confluence_page_id": 389679504 },
+    "summary": "The discussion leading to FHIR-52878 says regexes need not enforce every rule, and FHIR-I minutes approve FHIR-52878 10-0-0.",
+    "learned": "This supports an audit decision that leaves the approved current regex unchanged.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Seed community searches and current regex test",
+    "command": "bun run zulip:search fts '\"FHIR-14094\" dateTime regex' --limit 10; bun run confluence:search refs jira FHIR-14094; python3 parse source/datatypes/primitives.xml dateTime row",
+    "query": "FHIR-14094 dateTime regex",
+    "result_count": 0,
+    "summary": "No human Zulip or Confluence discussion specific to FHIR-14094 was found; current regex test showed accepted full dateTimes with and without offsets and rejected date-only offsets.",
+    "learned": "No community evidence contradicts the source/history conclusion, and the tested regex behavior matches the later FHIR-52878 family.",
+    "supports": ["absence_of_conflict", "verification"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,111 @@
+FHIR-27752: Allow multiple related action data references
+
+Issue request:
+FHIR-27752 was Published/Persuasive with Modification for R5. It asked whether DataRequirement should gain an optional name, but the accepted resolution instead made PlanDefinition.action.input and PlanDefinition.action.output complex structures with title, requirement, and a repeatable relatedRequirementId-style reference plus an invariant requiring either requirement or related references, but not both.
+
+Initial application:
+The issue was initially applied by git commit 2101fd4e46 (J#27752), which changed the active PlanDefinition StructureDefinition source from direct DataRequirement input/output arrays to BackboneElement input/output arrays with title, requirement, relatedData, and exclusive-or constraints. That implementation used relatedData rather than the proposed relatedRequirementId name, but it left each relatedData at max 1 even though the final Jira resolution called for 0..*. Later cleanup removed XPath constraints, and FHIR-40218 changed PlanDefinition.action.input.relatedData from id to string because it references an Element.id value.
+
+Additional context:
+PlanDefinition is active in the current build through source/fhir.ini, and source/plandefinition/structuredefinition-PlanDefinition.xml is the authoritative resource definition. The current source already has no DataRequirement.name and correctly has title, requirement, relatedData, and the xor constraints. CDS WGM minutes record the 29-0-3 approval, Workflow minutes record the proposal rewrite, and later Zulip discussions confirm relatedData is the intended PlanDefinition mechanism for passing data between actions. FHIR-34265 later copied definitional action aspects into RequestGroup/RequestOrchestration, but that is a separate tracker and is not changed here.
+
+AutoFHIR reconciliation:
+This commit changes only PlanDefinition.action.input.relatedData and PlanDefinition.action.output.relatedData from max 1 to max * so the active source matches the final FHIR-27752 cardinality while preserving the later FHIR-40218 string type and the existing xor constraints.
+
+Recommendation:
+Keep this source fix as-is for FHIR-27752. If the work group wants matching RequestOrchestration.action relatedData cardinality changes, handle that as a separate review under the RequestOrchestration/FHIR-34265 change family rather than broadening this PlanDefinition reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27752
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-40218: later-change - corrected PlanDefinition.action.input.relatedData to string because the referenced Element.id is a string; this commit preserves that later decision.
+FHIR-34265: background - added PlanDefinition-like definitional action aspects to RequestGroup/RequestOrchestration; relevant parallel history but not part of this PlanDefinition source fix.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27752: Published/Persuasive with Modification; final resolution rejected DataRequirement.name and required complex PlanDefinition action input/output structures with repeatable related requirement references and xor constraints. Learned: establishes the target PlanDefinition shape and cardinality.
+- E2 Source source/fhir.ini:274 and source/plandefinition/structuredefinition-PlanDefinition.xml:1617-1743: PlanDefinition is active in the build and the authoritative source now has relatedData max * for both action.input and action.output. Learned: the fix applies to current build-scope source.
+- E3 Git 2101fd4e46: J#27752 initially added title, requirement, relatedData, and xor constraints but implemented relatedData as max 1. Learned: the issue was mostly applied before this reconciliation, with only cardinality left semantically short of the final resolution.
+- E4 Jira FHIR-40218 and git 0d0249f34a: later Applied technical correction made PlanDefinition.action.input.relatedData string because Element.id is string. Learned: the current type should remain string while changing only cardinality.
+- E5 Confluence 86966698 and 91991196: Workflow minutes record the proposal rewrite and CDS WGM minutes record approval of FHIR-27752 at 29-0-3. Learned: community minutes support the Jira disposition and do not narrow away the repeatable related reference.
+- E6 Zulip workflow threads: relatedData is described by Bryn Rhodes and Lloyd McKenzie as the R5 mechanism for PlanDefinition data flow between actions. Learned: no discovered community discussion conflicts with allowing multiple relatedData references.
+- E7 Verification command: xmllint or Ruby XML parse plus git diff --check succeeded, and awk confirmed relatedData max * at the two edited PlanDefinition lines. Learned: the source remains well-formed and the intended cardinalities are present.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27752",
+    "url": "https://jira.hl7.org/browse/FHIR-27752",
+    "snapshot_path": "contexts/FHIR-27752/jira/FHIR-27752.md",
+    "ref": { "jira_key": "FHIR-27752" },
+    "summary": "Published/Persuasive with Modification issue replacing a proposed DataRequirement.name with complex PlanDefinition action input/output structures and repeatable related requirement references.",
+    "learned": "This establishes the accepted PlanDefinition change and the intended 0..* related reference cardinality.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:274; source/plandefinition/structuredefinition-PlanDefinition.xml:1617-1743",
+    "ref": { "path": "source/plandefinition/structuredefinition-PlanDefinition.xml", "lines": "1617-1743" },
+    "summary": "PlanDefinition is an active resource, and the edited StructureDefinition contains action input/output relatedData with max *.",
+    "learned": "The reconciliation edits authoritative build-scope source and not generated output.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "2101fd4e46",
+    "ref": { "commit": "2101fd4e461a2575b43cec5794ba34de835f61a1" },
+    "summary": "Initial J#27752 source commit added the complex PlanDefinition action input/output elements, relatedData, and xor constraints but used max 1 for relatedData.",
+    "learned": "The previous application was incomplete only for relatedData cardinality.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-40218 and git 0d0249f34a",
+    "url": "https://jira.hl7.org/browse/FHIR-40218",
+    "snapshot_path": "contexts/FHIR-27752/jira/FHIR-40218.md",
+    "ref": { "jira_key": "FHIR-40218", "commit": "0d0249f34ad7a3f4c67eb71a476cabccb6d86f69" },
+    "summary": "Applied technical correction changed PlanDefinition.action.input.relatedData to string because Element.id is string.",
+    "learned": "The later type decision should be preserved while correcting only the max cardinality.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Workflow Minutes CC 20200608 and CDS WGM Minutes 2020-09-22",
+    "url": "https://confluence.hl7.org/spaces/CDS/pages/91991196/2020-09-22+1000-1130+CDS+WGM+Minutes",
+    "snapshot_path": "contexts/FHIR-27752/confluence/91991196.md",
+    "ref": { "confluence_page_id": 91991196 },
+    "summary": "Minutes record the rewritten proposal and subsequent CDS approval vote for FHIR-27752.",
+    "learned": "The meeting record supports applying the Jira resolution to PlanDefinition action input/output.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#workflow > Passing data between actions; #workflow > Relationship between inputs/outputs in Plandefinition",
+    "url": "https://chat.fhir.org/#narrow/stream/workflow/topic/Passing%20data%20between%20actions",
+    "snapshot_path": "contexts/FHIR-27752/zulip/workflow--Passing-data-between-actions.md",
+    "ref": { "stream": "workflow", "topic": "Passing data between actions" },
+    "summary": "Workflow discussions describe relatedData as the R5 mechanism for connecting PlanDefinition action outputs and inputs.",
+    "learned": "No discovered community discussion conflicts with allowing multiple relatedData references for PlanDefinition data flow.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and diff validation",
+    "command": "xmllint --noout source/plandefinition/structuredefinition-PlanDefinition.xml || ruby -r rexml/document -e 'REXML::Document.new(File.read(ARGV.fetch(0)))' source/plandefinition/structuredefinition-PlanDefinition.xml; git diff --check; awk '/PlanDefinition.action.input.relatedData/{flag=1} flag && /<max /{print NR \":\" $0; flag=0} /PlanDefinition.action.output.relatedData/{flag=1}' source/plandefinition/structuredefinition-PlanDefinition.xml",
+    "summary": "Validation completed and confirmed max * for both edited relatedData elements.",
+    "learned": "The source is well-formed, whitespace-clean, and contains the intended cardinality changes.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

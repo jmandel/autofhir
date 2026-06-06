@@ -1,0 +1,98 @@
+FHIR-11915: Audit language ValueSet OID correction
+
+Issue request:
+FHIR-11915 was a Published FHIR-core vocab change request from the DSTU2/2016Sep ballot, resolved Persuasive with Modification, asking to correct the generated OID shown for the Common Languages ValueSet. The ballot page exposed 2.16.840.1.113883.4.642.2.languages for OID-based terminology systems, while the issue noted that BCP47/RFC5646 language tags should not be represented by that generated textual OID and referenced the older 2.16.840.1.113883.6.121 language-code OID.
+
+Initial application:
+Jira records this as a publishing issue, with a comment that the specification was correct and the ballot output was wrong, followed by an SVN revision note. No Git commit message mentions FHIR-11915 directly, but git pickaxe shows commit 06af2eaa68a07b473d22ea80f85e8404a762307b, "rebuild value set OID system", removing the bad urn:oid:2.16.840.1.113883.4.642.2.languages identifier from source/terminologies/valueset-languages.xml. Published release checks show the bad 2016Sep identifier was replaced by numeric FHIR ValueSet OIDs in later releases.
+
+Additional context:
+Current source/terminologies/valueset-languages.xml defines http://hl7.org/fhir/ValueSet/languages with urn:oid:2.16.840.1.113883.4.642.3.20 as the primary identifier and urn:oid:2.16.840.1.113883.4.642.3.891 as an old identifier; source/oids.ini maps the current ValueSet URL to 2.16.840.1.113883.4.642.3.20. The related all-languages ValueSet uses 2.16.840.1.113883.4.642.3.21. build.fhir.org matches those identifiers. A later Jira search surfaced FHIR-26606 about the v3 HumanLanguage/ISO reference, but that issue was retracted and concerns a different v3/THO terminology artifact rather than this generated FHIR ValueSet OID.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current authoritative source and current generated build no longer contain the reported 2.16.840.1.113883.4.642.2.languages identifier, and changing the present numeric OID mapping would contradict later OID normalization rather than complete FHIR-11915.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-11915 unless a future TSMG or Vocabulary decision explicitly changes FHIR ValueSet OID allocation; any such decision should be handled as a new issue rather than reopening this 2016 publishing correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11915
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-26606: background - later retracted Human Language value set issue about ISO/IETF references in v3/THO context; it does not change the FHIR-11915 generated-OID conclusion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11915: Published/Persuasive with Modification; resolution says this was a publishing issue and generated OIDs would be corrected. Learned: the approved request was to fix the ballot/generated OID display, not to redefine BCP47 language-tag semantics.
+- E2 Published spec http://hl7.org/fhir/2016Sep/valueset-languages.json: identifier was urn:oid:2.16.840.1.113883.4.642.2.languages. Learned: this confirms the exact bad ballot artifact that FHIR-11915 reported.
+- E3 Git 06af2eaa68a07b473d22ea80f85e8404a762307b: "rebuild value set OID system" removed the bad identifier from source/terminologies/valueset-languages.xml. Learned: the issue was applied through OID-system cleanup even though the commit was not Jira-tagged.
+- E4 Source source/terminologies/valueset-languages.xml:18-26 and source/oids.ini:541: current Common Languages ValueSet uses urn:oid:2.16.840.1.113883.4.642.3.20, with .3.891 retained only as an old identifier. Learned: current source no longer contains the reported textual .2.languages OID.
+- E5 Published-spec command: curl -fsSL https://build.fhir.org/valueset-languages.json | jq -r '{id, url, identifier, compose: .compose.include[0].system}' returned identifiers .3.20 and old .3.891 over urn:ietf:bcp:47. Learned: current generated output matches source and does not reproduce the 2016 publishing problem.
+- E6 Community/Jira search commands: Jira exact old-OID search found only FHIR-11915; Zulip and Confluence searches for FHIR-11915/language OID terms found no relevant hits; Jira broader language OID search also found retracted FHIR-26606. Learned: no discovered later community or Jira decision conflicts with leaving the current core source unchanged.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11915",
+    "url": "https://jira.hl7.org/browse/FHIR-11915",
+    "snapshot_path": "contexts/FHIR-11915/jira/FHIR-11915.md",
+    "ref": { "jira_key": "FHIR-11915" },
+    "summary": "Published/Persuasive with Modification issue requiring correction of the generated OID shown for the 2016Sep Common Languages ValueSet.",
+    "learned": "The final decision was a publishing/generated-OID correction rather than a current semantic change to language tags.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "published-spec",
+    "locator": "FHIR 2016Sep valueset-languages.json",
+    "url": "http://hl7.org/fhir/2016Sep/valueset-languages.json",
+    "command": "curl -fsSL http://hl7.org/fhir/2016Sep/valueset-languages.json | jq -r '{id,url,identifier,compose:.compose.include[0].system}'",
+    "summary": "The 2016Sep ballot artifact identified ValueSet/languages as urn:oid:2.16.840.1.113883.4.642.2.languages.",
+    "learned": "This confirms the exact generated OID display FHIR-11915 was correcting.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "06af2eaa68a07b473d22ea80f85e8404a762307b",
+    "ref": { "commit": "06af2eaa68a07b473d22ea80f85e8404a762307b" },
+    "summary": "Commit 'rebuild value set OID system' removed urn:oid:2.16.840.1.113883.4.642.2.languages from source/terminologies/valueset-languages.xml.",
+    "learned": "The bad generated OID was removed from source history during the OID-system rebuild.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/terminologies/valueset-languages.xml:18-26; source/oids.ini:541",
+    "ref": { "path": "source/terminologies/valueset-languages.xml", "lines": "18-26" },
+    "summary": "Current source assigns ValueSet/languages urn:oid:2.16.840.1.113883.4.642.3.20 and retains .3.891 only as an old identifier; oids.ini maps the ValueSet URL to .3.20.",
+    "learned": "The current source no longer contains the reported textual .2.languages OID.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "build.fhir.org ValueSet/languages JSON",
+    "url": "https://build.fhir.org/valueset-languages.json",
+    "command": "curl -fsSL https://build.fhir.org/valueset-languages.json | jq -r '{id, url, identifier, compose: .compose.include[0].system}'",
+    "summary": "Current generated output reports identifiers urn:oid:2.16.840.1.113883.4.642.3.20 and old urn:oid:2.16.840.1.113883.4.642.3.891 over urn:ietf:bcp:47.",
+    "learned": "The build surface matches the corrected source and does not reproduce the 2016 publishing problem.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-11915 language OID context",
+    "command": "bun run jira:search fts '\"2.16.840.1.113883.4.642.2.languages\"' --limit 10; bun run zulip:search fts '\"FHIR-11915\" languages OID' --limit 10; bun run confluence:search refs jira FHIR-11915; bun run confluence:search fts '\"FHIR-11915\" languages OID' --limit 10",
+    "query": "FHIR-11915 languages OID 2.16.840.1.113883.4.642.2.languages BCP47 RFC5646",
+    "result_count": 1,
+    "summary": "The exact Jira search found only FHIR-11915; Zulip and Confluence searches found no relevant references; broader Jira search found only a retracted later HumanLanguage issue as background.",
+    "learned": "No discovered later community or Jira decision conflicts with treating FHIR-11915 as already applied.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

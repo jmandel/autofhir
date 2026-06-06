@@ -1,0 +1,110 @@
+FHIR-30243: Audit Device subject reconciliation
+
+Issue request:
+FHIR-30243 was a Published OO change request, resolved Persuasive for R5, asking to rename Device.patient to Device.subject and allow references beyond Patient, specifically Patient, Practitioner, and Person for RTLS-style tracking of people or things.
+
+Initial application:
+The issue was applied by git commit b8ca3beefba3e8de406db820d71bae446430910c, which renamed the Device.patient element to Device.subject, added Practitioner and Person target profiles, added a Device-subject search parameter, and retargeted the Device-patient search parameter to Device.subject.where(resolve() is Patient). Later R5 development did not leave that exact element shape in place: FHIR-34135 removed Person as a direct participant target, FHIR-32570 moved the subject into Device.association, and the later DeviceAssociation change family removed patient/subject association data from Device entirely.
+
+Additional context:
+FHIR-39009 explicitly describes the Device subject Jira conflict, including FHIR-30243, FHIR-34135, and FHIR-32570, and was resolved by linking to the FHIR-38904 disposition. FHIR-38904/FHIR-39226 directed the spec to add DeviceAssociation and remove Device.association from Device so reusable devices would not carry patient-identifying history in the Device instance. The current build scope confirms Device and DeviceAssociation are active resources, with DeviceAssociation approved. Current Device source has no active Device.patient or Device.subject element; only a commented-out Device.association block remains. Current DeviceAssociation.subject carries the association target, includes Patient, Practitioner, RelatedPerson, Device, Group, Location, Organization, and other concrete targets, and has subject and patient search parameters. Person is intentionally absent because FHIR-34135 established that Person is not used as a direct participant.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Re-adding Device.subject, Device.patient, or Person to Device would conflict with the later published DeviceAssociation resolution. The active current source already preserves the implementer-relevant outcome of FHIR-30243 through DeviceAssociation.subject, while incorporating later decisions that refined the allowed target types and moved the association out of Device.
+
+Recommendation:
+Keep this no-change audit commit. No core source follow-up is needed for FHIR-30243 unless the work group reopens the broader DeviceAssociation model; any future change should be made against DeviceAssociation rather than restoring Device.subject.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-30243
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-34135: later-change - removed Person from Device.subject because Person is not a direct participant resource.
+FHIR-32570: later-change - removed Device.subject in favor of a Device association subject model.
+FHIR-38904: superseded-by - final DeviceAssociation disposition removed patient/subject association data from Device and created DeviceAssociation.
+FHIR-39009: supporting-decision - explicitly reconciled the conflicting Device subject Jira family and linked back to FHIR-38904.
+FHIR-39226: supporting-decision - companion published issue pointing the patient-association move to FHIR-38904.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-30243: Published/Persuasive R5 issue requesting Device.patient become Device.subject with Patient, Practitioner, and Person targets. Learned: this is the seed request that was originally applied for R5.
+- E2 Git b8ca3beefba3: historical application commit changed Device.patient to Device.subject and adjusted search parameters. Learned: the seed was applied before later Device subject revisions.
+- E3 Jira FHIR-39009 and FHIR-38904: later Published decisions record that Device subject Jiras conflicted and resolve by moving patient association out of Device into DeviceAssociation. Learned: the seed's exact Device.subject shape was superseded by a later final model.
+- E4 Source source/deviceassociation/structuredefinition-DeviceAssociation.xml:185 and source/deviceassociation/bundle-DeviceAssociation-search-params.xml:27: current DeviceAssociation.subject and search parameters represent the active association target. Learned: current build exposes subject/patient querying through DeviceAssociation, not Device.
+- E5 Source source/device/structuredefinition-Device.xml:1231 and source/fhir.ini:1664: Device.association is commented out and the R4/R5 conversion note maps Device.patient to DeviceAssociation. Learned: Device.patient/subject is intentionally absent from active Device source.
+- E6 Confluence Device Association page 144965839 and 2023-01-23 OO minutes: Device Association work lists FHIR-30243, FHIR-32570, FHIR-34135, FHIR-38904, FHIR-39009, and related issues together. Learned: community/work-group context supports treating this as the later DeviceAssociation reconciliation rather than a missing Device edit.
+- E7 Command checks: idempotency search found no existing FHIR-30243 reconcile commit; Zulip searches for FHIR-30243 Device subject/patient found no direct conflicting thread; current source grep found no active Device.patient or Device.subject. Learned: no duplicate audit exists and no discovered community/source evidence contradicts the no-change decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-30243",
+    "url": "https://jira.hl7.org/browse/FHIR-30243",
+    "snapshot_path": "contexts/FHIR-30243/jira/FHIR-30243.md",
+    "ref": { "jira_key": "FHIR-30243" },
+    "summary": "Published/Persuasive R5 change request to rename Device.patient to Device.subject and allow Patient, Practitioner, and Person references.",
+    "learned": "This establishes the original requested change and final Jira status for the seed.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "b8ca3beefba3e8de406db820d71bae446430910c",
+    "ref": { "commit": "b8ca3beefba3e8de406db820d71bae446430910c" },
+    "summary": "Commit FHIR-30243 renamed Device.patient to Device.subject, added Practitioner and Person target profiles, and retargeted Device search parameters.",
+    "learned": "The seed was applied historically before later Device association changes.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-39009 / FHIR-38904",
+    "url": "https://jira.hl7.org/browse/FHIR-39009",
+    "ref": { "jira_key": "FHIR-39009" },
+    "summary": "FHIR-39009 says the Device subject Jiras, including FHIR-30243, FHIR-34135, and FHIR-32570, stomped on each other and resolves by linking to FHIR-38904's DeviceAssociation disposition.",
+    "learned": "Later final Jira context supersedes restoring the exact Device.subject element requested by FHIR-30243.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/deviceassociation/structuredefinition-DeviceAssociation.xml:185; source/deviceassociation/bundle-DeviceAssociation-search-params.xml:27",
+    "summary": "Current DeviceAssociation.subject is active and has subject and patient search parameters based on DeviceAssociation.subject.",
+    "learned": "The active current model carries the subject association outside Device and supports patient-specific querying.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:1231; source/fhir.ini:1664",
+    "summary": "Device.association is commented out in Device source, and fhir.ini maps old Device.patient to DeviceAssociation.",
+    "learned": "Device.patient/Device.subject absence is intentional in the current build, not a missed seed application.",
+    "supports": ["reconciliation", "build_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "Device Association page 144965839 and 2023-01-23 OO minutes",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/144965839/Device+Association",
+    "ref": { "confluence_page_id": 144965839 },
+    "summary": "The DeviceAssociation project page and OO minutes group FHIR-30243 with FHIR-32570, FHIR-34135, FHIR-38904, and FHIR-39009 as the Device association change family.",
+    "learned": "Work-group context supports using the later DeviceAssociation model as the reconciliation for FHIR-30243.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Idempotency, community, and source grep checks",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-30243'; bun run zulip:search fts 'FHIR-30243 Device subject patient'; rg -n '<element id=\"Device\\.(patient|subject)\"|<path value=\"Device\\.(patient|subject)' source/device",
+    "query": "FHIR-30243 Device subject patient",
+    "result_count": 0,
+    "summary": "No existing FHIR-30243 reconcile commit or directly conflicting Zulip thread was found; current source grep found no active Device.patient or Device.subject element.",
+    "learned": "There is no duplicate audit and no discovered source/community evidence requiring a new core source edit.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

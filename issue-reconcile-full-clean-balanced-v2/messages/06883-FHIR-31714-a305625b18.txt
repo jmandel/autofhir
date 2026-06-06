@@ -1,0 +1,132 @@
+FHIR-31714: Audit clinical-patient target scope
+
+Issue request:
+FHIR-31714 is a Published/Persuasive FHIR-I technical correction, raised for R4B and applied for R5, reporting that the downloaded SearchParameter/clinical-patient resource had expanded SearchParameter.target to all resource types after FHIR-28219 when the target list should be limited to Patient.
+
+Initial application:
+The Jira comments state that the target types needed to be limited to Patient and that the problem affected all reference SearchParameters whose targets were constrained. Local git history shows the R4B/R5 application commits a96b79e23a892164f261dcf4c7868ec1ef8023e2 and b9ee4c1747a9d505eec4b76c41e26d95c5dd6a30, both titled "Ensure targets are declared on target-constrained SearchParameters - part of FHIR-31714", adding explicit target declarations across resource search-parameter bundles.
+
+Additional context:
+FHIR-28219 established the underlying rule that common patient searches should resolve only Patient, using Patient-filtered expressions where needed. FHIR-32876 later reported the same clinical-patient all-resource target expansion and was recorded in FHIR-I minutes as a duplicate of FHIR-31714; it already has a combined-branch no-change audit commit. The Zulip implementer thread confirmed the problem was in generated/downloaded targets and noted that R4B looked correct after the fix, while a later current-build regression was suspected in 2023.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. SearchParameter is active in source/fhir.ini. The current source/searchparameter/common-search-parameters.xml clinical-patient block lists the common bases without a Group or all-resource target assertion, current resource-level patient SearchParameters have no explicit non-Patient targets, and current build/R5/R4B search-parameters.json downloads all return SearchParameter/clinical-patient target ["Patient"].
+
+Recommendation:
+Keep this no-change audit. The current core source and generated publication surfaces already satisfy FHIR-31714; follow-up would only be needed if a future generator/build regression again expands clinical-patient.target beyond Patient.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-31714
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-28219: same-change-family - Established the Patient-only common patient search rule and the need for Patient-filtered expressions on non-patient elements.
+FHIR-32876: duplicate - Later Published issue reported the same clinical-patient all-resource target expansion and was treated by FHIR-I as a duplicate of FHIR-31714; already represented on the combined branch.
+FHIR-36674: later-change - Later registry-alignment work added new patient-search bases to clinical-patient without changing the Patient-only target conclusion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-31714: Published/Persuasive issue requiring SearchParameter/clinical-patient target types to be limited to Patient; comments cite Kindling, R4B PR 1852, and R5 PR 1853 application work. Learned: this establishes the seed request and final decision.
+- E2 Jira FHIR-28219: Published/Persuasive issue requiring common patient search expressions to resolve only Patient and target only Patient. Learned: this is the underlying rule FHIR-31714 was protecting after generated targets expanded.
+- E3 Git a96b79e23a892164f261dcf4c7868ec1ef8023e2 and b9ee4c1747a9d505eec4b76c41e26d95c5dd6a30: FHIR-31714 application commits added explicit target declarations to target-constrained reference SearchParameters. Learned: the issue was historically applied through resource search-parameter source inputs rather than a direct clinical-patient target field.
+- E4 Source source/searchparameter/common-search-parameters.xml:303-368 and source/fhir.ini:248,626,769: SearchParameter is active, and clinical-patient lists current bases without asserting Group or all-resource targets. Learned: authoritative current source does not encode the reported erroneous target list.
+- E5 Command patient SearchParameter target scan: current resource search-parameter bundles had no explicit non-Patient target on code=patient SearchParameters. Learned: source inputs feeding target aggregation are Patient-scoped or rely on Patient-typed reference elements.
+- E6 Published spec check: build.fhir.org, hl7.org/fhir/R5, and hl7.org/fhir/R4B search-parameters.json all returned target ["Patient"] for SearchParameter/clinical-patient. Learned: the generated/download surface named by the issue is currently correct.
+- E7 Zulip #implementers > clinical-patient targets: implementers reported the all-resource target list, linked FHIR-31714/FHIR-32876, and later noted R4B looked good while a current-build regression was suspected. Learned: community evidence confirms the issue was a generated-target problem and does not add a conflicting current requirement.
+- E8 Confluence FHIR-I minutes 2021-12-20: FHIR-I recorded FHIR-32876 as a duplicate of FHIR-31714 with no vote needed. Learned: work-group minutes support treating the later issue as the same resolved change family.
+- E9 Combined branch 632c2f0163577c271e26eacfd81e2f9567e34aeb: existing FHIR-32876 audit found the current source and generated artifacts already correct for the duplicate target issue. Learned: a related audit already covered the duplicate and should not be republished for this seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-31714",
+    "url": "https://jira.hl7.org/browse/FHIR-31714",
+    "snapshot_path": "contexts/FHIR-31714/jira/FHIR-31714.md",
+    "ref": { "jira_key": "FHIR-31714" },
+    "summary": "Published/Persuasive issue requiring generated SearchParameter/clinical-patient targets to be limited to Patient, with comments citing Kindling/R4B/R5 application work.",
+    "learned": "This establishes the seed request and final WG decision.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-28219",
+    "url": "https://jira.hl7.org/browse/FHIR-28219",
+    "snapshot_path": "contexts/FHIR-28219/jira/FHIR-28219.md",
+    "ref": { "jira_key": "FHIR-28219" },
+    "summary": "Published/Persuasive issue requiring common patient search parameters to target only Patient and use Patient-filtered expressions where needed.",
+    "learned": "This is the underlying rule that FHIR-31714 preserved after generated targets expanded.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "a96b79e23a892164f261dcf4c7868ec1ef8023e2; b9ee4c1747a9d505eec4b76c41e26d95c5dd6a30",
+    "ref": { "commit": "a96b79e23a892164f261dcf4c7868ec1ef8023e2" },
+    "summary": "FHIR-31714 application commits added explicit target declarations to constrained reference SearchParameters across resource bundles.",
+    "learned": "The historical fix was made in resource search-parameter source inputs rather than by putting a target element on the common clinical-patient block.",
+    "supports": ["initial_application", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/searchparameter/common-search-parameters.xml:303-368; source/fhir.ini:248,626,769",
+    "ref": { "path": "source/searchparameter/common-search-parameters.xml", "lines": "303-368" },
+    "summary": "SearchParameter is active and the clinical-patient common source lists bases without a Group or all-resource target assertion.",
+    "learned": "The authoritative current source does not encode the erroneous all-resource target list.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Patient SearchParameter target scan",
+    "command": "python3 XML parse of source/*/bundle-*-search-params.xml for code=patient SearchParameters and target values",
+    "summary": "The scan found 71 patient-code SearchParameters and no explicit non-Patient target values.",
+    "learned": "The current source inputs that feed target aggregation are Patient-scoped or rely on Patient-typed reference elements.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "build.fhir.org, hl7.org/fhir/R5, and hl7.org/fhir/R4B search-parameters.json",
+    "command": "python3 urllib/json checks of <url>/search-parameters.json for resource.id == clinical-patient",
+    "summary": "Current build, R5, and R4B generated artifacts all returned target [\"Patient\"] for SearchParameter/clinical-patient.",
+    "learned": "The generated publication/download surface named by the issue is currently correct.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > clinical-patient targets",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/clinical-patient%20targets",
+    "snapshot_path": "contexts/FHIR-32876/zulip/implementers--clinical-patient-targets.md",
+    "ref": { "stream": "implementers", "topic": "clinical-patient targets" },
+    "summary": "Implementers discussed the all-resource target expansion, linked FHIR-31714/FHIR-32876, and noted R4B looked good after the fix while a later build regression was suspected.",
+    "learned": "Community evidence confirms the problem was generated-target behavior and provides no conflicting current requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2021-12-20 page 81019153",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/81019153/FHIR+Infrastructure+Minutes+CC+20211220",
+    "snapshot_path": "contexts/FHIR-32876/confluence/81019153.md",
+    "ref": { "confluence_page_id": 81019153 },
+    "summary": "FHIR-I minutes record FHIR-32876 as a duplicate of FHIR-31714 with no vote needed.",
+    "learned": "Work-group evidence supports treating the later issue as the same resolved change family.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E9",
+    "kind": "git",
+    "locator": "632c2f0163577c271e26eacfd81e2f9567e34aeb",
+    "ref": { "commit": "632c2f0163577c271e26eacfd81e2f9567e34aeb" },
+    "summary": "Combined-branch FHIR-32876 audit found the duplicate clinical-patient target issue already correct in source and generated artifacts.",
+    "learned": "The duplicate issue is already represented and should not receive another commit from this seed.",
+    "supports": ["additional_context", "recommendation"]
+  }
+]
+</evidence-manifest>

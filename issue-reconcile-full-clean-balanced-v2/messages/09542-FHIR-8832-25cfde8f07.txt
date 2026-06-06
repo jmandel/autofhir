@@ -1,0 +1,106 @@
+FHIR-8832: Audit Subscription criteria examples
+
+Issue request:
+FHIR-8832 is a Published/Persuasive FHIR-core Subscription technical correction that asked for the example Subscription criteria to use `Observation?code=http://loinc.org|1975-2` instead of `Observation?name=http://loinc.org|1975-2`.
+
+Initial application:
+The issue was applied in svn revision 7155, imported as git commit 987e5fc8279a762452d4d545d722001d2b6aa6c0, which changed both `source/subscription/subscription-example.xml` and `source/subscription/subscription-example-error.xml` from `Observation?name` to `Observation?code`.
+
+Additional context:
+Subscription remains an active current-build resource in `source/fhir.ini`, but the current resource model no longer has the DSTU-era `Subscription.criteria` element. The current example list points to `Subscription/example` and `Subscription/admission`, which use `Subscription.filterBy` and do not contain the old LOINC Observation criteria. Later Subscription changes, including FHIR-12723 and FHIR-27129, reordered/refactored the examples and removed the old error example. The only remaining `Observation?name=http://loinc.org|1975-2` occurrence is in `source/subscription/josh proposal.txt`, an unreferenced proposal note rather than a built Subscription example resource.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change because the current built Subscription examples are no longer affected by the DSTU-era criteria typo, and editing the unreferenced proposal note would not correct the current specification.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up core source work is needed for FHIR-8832 unless the build starts publishing the historical proposal note or a future Subscription example reintroduces an Observation criteria search.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8832
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12723: later-change - reordered Subscription elements and updated example resources while preserving the corrected `Observation?code` criteria in the then-current examples.
+FHIR-27129: later-change - moved Subscription error state handling to SubscriptionStatus and removed the old `subscription-example-error.xml` example that FHIR-8832 had corrected.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8832: Published/Persuasive technical correction with auto-approved resolution and svn revision 7155 comment. Learned: the final request was to change Subscription example criteria from Observation.name to Observation.code.
+- E2 Git 987e5fc8279a762452d4d545d722001d2b6aa6c0: `#8832 - fix example subscription criteria` changed both Subscription example XML files from `Observation?name` to `Observation?code`. Learned: the requested source correction was historically applied.
+- E3 Source source/fhir.ini:234 and source/subscription/list-Subscription-examples.xml:7-30: Subscription is active and the current built example list contains `Subscription/example` and `Subscription/admission`. Learned: current build scope must be judged against the active Subscription examples, not every historical note file.
+- E4 Source source/subscription/structuredefinition-Subscription.xml:225-329 and source/subscription/subscription-example.xml:17-20: current Subscription uses `filterBy`, not `criteria`, and the example filters Encounter patient values. Learned: the obsolete Observation criteria typo is absent from the current authoritative example resource.
+- E5 Command `rg -n 'josh proposal|Observation\?name|1975-2' . -g '!publish/**'; rg -n 'josh proposal|proposal\.txt' . -g '!publish/**'`: only `source/subscription/josh proposal.txt` retains the old `Observation?name` text, with no source reference to build or include it. Learned: the remaining literal is out of current build scope.
+- E6 Zulip #Subscription (retired) > Query re example, 2018-06-13: a user reported the old STU3 rendered example with `Observation?name=http://loinc.org|1975-2`. Learned: community evidence corroborates historical presence of the typo but does not contradict the current source conclusion.
+- E7 Command `bun run zulip:search fts '"FHIR-8832" Subscription Observation criteria' --limit 10; bun run confluence:search refs jira FHIR-8832; bun run confluence:search fts '"FHIR-8832" Subscription Observation criteria' --limit 10`: no direct FHIR-8832 Zulip or Confluence hits were found. Learned: no discovered community record changes the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8832",
+    "url": "https://jira.hl7.org/browse/FHIR-8832",
+    "snapshot_path": "contexts/FHIR-8832/jira/FHIR-8832.md",
+    "ref": { "jira_key": "FHIR-8832" },
+    "summary": "Published/Persuasive technical correction asking that Subscription example criteria use Observation?code rather than Observation?name for LOINC 1975-2.",
+    "learned": "This establishes the final Jira request and the target correction for the historical examples.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "987e5fc8279a762452d4d545d722001d2b6aa6c0",
+    "ref": { "commit": "987e5fc8279a762452d4d545d722001d2b6aa6c0" },
+    "summary": "Commit `#8832 - fix example subscription criteria` changed `subscription-example.xml` and `subscription-example-error.xml` from `Observation?name` to `Observation?code`.",
+    "learned": "The requested source correction was applied in the imported svn revision referenced by Jira.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:234; source/subscription/list-Subscription-examples.xml:7-30",
+    "summary": "Subscription is an active resource, and the current example list contains `Subscription/example` and `Subscription/admission`.",
+    "learned": "Build-scope review should focus on the active current Subscription examples.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/subscription/structuredefinition-Subscription.xml:225-329; source/subscription/subscription-example.xml:17-20",
+    "summary": "Current Subscription uses `filterBy` elements and the example filters an Encounter patient, with no `Subscription.criteria` or LOINC Observation search.",
+    "learned": "The current authoritative source no longer contains the typo FHIR-8832 corrected.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Source search for stale Observation?name criteria",
+    "command": "rg -n 'josh proposal|Observation\\?name|1975-2' . -g '!publish/**'; rg -n 'josh proposal|proposal\\.txt' . -g '!publish/**'",
+    "summary": "The only remaining old Observation?name text is in `source/subscription/josh proposal.txt`, and no source file references that proposal note.",
+    "learned": "Editing the proposal note would not be a current-build Subscription example fix.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#Subscription (retired) > Query re example",
+    "url": "https://chat.fhir.org/#narrow/stream/Subscription%20(retired)/topic/Query%20re%20example",
+    "ref": { "stream": "Subscription (retired)", "topic": "Query re example" },
+    "summary": "A 2018 message reported the old STU3 rendered example using `Observation?name=http://loinc.org|1975-2`.",
+    "learned": "This supports the historical relevance of the typo but does not identify a current source problem.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Direct community search for FHIR-8832",
+    "command": "bun run zulip:search fts '\"FHIR-8832\" Subscription Observation criteria' --limit 10; bun run confluence:search refs jira FHIR-8832; bun run confluence:search fts '\"FHIR-8832\" Subscription Observation criteria' --limit 10",
+    "query": "\"FHIR-8832\" Subscription Observation criteria",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence references to FHIR-8832 were found.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

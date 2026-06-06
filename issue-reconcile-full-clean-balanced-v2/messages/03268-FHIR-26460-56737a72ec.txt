@@ -1,0 +1,119 @@
+FHIR-26460: Audit Coding-to-CodeableConcept migration
+
+Issue request:
+FHIR-26460 was a Published/Persuasive BRR change request for R5 asking that Coding elements in medication definition resources be changed to CodeableConcept unless there was a good reason not to. The named resources were MedicinalProductDefinition, SubstanceDefinition, PackagedProductDefinition, AdministrableDefinition/AdministrableProductDefinition, and ManufacturedItemDefinition.
+
+Initial application:
+The issue was explicitly applied in March 2020 across five FHIR-26460 commits. Those commits changed source spreadsheets for SubstanceDefinition.structure.sourceCoding, PackagedProductDefinition.package.characteristic, multiple MedicinalProductDefinition coded elements, AdministrableProductDefinition.characteristic.value[x], and ManufacturedItemDefinition.characteristic.value[x]. The current source has since been reworked into StructureDefinition XML, and the active target resource definitions now have no remaining bare Coding types except MedicinalProductDefinition.code.
+
+Additional context:
+The remaining MedicinalProductDefinition.code Coding was not missed by FHIR-26460; it was added later by the Published/Persuasive with Modification FHIR-31794 decision, whose resolution explicitly requested a 0..* coding attribute alongside identifier. Commit e640618988 added that element as Coding 0..* and later FHIR-31794 commits clarified the identifier/code distinction. The combined branch already contains the FHIR-31794 audit commit b22faf4d10cc76f807013099a1a1c60b5634926e, so this reconciliation should not duplicate that issue. A 2026 terminology Zulip discussion also records Lloyd McKenzie's rationale that MedicinalProductDefinition.code is a list of equivalent codes for the product rather than a CodeableConcept needing separate original text.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Changing MedicinalProductDefinition.code to CodeableConcept under FHIR-26460 would conflict with the later, more specific FHIR-31794 resolution, while all other build-scoped medication definition resources checked for this seed already satisfy the Coding-to-CodeableConcept migration.
+
+Recommendation:
+Keep this audit commit as-is. The current FHIR source is correct for FHIR-26460 when the later FHIR-31794 decision is considered; future questions about MedicinalProductDefinition.code should be handled under a specific code-vs-CodeableConcept tracker rather than by reopening the broad 2020 migration.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26460
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-31794: later-change - later Published BRR decision explicitly added MedicinalProductDefinition.code as Coding 0..* alongside identifier, and its audit commit is already present on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26460: Published/Persuasive BRR issue approved on 2020-03-10 to change Coding to CodeableConcept in medication definition resources. Learned: this establishes the seed request and final workflow status.
+- E2 Confluence 76163677: BRR 2020-03-10 minutes record FHIR-26460 as changing all Codings to CodeableConcepts, accepted 15-0. Learned: meeting minutes corroborate the Jira request and vote.
+- E3 Git 700f90d08, 790d0620, 36e09eed, 5df23783, 28c288d4: FHIR-26460-tagged commits changed the affected medication-definition spreadsheet sources and are contained in v5.0.0. Learned: the seed had explicit historical application before the current XML source rework.
+- E4 Source source/medicinalproductdefinition/structuredefinition-MedicinalProductDefinition.xml:722-739 and peer resource StructureDefinitions: current active target definitions have no bare Coding types except MedicinalProductDefinition.code. Learned: the only apparent residual Coding is isolated and needs later-issue interpretation.
+- E5 Jira/Git FHIR-31794; e640618988, cc9be95595, 71a4873af9; combined b22faf4d10: later Published issue explicitly requested and applied MedicinalProductDefinition.code as Coding 0..*, and is already represented on the combined branch. Learned: changing that element now would contradict a later specific decision and duplicate an existing audit.
+- E6 Zulip terminology/Coding without CodeableConcept: 2026 discussion asks about MedicinalProductDefinition.code, and Lloyd McKenzie explains it represents codes for the thing rather than a concept needing CodeableConcept.text. Learned: community rationale supports leaving the later Coding element unchanged.
+- E7 Source source/fhir.ini:148-150, 289-295, 1031-1034, 1179-1249, 1929-1937: fhir.ini includes and maps the current medication-definition resource names and old MedicinalProduct* redirects. Learned: the inspected source files are in current build scope and account for resource renames.
+- E8 Verification command/query: XML scan of the five target StructureDefinitions found Coding only at MedicinalProductDefinition.code; idempotency checks found no existing FHIR-26460 reconcile commit and did find the existing FHIR-31794 audit. Learned: the no-change decision is bounded to the seed and avoids duplicate related-issue publication.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26460",
+    "url": "https://jira.hl7.org/browse/FHIR-26460",
+    "snapshot_path": "contexts/FHIR-26460/jira/FHIR-26460.md",
+    "ref": { "jira_key": "FHIR-26460" },
+    "summary": "Published/Persuasive BRR change request to change Coding elements to CodeableConcept in medication definition resources.",
+    "learned": "This establishes the seed request, status, vote, and R5 application target.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "BRR 2020-03-10 Conference Call page 76163677",
+    "url": "https://confluence.hl7.org/spaces/BRR/pages/76163677/2020-03-10+Conference+Call",
+    "snapshot_path": "contexts/FHIR-26540/confluence/76163677.md",
+    "ref": { "confluence_page_id": 76163677 },
+    "summary": "BRR minutes record FHIR-26460 as changing all Codings to CodeableConcepts and accepted 15-0.",
+    "learned": "This corroborates the formal WG approval and scope.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "700f90d08; 790d0620; 36e09eed; 5df23783; 28c288d4",
+    "ref": { "commit_1": "700f90d08", "commit_2": "790d0620", "commit_3": "36e09eed", "commit_4": "5df23783", "commit_5": "28c288d4" },
+    "summary": "FHIR-26460 commits changed the affected SubstanceDefinition, PackagedProductDefinition, MedicinalProductDefinition, AdministrableProductDefinition, and ManufacturedItemDefinition spreadsheet sources.",
+    "learned": "The seed had explicit historical source application that carried into R5.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/*definition/structuredefinition-*.xml Coding type scan",
+    "summary": "The current target resource StructureDefinitions have no bare Coding types except MedicinalProductDefinition.code at source/medicinalproductdefinition/structuredefinition-MedicinalProductDefinition.xml:722-739.",
+    "learned": "All original FHIR-26460 conversion targets remain migrated; the only residual Coding requires later FHIR-31794 context.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-31794 and existing combined audit b22faf4d10cc76f807013099a1a1c60b5634926e",
+    "url": "https://jira.hl7.org/browse/FHIR-31794",
+    "snapshot_path": "contexts/FHIR-31794/jira/FHIR-31794.md",
+    "ref": { "jira_key": "FHIR-31794", "commit": "b22faf4d10cc76f807013099a1a1c60b5634926e" },
+    "summary": "Later Published/Persuasive with Modification issue explicitly resolved to add a 0..* coding attribute alongside MedicinalProductDefinition.identifier; an audit commit for it is already on the combined branch.",
+    "learned": "MedicinalProductDefinition.code as Coding is intentional later context, not an unapplied FHIR-26460 defect.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#terminology > Coding without CodeableConcept",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/Coding%20without%20CodeableConcept",
+    "snapshot_path": "contexts/FHIR-47297/zulip/terminology--Coding-without-CodeableConcept.md",
+    "ref": { "stream": "terminology", "topic": "Coding without CodeableConcept" },
+    "summary": "A 2026 discussion asks whether MedicinalProductDefinition.code should be CodeableConcept or CodeableReference; Lloyd McKenzie explains the element represents equivalent codes for the thing rather than a concept needing original text.",
+    "learned": "Informal community rationale supports retaining the later Coding element.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/fhir.ini:148-150,289-295,1031-1034,1179-1249,1929-1937",
+    "summary": "fhir.ini includes the active medication-definition successor resources, abbreviations, standards-status entries, and old MedicinalProduct* redirects.",
+    "learned": "The checked StructureDefinition XML files are the current build-scoped sources for the seed artifacts.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Bounded source and idempotency checks for FHIR-26460",
+    "command": "python3 XML scan for Coding types in the five target StructureDefinitions; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-26460'; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-31794'",
+    "query": "FHIR-26460 Coding CodeableConcept medication definition resources; FHIR-31794 MedicinalProductDefinition.code",
+    "summary": "The XML scan found only MedicinalProductDefinition.code as Coding; no prior FHIR-26460 reconcile commit existed, and the later FHIR-31794 audit already exists.",
+    "learned": "The seed requires a no-change audit commit, not a source edit or duplicate related-issue commit.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

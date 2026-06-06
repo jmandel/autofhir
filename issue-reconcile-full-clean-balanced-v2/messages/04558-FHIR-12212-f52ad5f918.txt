@@ -1,0 +1,92 @@
+FHIR-12212: Audit ServiceRequest referral recipient targets
+
+Issue request:
+FHIR-12212 was a Published Patient Care change request with a Persuasive with Modification resolution. It asked that ReferralRequest.recipient allow Reference(HealthcareService | Practitioner | Organization) so referrals could target a specific service, and that HealthcareService be removed from ReferralRequest.definition.
+
+Initial application:
+The issue was applied in SVN-derived commit e6bb3b754b6b4790aed43bf8ac08422c794bfe6e, which explicitly mentioned #12212 and changed source/referralrequest/referralrequest-spreadsheet.sheet.txt so ReferralRequest.definition no longer targeted HealthcareService and ReferralRequest.recipient did target HealthcareService.
+
+Additional context:
+ReferralRequest is no longer an active resource in the current build; source/fhir.ini records that ReferralRequest became ServiceRequest, while ServiceRequest and HealthcareService are active resources. In the current ServiceRequest source, ServiceRequest.performer carries the old request-recipient semantics by alias and includes HealthcareService in its target profiles. The current request definition/protocol representation no longer allows HealthcareService as a definition target; ServiceRequest.code's CodeableReference targets ActivityDefinition and PlanDefinition, not HealthcareService. A later Zulip referral-specialty thread discussed ServiceRequest performer/performerType use and did not identify any conflicting rule.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active ServiceRequest source already preserves the accepted recipient targeting behavior and does not retain HealthcareService as a protocol/definition target.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR core source follow-up is needed for FHIR-12212 unless a future work group decision changes the ServiceRequest performer or code/definition model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12212
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12212: Published/Persuasive with Modification; allow HealthcareService on ReferralRequest.recipient and remove it from ReferralRequest.definition. Learned: this establishes the final requested behavior.
+- E2 Git e6bb3b754b6b4790aed43bf8ac08422c794bfe6e: SVN-derived application commit explicitly mentions #12212 and changes the ReferralRequest spreadsheet accordingly. Learned: the issue was initially applied in source.
+- E3 Source source/fhir.ini:169-214 and source/fhir.ini:1474-1480: ServiceRequest and HealthcareService are active resources, while ReferralRequest became ServiceRequest. Learned: current reconciliation should inspect ServiceRequest rather than editing retired ReferralRequest source.
+- E4 Source source/servicerequest/structuredefinition-ServiceRequest.xml:1000-1018 and :482-493: ServiceRequest.performer is the request-recipient element and targets HealthcareService; the current definition/code reference targets ActivityDefinition and PlanDefinition without HealthcareService. Learned: current source already matches both halves of the Jira resolution.
+- E5 Zulip #implementers > Referral Request Specialty: the 2019 thread discusses targeting referrals using ServiceRequest.performer and performerType. Learned: community discussion supports the current ServiceRequest interpretation and shows no conflicting requirement.
+- E6 Community search: Zulip search for 'HealthcareService ReferralRequest recipient' found only the referral-specialty thread and the implementation notification; Confluence refs/FTS found no FHIR-12212 or matching referral-recipient decisions. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12212",
+    "url": "https://jira.hl7.org/browse/FHIR-12212",
+    "snapshot_path": "contexts/FHIR-12212/jira/FHIR-12212.md",
+    "ref": { "jira_key": "FHIR-12212" },
+    "summary": "Published/Persuasive with Modification issue to add HealthcareService to ReferralRequest.recipient and remove HealthcareService from ReferralRequest.definition.",
+    "learned": "This is the final Jira decision that defines the expected source behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e6bb3b754b6b4790aed43bf8ac08422c794bfe6e",
+    "ref": { "commit": "e6bb3b754b6b4790aed43bf8ac08422c794bfe6e" },
+    "summary": "Commit message explicitly mentions #12212 and the diff removes HealthcareService from ReferralRequest.definition while adding it to ReferralRequest.recipient.",
+    "learned": "The historical ReferralRequest source was updated according to the Jira resolution.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-214; source/fhir.ini:1474-1480",
+    "summary": "The current build lists ServiceRequest and HealthcareService as active resources and records that ReferralRequest became ServiceRequest.",
+    "learned": "Build-scope reconciliation belongs on active ServiceRequest source, not retired ReferralRequest files.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:482-493; source/servicerequest/structuredefinition-ServiceRequest.xml:1000-1018",
+    "summary": "ServiceRequest.performer has alias 'request recipient' and includes HealthcareService; the current code/definition reference target list includes ActivityDefinition and PlanDefinition without HealthcareService.",
+    "learned": "The active current source already implements both the recipient addition and the definition-target removal.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > Referral Request Specialty",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Referral%20Request%20Specialty",
+    "summary": "A 2019 referral-specialty thread discusses using ServiceRequest.performer and performerType for referral routing to a HealthcareService or specialty.",
+    "learned": "The discussion is consistent with treating ServiceRequest.performer as the successor to ReferralRequest.recipient and does not conflict with the no-change conclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community and Jira neighborhood searches for FHIR-12212 referral recipient terms",
+    "command": "bun run jira:search fts 'HealthcareService ReferralRequest recipient' --limit 20; bun run zulip:search fts 'HealthcareService ReferralRequest recipient' --limit 10; bun run confluence:search refs jira FHIR-12212; bun run confluence:search fts 'HealthcareService ReferralRequest recipient' --limit 10",
+    "query": "HealthcareService ReferralRequest recipient; FHIR-12212",
+    "summary": "Jira search returned only FHIR-12212; Zulip returned the referral-specialty thread and an implementation notification; Confluence returned no matching references or FTS hits.",
+    "learned": "No later or conflicting formal/community decision was found in the bounded neighborhood search.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

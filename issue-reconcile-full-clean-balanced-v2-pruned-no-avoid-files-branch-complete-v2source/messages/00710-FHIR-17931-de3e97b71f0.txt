@@ -1,0 +1,97 @@
+FHIR-17931: Complete ClaimResponse summary flags
+
+Issue request:
+FHIR-17931 was Published/Persuasive with Modification for the FM ClaimResponse resource. It requested adding ClaimResponse.identifier, patient, created, billingPeriod, provider, insurer, and error to the summary view, with the resolution also adding total, total.category, and total.amount.
+
+Initial application:
+The 2018 Jira-tagged batch commit afb5ec66f6 applied part of the request in the then-active ClaimResponse spreadsheet by marking patient, created, insurer, total, total.category, and total.amount as summary, but identifier, the provider/requestor element, and the error backbone were still not marked as summary. The current XML StructureDefinition inherited that partial state through the source conversion and later refactors.
+
+Additional context:
+ClaimResponse is an active current-build resource in source/fhir.ini. Later source refactors renamed patient to subject and map the older requestProvider/provider family to the current ClaimResponse.requestor element; the current resource has no ClaimResponse.billingPeriod or ClaimResponse.billablePeriod element to mark. Later source history added summary flags to ClaimResponse.error.code and ClaimResponse.error.expression, which supports making the error backbone itself a summary element rather than adding unrelated error children.
+
+AutoFHIR reconciliation:
+Marked ClaimResponse.identifier, ClaimResponse.requestor, and ClaimResponse.error with isSummary=true in source/claimresponse/structuredefinition-ClaimResponse.xml. Existing summary flags already covered subject, created, insurer, total, total.category, and total.amount.
+
+Recommendation:
+Keep this source fix. It completes the Published FHIR-17931 request for the current ClaimResponse element names without reintroducing removed/non-current elements or broadening unrelated summary content.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17931
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-17928: same-change-family - confirms the provider/requestProvider naming family around the same ClaimResponse source batch; current source maps requestProvider to ClaimResponse.requestor.
+FHIR-17920: background - the same 2018 batch included a separate Claim summary issue, but that concerns a different resource and was not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17931: Published/Persuasive with Modification request to add ClaimResponse summary fields including identifier, patient, created, billingPeriod, provider, insurer, error, total, total.category, and total.amount. Learned: this is final WG intent for ClaimResponse summary flags.
+- E2 Source source/fhir.ini:242 and source/fhir.ini:2691: ClaimResponse is an active resource and requestProvider maps to ClaimResponse.requestor. Learned: the edited StructureDefinition is in current build scope and requestor is the current source equivalent for the provider/requestProvider family.
+- E3 Source source/claimresponse/structuredefinition-ClaimResponse.xml:98,302,2367: ClaimResponse.identifier, ClaimResponse.requestor, and ClaimResponse.error now have isSummary=true. Learned: the missing current summary elements are fixed in authoritative source.
+- E4 Git afb5ec66f6: 2018 Jira-tagged batch including FHIR-17931 changed the old spreadsheet and marked patient/created/insurer/totals as summary but left identifier/requestor/error unset. Learned: the current omission traces to incomplete initial application rather than a discovered later reversal.
+- E5 Community search: quoted FHIR-17931 and ClaimResponse summary searches in Zulip and Confluence found no relevant or conflicting records. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E6 Verification command: XML parse checked all current requested summary elements and rg confirmed no current ClaimResponse billingPeriod/billablePeriod element. Learned: the fixed source satisfies the issue against current element names without adding non-current elements.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17931",
+    "url": "https://jira.hl7.org/browse/FHIR-17931",
+    "snapshot_path": "contexts/FHIR-17931/jira/FHIR-17931.md",
+    "ref": { "jira_key": "FHIR-17931" },
+    "summary": "Published/Persuasive with Modification issue requesting additional ClaimResponse fields in the summary view, including totals added by resolution.",
+    "learned": "This establishes final WG intent for the ClaimResponse summary flag reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:242, source/fhir.ini:2691",
+    "ref": { "path": "source/fhir.ini", "lines": "242,2691" },
+    "summary": "ClaimResponse is an active resource and the old requestProvider path maps to ClaimResponse.requestor.",
+    "learned": "The edited ClaimResponse StructureDefinition is in build scope and requestor is the current element corresponding to the provider/requestProvider naming family.",
+    "supports": ["build_scope", "additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/claimresponse/structuredefinition-ClaimResponse.xml:98,302,2367",
+    "ref": { "path": "source/claimresponse/structuredefinition-ClaimResponse.xml", "lines": "98,302,2367" },
+    "summary": "The current ClaimResponse.identifier, ClaimResponse.requestor, and ClaimResponse.error elements are now marked isSummary=true.",
+    "learned": "The previously missing current summary flags have been applied in authoritative source.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "afb5ec66f68641293bb7950b6e0eeb118fa1444a",
+    "ref": { "commit": "afb5ec66f68641293bb7950b6e0eeb118fa1444a" },
+    "summary": "The original 2018 batch commit mentioned FHIR-17931 and marked patient/created/insurer/totals as summary while leaving identifier/requestor/error unset.",
+    "learned": "The remaining missing flags are incomplete initial application, not an intentional later removal found in source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-17931 and ClaimResponse summary terms",
+    "command": "bun run zulip:search fts '\"FHIR-17931\"' --limit 10; bun run zulip:search fts 'ClaimResponse summary identifier requestor error' --limit 10; bun run confluence:search refs jira FHIR-17931; bun run confluence:search fts '\"FHIR-17931\" ClaimResponse summary' --limit 10; bun run confluence:search fts 'ClaimResponse summary identifier requestor error' --limit 10",
+    "query": "FHIR-17931 ClaimResponse summary identifier requestor error",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Targeted XML summary verification",
+    "command": "python3 XML parse of source/claimresponse/structuredefinition-ClaimResponse.xml for requested current summary elements; rg -n 'billingPeriod|billablePeriod' source/claimresponse/structuredefinition-ClaimResponse.xml || true; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/claimresponse/structuredefinition-ClaimResponse.xml",
+    "summary": "The parser reported identifier, subject, created, insurer, requestor, error, total, total.category, and total.amount as summary=true; billingPeriod/billablePeriod was absent from current ClaimResponse; whitespace check passed.",
+    "learned": "The current source satisfies FHIR-17931 using current element names without adding non-current elements.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

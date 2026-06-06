@@ -1,0 +1,128 @@
+FHIR-27761: Mark StructureMap sourceMap as type-scoped
+
+Issue request:
+FHIR-27761 was Published/Persuasive with Modification for R5. It asked to support operation parameters that apply only at system, type, or instance invocation levels by adding OperationDefinition.parameter.scope 0..* with codes system/type/instance, a missing-meaning rule, and updated existing operations where level-specific prose was being used instead.
+
+Initial application:
+The issue was initially applied in d46f7ac by adding the operation-parameter-scope CodeSystem/ValueSet and OperationDefinition.parameter.scope, then in e981c42 by adding scope markers to operation parameters that were level-specific at the time. The current OperationDefinition source has the requested 0..* element, required binding, and meaningWhenMissing text.
+
+Additional context:
+FHIR-23851 later added StructureMap.$transform sourceMap as a direct StructureMap input. That new parameter repeats the type-level-only semantics of the existing source URI parameter, but it was added after the FHIR-27761 sweep and did not receive the matching structured scope. The StructureMap resource and OperationDefinition resource are active in source/fhir.ini, so the edited operation definition is in current build scope. A residual Resource.$validate mention of instance-level invocation was inspected but not changed because the validate notes show the resource input can still apply at instance level for update validation, so omitting a scope remains correct there.
+
+AutoFHIR reconciliation:
+Added <scope value="type"/> to StructureMap.$transform sourceMap so tooling can distinguish that parameter from instance-level invocations consistently with the existing source URI parameter and the FHIR-27761 model.
+
+Recommendation:
+Keep this source fix. It is a narrow completion of the published FHIR-27761 decision for a later-added parameter, and no further core source changes were found for the same issue during the targeted operation audit.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27761
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-23851: later-change - added StructureMap.$transform sourceMap after the FHIR-27761 operation-parameter scope sweep, creating the residual missing scope fixed here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27761: Published/Persuasive with Modification issue requested OperationDefinition.parameter.scope 0..* with system/type/instance and updates to existing operations. Learned: this is the final issue decision being reconciled.
+- E2 Confluence FHIR-I WGM 2020-09 page 91988665: minutes record the FHIR-27761 motion to add parameter.scope 0..* and update existing OperationDefinitions, 26-0-2. Learned: WG minutes confirm the intended model and operation sweep.
+- E3 Source source/operationdefinition/structuredefinition-OperationDefinition.xml:770: current source defines OperationDefinition.parameter.scope 0..* with required operation-parameter-scope binding and meaningWhenMissing. Learned: the structural part of FHIR-27761 is already in current build source.
+- E4 Git d46f7ac and e981c42: historical FHIR-27761 commits added the scope terminology/element and then populated scope values on level-specific operation parameters. Learned: initial application was real but bounded to operations present at that time.
+- E5 Jira/Git FHIR-23851 and git 014ed815: later StructureMap $transform change added sourceMap without a scope marker. Learned: the remaining gap came from a later parameter addition, not from the original sweep.
+- E6 Source source/structuremap/operationdefinition-StructureMap-transform.xml:61: StructureMap.$transform is both type and instance level; source already has scope type and sourceMap has the same resource-level-only wording. Learned: sourceMap needs the same type scope for tooling to understand its level.
+- E7 Source source/fhir.ini:259: structuremap=StructureMap and source/fhir.ini:237 operationdefinition=OperationDefinition are active resource entries. Learned: the edited operation definition and scope model are current build inputs.
+- E8 Command audit: XML parse, git diff --check, and a multi-level operation scan after the edit succeeded; only Resource.$validate retained level prose without scope, and its notes permit instance-level resource input for update validation. Learned: the source fix is syntactically valid and the remaining prose-only case is intentionally not a FHIR-27761 miss.
+- E9 Community search: Zulip searches for FHIR-27761/OperationDefinition/scope and OperationDefinition.parameter.scope found no relevant hits; Confluence FTS found the 2020 FHIR-I minutes. Learned: no discovered community evidence conflicts with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27761",
+    "url": "https://jira.hl7.org/browse/FHIR-27761",
+    "snapshot_path": "contexts/FHIR-27761/jira/FHIR-27761.md",
+    "ref": { "jira_key": "FHIR-27761" },
+    "summary": "Published/Persuasive with Modification issue requesting OperationDefinition.parameter.scope 0..* with system/type/instance and existing operation updates.",
+    "learned": "This establishes the final WG request that current source must satisfy.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes WGM 202009 page 91988665",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/91988665/FHIR+Infrastructure+Minutes+WGM+202009",
+    "ref": { "confluence_page_id": 91988665 },
+    "summary": "Minutes record the FHIR-27761 motion to add parameter.scope 0..* and update existing OperationDefinitions, carried 26-0-2.",
+    "learned": "This confirms the issue decision and the expected existing-operation sweep.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/operationdefinition/structuredefinition-OperationDefinition.xml:770",
+    "ref": { "path": "source/operationdefinition/structuredefinition-OperationDefinition.xml", "line": 770 },
+    "summary": "Current source defines OperationDefinition.parameter.scope 0..* with required operation-parameter-scope binding and meaningWhenMissing.",
+    "learned": "The structural model requested by FHIR-27761 is present in current build source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "d46f7ac45d5828ca61f2b9c818768f2fde04b4af and e981c42de886622f3394d95a9ecb43251c5e02d6",
+    "ref": { "commit_1": "d46f7ac45d5828ca61f2b9c818768f2fde04b4af", "commit_2": "e981c42de886622f3394d95a9ecb43251c5e02d6" },
+    "summary": "Historical FHIR-27761 commits added the scope terminology/element and populated level-specific operation parameters.",
+    "learned": "The issue was applied, but the operation sweep predated later-added parameters.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-23851",
+    "url": "https://jira.hl7.org/browse/FHIR-23851",
+    "ref": { "jira_key": "FHIR-23851", "commit": "014ed81537bf096ec1d6c53954671de0c42e4e5b" },
+    "summary": "Published/Persuasive with Modification issue and implementation commit added StructureMap.$transform sourceMap after the FHIR-27761 sweep.",
+    "learned": "This explains why the current source had a later-added type-level parameter without structured scope.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/structuremap/operationdefinition-StructureMap-transform.xml:61-80",
+    "ref": { "path": "source/structuremap/operationdefinition-StructureMap-transform.xml", "line": 61 },
+    "summary": "StructureMap.$transform is enabled at type and instance levels; source already has scope type, and sourceMap has parallel resource-level-only wording.",
+    "learned": "Adding scope type to sourceMap is required for tooling to represent the documented level restriction.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/fhir.ini:237 and source/fhir.ini:259",
+    "ref": { "path": "source/fhir.ini", "operationdefinition_line": 237, "structuremap_line": 259 },
+    "summary": "fhir.ini actively lists operationdefinition=OperationDefinition and structuremap=StructureMap.",
+    "learned": "The changed operation definition and the OperationDefinition resource model are current build inputs.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML parse, diff check, and multi-level operation audit",
+    "command": "python XML parse for edited/current files; git diff --check; Python scan of multi-level operation parameters with level prose and missing scope",
+    "summary": "XML parsing and diff whitespace checks passed; after the edit only Resource.$validate retained level prose without scope, and its notes show instance-level resource input is still valid for update validation.",
+    "learned": "The fix is syntactically valid and the remaining prose-only case is not a scope omission.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-27761 OperationDefinition scope",
+    "command": "bun run zulip:search fts '\"FHIR-27761\" \"OperationDefinition\" \"scope\"' --limit 10; bun run zulip:search fts '\"OperationDefinition.parameter.scope\" \"operation parameter scope\"' --limit 10; bun run confluence:search fts '\"FHIR-27761\" \"OperationDefinition\" \"parameter\" \"scope\"' --limit 10",
+    "query": "FHIR-27761 OperationDefinition parameter scope",
+    "result_count": 1,
+    "summary": "No relevant Zulip hits were found; Confluence FTS returned the 2020 FHIR-I minutes for the issue.",
+    "learned": "No community evidence was found that conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

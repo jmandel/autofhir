@@ -1,0 +1,95 @@
+FHIR-12696: Audit historical DSTU2 IG publisher fix
+
+Issue request:
+FHIR-12696 was a Published/Persuasive DSTU2 FHIR-core tooling issue reporting spurious IG Publisher QA validation errors for Argonaut DSTU IG fragments, where generated DSTU2 ImplementationGuide.package.resource entries appeared to be missing the required purpose element even though the source IG XML contained the data.
+
+Initial application:
+The Jira comment says the issue was applied in SVN revision 11498. The migrated Git commit 5a70a27559cb678511f3d7e1f3c6d27db0021fb9 is exactly that revision and fixed the DSTU2 publishing converter by setting converted non-example guide resources to GuideResourcePurpose.PROFILE when src.getExample() was false.
+
+Additional context:
+That converter file, implementations/java/org.hl7.fhir.convertors/src/org/hl7/fhir/convertors/VersionConvertor_10_20.java, is no longer present in the current FHIR specification checkout; it was deleted during the later 3.0.0 upgrade. The active current build still includes the ImplementationGuide resource, but the current source uses ImplementationGuide.definition.resource with isExample/profile/groupingId rather than the DSTU2 package.resource.purpose element. The r3-renames table maps ImplementationGuide.package.resource to ImplementationGuide.definition.resource, confirming this is historical migration context rather than a current missing element. Corrected Zulip and Confluence searches found no community evidence contradicting the Jira/source-history conclusion.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The historical tooling fix was already applied in the exact Jira-referenced revision, and the affected DSTU2 converter code is outside the current FHIR build/source surface.
+
+Recommendation:
+Keep this audit commit as-is. No current core source follow-up is needed unless a separate human task targets legacy DSTU2 publication tooling outside this checkout.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12696
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12696: Published/Persuasive issue for spurious DSTU2 IG Publisher validation errors on ImplementationGuide.package.resource.purpose, with comment "svn revision 11498". Learned: the final request was a DSTU2 tooling/generated-fragment fix, not a current resource-definition change.
+- E2 Git 5a70a27559cb678511f3d7e1f3c6d27db0021fb9: migrated SVN revision 11498 added a default PROFILE purpose for non-example resources in VersionConvertor_10_20. Learned: the requested fix was explicitly applied in source history.
+- E3 Git 93965572cf2c1d2ba58e430b749e3e5c99313373: later 3.0.0 upgrade deleted VersionConvertor_10_20.java. Learned: the affected converter is not present in the current FHIR checkout.
+- E4 Source source/fhir.ini:197 and source/fhir.ini:2627-2630 plus source/implementationguide/structuredefinition-ImplementationGuide.xml:654-741: current build includes ImplementationGuide and maps old package.resource to definition.resource; current definition.resource has isExample rather than required purpose. Learned: current source does not contain the stale DSTU2 required purpose surface that caused the original QA error.
+- E5 Command community searches: confluence refs/fts and Zulip fts searches for FHIR-12696 plus ImplementationGuide/purpose/Argonaut found no results. Learned: no discovered community record changes the Jira and git-history conclusion.
+- E6 Command idempotency check: git log on robo-spec-combined-issue-reconcile-full-clean-balanced-v2 found no existing Issue-Reconcile-Key: FHIR-12696 commit before this audit. Learned: publishing this per-issue audit commit does not duplicate a prior reconciliation.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12696",
+    "url": "https://jira.hl7.org/browse/FHIR-12696",
+    "snapshot_path": "contexts/FHIR-12696/jira/FHIR-12696.md",
+    "ref": { "jira_key": "FHIR-12696" },
+    "summary": "Published/Persuasive issue reporting spurious DSTU2 IG Publisher validation errors for generated ImplementationGuide.package.resource.purpose fragments and noting SVN revision 11498.",
+    "learned": "This establishes the final issue request as a historical DSTU2 publication tooling fix.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "5a70a27559cb678511f3d7e1f3c6d27db0021fb9",
+    "ref": { "commit": "5a70a27559cb678511f3d7e1f3c6d27db0021fb9" },
+    "summary": "Migrated SVN revision 11498 changed VersionConvertor_10_20 to set GuideResourcePurpose.PROFILE for converted non-example DSTU2 IG resources.",
+    "learned": "The exact Jira-referenced source fix was already applied.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "93965572cf2c1d2ba58e430b749e3e5c99313373",
+    "ref": { "commit": "93965572cf2c1d2ba58e430b749e3e5c99313373" },
+    "summary": "The later 3.0.0 upgrade deleted implementations/java/org.hl7.fhir.convertors/src/org/hl7/fhir/convertors/VersionConvertor_10_20.java.",
+    "learned": "The affected DSTU2 converter is no longer part of the current checkout.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:197,2627-2630; source/implementationguide/structuredefinition-ImplementationGuide.xml:654-741",
+    "summary": "Current build configuration includes ImplementationGuide and maps old package.resource to definition.resource; the current resource definition uses definition.resource.isExample rather than DSTU2 package.resource.purpose.",
+    "learned": "There is no current source location needing the historical purpose-defaulting fix.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-12696 and ImplementationGuide purpose",
+    "command": "bun run confluence:search refs jira FHIR-12696 --limit 10; bun run confluence:search fts '\"FHIR-12696\" \"ImplementationGuide\" \"purpose\"' --limit 10; bun run zulip:search fts '\"FHIR-12696\" \"ImplementationGuide\" \"purpose\"' --limit 10; bun run zulip:search fts '\"ImplementationGuide.package.resource\" \"purpose\" \"Argonaut\"' --limit 10",
+    "query": "FHIR-12696 ImplementationGuide purpose Argonaut",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community evidence conflicts with the no-change audit conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Combined-branch idempotency check for FHIR-12696",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-12696' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "result_count": 0,
+    "summary": "No existing reconciliation commit for FHIR-12696 was present on the combined branch before this audit.",
+    "learned": "This audit commit is not duplicating a prior combined-branch decision.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

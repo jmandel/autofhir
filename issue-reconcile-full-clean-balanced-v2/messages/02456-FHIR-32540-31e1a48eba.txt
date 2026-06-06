@@ -1,0 +1,121 @@
+FHIR-32540: Audit ConceptMap code/valueSet constraints
+
+Issue request:
+FHIR-32540 was Published with a Persuasive with Modification resolution. It asked why ConceptMap.group.element.code and ConceptMap.group.element.target.code were 0..1 instead of mandatory, and the accepted resolution kept those cardinalities because ValueSet alternatives were being added while requiring invariants that exactly one of code or valueSet be present at both source and target mapping levels.
+
+Initial application:
+The issue was applied in pieces. Commit 44b6a9fc8f977d070ab90083f6d1004394e83ffc added ConceptMap2.group.element.valueSet and the source-side cmd-5 code/valueSet invariant. Commit fbabfc1beb0eab4422797f110bc01e2cf590b640 added the matching target-side cmd-7 invariant. Commit 67c1a318489a92c8da3a4c10cb9cd75212b19921 updated the specimen type ConceptMap example so target entries without a code/valueSet became noMap entries instead of invalid empty target entries.
+
+Additional context:
+FHIR-15687 is the linked Published/Persuasive ConceptMap issue that introduced the source and target valueSet alternatives as canonical 0..1 elements, explaining why code could not become mandatory. FHIR-34279 later reconciled the same FHIR-32540/FHIR-15687 issue family for unmapped.valueSet and cmd-2. The current ConceptMap resource is active in source/fhir.ini, and the old ConceptMap2 source was subsequently folded into the current ConceptMap structure definition.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active ConceptMap source already has ConceptMap.group.element.valueSet and ConceptMap.group.element.target.valueSet, with cmd-5 and cmd-7 error constraints whose expressions require exactly one of code or valueSet. The current specimen type example also uses noMap for source concepts with no target, so the invalid empty-target shape noted during application is no longer present.
+
+Recommendation:
+Keep this audit commit as-is. FHIR-32540 needs no further core source change unless a future ConceptMap tracker reopens the broader valueSet mapping model; such future work should be handled under that later tracker rather than by making code mandatory here.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32540
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-15687: same-change-family - added the valueSet alternatives that made mandatory code cardinalities inappropriate and supplied the context for FHIR-32540.
+FHIR-34279: supporting-decision - reconciled the same code/valueSet invariant family for unmapped.valueSet after FHIR-15687.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32540: Published/Persuasive with Modification, requesting code-or-valueSet constraints instead of mandatory code cardinalities. Learned: this establishes the accepted reconciliation target.
+- E2 Source source/fhir.ini:228: active conceptmap=ConceptMap resource entry. Learned: the checked ConceptMap source is in the current build scope.
+- E3 Source source/conceptmap/structuredefinition-ConceptMap.xml:821-827 and 932-938: cmd-5 and cmd-7 require exactly one of code or valueSet on source and target elements. Learned: the required invariants are present in current source.
+- E4 Source source/conceptmap/structuredefinition-ConceptMap.xml:867-879 and 965-977: source and target valueSet elements exist as canonical 0..1 with the corresponding invariant conditions. Learned: FHIR-15687's alternate mapping representation is present, so code remains correctly optional.
+- E5 Git 44b6a9fc8f, fbabfc1beb, 67c1a31848: historical application added the source invariant, target invariant, and valid noMap example shape. Learned: the Jira comments match source history and no missing FHIR-32540 hunk was found.
+- E6 Jira FHIR-15687: Published/Persuasive issue added ConceptMap.group.element.valueSet and ConceptMap.group.element.target.valueSet. Learned: this linked decision explains why FHIR-32540 should not make code mandatory.
+- E7 Jira/Confluence FHIR-34279 and VOC 2022-01-31 minutes: recorded the follow-up reconciliation of FHIR-32540 and FHIR-15687 for unmapped.valueSet/cmd-2. Learned: later issue-family context does not require additional source changes for the seed's source/target constraints.
+- E8 Command Zulip search for "FHIR-32540" ConceptMap code valueSet: no results found; broader ConceptMap code valueSet hits were unrelated recent implementer discussions. Learned: no discovered Zulip discussion changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32540",
+    "url": "https://jira.hl7.org/browse/FHIR-32540",
+    "snapshot_path": "contexts/FHIR-32540/jira/FHIR-32540.md",
+    "ref": { "jira_key": "FHIR-32540" },
+    "summary": "Published/Persuasive with Modification issue asking why ConceptMap source and target code elements were optional, resolved by adding code-or-valueSet invariants instead of changing cardinality.",
+    "learned": "This is the final accepted target for the seed reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:228",
+    "ref": { "path": "source/fhir.ini", "line": 228 },
+    "summary": "The active resources list maps conceptmap to ConceptMap.",
+    "learned": "ConceptMap source files are in current build scope.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/conceptmap/structuredefinition-ConceptMap.xml:821-827,932-938",
+    "ref": { "path": "source/conceptmap/structuredefinition-ConceptMap.xml", "lines": "821-827,932-938" },
+    "summary": "cmd-5 and cmd-7 say either code or valueSet SHALL be present but not both and encode that in FHIRPath expressions.",
+    "learned": "The source and target constraints requested by FHIR-32540 are already present.",
+    "supports": ["reconciliation", "no_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/conceptmap/structuredefinition-ConceptMap.xml:867-879,965-977",
+    "ref": { "path": "source/conceptmap/structuredefinition-ConceptMap.xml", "lines": "867-879,965-977" },
+    "summary": "ConceptMap.group.element.valueSet and ConceptMap.group.element.target.valueSet are canonical 0..1 elements with cmd-5/cmd-7 conditions.",
+    "learned": "The valueSet alternatives that justify optional code cardinalities are present in current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "44b6a9fc8f977d070ab90083f6d1004394e83ffc; fbabfc1beb0eab4422797f110bc01e2cf590b640; 67c1a318489a92c8da3a4c10cb9cd75212b19921",
+    "ref": { "commits": "44b6a9fc8f977d070ab90083f6d1004394e83ffc,fbabfc1beb0eab4422797f110bc01e2cf590b640,67c1a318489a92c8da3a4c10cb9cd75212b19921" },
+    "summary": "Historical application commits added the source-side invariant, target-side invariant, and noMap example cleanup for FHIR-32540.",
+    "learned": "Git history matches the Jira application comments and supports that the current source inherited the complete fix.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-15687",
+    "url": "https://jira.hl7.org/browse/FHIR-15687",
+    "snapshot_path": "contexts/FHIR-15687/jira/FHIR-15687.md",
+    "ref": { "jira_key": "FHIR-15687" },
+    "summary": "Published/Persuasive issue adding ConceptMap valueSet elements as alternatives to source and target code.",
+    "learned": "This linked decision explains why FHIR-32540 kept code optional and required mutual-exclusion constraints instead.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "VOC FHIR Tracker Issues 2022-01-31 minutes page 90342873",
+    "url": "https://confluence.hl7.org/spaces/VOC/pages/90342873/FHIR+Tracker+Issues+2022-01-31+Call+Agenda+and+Minutes",
+    "snapshot_path": "contexts/FHIR-32540/confluence/90342873.md",
+    "ref": { "confluence_page_id": 90342873 },
+    "summary": "Minutes note that FHIR-32540 and FHIR-15687 needed reconciliation and record FHIR-34279 as the follow-up for unmapped.valueSet/cmd-2.",
+    "learned": "The later issue-family context was limited to unmapped.valueSet and does not require another seed source change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Zulip search for FHIR-32540 plus ConceptMap code valueSet",
+    "command": "bun run zulip:search fts '\"FHIR-32540\" ConceptMap code valueSet' --limit 10; bun run zulip:search fts 'ConceptMap code valueSet' --limit 10",
+    "query": "\"FHIR-32540\" ConceptMap code valueSet; ConceptMap code valueSet",
+    "result_count": 0,
+    "summary": "No direct FHIR-32540 Zulip hits were found; broader hits were unrelated recent implementer discussions.",
+    "learned": "No discovered community discussion conflicts with the Jira, source, and git evidence.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

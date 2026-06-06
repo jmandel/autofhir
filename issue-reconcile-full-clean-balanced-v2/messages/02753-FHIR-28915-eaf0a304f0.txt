@@ -1,0 +1,128 @@
+FHIR-28915: Audit administrable route simplification
+
+Issue request:
+FHIR-28915 was a Published/Persuasive BR&R change request to simplify MedicinalProductDefinition use for applications that only need the licensed route. It requested a repeatable administrable-product backbone with a coded route and a reference to AdministrableProductDefinition, and its Jira comment clarified that only the route code or the full-resource reference should be used, not both.
+
+Initial application:
+The issue was initially applied by git commit 322e216d548de8d681323e54e3082f15f7d8f07b on 2020-10-07, which added MedicinalProductDefinition.administrableProduct to the then-authoritative medicinalproductdefinition spreadsheet and updated examples. That exact backbone was later removed from the active StructureDefinition source by a subsequent published BR&R decision.
+
+Additional context:
+FHIR-31859 was Published/Persuasive for R5 and resolved that bidirectional product links should be removed. Commit bb58238af40d7c5d02ee99d5e6fb65ce94c2a49d replaced the FHIR-28915 administrableProduct backbone/reference with direct MedicinalProductDefinition.route. The current active source keeps AdministrableProductDefinition.formOf pointing to MedicinalProductDefinition and includes apd-1, which prevents using AdministrableProductDefinition.routeOfAdministration when the formOf MedicinalProductDefinition already carries route. FHIR-28581 provides broader background: BR&R kept separate medication-definition resources but made common attributes such as routes directly available for smaller use cases.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Current source/fhir.ini keeps MedicinalProductDefinition and AdministrableProductDefinition in the active build, and the active StructureDefinition source already preserves the implementer-facing simplification from FHIR-28915 through MedicinalProductDefinition.route while preserving the clarified not-both rule through AdministrableProductDefinition.apd-1. Reintroducing the original MPD-to-APD administrableProduct reference would conflict with the later FHIR-31859 no-bidirectional-links decision.
+
+Recommendation:
+Keep this no-change audit as-is. Do not reintroduce MedicinalProductDefinition.administrableProduct unless BR&R explicitly reverses the later FHIR-31859 direct-route/no-bidirectional-link design.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-28915
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-31859: later-change - Published/Persuasive BR&R issue removing bidirectional product links; it explains why the originally requested MPD-to-APD reference/backbone is no longer present.
+FHIR-28581: background - broader medication-definition consolidation debate; it records the rationale for exposing common attributes, including routes, directly while preserving separate detailed resources.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-28915: Published/Persuasive, voted 18-0-0 on 2020-10-06, requested a simplified administrable-product route/reference choice with a not-both constraint. Learned: this is final WG intent for the seed request.
+- E2 Confluence BRR 2020-10-06 Conference Call page 91996503: minutes record FHIR-28915 discussion and 18-0-0 approval to add a scaled-down root without taking away the full resource. Learned: the Jira disposition is backed by BR&R meeting minutes.
+- E3 Git 322e216d548de8d681323e54e3082f15f7d8f07b: added MedicinalProductDefinition.administrableProduct for FHIR#28915 in the spreadsheet and examples. Learned: the seed was initially applied before later source refactors.
+- E4 Jira FHIR-31859: Published/Persuasive, resolved that bidirectional links will be removed. Learned: a later final BR&R decision changes how the seed's reference portion should be represented now.
+- E5 Git bb58238af40d7c5d02ee99d5e6fb65ce94c2a49d: replaced MedicinalProductDefinition.administrableProduct with MedicinalProductDefinition.route for FHIR#31859. Learned: the current direct-route shape is intentional, not a missing seed application.
+- E6 Source source/fhir.ini:289-292,1031-1034,1396: MedicinalProductDefinition and AdministrableProductDefinition are active/current build resources. Learned: the checked StructureDefinitions are in build scope.
+- E7 Source source/medicinalproductdefinition/structuredefinition-MedicinalProductDefinition.xml:289-305: active source defines MedicinalProductDefinition.route, binds it to route-codes, and says it is the same concept as APD route and cannot be used together. Learned: the current source carries the seed's simple licensed route.
+- E8 Source source/administrableproductdefinition/structuredefinition-AdministrableProductDefinition.xml:79-84,143-153,405-412: active source defines apd-1, APD.formOf to MPD, and routeOfAdministration text forbidding duplication with MPD.route. Learned: the current source enforces the not-both clarification after the later no-bidirectional-link design.
+- E9 Command Zulip/Confluence searches: Zulip searches for FHIR-28915, FHIR-31859, and MedicinalProductDefinition administrableProduct route found no results; Confluence refs found FHIR-28915 minutes and no FHIR-31859 refs. Learned: no discovered community evidence conflicts with the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-28915",
+    "url": "https://jira.hl7.org/browse/FHIR-28915",
+    "snapshot_path": "contexts/FHIR-28915/jira/FHIR-28915.md",
+    "ref": { "jira_key": "FHIR-28915" },
+    "summary": "Published/Persuasive BR&R change request to simplify MedicinalProductDefinition by allowing a coded route or reference to AdministrableProductDefinition, but not both.",
+    "learned": "This establishes the seed's approved request and the not-both clarification.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "BRR 2020-10-06 Conference Call page 91996503",
+    "url": "https://confluence.hl7.org/spaces/BRR/pages/91996503/2020-10-06+Conference+Call",
+    "snapshot_path": "contexts/FHIR-28915/confluence/91996503.md",
+    "ref": { "confluence_page_id": 91996503 },
+    "summary": "BR&R minutes record FHIR-28915 discussion and an 18-0-0 vote to add a scaled-down root without removing the full resource.",
+    "learned": "The formal Jira disposition is corroborated by meeting minutes.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "322e216d548de8d681323e54e3082f15f7d8f07b",
+    "ref": { "commit": "322e216d548de8d681323e54e3082f15f7d8f07b" },
+    "summary": "Commit added MedicinalProductDefinition.administrableProduct for FHIR#28915 in the spreadsheet and examples.",
+    "learned": "The seed was initially applied before later source and design changes.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-31859",
+    "url": "https://jira.hl7.org/browse/FHIR-31859",
+    "snapshot_path": "contexts/FHIR-28915/jira/FHIR-31859.md",
+    "ref": { "jira_key": "FHIR-31859" },
+    "summary": "Published/Persuasive BR&R issue resolving that bidirectional medicinal-product links should be removed.",
+    "learned": "This later final decision supersedes the original MPD-to-APD reference representation.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "bb58238af40d7c5d02ee99d5e6fb65ce94c2a49d",
+    "ref": { "commit": "bb58238af40d7c5d02ee99d5e6fb65ce94c2a49d" },
+    "summary": "Commit for FHIR#31859 replaced MedicinalProductDefinition.administrableProduct with MedicinalProductDefinition.route.",
+    "learned": "The active direct-route design is intentional and should not be reverted by this seed audit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:289-292,1031-1034,1396",
+    "summary": "fhir.ini lists MedicinalProductDefinition and AdministrableProductDefinition as active resources with current status metadata.",
+    "learned": "The inspected StructureDefinition sources are in current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/medicinalproductdefinition/structuredefinition-MedicinalProductDefinition.xml:289-305",
+    "summary": "MedicinalProductDefinition.route is repeatable CodeableConcept with route-codes binding and text tying it to APD route without allowing both.",
+    "learned": "The current source carries the simple licensed-route capability requested by the seed.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "source",
+    "locator": "source/administrableproductdefinition/structuredefinition-AdministrableProductDefinition.xml:79-84,143-153,405-412",
+    "summary": "APD defines formOf back to MPD and apd-1 forbids routeOfAdministration when formOf resolves to an MPD with route.",
+    "learned": "The not-both clarification is enforced in the current no-bidirectional-link design.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Community searches for FHIR-28915/FHIR-31859 and administrable route terms",
+    "command": "bun run confluence:search refs jira FHIR-28915; bun run confluence:search refs jira FHIR-31859; bun run zulip:search fts '\"FHIR-28915\" MedicinalProductDefinition administrableProduct route' --limit 10; bun run zulip:search fts '\"FHIR-31859\" MedicinalProductDefinition route administrable product' --limit 10; bun run zulip:search fts 'MedicinalProductDefinition administrableProduct route AdministrableProductDefinition' --limit 10",
+    "query": "FHIR-28915 FHIR-31859 MedicinalProductDefinition administrableProduct route AdministrableProductDefinition",
+    "result_count": 1,
+    "summary": "Confluence found the BR&R minutes for FHIR-28915 and no FHIR-31859 refs; Zulip searches returned no relevant results.",
+    "learned": "No discovered community discussion conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

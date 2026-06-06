@@ -1,0 +1,94 @@
+FHIR-13473: Audit extension JSON template slicing text
+
+Issue request:
+FHIR-13473 was a Published/Persuasive STU3 FHIR-core correction asking for strange generated text in extension-definition JSON templates to be removed. The reported output showed an empty Extension.extension array rendered as `// sliced by value:url in the specified orderOpen` with confusing brackets, and the comments clarified that the problem applied to all extension pages rather than only the example 11179/DataElement page.
+
+Initial application:
+The issue was applied in svn revision 12694, now visible in git as be4ab1e77319083d7653c1ba5e02c1c5ee3deff9 (`#13473 - clean up json slicing text`). That commit changed the old in-repository JsonSpecGenerator so empty sliced content closes the array on the same line and so slicing text includes punctuation instead of concatenating the rule display directly onto `order`.
+
+Additional context:
+The old in-repository generator source was deleted in 2021 when publishing moved to the Kindling dependency. The current build declares `org.hl7.fhir:kindling` in build.gradle.kts and `kindlingVersion=1.25.5-SNAPSHOT` in gradle.properties; current Kindling JsonSpecGenerator retains the applied FHIR-13473 logic. The current core extension template only injects the generated `<%json%>` block and does not contain the bad text, and exact searches of current core source and the read-only extension-pack checkout found no active occurrence of `specified orderOpen` or `sliced by value:url` requiring a FHIR source edit.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical application matches the Jira request, the current build path delegates JSON-template generation to Kindling where the fix is present, and no current in-scope FHIR source carries the reported malformed template text.
+
+Recommendation:
+Keep this audit commit as-is. If malformed extension JSON templates reappear in generated output, investigate and fix HL7/kindling or the publisher dependency rather than editing FHIR narrative/template files in this checkout.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13473
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13473: Published/Persuasive correction for malformed extension JSON template slicing text, with Grahame noting svn revision 12694. Learned: this is final WG/publishing intent and identifies the historical application revision.
+- E2 Zulip #committers > publishing issue: Rik reported the same malformed JSON-template text and Grahame asked him to create a task. Learned: the community thread confirms the Jira request was a publisher bug report, not a DataElement-specific modeling change.
+- E3 Git be4ab1e77319083d7653c1ba5e02c1c5ee3deff9: `#13473 - clean up json slicing text` changed JsonSpecGenerator and carries git-svn revision 12694. Learned: the requested fix was explicitly applied in the old in-repo generator.
+- E4 Source build.gradle.kts:47 and gradle.properties:2 plus HL7/kindling JsonSpecGenerator.java:437-519: the current build uses Kindling and Kindling retains the fixed empty-slice/describeSlicing logic. Learned: the relevant generator behavior is not missing from current source scope.
+- E5 Source tools/templates/template-extension.html:97-99 and search commands over core/extension-pack source: the active extension template only injects generated JSON and exact bad text is absent from current source. Learned: there is no necessary FHIR checkout source edit.
+- E6 Community/issue searches: Jira exact-term search found only FHIR-13473; Confluence found no references; later Zulip/Confluence searches found no conflicting decision. Learned: no discovered later decision changes the no-change reconciliation.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13473",
+    "url": "https://jira.hl7.org/browse/FHIR-13473",
+    "snapshot_path": "contexts/FHIR-13473/jira/FHIR-13473.md",
+    "ref": { "jira_key": "FHIR-13473" },
+    "summary": "Published/Persuasive STU3 correction reporting malformed extension JSON template text `sliced by value:url in the specified orderOpen` and confusing brackets.",
+    "learned": "The issue is final, applies to extension JSON template generation generally, and records svn revision 12694 as the application point.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#committers > publishing issue",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/publishing%20issue",
+    "ref": { "stream": "committers", "topic": "publishing issue" },
+    "summary": "Rik Smithies reported the malformed extension JSON template text and Grahame Grieve asked him to create a task to fix it.",
+    "learned": "The contemporaneous discussion confirms this was a publishing bug report matching FHIR-13473, not a DataElement-specific content request.",
+    "supports": ["issue_request", "additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "be4ab1e77319083d7653c1ba5e02c1c5ee3deff9",
+    "ref": { "commit": "be4ab1e77319083d7653c1ba5e02c1c5ee3deff9", "svn_revision": 12694 },
+    "summary": "Commit `#13473 - clean up json slicing text` changed the old JsonSpecGenerator to handle empty sliced arrays and punctuation correctly.",
+    "learned": "This is the explicit historical application of the Jira request referenced by the Jira comment.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "build.gradle.kts:47; gradle.properties:2; HL7/kindling JsonSpecGenerator.java:437-519",
+    "url": "https://github.com/HL7/kindling/blob/b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8/src/main/java/org/hl7/fhir/definitions/generators/specification/JsonSpecGenerator.java#L437-L519",
+    "summary": "The current FHIR build depends on Kindling, and Kindling's JsonSpecGenerator includes the same empty-slice guard and punctuation fix introduced for FHIR-13473.",
+    "learned": "The relevant generator logic is carried by the current publisher dependency rather than a missing editable file in this FHIR checkout.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "tools/templates/template-extension.html:97-99",
+    "summary": "The current extension page template labels the JSON Template section and injects the generated `<%json%>` block without hard-coded slicing text.",
+    "learned": "The active FHIR template source is not the source of the reported malformed text and does not need a corrective edit.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative current-source and community searches for FHIR-13473 malformed JSON-template text",
+    "command": "rg -n 'specified orderOpen|sliced by value:url' <core-worktree> <fhir-extensions>; bun run jira:search fts '\"specified orderOpen\" OR \"sliced by value:url\"' --limit 20; bun run confluence:search refs jira FHIR-13473; bun run confluence:search fts '\"FHIR-13473\"' --limit 10",
+    "query": "FHIR-13473 specified orderOpen sliced by value:url",
+    "summary": "Current source searches found no active malformed literal; Jira exact-term search found only FHIR-13473; Confluence found no references or conflicting discussion.",
+    "learned": "No current in-scope source location or later community decision requires a FHIR source change.",
+    "supports": ["absence_of_conflict", "confidence", "reconciliation"]
+  }
+]
+</evidence-manifest>

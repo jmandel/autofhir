@@ -1,0 +1,93 @@
+FHIR-6324: Audit canonical JSON links
+
+Issue request:
+FHIR-6324 was a Published/Persuasive DSTU1 FHIR-core change request asking that generated JSON view pages, such as valueset-marital-status.json.html, stop linking their "canonical form" anchor to a missing target.
+
+Initial application:
+No commit with an explicit FHIR-6324 marker was found. Jira comments record "fixed now" on 2015-07-20, and the adjacent 2015-07-19 source commit f51982040455436f5bace90a3fc1613871e6c4d4 changed the generated example templates while fixing many broken links, including removing a page-level setting from the JSON and XML example templates that could affect generated links. Later repository refactors moved the same template family into tools/templates, where the JSON page template still emits separate Raw JSON and canonical form links.
+
+Additional context:
+The current build still includes ValueSet pages and the MaritalStatus binding that produced the example URL cited in the Jira issue. The current CI build and current published specification page both render valueset-marital-status.json.html with a canonical form link to valueset-marital-status.canonical.json, and that target returns HTTP 200. Jira/Zulip/Confluence searches found no later decision requiring a different link target; FHIR-41522 appeared only as a separate no-change discussion about JSON canonicalization algorithms, not generated canonical-form page links.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active template/source state and current rendered pages already satisfy the old request, so editing the template would be redundant and risk changing correct generated output.
+
+Recommendation:
+Keep this no-change audit commit as-is. No follow-up is needed for FHIR-6324 unless a future build regresses the generated canonical form links or removes the .canonical.json outputs.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6324
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-41522: background - separate Resolved - No Change issue about replacing FHIR JSON canonicalization with RFC 8785; it does not concern broken generated canonical-form links.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6324: Published/Persuasive issue says valueset-marital-status.json.html had a canonical form link leading to a 404, with comments approving and marking it fixed. Learned: the final request was a non-substantive generated-link correction.
+- E2 Source tools/templates/template-example-json.html:17: current JSON example template links Raw JSON via <%prettyname%> and canonical form via <%canonicalname%>. Learned: the current source still intentionally emits a canonical-form link rather than a stale hard-coded URL.
+- E3 Source source/fhir.ini:226 and source/terminologies/bindings.xml:907-912: ValueSet is an active resource and the MaritalStatus binding still produces valueset-marital-status. Learned: the Jira's example page family remains in current build scope.
+- E4 Git f51982040455436f5bace90a3fc1613871e6c4d4: 2015-07-19 commit fixing many broken links changed the JSON/XML example templates immediately before the Jira "fixed now" comment. Learned: the issue appears historically applied even though no explicit FHIR-6324 commit marker exists.
+- E5 Verification command: curl checks for build.fhir.org and hl7.org/fhir valueset-marital-status.json.html showed the canonical form href as valueset-marital-status.canonical.json, and both canonical JSON targets returned HTTP 200. Learned: the currently rendered specification no longer has the reported broken link.
+- E6 Community/Jira search: Jira search for "canonical form" JSON found FHIR-6324 and unrelated FHIR-41522; Zulip and Confluence searches for canonical-form JSON 404 and FHIR-6324 references found no relevant conflicting records. Learned: no later discovered community or WG evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6324",
+    "url": "https://jira.hl7.org/browse/FHIR-6324",
+    "snapshot_path": "contexts/FHIR-6324/jira/FHIR-6324.md",
+    "ref": { "jira_key": "FHIR-6324" },
+    "summary": "Published/Persuasive DSTU1 issue reporting that JSON view canonical form links, including valueset-marital-status.json.html, led to 404s and were later marked fixed.",
+    "learned": "This establishes the final request as a non-substantive generated-link correction.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "tools/templates/template-example-json.html:17",
+    "summary": "The current JSON example template emits Raw JSON with <%prettyname%> and canonical form with <%canonicalname%>.",
+    "learned": "The source now delegates the canonical target to the generator instead of hard-coding the stale broken link reported in Jira.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:226; source/terminologies/bindings.xml:907-912",
+    "summary": "ValueSet remains an active current-build resource and the MaritalStatus binding still names valueset-marital-status.",
+    "learned": "The Jira example page family is still relevant current build scope, so checking the rendered link is meaningful.",
+    "supports": ["additional_context", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "f51982040455436f5bace90a3fc1613871e6c4d4",
+    "ref": { "commit": "f51982040455436f5bace90a3fc1613871e6c4d4" },
+    "summary": "A 2015-07-19 commit titled as fixing many broken links changed source/template-example-json.html and source/template-example-xml.html just before Jira was marked fixed.",
+    "learned": "This is the likely historical application path even though no explicit FHIR-6324-tagged commit was found.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Rendered canonical JSON link verification",
+    "command": "curl -fsSL https://build.fhir.org/valueset-marital-status.json.html | grep -i 'canonical form'; curl -fsSL -o /tmp/body -w '%{http_code}' https://build.fhir.org/valueset-marital-status.canonical.json; curl -fsSL https://hl7.org/fhir/valueset-marital-status.json.html | grep -i 'canonical form'; curl -fsSL -o /tmp/body -w '%{http_code}' https://hl7.org/fhir/valueset-marital-status.canonical.json",
+    "summary": "Both current CI and current published pages link canonical form to valueset-marital-status.canonical.json, and both targets returned HTTP 200.",
+    "learned": "The reported 404 is not present in the current rendered specification.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-6324 and canonical-form JSON broken links",
+    "command": "bun run jira:search fts '\"canonical form\" JSON' --limit 10; bun run zulip:search fts '\"canonical form\" JSON 404' --limit 10; bun run confluence:search refs jira FHIR-6324; bun run confluence:search fts '\"canonical form\" JSON 404' --limit 10",
+    "query": "FHIR-6324 canonical form JSON 404",
+    "summary": "Jira found FHIR-6324 and unrelated FHIR-41522; Zulip and Confluence found no relevant conflicting records.",
+    "learned": "No discovered later community or WG evidence changes the no-change conclusion.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  }
+]
+</evidence-manifest>

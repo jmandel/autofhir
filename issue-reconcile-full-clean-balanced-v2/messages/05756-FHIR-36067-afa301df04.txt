@@ -1,0 +1,124 @@
+FHIR-36067: Audit Observation component absent-value invariant
+
+Issue request:
+FHIR-36067 is an Applied/Persuasive with Modification OO change request for FHIR-core Observation. It reported that a blood pressure Observation validating against the bp profile passed when both systolic and diastolic components had component.valueQuantity and component.dataAbsentReason, and the accepted resolution was to add an invariant to Observation.component.value[x] analogous to the existing Observation.value[x] rule.
+
+Initial application:
+The issue was applied in source history by commit e832cabab82fa5c30949380ede5d2eef80f5194c, which added the obs-10 constraint to source/observation/structuredefinition-Observation.xml. The Jira comment later pointed at PR #3351 commit 7522e5c98a262dd2a46575a4fe324e849e7c661d as the build application record.
+
+Additional context:
+Observation is an active current-build resource in source/fhir.ini, and the bp profile is part of the Observation vital signs implementation guide. FHIR-50145, a later Applied/Persuasive technical correction in the same constraint family, clarified obs-6/obs-10 text, added missing obs-10 condition tags, and added obs-10 invariant tests in commit 58e1e1353018b34133ee9ad8cb4d5b6768eb04ac. FHIR-50145 is already represented on the combined branch by audit commit 4d2b1aaf089f44790e86ed7eafd9d5e39f0f52d8, so this reconciliation does not publish a duplicate commit for it. Community searches found one early OO minutes page asking for broader discussion of FHIR-36067 and no conflicting Zulip evidence.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current Observation source already has obs-10 as an error invariant with expression component.empty() or component.where(dataAbsentReason.exists()).all(value.empty()), and the relevant Observation.component, Observation.component.value[x], and Observation.component.dataAbsentReason elements carry obs-10 condition tags. The current invariant tests include the blood-pressure-style failing XML example with both component.valueQuantity and component.dataAbsentReason, so the originally reported validator gap is represented in active source and tests.
+
+Recommendation:
+Keep this audit commit as-is. No further core FHIR source change is needed for FHIR-36067 unless a future OO decision changes the Observation component value/dataAbsentReason exclusivity rule.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36067
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-50145: same-change-family - Later Applied technical correction completed obs-10 descriptions, condition tags, and invariant tests after the FHIR-36067 application; already audited on the combined branch as 4d2b1aaf089f44790e86ed7eafd9d5e39f0f52d8.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36067: Applied/Persuasive with Modification OO issue requesting an invariant so BP components cannot carry both component.valueQuantity and component.dataAbsentReason. Learned: this establishes the final seed request and target behavior.
+- E2 Source source/fhir.ini:169-208 and source/observation/implementationguide-Observation-vitalsigns.xml:59-61: Observation is an active resource and StructureDefinition/bp is included in the vital signs guide. Learned: the inspected Observation and bp profile files are in current build scope.
+- E3 Source source/observation/structuredefinition-Observation.xml:111-121,1329-1331,1427,1460: current source defines obs-10 and attaches it to the component elements. Learned: the requested invariant is already present in authoritative source.
+- E4 Source source/observation/structuredefinition-profile-bp.xml:76-83,130-135,196-200: the bp profile derives from vital signs/Observation and requires each BP component to have value or dataAbsentReason. Learned: FHIR-36067's remaining exclusivity behavior is correctly supplied by inherited base Observation obs-10 rather than a separate BP-only constraint.
+- E5 Source source/observation/invariant-tests/obs-10.f2.fail.xml:1-75: current source includes a failing BP example with both valueQuantity and dataAbsentReason on both components. Learned: the reported validator scenario is captured as an obs-10 invariant test.
+- E6 Git e832cabab8 and 58e1e13530: FHIR-36067 added obs-10, and FHIR-50145 later clarified obs-10 metadata and added tests. Learned: git history explains the current correct source state.
+- E7 Jira FHIR-50145 and commit 4d2b1aaf089f44790e86ed7eafd9d5e39f0f52d8: related Applied issue is already audited on the combined branch. Learned: no duplicate opportunistic commit should be published for FHIR-50145.
+- E8 Confluence 139669602 and Zulip search: OO 2022-10-11 minutes asked for broader review of FHIR-36067; exact-key Zulip search found no results. Learned: community evidence found no later conflict with the applied source state.
+- E9 Verification command/query: rg/git-log checks found obs-10 in active source, the BP failing invariant test, the FHIR-36067 and FHIR-50145 implementation commits, and no existing FHIR-36067 audit commit on the combined branch. Learned: an empty no-change audit commit is the appropriate reconciliation.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36067",
+    "url": "https://jira.hl7.org/browse/FHIR-36067",
+    "snapshot_path": "contexts/FHIR-36067/jira/FHIR-36067.md",
+    "ref": { "jira_key": "FHIR-36067" },
+    "summary": "Applied/Persuasive with Modification OO issue reporting that a bp-profile blood pressure Observation could validate with both component.valueQuantity and component.dataAbsentReason.",
+    "learned": "The accepted resolution requires an Observation.component value/dataAbsentReason invariant analogous to the Observation.value[x] rule.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-208; source/observation/implementationguide-Observation-vitalsigns.xml:59-61",
+    "summary": "source/fhir.ini actively maps observation=Observation, and the Observation vital signs implementation guide references StructureDefinition/bp.",
+    "learned": "The Observation StructureDefinition and bp profile source are in current build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-Observation.xml:111-121,1329-1331,1427,1460",
+    "summary": "Current Observation source defines obs-10 as an error invariant with expression component.empty() or component.where(dataAbsentReason.exists()).all(value.empty()) and attaches obs-10 condition tags to the component elements.",
+    "learned": "The requested component value/dataAbsentReason exclusivity rule is already present in authoritative source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-bp.xml:76-83,130-135,196-200",
+    "summary": "The bp profile constrains Observation and requires systolic/diastolic components to carry value or dataAbsentReason.",
+    "learned": "The BP-specific profile supplies the at-least-one rule while inherited base Observation obs-10 supplies the mutual-exclusion rule requested by FHIR-36067.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/observation/invariant-tests/obs-10.f2.fail.xml:1-75",
+    "summary": "The obs-10 failing XML test is a blood pressure Observation with both valueQuantity and dataAbsentReason on systolic and diastolic components.",
+    "learned": "The originally reported validation scenario is now represented by a current invariant test.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "e832cabab8; 58e1e13530; 7522e5c98a262dd2a46575a4fe324e849e7c661d",
+    "ref": { "commit": "e832cabab82fa5c30949380ede5d2eef80f5194c" },
+    "summary": "e832cabab8 added obs-10 for FHIR-36067; 7522e5c98a262dd2a46575a4fe324e849e7c661d is the Jira-cited PR #3351 build commit; 58e1e13530 later completed obs-10 condition tags and tests for FHIR-50145.",
+    "learned": "Source history explains why the current build already satisfies FHIR-36067.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-50145",
+    "url": "https://jira.hl7.org/browse/FHIR-50145",
+    "ref": { "jira_key": "FHIR-50145" },
+    "summary": "Applied/Persuasive technical correction updating obs-6/obs-10 descriptions, obs-10 condition tags, and obs-10 invariant tests after FHIR-36067.",
+    "learned": "This same-change-family issue completes the FHIR-36067 application and is already audited on the combined branch, so it should not receive a duplicate commit here.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "OO 2022-10-11 FHIR minutes page 139669602",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/139669602/2022-10-11+FHIR",
+    "ref": { "confluence_page_id": 139669602 },
+    "summary": "OO minutes list FHIR-36067 and note the need for joint OO, FHIR-I, and Patient Care discussion.",
+    "learned": "Meeting evidence shows early coordination context and no discovered conflict with the later Applied source change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Community and source verification searches",
+    "command": "bun run zulip:search fts '\"FHIR-36067\" Observation component value dataAbsentReason blood pressure' --limit 10; bun run confluence:search refs jira FHIR-36067; rg -n 'obs-10|component.where(dataAbsentReason.exists()).all(value.empty())' source/observation; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-36067' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "query": "FHIR-36067 Observation component value dataAbsentReason blood pressure",
+    "result_count": 1,
+    "summary": "Zulip exact-key search found no results; Confluence found one OO minutes page; source and git checks found the active obs-10 source/test application and no prior FHIR-36067 audit commit on the combined branch.",
+    "learned": "No discovered evidence requires a source change or blocks an empty no-change audit commit.",
+    "supports": ["absence_of_conflict", "reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,112 @@
+FHIR-15112: Audit Consent subject optionality
+
+Issue request:
+FHIR-15112 was a Published/Persuasive STU3 CBCC change request asking to relax Consent.patient from 1..1 to 0..1 so Consent could be used for provider-directory restrictions without a required patient. Its resolution also proposed making Consent.scope extensible with invariants for existing patient-oriented scopes.
+
+Initial application:
+The issue was applied historically in commit 2c05932185 (GF#15112 GF#15102), which changed the Consent spreadsheet so Consent.patient moved from 1..1 to 0..1 while remaining Reference(Patient). The same commit also co-applied the unrelated FHIR-15102 identifier cardinality change.
+
+Additional context:
+Current Consent source is no longer spreadsheet-driven for this resource. Consent is active in source/fhir.ini, and fhir.ini maps old Consent.patient to Consent.subject and old Consent.scope to Consent.category. Later Published Consent decisions changed the relevant model: FHIR-26644 renamed Consent.patient to Consent.subject and added Practitioner, FHIR-27032 added ResearchSubject, and FHIR-31903 eliminated Consent.scope and moved flexible categorization to Consent.category with profiling/IG guardrails rather than core invariants. The current source also carries a VHDir-style provider restriction example with no subject, confirming the no-patient use case remains representable.
+
+AutoFHIR reconciliation:
+This commit makes no source change. The current active Consent definition already has Consent.subject (the successor of Consent.patient) with min 0 and max 1, so the seed issue's required optionality is present. Restoring the old scope invariant plan would conflict with the later Published FHIR-31903 decision that removed Consent.scope from core.
+
+Recommendation:
+Keep this no-change audit. Future work, if any, should be driven by new WG decisions about broadening Consent.subject target types or provider-directory profiling, not by FHIR-15112, whose applied requirement is already reflected in current core source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15112
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-15102: background - co-applied in the historical source commit but concerned identifier cardinality, not this Consent.patient decision.
+FHIR-15115: same-change-family - changed Consent.category extensibility around the same STU3 Consent codelist/invariant discussion.
+FHIR-17559: same-change-family - later Published issue requiring Consent.scope extensibility and patient-privacy naming before scope was removed.
+FHIR-26644: later-change - renamed Consent.patient to Consent.subject and added Practitioner, explaining the current successor element.
+FHIR-27032: later-change - added ResearchSubject to Consent.subject after the rename.
+FHIR-31903: superseded-by - eliminated Consent.scope and category/scope core invariants, superseding the scope part of the FHIR-15112 resolution.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15112: Published/Persuasive issue requested Consent.patient 1..1 to 0..1 for provider-directory use and proposed scope extensibility/invariants. Learned: establishes the seed's final WG request.
+- E2 Source source/fhir.ini:265 and source/fhir.ini:1647-1654: Consent is an active resource; old Consent.patient maps to Consent.subject and old Consent.scope is merged with Consent.category. Learned: current build scope and element lineage are explicit.
+- E3 Source source/consent/structuredefinition-Consent.xml:196-208: Consent.subject is 0..1 and references Patient, Practitioner, ResearchSubject, or Group. Learned: the former required patient element is optional in current active source.
+- E4 Source source/consent/structuredefinition-Consent.xml:254-327 and source/consent/consent-example-provider.xml:1-16: Consent grantor/grantee/manager/controller support directory-like actors such as HealthcareService and Organization, and the VHDir provider restriction example has no subject. Learned: the no-patient directory restriction use case remains representable.
+- E5 Git 2c05932185: historical GF#15112/GF#15102 application changed the old Consent.patient row from 1..1 to 0..1. Learned: the seed was applied before this reconciliation.
+- E6 Jira/Git FHIR-26644, FHIR-27032, and FHIR-31903: later Published decisions renamed patient to subject, expanded subject, and removed Consent.scope. Learned: current deviations from the original STU3 wording are intentional later model changes.
+- E7 Community search: direct Zulip and Confluence searches for FHIR-15112 plus Consent/patient/provider-directory terms found no direct hits or conflicting minutes. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15112",
+    "url": "https://jira.hl7.org/browse/FHIR-15112",
+    "snapshot_path": "contexts/FHIR-15112/jira/FHIR-15112.md",
+    "ref": { "jira_key": "FHIR-15112" },
+    "summary": "Published/Persuasive STU3 Consent issue asking to relax Consent.patient to 0..1 for provider-directory restrictions and adjust Consent.scope handling.",
+    "learned": "This establishes the final seed request and the source behavior that must still be represented after later model changes.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:265,1647-1654",
+    "ref": { "path": "source/fhir.ini", "lines": "265,1647-1654" },
+    "summary": "Consent is an active resource, old Consent.patient maps to Consent.subject, and old Consent.scope is marked as merged with Consent.category.",
+    "learned": "The current build-scope source explicitly identifies the successor elements relevant to the STU3 request.",
+    "supports": ["source_scope", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/consent/structuredefinition-Consent.xml:196-208",
+    "ref": { "path": "source/consent/structuredefinition-Consent.xml", "lines": "196-208" },
+    "summary": "Consent.subject is defined with min 0 and max 1 and supports Patient, Practitioner, ResearchSubject, and Group.",
+    "learned": "The current successor of Consent.patient is optional, satisfying the cardinality portion of FHIR-15112.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/consent/structuredefinition-Consent.xml:254-327; source/consent/consent-example-provider.xml:1-16",
+    "ref": { "path": "source/consent/structuredefinition-Consent.xml", "lines": "254-327" },
+    "summary": "Consent actor/management elements allow HealthcareService and Organization, and the VHDir provider restriction example has no subject element.",
+    "learned": "Directory-related Consent use remains possible without reintroducing a required patient.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "2c05932185",
+    "ref": { "commit": "2c05932185893385179328cf18740efd126a337f" },
+    "summary": "Historical commit GF#15112 GF#15102 changed the old Consent.patient spreadsheet row from 1..1 to 0..1.",
+    "learned": "FHIR-15112 was applied in source history before this reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-26644, FHIR-27032, FHIR-31903",
+    "url": "https://jira.hl7.org/browse/FHIR-31903",
+    "ref": { "jira_key": "FHIR-31903" },
+    "summary": "Later Published Consent issues renamed Consent.patient to Consent.subject, expanded subject references, and removed Consent.scope in favor of flexible category/profiling guidance.",
+    "learned": "The current model intentionally differs from the original STU3 resolution text while preserving the needed optionality.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-15112 and provider-directory Consent terms",
+    "command": "bun run zulip:search fts '\"FHIR-15112\" Consent patient directory provider' --limit 10; bun run zulip:search fts 'Consent patient scope provider directory' --limit 10; bun run confluence:search refs jira FHIR-15112; bun run confluence:search fts '\"FHIR-15112\" Consent patient directory provider' --limit 10",
+    "query": "FHIR-15112 Consent patient directory provider",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence hits for FHIR-15112 were found; broader terms produced no conflicting Consent-specific decision evidence.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,86 @@
+FHIR-15611: Audit Money invariant correction
+
+Issue request:
+FHIR-15611 was a Published/Persuasive STU3 technical correction for FHIR-core datatypes. It asked to correct the Money mny-1 invariant to `(code.exists() or value.empty()) and (system.empty() or system = 'urn:iso:std:iso:4217')`; the Jira was auto-approved and recorded as applied for STU3.
+
+Initial application:
+The requested correction appears to have been applied in SVN revision 13439, represented in git by 19d34d51c846e16ada19d52db5f08a79802ce96e, which changed source/datatypes/money.xml from `(code or value.empty()) ...` to the requested `code.exists()` expression. The later FHIR-16297 application reworked Money and moved the Quantity-style currency rule to MoneyQuantity.
+
+Additional context:
+Current source/fhir.ini keeps Money and MoneyQuantity in active datatype build scope. Current source/datatypes/money.xml defines Money as a DataType with Money.value and Money.currency, so the old code/system invariant no longer applies to Money itself. Current source/datatypes/quantity.xml retains the corrected Quantity-style invariant for MoneyQuantity. FHIR-16297 was Published/Persuasive with Modification and explicitly approved this split by introducing a specific Money type and renaming the old Money profile to MoneyQuantity. Zulip and Confluence searches found no contrary community record.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current source is already correct for FHIR-15611: the historical mny-1 correction is preserved where the Quantity-style profile still exists, and re-adding it to current Money would be wrong because current Money has no code or system elements.
+
+Recommendation:
+Keep this no-change audit as-is. Future changes to MoneyQuantity should preserve the corrected `code.exists()` invariant, but no current core source follow-up is needed for FHIR-15611.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15611
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-16297: later-change - Published follow-up that reworked Money into value/currency and renamed the old Quantity-based profile to MoneyQuantity, determining how the FHIR-15611 invariant should be interpreted in current source.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15611: Published/Persuasive technical correction requested the Money mny-1 FHIRPath expression use `code.exists()`. Learned: this establishes the original final WG request.
+- E2 Git 19d34d51c846e16ada19d52db5f08a79802ce96e: GF#15611 changed source/datatypes/money.xml to the requested invariant. Learned: the seed issue was initially applied in source history.
+- E3 Jira FHIR-16297 and git f6a1e8b33374575365609b3ab02dbed98b77133a: Published follow-up introduced Money.value/Money.currency and renamed the old profile to MoneyQuantity. Learned: current Money should not carry the old code/system invariant.
+- E4 Source source/fhir.ini:11 and source/fhir.ini:23-26 plus source/datatypes/money.xml:820-889 and source/datatypes/quantity.xml:4094-4098: Money and MoneyQuantity are active datatypes; current Money has value/currency while MoneyQuantity retains the corrected invariant. Learned: the current build-scoped source is consistent with both decisions.
+- E5 Community search: `bun run zulip:search fts 'Money invariant mny' --limit 10`; `bun run confluence:search fts 'Money invariant mny' --limit 10`; `bun run confluence:search refs jira FHIR-15611`. Learned: no discovered Zulip or Confluence evidence conflicts with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15611",
+    "url": "https://jira.hl7.org/browse/FHIR-15611",
+    "snapshot_path": "contexts/FHIR-15611/jira/FHIR-15611.md",
+    "ref": { "jira_key": "FHIR-15611" },
+    "summary": "Published/Persuasive STU3 technical correction requesting the Money mny-1 invariant use code.exists() and restrict system to ISO 4217 when present.",
+    "learned": "This is the final seed request and target expression for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "19d34d51c846e16ada19d52db5f08a79802ce96e",
+    "ref": { "commit": "19d34d51c846e16ada19d52db5f08a79802ce96e" },
+    "summary": "Commit GF#15611 changed source/datatypes/money.xml from `(code or value.empty())` to `(code.exists() or value.empty())`.",
+    "learned": "The requested correction was applied in source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-16297 / f6a1e8b33374575365609b3ab02dbed98b77133a",
+    "url": "https://jira.hl7.org/browse/FHIR-16297",
+    "ref": { "jira_key": "FHIR-16297", "commit": "f6a1e8b33374575365609b3ab02dbed98b77133a" },
+    "summary": "Published/Persuasive with Modification follow-up introduced a specific Money type with value and currency and renamed the old Quantity-based profile to MoneyQuantity.",
+    "learned": "The current Money datatype no longer has code/system elements, so the old invariant belongs only to the Quantity-style MoneyQuantity profile.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:11,23-26; source/datatypes/money.xml:820-889; source/datatypes/quantity.xml:4094-4098",
+    "summary": "Active datatype configuration includes Money and MoneyQuantity; Money has value/currency rows while MoneyQuantity retains the corrected ISO 4217 invariant.",
+    "learned": "Current build-scoped source is already consistent with FHIR-15611 and the later Money rework.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-15611 Money invariant context",
+    "command": "bun run zulip:search fts 'Money invariant mny' --limit 10; bun run confluence:search fts 'Money invariant mny' --limit 10; bun run confluence:search refs jira FHIR-15611",
+    "query": "Money invariant mny; FHIR-15611",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

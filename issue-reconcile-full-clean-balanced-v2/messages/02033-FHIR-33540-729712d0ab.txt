@@ -1,0 +1,124 @@
+FHIR-33540: Audit itemWeight expansion property application
+
+Issue request:
+FHIR-33540 was Published with a Persuasive with Modification Vocabulary resolution for R5. The original request asked for ordinalValue/itemWeight weights from coded concepts to be visible in value set expansions. The accepted resolution changed the mechanism: remove CodeSystem.concept, ValueSet.compose.include.concept, and ValueSet.expansion.contains contexts from the itemWeight extension; state that CodeSystem and ValueSet use the defined concept property http://hl7.org/fhir/concept-properties#itemWeight; add itemWeight to the FHIR Defined Concept Properties CodeSystem with decimal type; and update the defined-properties table.
+
+Initial application:
+Core commit 3d7a100629ff78f7ad6b25489616e332ce2d6a5e added itemWeight to source/codesystem/codesystem-concept-properties.xml. A same-day adjacent core commit f43f55953f3d55407718d24c676f2471597f9deb added the itemWeight row to source/codesystem/codesystem-notes.xml. Extension Pack commit 784a10b5c83c80ad7f387b244b4eee65558ec624 removed the CodeSystem and ValueSet contexts from StructureDefinition-itemWeight and added the CodeSystem/ValueSet property guidance.
+
+Additional context:
+source/fhir.ini actively includes the CodeSystem and ValueSet resources and the concept-properties CodeSystem, so the checked source surfaces are in current build scope. Later FHIR-48428 concept-property work added explicit dataType metadata, leaving itemWeight with dataType decimal. ValueSet.$expand already has a property input parameter that can request named or URI properties, and ValueSet.expansion.contains.property carries property values in expansions. A 2026 Zulip discussion about ValueSet.compose weights confirmed the current interpretation that value-set weights are handled as a property; it raised a compose.include.concept question, but no discovered Jira or WG decision reverses FHIR-33540 or supports restoring extension contexts.
+
+AutoFHIR reconciliation:
+Made no source change. The current core source already contains concept-properties#itemWeight with decimal type, the defined-properties table includes itemWeight, ValueSet expansion supports returned properties, and the Extension Pack itemWeight definition no longer allows the removed CodeSystem/ValueSet extension contexts while pointing users to the itemWeight property.
+
+Recommendation:
+Keep this audit commit as-is. Do not restore ordinalValue/itemWeight extension contexts in core; any future desire to attach weights directly to ValueSet.compose.include.concept should be handled as a new Vocabulary/FHIR-I decision rather than as incomplete application of FHIR-33540.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-33540
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-31393: same-change-family - earlier Published issue added ValueSet.expansion.contains context for ordinalValue; FHIR-33540 later superseded that extension-context mechanism with the itemWeight concept property.
+FHIR-22698: background - earlier Resolved - No Change issue recorded that expansion property support was the intended general mechanism rather than a one-off extension mechanism.
+FHIR-17824: background - created the older general ordinalValue extension contexts that FHIR-33540 later narrowed for CodeSystem and ValueSet use.
+FHIR-48428: later-change - later applied work added explicit dataType values to the Concept Properties CodeSystem, including itemWeight as decimal.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-33540: Published/Persuasive with Modification request to replace CodeSystem and ValueSet itemWeight extension contexts with concept-properties#itemWeight and add the decimal concept property. Learned: this establishes the current intended mechanism.
+- E2 Source source/fhir.ini:170,227,270,1264-1267: ValueSet and CodeSystem are active resources and concept-properties is an active CodeSystem source. Learned: the inspected core source surfaces are in current build scope.
+- E3 Source source/codesystem/codesystem-concept-properties.xml:197-203: itemWeight is present in the FHIR Defined Concept Properties CodeSystem with dataType decimal. Learned: the machine-readable concept property requested by the issue exists.
+- E4 Source source/codesystem/codesystem-notes.xml:273-275: the defined-properties table lists itemWeight as a decimal property with the numeric weighting definition. Learned: the requested narrative table surface is present.
+- E5 Source source/valueset/operationdefinition-ValueSet-expand.xml:224-229 and source/valueset/structuredefinition-ValueSet.xml:1273-1311: $expand can request properties and expansion concepts can carry property values. Learned: expansion output has the current property-based carrier for itemWeight.
+- E6 Extension Pack /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-itemWeight.xml:41-65: itemWeight is no longer scoped to CodeSystem.concept, ValueSet.compose.include.concept, or ValueSet.expansion.contains, and its definition points CodeSystem/ValueSet users to the itemWeight property. Learned: the extension-side portion of the resolution is already applied outside core.
+- E7 Git 3d7a100629ff78f7ad6b25489616e332ce2d6a5e, f43f55953f3d55407718d24c676f2471597f9deb, 784a10b5c83c80ad7f387b244b4eee65558ec624, and 2bc7ab59c65b2fabdf8631bc3af22d997763853a: historical commits added the concept property, table row, extension context removal/guidance, and later dataType=decimal metadata. Learned: current source state is the result of applied and later refining changes, not an omission.
+- E8 Community Confluence/Zulip search: Jan 2023 Vocabulary WGM minutes reference FHIR-33540, direct Zulip key search found no FHIR-33540 thread, and a 2026 questionnaire thread says value-set weights are handled as a property. Learned: no discovered community evidence conflicts with the property-based resolution.
+- E9 Verification command/query: rg assertions found itemWeight/dataType/table/$expand/property support and no removed CodeSystem/ValueSet itemWeight extension contexts. Learned: the current source matches the final decision without an edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-33540",
+    "url": "https://jira.hl7.org/browse/FHIR-33540",
+    "snapshot_path": "contexts/FHIR-33540/jira/FHIR-33540.md",
+    "ref": { "jira_key": "FHIR-33540" },
+    "summary": "Published/Persuasive with Modification issue requiring itemWeight to be represented for CodeSystem and ValueSet by concept-properties#itemWeight rather than CodeSystem/ValueSet extension contexts.",
+    "learned": "This is the final WG decision and establishes that the current property-based mechanism, not restored extension contexts, is the target state.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,227,270,1264-1267",
+    "summary": "fhir.ini includes ValueSet and CodeSystem as active resources and maps concept-properties to codesystem/codesystem-concept-properties.xml in [codesystems].",
+    "learned": "The inspected core CodeSystem, ValueSet, and concept-properties sources are in current build scope.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/codesystem/codesystem-concept-properties.xml:197-203",
+    "summary": "The Concept Properties CodeSystem contains code itemWeight with dataType decimal.",
+    "learned": "The machine-readable concept property requested by FHIR-33540 exists with the required type.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/codesystem/codesystem-notes.xml:273-275",
+    "summary": "The defined-properties narrative table lists itemWeight as a decimal property and describes numeric weighting for concepts.",
+    "learned": "The requested CodeSystem page table surface is present.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/valueset/operationdefinition-ValueSet-expand.xml:224-229; source/valueset/structuredefinition-ValueSet.xml:1273-1311",
+    "summary": "$expand has a property input parameter and ValueSet.expansion.contains.property carries property values for expansion concepts.",
+    "learned": "The current expansion model can expose itemWeight through the approved property mechanism.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-itemWeight.xml:41-65",
+    "summary": "The Extension Pack itemWeight definition is scoped to Coding and questionnaire answer elements, and says CodeSystem/ValueSet item weight is represented by the itemWeight property.",
+    "learned": "The extension-side removal of CodeSystem and ValueSet contexts is already applied outside the core checkout.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "3d7a100629ff78f7ad6b25489616e332ce2d6a5e; f43f55953f3d55407718d24c676f2471597f9deb; 784a10b5c83c80ad7f387b244b4eee65558ec624; 2bc7ab59c65b2fabdf8631bc3af22d997763853a",
+    "ref": { "core_commit": "3d7a100629ff78f7ad6b25489616e332ce2d6a5e", "table_commit": "f43f55953f3d55407718d24c676f2471597f9deb", "extension_commit": "784a10b5c83c80ad7f387b244b4eee65558ec624", "datatype_commit": "2bc7ab59c65b2fabdf8631bc3af22d997763853a" },
+    "summary": "Historical commits added the itemWeight concept property, the defined-properties table row, the Extension Pack context removal/guidance, and later dataType=decimal metadata.",
+    "learned": "The current source state is consistent with initial application plus later refinement rather than an unapplied seed issue.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community search for FHIR-33540 and itemWeight",
+    "command": "bun run confluence:search refs jira FHIR-33540; bun run confluence:search snapshot 139667553; bun run zulip:search fts '\"FHIR-33540\" itemWeight ordinalValue expand' --limit 10; bun run zulip:search snapshot questionnaire 'Weights in ValueSet.compose with itemWeight'",
+    "query": "FHIR-33540 itemWeight ordinalValue expand",
+    "result_count": 7,
+    "summary": "Confluence found Vocabulary WGM minutes referencing FHIR-33540; direct Zulip key search found no FHIR-33540 thread; a 2026 questionnaire thread discussed ValueSet.compose weights and stated value-set weights are handled as a property.",
+    "learned": "No discovered community evidence reverses the property-based FHIR-33540 resolution or requires a current core source edit.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Local source assertions",
+    "command": "rg -n '<code value=\"itemWeight\"/>|<valueCode value=\"decimal\"/>|\\.\\.\\.itemWeight|<name value=\"property\"/>|ValueSet\\.expansion\\.contains\\.property|In the CodeSystem and ValueSet resources' source/codesystem/codesystem-concept-properties.xml source/codesystem/codesystem-notes.xml source/valueset/operationdefinition-ValueSet-expand.xml source/valueset/structuredefinition-ValueSet.xml /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-itemWeight.xml; rg -n '<expression value=\"CodeSystem\\.concept\"/>|<expression value=\"ValueSet\\.compose\\.include\\.concept\"/>|<expression value=\"ValueSet\\.expansion\\.contains\"/>' /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-itemWeight.xml || true",
+    "summary": "Assertions found itemWeight, dataType=decimal, the table row, $expand/property support, and no removed CodeSystem/ValueSet itemWeight extension contexts.",
+    "learned": "The current source matches the final decision without a source edit.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

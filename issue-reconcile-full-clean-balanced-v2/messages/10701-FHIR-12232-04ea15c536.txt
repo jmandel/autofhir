@@ -1,0 +1,118 @@
+FHIR-12232: Audit JSON Schema generation repairs
+
+Issue request:
+FHIR-12232 was a Published/Persuasive FHIR-core DSTU2 change request reporting invalid generated JSON Schemas: wrong boolean typing, missing base resources such as DomainResource, extension property naming problems, missing # fragments for external schema references, blank inheritance references, dotted element names, ResourceList/ResourceContainer inconsistency, untyped extension arrays, and missing code binding support. The Jira request said fixes would be checked into trunk, and the later Jira comment says the issue was fully resolved during the 2018 January WGM.
+
+Initial application:
+The issue has an explicit historical application commit: 2f573be67f84dc9fc721df2d62cd5b2e956c74ff, titled "Fixed JSON Schema generation issues", links the old GForge tracker item 12232 and changed the old in-repository JSON Schema generator to include base resources, normalize dotted names in schema file names, use ResourceContainer-style external references, and emit a ResourceList schema. Later January 2018 "fix json schema" commits 4757010487355c7ad9910dc788395f5a1d37d167 and 05bfe5879059bdbd9f7dee5594f67ec819c8c85e further repaired the old generator by excluding abstract resources from ResourceList branches, adding resourceType discriminator/required behavior, updating single-schema publication wiring, and updating downloads text.
+
+Additional context:
+The old Java SchemaGenerator touched by the historical fixes was removed from this core checkout in 2021 when the build switched to the Gradle Kindling dependency. Current build-scoped source still exposes the generated JSON Schema through source/downloads.html and source/validation.html, both active through publish.ini and source/hierarchy.xml. A current build.fhir.org fhir.schema.json.zip check shows one draft-06 schema with 704 definitions; ResourceList has only internal #/definitions references, no Resource or DomainResource abstract branches, one Parameters branch, and concrete resources require resourceType consts. Spot checks also found primitive extension sibling names such as _active, typed extension arrays, choice names without dots, and at least some code-valued enum generation. Closely related JSON Schema issues FHIR-13218, FHIR-14210, and FHIR-17696 are already represented on the combined branch and should not be duplicated here.
+
+AutoFHIR reconciliation:
+This is an empty no-change audit commit. The current FHIR core source is already correct for FHIR-12232: the historical in-repo generator was fixed before being externalized, the current generated schema surface no longer exhibits the listed invalid-schema defects checked here, and there is no current checked-in schema JSON or old generator source in this checkout that should be edited.
+
+Recommendation:
+Keep this commit as-is. Future JSON Schema defects should be investigated in the current Kindling/publisher generator and generated artifact pipeline; do not add redundant core narrative or edit generated-looking schema artifacts unless the active source text or current generated output becomes misleading.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12232
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13218: same-change-family - A later Published STU3 issue reported generated JSON Schema errors and is already audited on the combined branch as no-change.
+FHIR-14210: same-change-family - A later Published STU3 issue focused on ResourceList/abstract-resource JSON Schema ambiguity and is already audited on the combined branch as no-change.
+FHIR-17696: later-change - A later Published STU3 ResourceList ambiguity and duplicate Parameters report is already audited on the combined branch as no-change.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12232: Published/Persuasive FHIR-core DSTU2 issue lists multiple invalid JSON Schema generation defects and says fixes would be checked into trunk; Jira comment says fully resolved during the 2018 January WGM. Learned: this is a final applied issue whose requested outcome was generator/output repair, not new normative prose.
+- E2 Git 2f573be67f84dc9fc721df2d62cd5b2e956c74ff: explicit GForge tracker 12232 commit changed the old JSON Schema generator to include base resources, normalize dotted names, use ResourceContainer-style references, and emit ResourceList.schema.json. Learned: source history contains a direct initial application for the seed issue.
+- E3 Git 4757010487355c7ad9910dc788395f5a1d37d167 and 05bfe5879059bdbd9f7dee5594f67ec819c8c85e: January 2018 "fix json schema" commits repaired ResourceList generation, resourceType discriminator behavior, schema publication wiring, and downloads text. Learned: the later Jira comment's January 2018 resolution aligns with additional generator fixes.
+- E4 Source build.gradle.kts:46-48,132-140; gradle.properties:2; source/downloads.html:56-61; source/validation.html:240-248; source/hierarchy.xml:225-228; publish.ini:264,393; tools/templates/template-json-schema.html:12-17: current source delegates publishing to Kindling and actively links the generated fhir.schema.json.zip from build-scoped downloads/validation pages. Learned: JSON Schema remains an active generated artifact, but the old in-repo generator is no longer a current core source edit target.
+- E5 Published-spec check https://build.fhir.org/fhir.schema.json.zip: parsed the current fhir.schema.json as draft-06 with 704 definitions; ResourceList has 127 internal refs, no Resource/DomainResource abstract refs or definitions, one Parameters ref, and resourceType consts on concrete resources. Learned: the current generated artifact does not retain the main invalid-schema defects around base resources and ResourceList/ResourceContainer references.
+- E6 Published-spec spot check: Patient.active uses boolean with _active extension sibling, extension arrays include array type and Extension items, Observation choice names omit dots, ResourceList refs include # fragments, and Identifier.use has an enum. Learned: sampled current output addresses representative items from the FHIR-12232 defect list.
+- E7 Community search: Jira FTS found only FHIR-12232 for JSON Schema/ResourceContainer and invalid-schema terms; Zulip searches for FHIR-12232 and JSON Schema ResourceContainer found no results; Confluence refs/FTS found no FHIR-12232 pages. Learned: no discovered community or minutes evidence changes the Jira/source/history conclusion.
+- E8 Combined-branch check: FHIR-13218, FHIR-14210, and FHIR-17696 already have Issue-Reconcile-Key commits on robo-spec-combined-issue-reconcile-full-clean-balanced-v2. Learned: related JSON Schema issues should be cited as context, not duplicated by this seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12232",
+    "url": "https://jira.hl7.org/browse/FHIR-12232",
+    "snapshot_path": "contexts/FHIR-12232/jira/FHIR-12232.md",
+    "ref": { "jira_key": "FHIR-12232" },
+    "summary": "Published/Persuasive FHIR-core DSTU2 issue reporting invalid JSON Schema generation across booleans, base resources, extension names, references, ResourceList/ResourceContainer, extension arrays, and code bindings.",
+    "learned": "This establishes final WG intent to repair generated JSON Schema output rather than add new normative prose.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "FHIR core 2f573be67f84dc9fc721df2d62cd5b2e956c74ff",
+    "ref": { "commit": "2f573be67f84dc9fc721df2d62cd5b2e956c74ff" },
+    "summary": "Explicit tracker 12232 commit changed the old Java JSON Schema generator to include base resources, normalize dotted schema filenames, use ResourceContainer-style external refs, and emit ResourceList.schema.json.",
+    "learned": "This is the direct historical source application for the seed issue.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "FHIR core 4757010487355c7ad9910dc788395f5a1d37d167; 05bfe5879059bdbd9f7dee5594f67ec819c8c85e",
+    "ref": { "commits": "4757010487355c7ad9910dc788395f5a1d37d167,05bfe5879059bdbd9f7dee5594f67ec819c8c85e" },
+    "summary": "January 2018 'fix json schema' commits repaired ResourceList generation, resourceType discriminator behavior, schema publication wiring, and downloads text.",
+    "learned": "These commits align with the Jira comment that the issue family was fully resolved during the 2018 January WGM.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "build.gradle.kts:46-48,132-140; gradle.properties:2; source/downloads.html:56-61; source/validation.html:240-248; source/hierarchy.xml:225-228; publish.ini:264,393; tools/templates/template-json-schema.html:12-17",
+    "summary": "The current core build uses the Kindling dependency for publication and active downloads/validation pages link to fhir.schema.json.zip.",
+    "learned": "JSON Schema remains an active generated artifact, but the old in-repo generator source is no longer a current source edit target.",
+    "supports": ["build_scope", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/fhir.schema.json.zip",
+    "url": "https://build.fhir.org/fhir.schema.json.zip",
+    "command": "curl -fsSL https://build.fhir.org/fhir.schema.json.zip -o /tmp/fhir.schema.json.zip; python3 parse fhir.schema.json ResourceList and concrete resource definitions",
+    "summary": "The current schema parses as draft-06 with 704 definitions; ResourceList has 127 internal refs, no Resource/DomainResource abstract refs or definitions, one Parameters branch, and resourceType consts on concrete resources.",
+    "learned": "The current generated artifact no longer exhibits the main invalid-schema defects checked for FHIR-12232.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "Representative current fhir.schema.json property checks",
+    "command": "python3 parse current fhir.schema.json for Patient.active/_active, extension arrays, Observation value[x] names, ResourceList refs, and Identifier.use enum",
+    "summary": "Patient.active uses boolean with _active extension sibling, extension arrays have array type and Extension items, Observation choice keys omit dots, ResourceList refs use # fragments, and Identifier.use has enum values.",
+    "learned": "Spot checks address representative bullets from the historical defect list and did not reveal a current core source problem.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative FHIR-12232 community search",
+    "command": "bun run jira:search fts '\"JSON Schema\" \"ResourceContainer\"' --limit 20; bun run jira:search fts '\"JSON Schema\" invalid schemas' --limit 20; bun run zulip:search fts '\"FHIR-12232\"' --limit 10; bun run zulip:search fts '\"JSON Schema\" \"ResourceContainer\"' --limit 10; bun run confluence:search refs jira FHIR-12232; bun run confluence:search fts '\"FHIR-12232\" \"JSON Schema\"' --limit 10",
+    "query": "FHIR-12232; JSON Schema ResourceContainer; JSON Schema invalid schemas",
+    "result_count": 1,
+    "summary": "Jira searches returned only FHIR-12232 for the targeted terms, and Zulip/Confluence searches found no relevant hits or refs.",
+    "learned": "No discovered community or minutes evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Combined branch related JSON Schema audit checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13218' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; same for FHIR-14210 and FHIR-17696",
+    "summary": "Related JSON Schema issues FHIR-13218, FHIR-14210, and FHIR-17696 already have audit commits on the combined branch.",
+    "learned": "These issues are useful context but should not be duplicated by this seed commit.",
+    "supports": ["related_jiras", "reconciliation"]
+  }
+]
+</evidence-manifest>

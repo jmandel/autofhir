@@ -1,0 +1,104 @@
+FHIR-13964: Audit vital-sign code discriminator application
+
+Issue request:
+FHIR-13964 was a Published/Persuasive STU3 OO change request to add system as a discriminator for code slicing in the vital signs profiles. The motivating BodyTemp discussion noted that slicing Coding only by code could collide when different code systems reuse the same code value.
+
+Initial application:
+The historical application is present in git as 1eb8db446d5aca682e107a14e5fbb3b4e22d606a, "GF#13897, GF#13964, GF#14037 vitals profiles slicing", which changed the then-authoritative source/observation/observation-vitalsigns-profile-spreadsheet.xml on 2018-02-23. No existing combined-branch reconciliation commit for Issue-Reconcile-Key: FHIR-13964 was found before this audit.
+
+Additional context:
+The current Observation vital signs IG references the active profile StructureDefinitions for vitalsigns, vitalspanel, bp, bodytemp, bodyheight, bodyweight, bmi, headcircum, resprate, heartrate, and oxygensat. The current per-measurement profiles no longer model the identifying code with code.coding slices; they constrain Observation.code using patternCodeableConcept with a LOINC system and code, and the vital-sign narrative explicitly tells implementers to test whether the pattern coding is present rather than comparing code.coding literally. The referenced Zulip thread says discriminator-on-code-and-system is semantically the same as a pattern CodeableConcept for this use, and later current-source refactors already adopted that representation. FHIR-13968 is an already-published audit on the combined branch for adjacent vital-sign code inclusion wording.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source changes. The current source expresses the requested system-and-code discrimination through patternCodeableConcept rather than through the older STU3 code.coding slicing representation, and adding redundant slicing would change representation without improving current implementer guidance.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce code.coding slicing solely to match the old tracker wording unless the work group decides to reverse the current patternCodeableConcept representation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13964
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13897: same-change-family - bundled in the historical source commit that also named GF#13964; not independently decided here.
+FHIR-14037: same-change-family - bundled in the historical source commit that also named GF#13964; already represented on the combined branch and not independently decided here.
+FHIR-13968: supporting-decision - already represented on the combined branch and audits adjacent vital-sign code inclusion wording that supports the no-change conclusion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13964: Published/Persuasive OO change request to add system as discriminator for vital-sign code slicing. Learned: this establishes the final request and its STU3 scope.
+- E2 Zulip #implementers > code.coding slicing and it's code in FHIR BodyTemp profile: Lloyd McKenzie recommended slicing by both system and code; Eric Haas linked GF#13964 and noted discriminator-on-code-and-system is equivalent to a pattern CodeableConcept. Learned: the desired semantic is system+code matching while allowing other codings.
+- E3 Git 1eb8db446d5aca682e107a14e5fbb3b4e22d606a: "GF#13897, GF#13964, GF#14037 vitals profiles slicing" changed source/observation/observation-vitalsigns-profile-spreadsheet.xml. Learned: the issue had an explicit historical application in the old source representation.
+- E4 Source source/observation/implementationguide-Observation-vitalsigns.xml:28-83: lists current vital-sign StructureDefinition resources. Learned: the checked current profile XMLs are in build scope for the vital-sign IG.
+- E5 Source source/observation/structuredefinition-profile-bodytemp.xml:62-70 and sibling profile check: the per-measurement profiles constrain Observation.code with patternCodeableConcept containing http://loinc.org plus the identifying LOINC code. Learned: current source carries the requested system+code semantics without code.coding slicing.
+- E6 Source source/observation/observation-vitalsigns.html:104-106: current narrative says vital-sign profiles use patternCodeableConcept and implementers should check whether the Coding is in the CodeableConcept. Learned: current implementer guidance matches the post-refactor representation and does not need duplicate discriminator prose.
+- E7 Command duplicate/community check: combined branch has no Issue-Reconcile-Key: FHIR-13964, Confluence refs search found no references, and the referenced Zulip thread was found. Learned: there is no duplicate audit commit or conflicting community evidence.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13964",
+    "url": "https://jira.hl7.org/browse/FHIR-13964",
+    "snapshot_path": "contexts/FHIR-13964/jira/FHIR-13964.md",
+    "ref": { "jira_key": "FHIR-13964" },
+    "summary": "Published/Persuasive OO change request to add system as discriminator for code slicing in vital signs profiles.",
+    "learned": "This establishes final WG intent and the STU3 issue scope.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > code.coding slicing and it's code in FHIR BodyTemp profile",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/code.coding%20slicing%20and%20it's%20code%20in%20FHIR%20BodyTemp%20profile",
+    "ref": { "stream": "implementers", "topic": "code.coding slicing and it's code in FHIR BodyTemp profile" },
+    "summary": "Thread records the BodyTemp concern, the recommendation to slice by both system and code, the GF#13964 filing, and the observation that discriminator-on-system-and-code is equivalent to a pattern CodeableConcept.",
+    "learned": "The requested semantic is system+code matching while retaining open additional codings.",
+    "supports": ["issue_request", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "1eb8db446d5aca682e107a14e5fbb3b4e22d606a",
+    "ref": { "commit": "1eb8db446d5aca682e107a14e5fbb3b4e22d606a" },
+    "summary": "Commit 'GF#13897, GF#13964, GF#14037 vitals profiles slicing' changed source/observation/observation-vitalsigns-profile-spreadsheet.xml on 2018-02-23.",
+    "learned": "FHIR-13964 had an explicit historical application in the old source representation.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/observation/implementationguide-Observation-vitalsigns.xml:28-83",
+    "summary": "The current vital signs IG lists the active StructureDefinition resources for vitalsigns and the named vital-sign profiles.",
+    "learned": "The inspected profile XML files are current build-scope source for the vital signs IG.",
+    "supports": ["additional_context", "source_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-bodytemp.xml:62-70 and sibling profile command check",
+    "summary": "BodyTemp and the sibling per-measurement vital-sign profiles constrain Observation.code with patternCodeableConcept containing system http://loinc.org and the profile's identifying LOINC code.",
+    "learned": "The current representation already carries the requested system+code semantics without code.coding slicing.",
+    "supports": ["reconciliation", "source_check"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/observation/observation-vitalsigns.html:104-106",
+    "summary": "Narrative explains that the profiles use patternCodeableConcept for Observation.code and that implementers should test Coding inclusion rather than literal code.coding equality.",
+    "learned": "Current implementer guidance aligns with the source representation and does not need duplicate discriminator prose.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Duplicate and community checks for FHIR-13964",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13964' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run zulip:search snapshot implementers \"code.coding slicing and it's code in FHIR BodyTemp profile\"; bun run confluence:search refs jira FHIR-13964",
+    "summary": "No existing FHIR-13964 reconciliation commit or Confluence references were found, and the referenced Zulip discussion was found.",
+    "learned": "There is no duplicate audit commit or conflicting community evidence to change the source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,108 @@
+FHIR-39600: Audit endpoint connection terminology restoration
+
+Issue request:
+FHIR-39600 was an Applied/Persuasive Patient Administration correction reporting that UP-344 removed IHE endpoint-connection-type codes from THO, causing R4 and R4B Endpoint instances using codes such as ihe-xcpd to fail validation even though those codes were valid in the published R4/R4B code system.
+
+Initial application:
+No FHIR-core source commit was found for FHIR-39600. The active core Endpoint source already binds Endpoint.connectionType to http://hl7.org/fhir/ValueSet/endpoint-connection-type, and that value set composes all codes from the THO CodeSystem http://terminology.hl7.org/CodeSystem/endpoint-connection-type. The actual broken change was the external UTG/THO UP-344 update that removed the IHE concepts.
+
+Additional context:
+UP-529 was the UTG/THO follow-up for FHIR-39600 and restored the removed endpoint connection concepts as deprecated. Current THO CodeSystem endpoint-connection-type version 2.1.1 contains ihe-xcpd, ihe-xca, ihe-xdr, ihe-xds, and ihe-iid with status=deprecated, and THO release notes for version 5.5.0 list UP-529. Zulip discussion confirms the issue was considered a THO policy/terminology problem rather than a core source or extension-pack edit.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no FHIR-core source change. The authoritative current core source is in build scope and correctly delegates the code inventory to THO; the compatibility repair was applied in the external UTG/THO source of truth.
+
+Recommendation:
+Keep this audit commit as-is. No core source change is needed unless FHIR later stops delegating this value set to THO. If validation problems recur, follow up in THO/UTG or terminology-server version handling rather than editing FHIR-core Endpoint source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-39600
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+UP-344: background - external UTG change removed the IHE endpoint connection concepts and triggered the compatibility break.
+UP-529: supporting-decision - external UTG correction for FHIR-39600 restored those concepts as deprecated and was published in THO 5.5.0.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-39600: Applied/Persuasive PA issue asking for the removed IHE endpoint connection codes to be restored in THO with deprecated status. Learned: the final WG request was an external terminology correction, not a core structure change.
+- E2 Source source/endpoint/structuredefinition-Endpoint.xml:145 and source/endpoint/valueset-endpoint-connection-type.xml:34: Endpoint.connectionType has an example binding to the active Endpoint Connection Type value set, whose compose includes the THO endpoint-connection-type CodeSystem. Learned: core build-scope source already points at the authoritative external terminology.
+- E3 Jira UP-529: Proposal Implemented UTG ticket for FHIR-39600 modified CodeSystem-endpoint-connection-type to add back the concepts removed by UP-344 and mark them deprecated. Learned: the requested repair was applied in UTG/THO.
+- E4 Published THO CodeSystem endpoint-connection-type JSON: current version 2.1.1 includes ihe-xcpd, ihe-xca, ihe-xdr, ihe-xds, and ihe-iid with status=deprecated. Learned: the current published terminology surface satisfies the compatibility request.
+- E5 Zulip #IG creation > R4 endpoint-connection-type validation bug and #terminology / utg > deprecating concepts: discussion identified the UP-344 removal as against THO policy, then linked UP-529 as the applied endpoint fix. Learned: community evidence supports treating this as a THO/UTG audit rather than a FHIR-core edit.
+- E6 Confluence THO 5.5.0 release notes: lists UP-529 with FHIR-39600 among changes published in THO version 5.5.0. Learned: the external terminology correction reached a published THO release.
+- E7 Git/source checks: git log found no FHIR-core FHIR-39600 commit, and source/fhir.ini has Endpoint active. Learned: there is no missed in-scope core source application to repair.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-39600",
+    "url": "https://jira.hl7.org/browse/FHIR-39600",
+    "snapshot_path": "contexts/FHIR-39600/jira/FHIR-39600.md",
+    "ref": { "jira_key": "FHIR-39600" },
+    "summary": "Applied/Persuasive issue reporting that UP-344 removed IHE endpoint connection codes from THO and broke validation of R4/R4B Endpoint instances.",
+    "learned": "The approved resolution requested a THO/UTG correction restoring the removed codes as deprecated, not a FHIR-core structure edit.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/endpoint/structuredefinition-Endpoint.xml:145; source/endpoint/valueset-endpoint-connection-type.xml:34",
+    "ref": { "paths": "source/endpoint/structuredefinition-Endpoint.xml;source/endpoint/valueset-endpoint-connection-type.xml" },
+    "summary": "Endpoint.connectionType binds to the core Endpoint Connection Type value set, and that value set includes the THO endpoint-connection-type CodeSystem.",
+    "learned": "The active core source delegates the code inventory to THO, so restoring or deprecating individual concepts belongs in UTG/THO.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "UP-529",
+    "url": "https://jira.hl7.org/browse/UP-529",
+    "ref": { "jira_key": "UP-529" },
+    "summary": "Proposal Implemented UTG ticket whose proposal description says to add back the endpoint connection concepts removed in the last change and mark them deprecated.",
+    "learned": "The FHIR-39600 remedy was implemented in the external terminology source of truth.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "https://terminology.hl7.org/CodeSystem-endpoint-connection-type.json",
+    "url": "https://terminology.hl7.org/CodeSystem-endpoint-connection-type.json",
+    "command": "curl -fsSL https://terminology.hl7.org/CodeSystem-endpoint-connection-type.json | jq -r '.version, (.concept[]? | select(.code|test(\"^ihe-\")) | [.code, ((.property[]? | select(.code==\"status\") | .valueCode) // \"\")] | @tsv)'",
+    "summary": "Current THO CodeSystem version 2.1.1 contains the IHE endpoint codes with status=deprecated.",
+    "learned": "The published terminology now preserves backward compatibility while steering users away from the old codes.",
+    "supports": ["verification", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#IG creation > R4 endpoint-connection-type validation bug; #terminology / utg > deprecating concepts",
+    "url": "https://chat.fhir.org/#narrow/stream/IG%20creation/topic/R4%20endpoint-connection-type%20validation%20bug",
+    "summary": "Discussion identified the UP-344 removal as a THO policy problem, and later UTG discussion linked UP-529 as the endpoint fix.",
+    "learned": "Community evidence confirms the scope is THO/UTG terminology, not FHIR-core source.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "Published in THO version 5.5.0 page 256186728",
+    "url": "https://confluence.hl7.org/spaces/TSMG/pages/256186728/Published+in+THO+version+5.5.0",
+    "ref": { "confluence_page_id": 256186728 },
+    "summary": "THO 5.5.0 release notes list UP-529 as 'FHIR-39600 Endpoint connection type cleanup'.",
+    "learned": "The external terminology correction was included in a published THO release.",
+    "supports": ["additional_context", "verification"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Core source and history checks",
+    "command": "rg -n 'endpoint-connection-type|ihe-xcpd|FHIR-39600|UP-529' source; git log --all --grep='FHIR-39600|UP-344|UP-529' -- source/endpoint; rg -n '^Endpoint=|\\[resources\\]' source/fhir.ini",
+    "summary": "Endpoint is active in fhir.ini; no FHIR-core commit mentioning FHIR-39600 was found; current source points Endpoint.connectionType through the endpoint value set to THO.",
+    "learned": "There is no missed build-scope FHIR-core source change needed for this issue.",
+    "supports": ["source_scope", "absence_of_core_change", "confidence"]
+  }
+]
+</evidence-manifest>

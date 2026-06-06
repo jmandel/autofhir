@@ -1,0 +1,128 @@
+FHIR-25278: Audit Appointment request references
+
+Issue request:
+FHIR-25278 was a Published PA change request, resolved Persuasive with Modification for R5. The submitter asked whether Appointment.reasonReference should point to request resources because appointments are often scheduled before the related procedure exists. The approved resolution kept the distinction between Appointment.reason and Appointment.basedOn, and specifically directed adding MedicationRequest, DeviceRequest, and CarePlan as allowed references on Appointment.basedOn.
+
+Initial application:
+The change was applied in git commit 6363f23c2f7c79b1c14a3fe3a5efa484a5c48d7f, "FHIR-25278 Appointment.basedOn References", which changed Appointment.basedOn from a ServiceRequest-only reference to a general request reference and added CarePlan, DeviceRequest, and MedicationRequest alongside ServiceRequest. That commit also updated the short and definition from "service request" to "request".
+
+Additional context:
+The Appointment resource is active in source/fhir.ini, so source/appointment/structuredefinition-Appointment.xml is in current build scope. Current source still keeps Appointment.reason as a CodeableReference to clinical reason resources while Appointment.basedOn carries the authorization/request references. Later FHIR-40634 broadened Appointment.basedOn with additional request types but preserved the FHIR-25278 CarePlan, DeviceRequest, and MedicationRequest targets. The 2021 and 2022 PA WGM minutes and the linked Zulip discussion support the same distinction: the request originated as a reasonReference question, but the final disposition used basedOn for the scheduling request relationship.
+
+AutoFHIR reconciliation:
+No source change was made. The current active Appointment StructureDefinition already contains the three target profiles required by FHIR-25278 on Appointment.basedOn, and editing Appointment.reason to duplicate request references would conflict with the accepted resolution's separation of reason from basedOn.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-25278 unless PA later decides to change the separate Appointment.reason guidance about Procedure, which was explicitly left as a Patient Care/detail question in the 2022 WGM minutes and is outside this issue's applied basedOn change.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25278
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-40634: later-change - broadened Appointment.basedOn with additional request-like targets after FHIR-25278 while preserving CarePlan, DeviceRequest, and MedicationRequest.
+FHIR-32382: background - O&O device boundary issue mentioned during PA discussion; it clarified Device/DeviceRequest usage generally but did not change Appointment.basedOn.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25278: Published/Persuasive with Modification; resolution says Appointment.reason and Appointment.basedOn both cover why an appointment happens, and adds MedicationRequest, DeviceRequest, and CarePlan to basedOn. Learned: the final WG intent was a basedOn target-profile change, not adding request targets to reason.
+- E2 Source source/fhir.ini:231: Appointment is an active resource entry. Learned: the Appointment StructureDefinition is in current build scope.
+- E3 Source source/appointment/structuredefinition-Appointment.xml:837: Appointment.basedOn currently targets CarePlan, DeviceRequest, MedicationRequest, ServiceRequest, RequestOrchestration, NutritionOrder, and VisionPrescription. Learned: the three requested FHIR-25278 targets are present in current source.
+- E4 Source source/appointment/structuredefinition-Appointment.xml:393: Appointment.reason remains a CodeableReference to Condition, DiagnosticReport, Procedure, and Observation. Learned: current source preserves the accepted reason-vs-basedOn separation.
+- E5 Git 6363f23c2f7c79b1c14a3fe3a5efa484a5c48d7f: added CarePlan, DeviceRequest, and MedicationRequest to Appointment.basedOn and changed its text from service request to request. Learned: the issue was explicitly applied in source history.
+- E6 Confluence 2022 May WGM PA minutes page 101358522: records FHIR-25278 Persuasive with Mod, Brian Postlethwaite/Line Saele 11-0-0, with a note to seek Patient Care detail on Procedure in reason. Learned: the voted disposition supports the basedOn change and leaves Procedure-reason nuance out of this source fix.
+- E7 Zulip #implementers > Appointment.reasonReference: submitter asked about reasonReference pointing to request resources, with ServiceRequest, MedicationRequest, and DeviceRequest examples; PA later noted Appointment and Encounter already had basedOn(ServiceRequest). Learned: the discussion explains why the Jira was reframed to basedOn.
+- E8 Jira FHIR-40634 and git baf1be4ec0f6ae76e00adef9620c484b526e1433: later PA change added additional Appointment.basedOn targets. Learned: later related work expanded but did not supersede the FHIR-25278 targets.
+- E9 Verification commands: idempotency grep found no existing FHIR-25278 reconciliation commit on the combined branch, and current combined source grep found CarePlan, DeviceRequest, and MedicationRequest in Appointment.basedOn. Learned: publishing one empty audit commit is required and safe.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25278",
+    "url": "https://jira.hl7.org/browse/FHIR-25278",
+    "snapshot_path": "contexts/FHIR-25278/jira/FHIR-25278.md",
+    "ref": { "jira_key": "FHIR-25278" },
+    "summary": "Published/Persuasive with Modification issue requesting request-resource support for Appointment, resolved by adding MedicationRequest, DeviceRequest, and CarePlan to Appointment.basedOn.",
+    "learned": "This establishes the final applied target as Appointment.basedOn rather than adding request references to Appointment.reason.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:231",
+    "ref": { "path": "source/fhir.ini", "line": 231 },
+    "summary": "The resources section contains the active appointment=Appointment entry.",
+    "learned": "Appointment source files are in the current FHIR build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/appointment/structuredefinition-Appointment.xml:837-852",
+    "ref": { "path": "source/appointment/structuredefinition-Appointment.xml", "line": 837 },
+    "summary": "Appointment.basedOn is a Reference including CarePlan, DeviceRequest, MedicationRequest, ServiceRequest, RequestOrchestration, NutritionOrder, and VisionPrescription.",
+    "learned": "The three target profiles required by FHIR-25278 are already present in current source.",
+    "supports": ["reconciliation", "source_state"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/appointment/structuredefinition-Appointment.xml:393-405",
+    "ref": { "path": "source/appointment/structuredefinition-Appointment.xml", "line": 393 },
+    "summary": "Appointment.reason is a CodeableReference to Condition, DiagnosticReport, Procedure, and Observation.",
+    "learned": "Current source keeps the accepted separation between clinical reason and scheduling request/authorization.",
+    "supports": ["additional_context", "no_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "6363f23c2f7c79b1c14a3fe3a5efa484a5c48d7f",
+    "ref": { "commit": "6363f23c2f7c79b1c14a3fe3a5efa484a5c48d7f" },
+    "summary": "FHIR-25278 Appointment.basedOn References added CarePlan, DeviceRequest, and MedicationRequest and changed basedOn wording from service request to request.",
+    "learned": "The Jira-tagged implementation commit directly applied the requested target-profile change.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "2022 May WGM - Patient Administration page 101358522",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/101358522/2022+May+WGM+-+Patient+Administration",
+    "ref": { "confluence_page_id": 101358522 },
+    "summary": "PA minutes record FHIR-25278 as Persuasive with Mod, Brian Postlethwaite/Line Saele 11-0-0, with a Procedure-in-reason follow-up for Patient Care.",
+    "learned": "The vote supports the applied change while leaving Procedure reason detail outside this reconciliation.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > Appointment.reasonReference",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Appointment.reasonReference",
+    "ref": { "stream": "implementers", "topic": "Appointment.reasonReference" },
+    "summary": "The linked thread asks whether Appointment.reasonReference should point to request resources such as ServiceRequest, MedicationRequest, and DeviceRequest; PA later notes existing basedOn(ServiceRequest).",
+    "learned": "The community discussion explains the request examples and why the final Jira disposition used basedOn.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-40634 and git baf1be4ec0f6ae76e00adef9620c484b526e1433",
+    "url": "https://jira.hl7.org/browse/FHIR-40634",
+    "ref": { "jira_key": "FHIR-40634", "commit": "baf1be4ec0f6ae76e00adef9620c484b526e1433" },
+    "summary": "Later Applied/Persuasive with Modification issue added more request-like target types to Appointment.basedOn and Encounter.basedOn.",
+    "learned": "Later related work expanded the same element without reversing the FHIR-25278 targets.",
+    "supports": ["additional_context", "source_state"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Idempotency and current-source verification",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-25278' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir grep -n 'StructureDefinition/DeviceRequest\\|StructureDefinition/MedicationRequest\\|StructureDefinition/CarePlan' robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/appointment/structuredefinition-Appointment.xml source/appointment/appointment-request-mapping-exceptions.xml",
+    "summary": "No existing FHIR-25278 reconciliation commit was found; the combined branch source contains CarePlan, DeviceRequest, and MedicationRequest on Appointment.basedOn.",
+    "learned": "One empty audit commit is required, and no source edit is needed.",
+    "supports": ["idempotency", "verification"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,117 @@
+FHIR-25042: Audit contained-resource reference validation
+
+Issue request:
+FHIR-25042 was Published/Persuasive for FHIR-core after being raised against STU3 and applied for R5. It reported that QA/validator output rejected a DiagnosticReport containing two contained Observations where one contained Observation.derivedFrom referenced the other with a local `#...` reference. The Jira resolution was auto-approved; later comments classified this as a tooling issue, and the reporter confirmed the validator no longer rejected the attached file.
+
+Initial application:
+No source commit explicitly tagged FHIR-25042 was found, and no current source edit appears to have been needed for the published issue. The relevant Reference invariant had already been corrected in commit c26d2b6172e66e1f867d4ca766dc977cdcc95d5a, `fix ref-1 constraint (define %rootResource)`, which changed the local-reference lookup from `%resource.contained.id` to `%rootResource.contained.id` so a Reference evaluated inside a contained resource checks the root container's contained ids. Later ref-1 commits, including d87b97a367412efef9c243585bd036f4546fb9c5 and d0d047e3b0ef986cdd8729e4c9ad26ab903bac7f, preserved that behavior while adding the bare-# container-reference branch and the display-only guard.
+
+Additional context:
+Reference is an active datatype in source/fhir.ini and DomainResource is an active normative resource, so source/datatypes/reference.xml and source/domainresource/structuredefinition-DomainResource.xml are build-scope source. Current references.html says contained resources share the parent internal id resolution space, that fragment-only contained references stop at Bundle.entry.resource and Parameters.parameter.resource but not at DomainResource.contained, and that a contained resource may be referenced by something in the container, potentially another contained resource. The combined branch already contains no-change audits for adjacent contained-reference issues FHIR-31732 and FHIR-29408. Direct Zulip and Confluence searches for FHIR-25042 and the contained-reference validator terms found no conflicting community evidence.
+
+AutoFHIR reconciliation:
+Made no source change. The current active Reference ref-1 expression uses `%rootResource.contained.id` for local reference validation, which is the source-level behavior needed for a contained Observation to reference another contained Observation in the same DiagnosticReport. The remaining history points to an implementation-specific validator problem that has already been reported as resolved.
+
+Recommendation:
+Keep this empty audit commit as-is. No FHIR core source follow-up is needed for FHIR-25042; if a similar failure recurs, it should be handled as a validator/HAPI FHIR implementation issue rather than a spec source correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25042
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-31732: same-change-family - later/current ref-1 work on the same contained local-reference invariant; already represented on the combined branch.
+FHIR-29408: supporting-decision - adjacent contained-resource container-reference invariant audit; already represented on the combined branch.
+FHIR-37793: later-change - added the display-only Reference guard to ref-1 while preserving the `%rootResource.contained.id` behavior needed here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25042: Published/Persuasive FHIR-core issue reporting validator rejection of a contained Observation referencing another contained Observation; comments say this was a tooling issue and the reporter confirmed the validator was later OK. Learned: the final issue disposition does not require a current FHIR core source edit.
+- E2 Source source/datatypes/reference.xml:3473-3477 and source/fhir.ini:11-32,997,1222,1533: active Reference ref-1 uses `%rootResource.contained.id` when checking local references. Learned: the authoritative invariant already checks the root container's contained ids, which covers contained-to-contained references.
+- E3 Source source/references.html:740-755: contained-resource guidance says contained resources share the parent internal id space and that a contained resource can be referenced by something in the same container, potentially another contained resource. Learned: narrative guidance aligns with the current ref-1 behavior.
+- E4 Source source/domainresource/structuredefinition-DomainResource.xml:77-80 and source/fhir.ini:930-949: active DomainResource dom-3 permits contained resources that are referenced from elsewhere in the resource. Learned: the container-level invariant is consistent with accepting a contained resource referenced by another contained resource.
+- E5 Git c26d2b6172e66e1f867d4ca766dc977cdcc95d5a: changed ref-1 from `%resource.contained.id` to `%rootResource.contained.id` and documented `%rootResource`. Learned: source history shows the root cause described by FHIR-25042 was already corrected in the core invariant.
+- E6 Git d87b97a367412efef9c243585bd036f4546fb9c5 and d0d047e3b0ef986cdd8729e4c9ad26ab903bac7f: later ref-1 changes added the bare-# container-reference branch and display-only guard while preserving `%rootResource.contained.id`. Learned: later same-invariant work did not reverse the contained-to-contained allowance.
+- E7 Command Zulip/Confluence search for FHIR-25042 plus contained-reference validator terms: no relevant Zulip messages or Confluence references were found. Learned: no discovered community record conflicts with the Jira/source conclusion.
+- E8 Command combined-branch idempotency and related-audit checks: no existing FHIR-25042 audit was found, while FHIR-31732 and FHIR-29408 already have no-change audits on the combined branch. Learned: this commit is needed for FHIR-25042 and should not duplicate the adjacent issue decisions.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25042",
+    "url": "https://jira.hl7.org/browse/FHIR-25042",
+    "snapshot_path": "contexts/FHIR-25042/jira/FHIR-25042.md",
+    "ref": { "jira_key": "FHIR-25042" },
+    "summary": "Published/Persuasive FHIR-core issue reporting validator rejection of a DiagnosticReport where one contained Observation referenced another contained Observation.",
+    "learned": "Jira comments classify the remaining problem as tooling-specific, and the reporter confirmed the validator later accepted the attachment.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/reference.xml:3473-3477; source/fhir.ini:11-32,997,1222,1533",
+    "ref": { "path": "source/datatypes/reference.xml", "line_start": 3473, "line_end": 3477 },
+    "summary": "Reference is an active datatype and current ref-1 uses `%rootResource.contained.id` when checking local references.",
+    "learned": "The authoritative invariant already checks the root container's contained resources, which covers references from one contained resource to another.",
+    "supports": ["build_scope", "source_current_state", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/references.html:740-755",
+    "ref": { "path": "source/references.html", "line_start": 740, "line_end": 755 },
+    "summary": "Contained-resource guidance says contained resources share the parent internal id resolution space and may be referenced by something in the same container, potentially another contained resource.",
+    "learned": "Narrative guidance aligns with the current ref-1 expression and does not require additional source text.",
+    "supports": ["source_current_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/domainresource/structuredefinition-DomainResource.xml:77-80; source/fhir.ini:930-949",
+    "ref": { "path": "source/domainresource/structuredefinition-DomainResource.xml", "line_start": 77, "line_end": 80 },
+    "summary": "Active DomainResource dom-3 permits contained resources that are referred to from elsewhere in the resource.",
+    "learned": "The container-level invariant is consistent with accepting a contained resource referenced by another contained resource.",
+    "supports": ["build_scope", "source_current_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "c26d2b6172e66e1f867d4ca766dc977cdcc95d5a",
+    "ref": { "commit": "c26d2b6172e66e1f867d4ca766dc977cdcc95d5a" },
+    "summary": "Commit `fix ref-1 constraint (define %rootResource)` changed ref-1 from `%resource.contained.id` to `%rootResource.contained.id` and documented `%rootResource`.",
+    "learned": "Source history shows the root-container lookup needed for FHIR-25042 was already present in core source.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "d87b97a367412efef9c243585bd036f4546fb9c5; d0d047e3b0ef986cdd8729e4c9ad26ab903bac7f",
+    "ref": { "commit": "d87b97a367412efef9c243585bd036f4546fb9c5" },
+    "summary": "Later ref-1 changes added the bare-# container-reference branch and display-only guard while preserving `%rootResource.contained.id`.",
+    "learned": "Later same-invariant work did not remove the contained-to-contained allowance.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence search for FHIR-25042 contained-reference validator terms",
+    "command": "bun run zulip:search fts '\"FHIR-25042\" contained validator reference' --limit 10; bun run zulip:search fts 'contained resources local reference validator derivedFrom' --limit 10; bun run confluence:search refs jira FHIR-25042; bun run confluence:search fts '\"FHIR-25042\" contained validator reference' --limit 10",
+    "query": "FHIR-25042 contained resources local reference validator derivedFrom",
+    "summary": "No relevant Zulip messages or Confluence references were found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Combined-branch idempotency and related-audit checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-25042' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-31732' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-29408' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "No existing FHIR-25042 audit was found; adjacent FHIR-31732 and FHIR-29408 audits already exist on the combined branch.",
+    "learned": "This empty commit is required for FHIR-25042 and should not duplicate adjacent issue decisions.",
+    "supports": ["idempotency", "additional_context"]
+  }
+]
+</evidence-manifest>

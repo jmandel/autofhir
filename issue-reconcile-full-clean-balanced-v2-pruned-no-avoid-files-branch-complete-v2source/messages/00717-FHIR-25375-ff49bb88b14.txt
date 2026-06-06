@@ -1,0 +1,115 @@
+FHIR-25375: Update Location mode note for contact
+
+Issue request:
+FHIR-25375 was Published/Persuasive with Modification for R5. It asked for a way to associate role-specific, time-bounded contacts with Location; the final disposition replaced Location.telecom with Location.contact 0..* ExtendedContactDetail, using the new datatype from FHIR-29035, while later application retained Location.address as the physical address.
+
+Initial application:
+The main source changes were applied before this reconciliation. Commit 40bf32a7e76caced2ee4c60adf96d1a5d201e09a added Location.contact as ExtendedContactDetail and initially deprecated Location.telecom and Location.address; commit 4269773e276ec446f4b72a6e63ea938daf59d564 removed the Location.address deprecation because the element remains the physical location address; commit e1320848bd2700338a2a11b634693d52f9fb8ad1 removed Location.telecom and updated Location examples to the new contact element. One active narrative note still named the removed Location.telecom element.
+
+Additional context:
+FHIR-29035 established ExtendedContactDetail with purpose, name, telecom, address, organization, and period, and PA minutes on 2021-12-01 explicitly reopened FHIR-25375 to use that datatype. The Location resource is active in source/fhir.ini, so source/location/location-notes.xml is current resource narrative. The remaining Location.telecom references outside this fix are the intended cross-version rename map in source/fhir.ini and an out-of-build CDA profile entry whose fhir.ini profile line is commented out.
+
+AutoFHIR reconciliation:
+Updated source/location/location-notes.xml so the list of Location elements relevant only for instance-mode locations refers to Location.contact instead of the removed Location.telecom. No other source changes were made because the authoritative StructureDefinition already has Location.contact 0..* ExtendedContactDetail, no Location.telecom element, and a retained physical Location.address.
+
+Recommendation:
+Keep this source fix. It removes the only active stale Location.telecom narrative reference discovered during reconciliation while preserving the deliberate R5 model: role/purpose/effective-period contact details live in Location.contact, and Location.address remains the physical address.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25375
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-29035: supporting-decision - created ExtendedContactDetail, the datatype required by the final FHIR-25375 resolution.
+FHIR-27005: same-change-family - period-on-contact concerns were addressed by ExtendedContactDetail.period and discussed with the same PA contact changes.
+FHIR-29034: background - parallel Organization contact migration informed the shared ExtendedContactDetail model.
+FHIR-25427: background - PractitionerRole contact/address work was discussed alongside FHIR-25375 before the shared datatype was adopted.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25375: Published/Persuasive with Modification issue requiring Location.contact 0..* ExtendedContactDetail and removal of Location.telecom, with FHIR-29035 as the datatype dependency. Learned: this is the final seed decision and target source behavior.
+- E2 Source source/location/structuredefinition-Location.xml:305: current Location defines Location.contact 0..* ExtendedContactDetail and has no Location.telecom element. Learned: the core structural change is already applied.
+- E3 Source source/location/location-notes.xml:40: active Location notes still referenced Location.telecom before this commit. Learned: current narrative had one stale element name that could mislead implementers.
+- E4 Source source/fhir.ini:200 and source/fhir.ini:458: Location is an active resource, while the CDA profile containing Location.telecom is commented out. Learned: the edited Location note is in build scope and the other stale profile reference is out of scope.
+- E5 Git 40bf32a, 4269773, e132084: implementation history added Location.contact, kept physical Location.address, and removed Location.telecom. Learned: current address retention is deliberate and this reconciliation should not remove it.
+- E6 Zulip #implementers > Use cases for contact info on the Location resource: PA solicited use cases and Peter Bomberg described billing, admin, security, shipping, receiving, emergency, and access contacts at organization and location levels. Learned: community discussion supports role-specific Location contact details.
+- E7 Confluence PA 2021-12-01 Conference Call Minutes page 81011689: PA reopened FHIR-25375 after FHIR-29035 and voted to update Location using ExtendedContactDetail. Learned: the later work-group decision superseded the earlier backbone-element shape.
+- E8 Verification command: rg found only source/location/location-notes.xml as an active stale Location.telecom source reference; XML parsing of the edited note succeeded. Learned: the fix is targeted and syntactically valid.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25375",
+    "url": "https://jira.hl7.org/browse/FHIR-25375",
+    "snapshot_path": "contexts/FHIR-25375/jira/FHIR-25375.md",
+    "ref": { "jira_key": "FHIR-25375" },
+    "summary": "Published/Persuasive with Modification issue requiring role-specific Location contact details using Location.contact 0..* ExtendedContactDetail and removing Location.telecom.",
+    "learned": "This establishes the seed issue's final requested Location model for the current source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/location/structuredefinition-Location.xml:305",
+    "summary": "The current Location StructureDefinition contains Location.contact 0..* ExtendedContactDetail and retains Location.address as physical location.",
+    "learned": "The authoritative structural model is already applied except for the stale narrative note fixed here.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/location/location-notes.xml:40",
+    "summary": "The Location notes list elements relevant to instance-mode locations and previously named the removed Location.telecom element.",
+    "learned": "This active narrative source needed to be updated to Location.contact to match the current model.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:200; source/fhir.ini:458",
+    "summary": "source/fhir.ini lists location=Location as active and comments out the CDA profile that still contains an old Location.telecom path.",
+    "learned": "The edited Location note is build-scope source, while the other stale profile reference is out of current build scope.",
+    "supports": ["source_change_scope", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "40bf32a; 4269773; e132084",
+    "summary": "Historical commits added Location.contact, removed Location.address deprecation, and then removed Location.telecom while updating examples.",
+    "learned": "Prior application intentionally retained physical Location.address and only Location.telecom should be treated as replaced by Location.contact.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Use cases for contact info on the Location resource",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Use%20cases%20for%20contact%20info%20on%20the%20Location%20resource",
+    "summary": "PA asked for Location contact use cases and received examples of billing, admin, security, shipping, receiving, emergency, and access contacts.",
+    "learned": "Community input supports the need for role-specific Location contact details rather than a bare telecom element.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "PA 2021-12-01 Conference Call Minutes page 81011689",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/81011689/2021-12-01+Conference+Call+Minutes",
+    "snapshot_path": "contexts/FHIR-25375/confluence/81011689.md",
+    "ref": { "confluence_page_id": 81011689 },
+    "summary": "Minutes record reopening FHIR-25375 after FHIR-29035 and voting to update Location using ExtendedContactDetail.",
+    "learned": "This confirms the later approved datatype-based resolution that governs the current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted source grep and XML parse",
+    "command": "rg -n 'Location\\.telecom' source/location source/fhir.ini source/profiles/cda.profile.xml; python3 - <<'PY' ... ET.parse('source/location/location-notes.xml')",
+    "summary": "After the edit, Location.telecom remains only in the intended rename map and a commented-out CDA profile; the edited Location notes XML parses.",
+    "learned": "The reconciliation is targeted to the active stale narrative reference and is syntactically valid.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

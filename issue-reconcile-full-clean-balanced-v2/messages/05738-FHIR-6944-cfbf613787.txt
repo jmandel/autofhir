@@ -1,0 +1,117 @@
+FHIR-6944: Audit CarePlan activity reason cardinality
+
+Issue request:
+FHIR-6944 was a Published Patient Care change request for DSTU1 CarePlan. It asked to make CarePlan.Activity.detail.reason repeatable; the final resolution was to split it into reasonCode 0..* and reasonCondition 0..* so an activity could carry multiple coded and condition-backed reasons.
+
+Initial application:
+The Jira comments record SVN #6766 as the original application. The local git history does not contain an explicit FHIR-6944 commit, but the earliest available imported CarePlan source in c69d71aa already had CarePlan.activity.detail.reasonCode and CarePlan.activity.detail.reasonReference with max="*", preserving the approved repeatable coded and resource-backed reason model under the later element naming.
+
+Additional context:
+CarePlan is active in source/fhir.ini. Later Patient Care decisions changed the activity model: FHIR-26064 renamed activity.detail to plannedActivityDetail, and FHIR-39101 removed plannedActivityDetail from the active CarePlan model in favor of plannedActivityReference. The current XML source still retains the old plannedActivityDetail block inside an XML comment, where its reason element is also max="*", but a namespace-aware parse of active ElementDefinitions shows only CarePlan.activity, performedActivity, progress, and plannedActivityReference under CarePlan.activity; there is no active activity detail/reason element to fix. FHIR-39101 already has an issue-reconcile commit on the combined branch, so no related duplicate decision is made here.
+
+AutoFHIR reconciliation:
+This is an empty no-change audit commit. No current build source change is needed for FHIR-6944 because the historical 0..* intent was applied before later refactors and the current active CarePlan source no longer exposes the old singleton reason element.
+
+Recommendation:
+Keep this audit as-is. If stale examples or search parameters that still mention plannedActivityDetail need cleanup, handle that under the already represented FHIR-39101 change family rather than reopening FHIR-6944.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6944
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-26064: later-change - renamed CarePlan.activity.detail to plannedActivityDetail in R5, explaining why the seed's original path no longer appears.
+FHIR-39101: later-change - removed plannedActivityDetail from the active CarePlan model and already has Issue-Reconcile-Key FHIR-39101 on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6944: Published/Persuasive with Modification; requested CarePlan.Activity.detail.reason become repeatable via reasonCode 0..* and reasonCondition 0..*. Learned: this establishes the seed's final requested cardinality change.
+- E2 Source source/fhir.ini:178: active [resources] entry maps careplan=CarePlan. Learned: source/careplan/structuredefinition-CarePlan.xml is in current build scope.
+- E3 Git c69d71aa: first available imported R4B CarePlan source already has CarePlan.activity.detail.reasonCode and CarePlan.activity.detail.reasonReference with max="*". Learned: the Jira intent was carried forward before current refactors, even though the resource-backed element name evolved from reasonCondition to reasonReference.
+- E4 Jira FHIR-26064: Published R5 decision renamed activity.detail to plannedActivityDetail. Learned: the seed's original path was later renamed as part of the CarePlan activity model refactor.
+- E5 Jira FHIR-39101 and Git 0222d171: Published R5 decision removed CarePlan.activity.plannedActivityDetail and the implementation commented out the block. Learned: absence of an active activity detail reason in current source is intentional later context, not a missed FHIR-6944 application.
+- E6 Source source/careplan/structuredefinition-CarePlan.xml:603,634,666,689,719-1187: active activity children are activity/performedActivity/progress/plannedActivityReference, while the plannedActivityDetail block is inside an XML comment; its retained reason child at 841-847 is max="*". Learned: no active current CarePlan element has the obsolete singleton cardinality.
+- E7 Command namespace-aware CarePlan parse: printed active_reason_paths=[] for CarePlan.activity children. Learned: XML parsing confirms comments are ignored and no active activity reason path remains.
+- E8 Command community search: Zulip and Confluence searches for FHIR-6944/CarePlan reason terms plus Confluence Jira refs found no relevant records. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6944",
+    "url": "https://jira.hl7.org/browse/FHIR-6944",
+    "snapshot_path": "contexts/FHIR-6944/jira/FHIR-6944.md",
+    "ref": { "jira_key": "FHIR-6944" },
+    "summary": "Published/Persuasive with Modification CarePlan issue requesting CarePlan.Activity.detail.reason be changed from 0..1 to repeatable reasonCode and reasonCondition elements.",
+    "learned": "This establishes the final approved seed request and target cardinality.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:178",
+    "summary": "The active resources list contains careplan=CarePlan.",
+    "learned": "The CarePlan StructureDefinition source is part of the current build scope.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "c69d71aa213de86d55e0261339c15e4bacd509e6:source/careplan/structuredefinition-CarePlan.xml",
+    "ref": { "commit": "c69d71aa213de86d55e0261339c15e4bacd509e6" },
+    "summary": "The earliest available imported CarePlan source already had CarePlan.activity.detail.reasonCode and reasonReference with max=\"*\".",
+    "learned": "FHIR-6944's repeatable reason model was already present before later CarePlan activity refactors.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-26064",
+    "url": "https://jira.hl7.org/browse/FHIR-26064",
+    "ref": { "jira_key": "FHIR-26064" },
+    "summary": "Published R5 CarePlan decision renamed activity.detail to plannedActivityDetail as part of activity model cleanup.",
+    "learned": "The original FHIR-6944 element path is expected to differ in later source.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-39101 / git 0222d171b0466cb633dce3342278e3da94cfd815",
+    "url": "https://jira.hl7.org/browse/FHIR-39101",
+    "ref": { "jira_key": "FHIR-39101", "commit": "0222d171b0466cb633dce3342278e3da94cfd815" },
+    "summary": "Published R5 decision removed CarePlan.activity.plannedActivityDetail; the implementation commented out the plannedActivityDetail block and removed references to it from active performedActivity text.",
+    "learned": "The current absence of an active activity detail reason element reflects a later approved model change.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/careplan/structuredefinition-CarePlan.xml:603,634,666,689,719-1187",
+    "summary": "Active CarePlan.activity children are performedActivity, progress, and plannedActivityReference; the old plannedActivityDetail subtree is inside an XML comment, and its retained reason child is max=\"*\".",
+    "learned": "No active current CarePlan activity reason element has the obsolete 0..1 cardinality.",
+    "supports": ["reconciliation", "source_check"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Namespace-aware parse of source/careplan/structuredefinition-CarePlan.xml",
+    "command": "python3 - <<'PY' ... parse active f:element paths under CarePlan.activity ... PY",
+    "summary": "The parser printed CarePlan.activity, performedActivity, progress, plannedActivityReference, and active_reason_paths=[].",
+    "learned": "XML comments are ignored by the active StructureDefinition parse, confirming there is no built activity reason path to edit for FHIR-6944.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-6944 CarePlan reason terms",
+    "command": "bun run zulip:search fts '\"FHIR 6944\" CarePlan reason' --limit 10; bun run zulip:search fts 'CarePlan reasonCode reasonCondition' --limit 10; bun run confluence:search refs jira FHIR-6944; bun run confluence:search fts '\"FHIR 6944\" CarePlan reason' --limit 10",
+    "query": "FHIR-6944 CarePlan reason; CarePlan reasonCode reasonCondition",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

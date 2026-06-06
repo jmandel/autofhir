@@ -1,0 +1,132 @@
+FHIR-38939: Correct Bundle signature deprecation reason
+
+Issue request:
+FHIR-38939 was a Published FHIR-core change request, resolved Persuasive with Modification for R5. It asked for a structured and visible way to identify deprecated content: correct the standards-status Deprecated definition, add a Withdrawn standards-status code, define a markdown deprecation reason extension for standards-status.valueCode, and apply standards-status plus reason metadata to deprecated Bundle content so the build could render the status and flyover reason.
+
+Initial application:
+The main R5 application appears in c1dda1d5fd ("Cleaning up extensions and status codes"), which added the corrected standards-status code system entries, the markdown-valued structuredefinition-standards-status-reason extension, and a deprecated standards-status reason on Bundle.entry.search.mode code outcome. The generic standards-status code system and extension definitions were later moved out of the core source into the FHIR Extension Pack by dd468d4f17, where their current source still has the corrected Deprecated definition, the Withdrawn code, and a markdown status-reason value.
+
+Additional context:
+The current core build still owns Bundle: source/fhir.ini has an active bundle=Bundle resource entry and Bundle work-group/status metadata. Later commit 9fe4e8ba2e deprecated Bundle.signature, but placed the standards-status reason as a child extension with valueString beside valueCode. That shape differs from the existing core examples, where the reason is an extension on standards-status.valueCode with valueMarkdown, and from the current Extension Pack definition that constrains the reason extension value to markdown. Confluence minutes for the FHIR-I 2022-10-24 call confirm the FHIR-38939 decision and no Zulip search found conflicting discussion.
+
+AutoFHIR reconciliation:
+This commit updates source/bundle/structuredefinition-Bundle.xml so Bundle.signature carries the standards-status reason inside standards-status.valueCode and uses valueMarkdown, matching the extension definition and the other current source usages. No source change was made for the standards-status code system or extension definitions because those have intentionally moved to the FHIR Extension Pack and are already correct there.
+
+Recommendation:
+Keep this commit as-is. It fixes a malformed current core Bundle deprecation marker that would otherwise undermine the mechanism approved by FHIR-38939, while leaving the already-correct Extension Pack terminology and extension definitions untouched.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-38939
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-38939: Published/Persuasive with Modification R5 issue requesting deprecated content markers, corrected standards-status Deprecated, Withdrawn, and a markdown deprecation reason extension on deprecated Bundle content. Learned: this is final WG intent for the reconciliation.
+- E2 Confluence 139675058: FHIR-I 2022-10-24 minutes say the standard-status code system already had deprecated, its definition was incorrect, and Withdrawn would be added. Learned: the WG narrowed part of the issue to terminology/tooling and approved the modification.
+- E3 Git c1dda1d5fd: added standards-status-reason use to Bundle.entry.search.mode outcome and current old-source standards-status definitions with Deprecated plus Withdrawn. Learned: the seed was initially applied around R5 even though the commit did not mention FHIR-38939.
+- E4 Source /home/jmandel/work/fhir-extensions/input/definitions/multiple/CodeSystem-standards-status.xml:66: current Extension Pack source defines Deprecated with the corrected meaning and includes Withdrawn. Learned: the generic code-system portion is already correct outside the core checkout.
+- E5 Source /home/jmandel/work/fhir-extensions/input/definitions/Element/StructureDefinition-structuredefinition-standards-status-reason.xml:64: current Extension Pack source constrains the status reason extension value to markdown. Learned: core usages must use valueMarkdown for this reason extension.
+- E6 Source source/bundle/codesystem-search-entry-mode.xml:61 and source/structuredefinition/structuredefinition-StructureDefinition.xml:599: current core examples put structuredefinition-standards-status-reason under standards-status.valueCode with valueMarkdown. Learned: Bundle.signature was the inconsistent current core usage.
+- E7 Source source/fhir.ini:245 and source/bundle/structuredefinition-Bundle.xml:656: Bundle is an active current-build resource, and Bundle.signature carried a malformed deprecated reason marker. Learned: the source hunk is in build scope and directly affects current rendered Bundle metadata.
+- E8 Git 9fe4e8ba2e: later deprecated Bundle.signature but introduced the reason as a child extension with valueString. Learned: this reconciliation fixes a later same-mechanism regression tied to the seed request.
+- E9 Command checks: git diff --check, xmllint --noout source/bundle/structuredefinition-Bundle.xml, and rg for standards-status-reason valueString all passed/found no remaining valueString. Learned: the XML is well-formed, whitespace-clean, and the type mismatch was removed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-38939",
+    "url": "https://jira.hl7.org/browse/FHIR-38939",
+    "snapshot_path": "contexts/FHIR-38939/jira/FHIR-38939.md",
+    "ref": { "jira_key": "FHIR-38939" },
+    "summary": "Published/Persuasive with Modification R5 issue requesting deprecated content markers, corrected standards-status Deprecated, Withdrawn, and a markdown deprecation reason extension on deprecated Bundle content.",
+    "learned": "This is final WG intent for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2022-10-24 page 139675058",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/139675058/FHIR+Infrastructure+Minutes+CC+2022-10-24",
+    "snapshot_path": "contexts/FHIR-38939/confluence/139675058.md",
+    "ref": { "confluence_page_id": 139675058 },
+    "summary": "Minutes say the standard-status code system already had deprecated, its definition was incorrect, and Withdrawn would be added for FHIR-38939.",
+    "learned": "This confirms the WG's modified resolution and the scope of the terminology portion.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "c1dda1d5fd",
+    "ref": { "commit": "c1dda1d5fd1c53b64abb0f0eb8d68392621895cd" },
+    "summary": "Cleaning up extensions and status codes added the R5 standards-status reason usage and corrected standards-status definitions without naming FHIR-38939.",
+    "learned": "This identifies the initial application path for the seed issue.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/CodeSystem-standards-status.xml:66",
+    "summary": "Current Extension Pack standards-status code system defines Deprecated with the corrected meaning and includes Withdrawn.",
+    "learned": "The generic code-system portion is already correct in the repository that now owns it.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/Element/StructureDefinition-structuredefinition-standards-status-reason.xml:64",
+    "summary": "The standards-status reason extension is constrained to valueMarkdown.",
+    "learned": "Core Bundle deprecation reason usage must use valueMarkdown rather than valueString.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/bundle/codesystem-search-entry-mode.xml:61 and source/structuredefinition/structuredefinition-StructureDefinition.xml:599",
+    "summary": "Existing core usages put the standards-status reason extension under valueCode and use valueMarkdown.",
+    "learned": "This establishes the current source pattern that Bundle.signature should follow.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/fhir.ini:245 and source/bundle/structuredefinition-Bundle.xml:656",
+    "summary": "Bundle is an active current-build resource and Bundle.signature carried a deprecated status marker.",
+    "learned": "The edited Bundle source is in build scope and directly affects the current specification.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "git",
+    "locator": "9fe4e8ba2e",
+    "ref": { "commit": "9fe4e8ba2ec241ab35dc18046c102c38872e1d50" },
+    "summary": "Later Bundle.signature deprecation commit introduced the reason as a child extension with valueString.",
+    "learned": "This explains why a current same-mechanism fix is needed despite the R5 application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Validation commands for FHIR-38939 source edit",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; xmllint --noout source/bundle/structuredefinition-Bundle.xml; rg 'structuredefinition-standards-status-reason\">\\s*<valueString' source --multiline",
+    "summary": "Whitespace check and XML parse passed, and no remaining standards-status-reason valueString usage was found in core source.",
+    "learned": "The source edit is syntactically sound and removes the observed type mismatch.",
+    "supports": ["confidence", "reconciliation"]
+  },
+  {
+    "id": "E10",
+    "kind": "command",
+    "locator": "Community search for FHIR-38939 and standards status reason terms",
+    "command": "bun run zulip:search fts '\"FHIR-38939\"' --limit 10; bun run zulip:search fts '\"standards status\" deprecated \"Bundle.signature\"' --limit 10; bun run confluence:search refs jira FHIR-38939",
+    "query": "FHIR-38939 standards status deprecated Bundle.signature",
+    "result_count": 1,
+    "summary": "No Zulip hits were found; Confluence refs found the 2022-10-24 FHIR-I minutes.",
+    "learned": "No discovered community record conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

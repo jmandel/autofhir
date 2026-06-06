@@ -1,0 +1,112 @@
+FHIR-12456: Audit IG value set dependency handling
+
+Issue request:
+FHIR-12456 was a Published/Persuasive FHIR-core DSTU2 change request about the IG Publisher rejecting ValueSet resources whose canonical URLs did not match the publishing IG's canonical base. The Jira discussion clarified that value sets from another guide should normally be referenced through the IG that owns them rather than republished in the importing IG, and a later comment says this was fixed to allow declaration in the definitions file.
+
+Initial application:
+No commit explicitly mentions FHIR-12456. The closest historical application evidence is the in-tree IG Publisher work shortly after the Jira was filed: git-svn @10565 changed generated definitions zip creation so importing IGs could use current-version resource definitions, and later nearby DSTU2 IG Publisher commits fixed value set handling. These changes align with the Jira comment that the issue was fixed through definitions/dependency handling rather than a visible resource-definition change keyed to this tracker.
+
+Additional context:
+Current core source actively includes ImplementationGuide in source/fhir.ini. ImplementationGuide.dependsOn now says IGs typically use value sets and profiles defined in other implementation guides, and the authoring/package guidance says dependencies identified in other packages are not included in the package. ImplementationGuide.definition.parameter remains tool-defined and extensible for publisher-specific controls. The old in-tree IG Publisher was removed from core after moving to Maven, and the tightly related FHIR-13131 special-URL exception issue is already represented on the combined branch by an external-repo audit commit.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current core specification already conveys the needed IG dependency model for value sets owned by other IGs, and any remaining executable IG Publisher behavior belongs to the external publisher/tools package rather than to this core checkout.
+
+Recommendation:
+Keep this audit commit as-is. Future changes to publisher handling for external canonical ValueSet URLs should be made in the IG Publisher/tools package unless current core ImplementationGuide narrative or definitions become misleading.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12456
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13131: same-change-family - Similar Published/Persuasive issue for intentionally included external ValueSet canonical URLs; already audited on the combined branch by commit 00ad14155de309fedd6229fba51eea20e8ea1114, so no duplicate decision is made here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12456: Published/Persuasive DSTU2 issue requesting that IG Publisher not require imported/reused ValueSet URLs to match the importing IG canonical base. Learned: final issue scope is IG Publisher handling for ValueSets reused from other guides or sources.
+- E2 Source source/fhir.ini:169-197: ImplementationGuide is an active resource in the current build. Learned: current ImplementationGuide source is in scope for checking whether core resource semantics still need correction.
+- E3 Source source/implementationguide/structuredefinition-ImplementationGuide.xml:479-485,862-885: dependsOn describes IGs using value sets and profiles from other IGs, and definition.parameter is tool-defined/extensible. Learned: current core already supports dependency declarations and leaves publisher-specific controls to tools.
+- E4 Source source/implementationguide/implementationguide-notes.xml:19-23: current authoring guidance says an IG package includes referenced resources and dependencies, but resources in packages identified as dependencies are not included. Learned: the recommended approach from the Jira comments is now reflected in active narrative guidance.
+- E5 Git 179aef1827b573dd7634b13cdf7c06070f8d8829 and 8f80b921befc404d4a742f6cb6eaa88c902faeb6: historical in-tree IG Publisher commits adjusted definitions zip generation for importing IGs and DSTU2 ValueSet handling shortly after the issue was filed. Learned: the issue appears to have been applied through tooling/definitions behavior rather than a Jira-keyed source change.
+- E6 Git 56ceb0df08dd72381a4f98f1ea4ac5ea6d139a8b: removed the in-tree IG Publisher because it moved to Maven. Learned: remaining executable publisher behavior is no longer owned by this core checkout.
+- E7 Git 00ad14155de309fedd6229fba51eea20e8ea1114: combined-branch FHIR-13131 audit covers the related special-URL exception behavior. Learned: the adjacent external URL use case is already represented and should not be duplicated in this seed commit.
+- E8 Command community/source search: exact FHIR-12456 searches found no Zulip or Confluence references, while related searches surfaced FHIR-13131 and general terminology discussions but no conflicting evidence. Learned: no discovered community evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12456",
+    "url": "https://jira.hl7.org/browse/FHIR-12456",
+    "snapshot_path": "contexts/FHIR-12456/jira/FHIR-12456.md",
+    "ref": { "jira_key": "FHIR-12456" },
+    "summary": "Published/Persuasive DSTU2 issue asking that IG Publisher not force reused ValueSet canonical URLs to match the importing IG's canonical base.",
+    "learned": "This establishes the final tracker scope and the Jira-commented expectation to reference the IG that owns a reused ValueSet rather than republish it.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-197",
+    "summary": "The current build has an active resources section entry for implementationguide=ImplementationGuide.",
+    "learned": "ImplementationGuide source is active current-build source and was the correct core artifact to inspect.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/implementationguide/structuredefinition-ImplementationGuide.xml:479-485,862-885",
+    "summary": "ImplementationGuide.dependsOn describes IGs using value sets and profiles from other IGs, and ImplementationGuide.definition.parameter is tool-defined with an extensible binding.",
+    "learned": "Current core semantics already support declaring IG dependencies while leaving publisher-specific knobs to tools.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/implementationguide/implementationguide-notes.xml:19-23",
+    "summary": "Authoring guidance says an IG package includes referenced resources and dependencies, but dependencies included in other identified packages are not included in the package.",
+    "learned": "The current narrative matches the Jira comment's recommended model for value sets owned by another IG.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "179aef1827b573dd7634b13cdf7c06070f8d8829; 8f80b921befc404d4a742f6cb6eaa88c902faeb6",
+    "ref": { "commit_1": "179aef1827b573dd7634b13cdf7c06070f8d8829", "commit_2": "8f80b921befc404d4a742f6cb6eaa88c902faeb6" },
+    "summary": "Shortly after FHIR-12456 was filed, the old IG Publisher changed definitions zip generation for importing IGs and fixed DSTU2 ValueSet handling.",
+    "learned": "The historical application appears to have been in tooling behavior, consistent with the Jira comment that the issue was fixed via definitions-file handling.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "56ceb0df08dd72381a4f98f1ea4ac5ea6d139a8b",
+    "ref": { "commit": "56ceb0df08dd72381a4f98f1ea4ac5ea6d139a8b" },
+    "summary": "The in-tree IG Publisher and its tests were removed with the note that the IG Publisher moved to Maven.",
+    "learned": "Any remaining executable publisher behavior belongs outside the current FHIR core checkout.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "00ad14155de309fedd6229fba51eea20e8ea1114",
+    "ref": { "commit": "00ad14155de309fedd6229fba51eea20e8ea1114", "jira_key": "FHIR-13131" },
+    "summary": "The combined branch already has an external-repo audit for FHIR-13131, the related special-URL exception issue for external ValueSet canonical URLs.",
+    "learned": "The adjacent special-URL issue is already represented and should not be duplicated here.",
+    "supports": ["additional_context", "related_issue_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community and source search for FHIR-12456 IG Publisher value set dependencies",
+    "command": "bun run jira:search fts '\"FHIR-12456\"' --limit 10; bun run zulip:search fts '\"FHIR-12456\"' --limit 10; bun run confluence:search refs jira FHIR-12456; bun run jira:search fts '\"IG Publisher\" \"value sets\" canonical' --limit 20",
+    "query": "FHIR-12456; IG Publisher value sets canonical",
+    "summary": "Exact FHIR-12456 community searches found no Zulip or Confluence references; Jira keyword search surfaced FHIR-12456 and the related FHIR-13131 special-URL issue but no conflicting source requirement.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

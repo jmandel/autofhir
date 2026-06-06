@@ -1,0 +1,124 @@
+FHIR-17901: Align workflow encounter references
+
+Issue request:
+FHIR-17901 was Published/Persuasive for STU3 and asked the Event and Request workflow patterns to replace the broad context element with encounter as Reference(Encounter) 0..1, while representing EpisodeOfCare through a 0..* workflow extension.
+
+Initial application:
+The main application was commit 633021569c4ee210837d89828831cac8764c69bd, later merged by 6b8ca9c61f, which changed Event.context and Request.context to Event.encounter and Request.encounter and created the workflow episodeOfCare extension source. Later source history shows fd1f97ae15 corrected a Claim workflow map to Request.encounter, but 7b44f67dce reintroduced Request.context while making unrelated Claim date changes.
+
+Additional context:
+Event and Request are active logical models in source/fhir.ini, Claim is an active resource, and the workflow extension source now lives in the FHIR Extension Pack as StructureDefinition-workflow-episodeOfCare. The later FHIR-42761 no-change decision explicitly declined rolling the pattern back to EpisodeOfCare in core because the extension meets the business requirement with the right cardinality. Observation-specific FHIR-33166 only clarified Observation guidance and does not reverse the Event/Request pattern.
+
+AutoFHIR reconciliation:
+This commit corrected remaining current-source references to the removed workflow context element: Event and Request search worksheet paths now point at Event.encounter and Request.encounter, Claim.item.encounter maps to Request.encounter, and workflow warning suppressions no longer name Event.context or Request.context for current pattern checks. Inactive SupplyDelivery/Transport source and fhir.ini historical version maps were left unchanged because they are not current build corrections.
+
+Recommendation:
+Keep this source fix. It completes the FHIR-17901 reconciliation in current core while leaving the moved episode-of-care extension in the Extension Pack and preserving later work-group decisions that rejected a core rollback.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17901
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-17661: same-change-family - Observation made the same encounter/episode split first and motivated FHIR-17901.
+FHIR-17794: duplicate - duplicate/background request pointing to the same Event/Request context-to-encounter discussion.
+FHIR-33166: later-change - Observation-specific applied clarification retained the workflow-episodeOfCare extension approach.
+FHIR-42761: later-change - R6 no-change decision explicitly declined rolling back FHIR-17901 for Event.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17901: Published/Persuasive request to replace Event/Request context with encounter Reference(Encounter) 0..1 and add an EpisodeOfCare extension. Learned: establishes the target current-source semantics.
+- E2 Source source/fhir.ini:154-157,240,449-469: Event and Request are active logical models, Claim is an active resource, and workflow-pattern extensions are active source inputs. Learned: the edited core files are in current source/build scope.
+- E3 Source source/event/event-spreadsheet.xml:1207-1221 and source/request/request-spreadsheet.xml:1320-1335: current Data Elements rows already define Event.encounter and Request.encounter as Reference(Encounter). Learned: the main pattern application exists and the stale search worksheet paths were the remaining mismatch.
+- E4 Source source/event/event-spreadsheet.xml:2133-2143, source/request/request-spreadsheet.xml:2376-2386, source/claim/structuredefinition-Claim.xml:1724-1727, source/suppressed-workflow-warnings.xml:60,197: this commit updates search paths, Claim mapping, and suppressions to Event/Request.encounter. Learned: current-source references now match the renamed pattern element.
+- E5 Source /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-workflow-episodeOfCare.xml:4-32,274-303: Extension Pack contains the active workflow-episodeOfCare extension with max * and value Reference(EpisodeOfCare). Learned: absence of this extension from core is not a missing core edit.
+- E6 Git 633021569c and 6b8ca9c61f: applied assorted workflow changes including GF#17901; git fd1f97ae15 and 7b44f67dce: Claim map was corrected to Request.encounter and later regressed to Request.context by unrelated FHIR-31062 work. Learned: the reconciliation restores the intended post-FHIR-17901 map.
+- E7 Jira FHIR-42761 and FHIR-33166: later no-change/applied decisions discussed the same EpisodeOfCare extension approach and did not reverse FHIR-17901 for Event/Request. Learned: current source should retain encounter plus extension rather than reintroducing core EpisodeOfCare.
+- E8 Community Zulip #implementers > Observation - split episode context from encounter context and Confluence PA 2021-08-11 minutes page 120756302: discussion/minutes record the rationale for splitting encounter from episode and the search/chaining concern. Learned: no community evidence supports a broader current core rollback.
+- E9 Verification command/query: XML parse for touched files, targeted rg for Event.context/Request.context, and CRLF-aware git diff --check passed; remaining Event.context hits are inactive SupplyDelivery/Transport source or historical fhir.ini version maps. Learned: the current-source mismatch was removed without XML or whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17901",
+    "url": "https://jira.hl7.org/browse/FHIR-17901",
+    "snapshot_path": "contexts/FHIR-17901/jira/FHIR-17901.md",
+    "ref": { "jira_key": "FHIR-17901" },
+    "summary": "Published/Persuasive STU3 request to replace Event/Request context with encounter Reference(Encounter) and define an EpisodeOfCare extension.",
+    "learned": "This establishes the target workflow pattern semantics for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:154-157,240,449-469",
+    "summary": "Event and Request are active logical models, Claim is active in resources, and workflow-pattern extensions are active profile inputs.",
+    "learned": "The edited Event, Request, Claim, and workflow-warning source locations are relevant to the current core source tree.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/event/event-spreadsheet.xml:1207-1221; source/request/request-spreadsheet.xml:1320-1335",
+    "summary": "Current Event and Request Data Elements define encounter as Reference(Encounter) 0..1.",
+    "learned": "The main FHIR-17901 model change is already present, so remaining stale context references should align to encounter rather than reintroduce EpisodeOfCare.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/event/event-spreadsheet.xml:2133-2143; source/request/request-spreadsheet.xml:2376-2386; source/claim/structuredefinition-Claim.xml:1724-1727; source/suppressed-workflow-warnings.xml:60,197",
+    "summary": "This commit changes stale Event.context and Request.context references in current search rows, Claim mapping, and warning suppressions to Event.encounter and Request.encounter.",
+    "learned": "The source fix removes the remaining current-source mismatch caused by the context-to-encounter rename.",
+    "supports": ["source_changes", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-workflow-episodeOfCare.xml:4-32,274-303",
+    "summary": "The Extension Pack contains StructureDefinition/workflow-episodeOfCare with max * and value Reference(EpisodeOfCare).",
+    "learned": "The episode-of-care extension part of the Jira is represented outside the core checkout, so no core extension source needs to be recreated.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "633021569c; 6b8ca9c61f; fd1f97ae15; 7b44f67dce",
+    "ref": { "commit": "633021569c4ee210837d89828831cac8764c69bd" },
+    "summary": "633021/6b8ca applied GF#17901 workflow changes; fd1f97 corrected Claim to Request.encounter; 7b44f67 later regressed that one map to Request.context during unrelated Claim date work.",
+    "learned": "The Claim edit restores the intended post-FHIR-17901 mapping rather than making a new policy change.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-42761; FHIR-33166",
+    "url": "https://jira.hl7.org/browse/FHIR-42761",
+    "ref": { "jira_key": "FHIR-42761" },
+    "summary": "FHIR-42761 was Resolved - No Change against rolling back Event.encounter to EpisodeOfCare; FHIR-33166 only clarified Observation use of workflow-episodeOfCare.",
+    "learned": "Later decisions support preserving FHIR-17901's encounter-plus-extension design.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#implementers > Observation - split episode context from encounter context",
+    "url": "https://chat.fhir.org/#narrow/stream/179166-implementers/topic/Observation.20-.20split.20episode.20context.20from.20encounter.20context",
+    "summary": "The 2018 thread records the rationale for a 0..1 Encounter element plus a 0..* EpisodeOfCare extension, and later notes search parameter fallout.",
+    "learned": "Community discussion supports aligning search/source references to encounter, not reverting the model.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "XML parse, rg Event.context/Request.context, git diff --check",
+    "command": "python3 XML parse touched files; rg -n 'Event\\.context|Request\\.context' source -g '*.xml' -g '*.html' -g '*.ini'; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Touched XML parsed and whitespace check passed; remaining Event.context hits are inactive SupplyDelivery/Transport source or historical fhir.ini version maps.",
+    "learned": "The current-source mismatch was removed without XML or whitespace errors.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

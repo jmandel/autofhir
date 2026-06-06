@@ -1,0 +1,113 @@
+FHIR-25210: Audit CarePlan activity search parameters
+
+Issue request:
+FHIR-25210 was a Published FHIR-core CarePlan change request, resolved Persuasive with Modification for R5. It asked to replace the CarePlan activity-date date search parameter whose expression selected scheduled[x] including string, rename it to activity-scheduled-date with only Timing and Period choices, and add an activity-scheduled-string search parameter for the string choice.
+
+Initial application:
+The issue was applied in git commit 6947f33720ee371e1b2ab3c29b350831ebaeb547, which changed the then-current source/careplan/careplan-spreadsheet.xml search tab from activity-date to activity-scheduled-date and added activity-scheduled-string with the requested type-filtering expressions. A May 2020 implementers Zulip thread identified the same concern and confirmed the current build had been fixed by that commit.
+
+Additional context:
+CarePlan is an active build resource in source/fhir.ini. The current source no longer has the old spreadsheet file; CarePlan search parameters live in source/careplan/bundle-CarePlan-search-params.xml. Later FHIR-39101 removed CarePlan.activity.plannedActivityDetail for R5, and commit 0222d171b0466cb633dce3342278e3da94cfd815 commented out the plannedActivityDetail-derived search parameters, including the two scheduled parameters created for FHIR-25210. Parsing the current XML finds only activity-reference as an active CarePlan activity search parameter and zero active plannedActivityDetail elements, so the original string-to-date mapping is not present in current built source.
+
+AutoFHIR reconciliation:
+This is an empty no-change audit commit. No source edit is needed because the requested correction was applied historically, and the later removal of plannedActivityDetail means there is no active CarePlan activity-date or activity-scheduled-date search parameter that can still map a string choice to a date search parameter.
+
+Recommendation:
+Keep this audit commit as-is for FHIR-25210. Do not reintroduce the scheduled search parameters while plannedActivityDetail remains out of the current CarePlan model; any cleanup of old commented plannedActivityDetail source or examples belongs with the separate FHIR-39101 change family, not this issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25210
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25173: same-change-family - Analogous Immunization occurrence search-parameter issue mentioned from FHIR-25210, but it is a different resource and work group and was not needed to decide this CarePlan audit.
+FHIR-39101: later-change - Published R5 CarePlan decision removed plannedActivityDetail and made the FHIR-25210 scheduled search parameters inactive in current source.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25210: Published/Persuasive with Modification CarePlan request to rename activity-date, restrict the date expression to Timing and Period, and add activity-scheduled-string. Learned: this establishes the final issue request for the seed.
+- E2 Source source/fhir.ini:170-180: CarePlan is listed as an active resource. Learned: CarePlan source files in source/careplan are in current build scope.
+- E3 Git 6947f33720ee371e1b2ab3c29b350831ebaeb547: original application changed source/careplan/careplan-spreadsheet.xml from activity-date to activity-scheduled-date and added activity-scheduled-string. Learned: the requested correction was implemented historically.
+- E4 Source source/careplan/bundle-CarePlan-search-params.xml:45-84: current scheduled search parameter entries are present only inside an XML comment, with type-filtered expressions. Learned: the FHIR-25210 parameters are not active in current search parameter source.
+- E5 Source source/careplan/structuredefinition-CarePlan.xml:719-1187: plannedActivityDetail, including scheduled[x], is inside an XML comment. Learned: the element that FHIR-25210 corrected is no longer active in the current CarePlan differential.
+- E6 Jira/Git FHIR-39101 and 0222d171b0466cb633dce3342278e3da94cfd815: Published later CarePlan decision removed plannedActivityDetail and commented out related search parameters. Learned: later WG-approved R5 context explains why no source reactivation is appropriate.
+- E7 Zulip #implementers > OR in fhirpath expressions in SearchParameters: May 2020 discussion identified the same CarePlan activity-date issue and participants confirmed it was fixed in the current build by 6947f33720. Learned: community evidence supports the historical application and reveals no conflicting instruction.
+- E8 Verification command: XML parsing of current CarePlan search parameter bundle and StructureDefinition found only activity-reference as an active activity search parameter and zero active plannedActivityDetail elements. Learned: the current source no longer exposes the problematic date-over-string search parameter.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25210",
+    "url": "https://jira.hl7.org/browse/FHIR-25210",
+    "snapshot_path": "contexts/FHIR-25210/jira/FHIR-25210.md",
+    "ref": { "jira_key": "FHIR-25210" },
+    "summary": "Published/Persuasive with Modification issue to replace CarePlan activity-date with activity-scheduled-date filtered to Timing or Period and add activity-scheduled-string for the string choice.",
+    "learned": "This establishes the final approved request for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-180",
+    "summary": "The active [resources] section includes careplan=CarePlan.",
+    "learned": "CarePlan source files under source/careplan are in current build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "6947f33720ee371e1b2ab3c29b350831ebaeb547",
+    "ref": { "commit": "6947f33720ee371e1b2ab3c29b350831ebaeb547" },
+    "summary": "Original FHIR-25210 commit renamed activity-date, added activity-scheduled-string, and added type-filtering expressions in source/careplan/careplan-spreadsheet.xml.",
+    "learned": "The requested change was applied in historical source before later source migration/refactoring.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/careplan/bundle-CarePlan-search-params.xml:45-84",
+    "summary": "The current activity-scheduled-date and activity-scheduled-string SearchParameter entries are inside an XML comment.",
+    "learned": "These plannedActivityDetail-derived search parameters are not active current build content.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/careplan/structuredefinition-CarePlan.xml:719-1187",
+    "summary": "CarePlan.activity.plannedActivityDetail and its scheduled[x] child are commented out in the current StructureDefinition source.",
+    "learned": "The element underlying the FHIR-25210 search parameter is no longer active in the current CarePlan model.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-39101 / git 0222d171b0466cb633dce3342278e3da94cfd815",
+    "url": "https://jira.hl7.org/browse/FHIR-39101",
+    "ref": { "jira_key": "FHIR-39101", "commit": "0222d171b0466cb633dce3342278e3da94cfd815" },
+    "summary": "Published R5 CarePlan issue removed plannedActivityDetail and its children; the implementation commented out related search parameters.",
+    "learned": "Later approved context explains why no current source edit should re-enable the FHIR-25210 scheduled parameters.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > OR in fhirpath expressions in SearchParameters",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/OR.20in.20fhirpath.20expressions.20in.20SearchParameters",
+    "summary": "May 2020 discussion asked whether CarePlan activity-date should filter scheduled[x] choices; Lee Surprenant and Vassil Peytchev confirmed it was the same as FHIR-25210 and fixed in the current build by 6947f33720.",
+    "learned": "Community discussion supports the historical application and adds no conflicting current instruction.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML parse of current CarePlan source",
+    "command": "python3 - <<'PY' ... parse source/careplan/bundle-CarePlan-search-params.xml and source/careplan/structuredefinition-CarePlan.xml ... PY",
+    "summary": "The parser found only activity-reference as an active activity search parameter and found zero active plannedActivityDetail elements.",
+    "learned": "The problematic active date-over-string search parameter no longer exists in current source.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

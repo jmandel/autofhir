@@ -1,0 +1,117 @@
+FHIR-37673: Complete preferred-id active/date handling
+
+Issue request:
+FHIR-37673 was Published as Persuasive with Modification for R5. It asked that $preferred-id not return results from retired NamingSystem resources, that clients be able to request the preferred identifier for a specific time using a date input rather than a period input, that ambiguous multiple-preferred matches may either be returned or reported as an error, and that preferred identifiers for the same identifier type SHOULD NOT overlap by period.
+
+Initial application:
+Commit b709f1aec3008d932753b1a0ac53f60235208aa0 added the date input, added multiple-preferred wording to the operation footer, and added the preferred-period overlap note to NamingSystem.uniqueId.type. Later reconciliation commits for FHIR-22105 and FHIR-37674 fixed the period-aware nsd-2 invariant and aligned the operation comment with the preferred-identifier selection wording. The current source still omitted the approved active-status filter, still described the operation as taking only two input parameters, and still constrained the result output to a single string even though the approved wording allows returning all applicable identifiers.
+
+Additional context:
+NamingSystem is active in source/fhir.ini and source/namingsystem/list-NamingSystem-operations.xml lists OperationDefinition/NamingSystem-preferred-id, so the edited OperationDefinition feeds the current build. FHIR-I minutes for 2022-07-18 confirm the work group accepted the retired-status bullet and chose a date parameter instead of a period parameter. Bounded Jira/Zulip/Confluence searches found the same NamingSystem operation family, including already-published FHIR-22105 and FHIR-37674 decisions, but no later decision reversing FHIR-37673.
+
+AutoFHIR reconciliation:
+Updated source/namingsystem/operationdefinition-NamingSystem-preferred-id.xml so the footer, description, and OperationDefinition.comment state that $preferred-id SHOULD only consider active NamingSystem instances. The description now lists the optional date input and no longer says the operation has only two inputs. The result output cardinality is now repeatable so the operation definition can represent the approved option to return all applicable identifiers instead of an error.
+
+Recommendation:
+Keep this source fix. It completes the parts of FHIR-37673 that remained inconsistent in the active operation source while preserving the related FHIR-22105 period-aware invariant and FHIR-37674 preferred-identifier selection behavior already represented on the combined branch.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37673
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-22105: same-change-family - earlier period-aware NamingSystem preferred identifier decision; already represented on the combined branch and preserved by this fix.
+FHIR-37674: same-change-family - companion $preferred-id preferred-selection clarification; already represented on the combined branch and preserved by this fix.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37673: Published/Persuasive with Modification issue for retired NamingSystem handling, date-aware preferred-id selection, multiple preferred results, and preferred-period overlap guidance. Learned: this is final WG intent for the seed issue.
+- E2 Source source/fhir.ini:232 and source/namingsystem/list-NamingSystem-operations.xml:9: NamingSystem is an active resource and $preferred-id is one of its listed operations. Learned: the edited OperationDefinition is in current FHIR build scope.
+- E3 Source source/namingsystem/operationdefinition-NamingSystem-preferred-id.xml:40,60,63,105: current source now states the active-status rule, documents the optional date input, and allows repeated result output. Learned: the reconciliation directly fixes the remaining conformance-source gaps.
+- E4 Git b709f1aec3008d932753b1a0ac53f60235208aa0: initial FHIR-37673 commit added date and period guidance but not the active-status rule or repeatable result cardinality. Learned: the issue was only partially applied before this reconciliation.
+- E5 Confluence 134942010: FHIR-I 2022-07-18 minutes record accepting the first bullet and adding a date parameter instead of period. Learned: meeting evidence confirms the Jira resolution and source-change scope.
+- E6 Jira/Git FHIR-22105 and FHIR-37674: related Published decisions and existing combined-branch commits handle period-aware nsd-2 and preferred-selection wording. Learned: this commit should complete only the remaining FHIR-37673 gaps and not duplicate those related decisions.
+- E7 Command searches: bounded Jira, Zulip, and Confluence searches for FHIR-37673 and NamingSystem preferred-id active/date terms found no conflicting later decision. Learned: no discovered community evidence changes the reconciliation.
+- E8 Verification commands: git diff whitespace check, XML parsing, parsed operation checks, and ./gradlew test completed successfully. Learned: the edited XML is well formed, exposes the intended operation shape, and passes the repository test task.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37673",
+    "url": "https://jira.hl7.org/browse/FHIR-37673",
+    "snapshot_path": "contexts/FHIR-37673/jira/FHIR-37673.md",
+    "ref": { "jira_key": "FHIR-37673" },
+    "summary": "Published/Persuasive with Modification issue requiring $preferred-id to ignore retired NamingSystem resources, use an optional date input, handle multiple preferred matches, and add preferred-period overlap guidance.",
+    "learned": "This establishes final WG intent and the specific behavior that must be reflected in the current operation source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:232; source/namingsystem/list-NamingSystem-operations.xml:9",
+    "ref": { "file": "source/namingsystem/list-NamingSystem-operations.xml", "line": 9 },
+    "summary": "fhir.ini lists NamingSystem as an active resource and the NamingSystem operations list references OperationDefinition/NamingSystem-preferred-id.",
+    "learned": "The edited OperationDefinition is in current FHIR build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/namingsystem/operationdefinition-NamingSystem-preferred-id.xml:40,60,63,105",
+    "ref": { "file": "source/namingsystem/operationdefinition-NamingSystem-preferred-id.xml", "line": 40 },
+    "summary": "The reconciled operation source states the active-status rule, describes three inputs including date, and permits repeated result output.",
+    "learned": "The source now carries the FHIR-37673 behavior in the operation definition used by the build.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "b709f1aec3008d932753b1a0ac53f60235208aa0",
+    "ref": { "commit": "b709f1aec3008d932753b1a0ac53f60235208aa0" },
+    "summary": "The original FHIR-37673 source commit added the date parameter and period guidance but left active-status filtering and repeatable result output out of the OperationDefinition.",
+    "learned": "History shows the seed was applied incompletely and identifies the remaining gap addressed here.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2022-07-18 page 134942010",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/134942010/FHIR+Infrastructure+Minutes+CC+2022-07-18",
+    "ref": { "confluence_page_id": 134942010 },
+    "summary": "FHIR-I minutes record FHIR-37673 as accepting the first bullet and adding a date parameter instead of period.",
+    "learned": "Meeting evidence confirms that active-status filtering and date-aware behavior were the approved scope.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "combined-branch commits for FHIR-22105 and FHIR-37674",
+    "ref": { "commit": "4c61475a9653102de9a7098a7c935aa319e51c81" },
+    "summary": "The combined branch already contains FHIR-22105 and FHIR-37674 reconciliation commits for period-aware nsd-2 and preferred-selection wording.",
+    "learned": "Those related decisions should be cited as context but not duplicated in this seed commit.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and related-issue searches for FHIR-37673 NamingSystem preferred-id active/date",
+    "command": "bun run jira:search fts '\"FHIR-37673\" NamingSystem preferred-id active date' --limit 10; bun run jira:search fts '\"$preferred-id\" \"NamingSystem\" \"period\"' --limit 20; bun run zulip:search fts 'NamingSystem preferred-id active date' --limit 10; bun run confluence:search refs jira FHIR-37673",
+    "query": "FHIR-37673 NamingSystem preferred-id active date",
+    "summary": "Searches found the seed, FHIR-22105, FHIR-37674, and the FHIR-I minutes, with no directly relevant Zulip hit or later conflicting decision.",
+    "learned": "No discovered community or Jira evidence reverses the source-fix conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Validation commands",
+    "command": "git diff --check; python3 XML parse and operation parameter check; ./gradlew test --quiet",
+    "summary": "Whitespace check, XML parsing, parsed operation checks, and the Gradle test task completed successfully.",
+    "learned": "The edited XML is well formed, has the intended operation shape, and existing repository validation still passes.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

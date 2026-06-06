@@ -1,0 +1,97 @@
+FHIR-20480: Audit external validator year warning
+
+Issue request:
+FHIR-20480 was a Published FHIR-core change request, resolved Persuasive with Modification, asking to remove the Java InstanceValidator yearIsValid() rejection of years outside 1800..2100 because the FHIR date/dateTime/instant regexes do not impose that range. The approved resolution kept the validation but changed the result from an error to a warning.
+
+Initial application:
+The Jira comments report that Grahame Grieve committed the change to the then-separate org.hl7.fhir.core validator repository. The linked commit 0477bf174e44583ea4c227ad9d37756789ccba9c changes InstanceValidator dateTime, date, and instant checks from rule(...) errors to warning(...) diagnostics with reasonable-year wording. The current HL7/fhir source checkout has no Java source files and no yearIsValid/current-year diagnostic text to update.
+
+Additional context:
+The Zulip thread and FHIR-I minutes from 2019-03-04 match the Jira decision: unusually old or future dates can be suspicious but are not necessarily invalid, so they should warn rather than fail validation. The current org.hl7.fhir.core validator source still reports the reasonable-year check through warning(...), while the current FHIR spec source contains the date primitive definitions but not the Java validator implementation.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change in HL7/fhir. The issue was already applied in the external validator implementation repository, and the current FHIR spec checkout does not own the InstanceValidator code or any conflicting normative year-range prose.
+
+Recommendation:
+Keep this audit commit as-is. Future changes to the reasonable-year diagnostic should be made in org.hl7.fhir.core/validator code; a new FHIR-core tracker would be needed only if the work group wants normative date guidance added to the specification itself.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20480
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20480: Published/Persuasive with Modification; requested removing the yearIsValid hard failure and resolved to keep the check as a warning. Learned: this establishes the final work-group decision and target behavior.
+- E2 Zulip #committers > yearIsValid() in InstanceValidator: participants agreed that dates outside the range can be suspicious without being invalid. Learned: community discussion supports warning rather than error.
+- E3 Confluence FHIR Infrastructure Minutes CC 20190304: FHIR-I recorded Tracker 20480 as Persuasive with Mod, 8-0-0, to keep validation but change error to warning. Learned: minutes independently confirm the formal vote.
+- E4 Git 0477bf174e44583ea4c227ad9d37756789ccba9c: external org.hl7.fhir.core commit changed InstanceValidator year checks from rule errors to warnings. Learned: the approved implementation was applied outside the current HL7/fhir source checkout.
+- E5 Command source-scope scan: current HL7/fhir checkout has zero Java files and no yearIsValid/reasonable-year diagnostic text. Learned: there is no current in-build FHIR spec source hunk to edit for this validator behavior.
+- E6 Web current org.hl7.fhir.core InstanceValidator: current master still calls warning(...) for dateTime/date/instant reasonable-year checks. Learned: the external validator remains aligned with FHIR-20480's applied decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20480",
+    "url": "https://jira.hl7.org/browse/FHIR-20480",
+    "snapshot_path": "contexts/FHIR-20480/jira/FHIR-20480.md",
+    "ref": { "jira_key": "FHIR-20480" },
+    "summary": "Published/Persuasive with Modification issue requesting that InstanceValidator yearIsValid() no longer reject years outside 1800..2100 as validation errors.",
+    "learned": "The final approved disposition was to keep the reasonable-year validation but downgrade it from error to warning.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#committers > yearIsValid() in InstanceValidator",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/yearIsValid()%20in%20InstanceValidator",
+    "summary": "The 2019-02-27 to 2019-03-04 thread discussed whether far-past or far-future dates should fail validation and reached agreement that warning behavior was acceptable.",
+    "learned": "The thread supports the Jira resolution that such dates can be data-entry warnings without being invalid FHIR values.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20190304 page 44499013",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/44499013/FHIR+Infrastructure+Minutes+CC+20190304",
+    "snapshot_path": "contexts/FHIR-20480/confluence/44499013.md",
+    "ref": { "confluence_page_id": 44499013 },
+    "summary": "FHIR-I minutes record Tracker 20480 as 'Keep validation, but change result from an error to a warning', Persuasive with Mod, motion 8-0-0.",
+    "learned": "This confirms the formal work-group vote behind the Jira resolution.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "hapifhir/org.hl7.fhir.core commit 0477bf174e44583ea4c227ad9d37756789ccba9c",
+    "url": "https://github.com/hapifhir/org.hl7.fhir.core/commit/0477bf174e44583ea4c227ad9d37756789ccba9c",
+    "ref": { "commit": "0477bf174e44583ea4c227ad9d37756789ccba9c" },
+    "summary": "The linked external commit titled 'GF#20480 - change error about year to warning' changes InstanceValidator dateTime/date/instant checks from rule(...) errors to warning(...).",
+    "learned": "The approved change was implemented in the external Java validator repository, not as authored HL7/fhir spec source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current HL7/fhir source-scope scan",
+    "command": "rg -n 'yearIsValid|valid year|reasonable years|does not have a valid year' source . --glob '!publish/**' --glob '!temp/**' --glob '!tmp/**' --glob '!*.svg' --glob '!*.png' --glob '!*.jpg' --glob '!*.gif'; find . -path './.git' -prune -o -name '*.java' -print | wc -l; sed -n '1,20p' source/fhir.ini",
+    "result_count": 0,
+    "summary": "The current HL7/fhir checkout has no matching yearIsValid/reasonable-year diagnostic text and zero Java source files; source/fhir.ini is the active spec build configuration.",
+    "learned": "There is no current in-build FHIR spec source file to edit for this validator-only issue.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "web",
+    "locator": "Current org.hl7.fhir.core InstanceValidator.java",
+    "url": "https://raw.githubusercontent.com/hapifhir/org.hl7.fhir.core/master/org.hl7.fhir.validation/src/main/java/org/hl7/fhir/validation/instance/InstanceValidator.java",
+    "summary": "Current external validator source calls warning(...) for the dateTime, date, and instant reasonable-year checks and retains yearIsValid() with an 1800 through thisYear()+80 range.",
+    "learned": "The external validator remains aligned with FHIR-20480's warning-not-error decision.",
+    "supports": ["initial_application", "confidence"]
+  }
+]
+</evidence-manifest>

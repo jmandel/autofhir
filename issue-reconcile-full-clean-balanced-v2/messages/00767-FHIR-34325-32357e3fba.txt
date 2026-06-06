@@ -1,0 +1,117 @@
+FHIR-34325: Clarify multiple asNeededFor reasons
+
+Issue request:
+FHIR-34325 was a Published Pharmacy change request for R5 asking Dosage to support multiple PRN reasons. The Persuasive resolution split the former asNeeded[x] choice into Dosage.asNeeded 0..1 boolean and Dosage.asNeededFor 0..* CodeableConcept, added an invariant allowing asNeededFor only when asNeeded is empty or true, and the Jira comment directed that the asNeededFor description explain that multiple reasons mean any of the conditions may be true.
+
+Initial application:
+Commit 886f421a86 ("FHIR-34325, FHIR-34437, FHIR-34218, FHIR-34195, FHIR-34000") changed source/datatypes/dosage.xml from Dosage.asNeeded[x] to separate Dosage.asNeeded and 0..* Dosage.asNeededFor rows, added the MedicationAsNeededReason example binding, updated medication examples to use asNeededFor, and added the invariant. The current active source retained those structural changes, but the asNeededFor definition still described a single precondition and did not state the approved any-condition semantics for multiple repetitions.
+
+Additional context:
+source/fhir.ini lists Dosage as an active datatype, routes the dosage pages, assigns Pharmacy ownership, and marks Dosage normative, so source/datatypes/dosage.xml is current build input. The originating Zulip thread for the Jira issue explicitly raised whether multiple PRN reasons meant at least one criterion or all criteria; the Jira comment answered this by asking for the any-condition description. Later FHIR-41267 clarified placement of asNeeded/asNeededFor comments and is already represented on the combined branch; it did not reverse or complete the missing multiple-reason semantics.
+
+AutoFHIR reconciliation:
+Updated the Dosage.asNeededFor definition in source/datatypes/dosage.xml to describe one or more preconditions and state that when multiple asNeededFor values are present, the medication may be taken if any identified condition is true.
+
+Recommendation:
+Keep this source fix. It completes the applied FHIR-34325 semantics in the authoritative Dosage datatype source without broadening the change to unrelated request-resource reason/asNeeded alignment topics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34325
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-41267: later-change - clarified asNeeded/asNeededFor comment placement after FHIR-34325 and is already represented on the combined branch; it does not address the missing multiple-reason any-condition semantics.
+FHIR-40765: background - later no-change issue discussed alignment of request-resource reason/asNeeded patterns but left Dosage.asNeeded/asNeededFor distinct from MedicationRequest.reason.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34325: Published/Persuasive Pharmacy issue requiring Dosage.asNeeded 0..1, Dosage.asNeededFor 0..*, the asNeededFor/asNeeded invariant, and a description that multiples imply any condition is true. Learned: establishes final WG intent and the missing semantic requirement.
+- E2 Source source/fhir.ini:11,51,100,539,1002: Dosage is an active datatype, routed to dosage pages, assigned to Pharmacy, and normative. Learned: source/datatypes/dosage.xml is in current build scope.
+- E3 Source source/datatypes/dosage.xml:1044-1083,3548-3554: current Dosage source has separate asNeeded/asNeededFor elements, 0..* asNeededFor, the MedicationAsNeededReason binding, and the invariant, but the asNeededFor definition lacked any-condition semantics before this commit. Learned: the remaining defect was a targeted definition omission.
+- E4 Git 886f421a86: original FHIR-34325 implementation split asNeeded[x], added asNeededFor and the invariant, and updated medication examples. Learned: most of the issue was applied in 2022, but the multiple-repetition meaning was not carried into the source definition.
+- E5 Zulip #implementers > MedicationRequest.dosageInstruction.asNeededCodeableConcept: the originating thread asked how to represent multiple PRN reasons and explicitly raised whether more than one reason meant at least one criterion or all criteria. Learned: confirms the ambiguity that the Jira comment intended to close.
+- E6 Jira FHIR-41267 and combined branch commit a567a0d64d8c: later applied issue fixed placement of asNeeded/asNeededFor comments and is already published in this reconciliation run. Learned: this seed fix should preserve that later clarification and only add the missing FHIR-34325 multiple-reason semantics.
+- E7 Community search: Confluence refs for FHIR-34325 found only January 2022 Pharmacy minutes listing the tracker review; focused Zulip/Confluence searches found no conflicting guidance. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E8 Verification command/query: rg, XML well-formedness, and git diff whitespace checks passed for source/datatypes/dosage.xml. Learned: the edited spreadsheet XML remains valid and the source diff is isolated.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34325",
+    "url": "https://jira.hl7.org/browse/FHIR-34325",
+    "snapshot_path": "contexts/FHIR-34325/jira/FHIR-34325.md",
+    "ref": { "jira_key": "FHIR-34325" },
+    "summary": "Published/Persuasive Pharmacy issue requiring Dosage.asNeeded 0..1, Dosage.asNeededFor 0..*, an invariant, and an asNeededFor description that multiples imply any condition is true.",
+    "learned": "This establishes final WG intent and the remaining semantic requirement for the current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:11,51,100,539,1002",
+    "summary": "Dosage is listed as an active datatype, routed to dosage pages, assigned to Pharmacy, and marked normative.",
+    "learned": "The Dosage spreadsheet source is in current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/dosage.xml:1044-1083,3548-3554",
+    "summary": "The active Dosage source has separate asNeeded and 0..* asNeededFor elements plus the invariant, but the asNeededFor definition did not state the any-condition meaning for multiple repetitions before this commit.",
+    "learned": "The needed source change is a targeted definition correction, not another structural or invariant change.",
+    "supports": ["initial_application", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "886f421a86f818e31e5eb518a478fcffae6c71db",
+    "ref": { "commit": "886f421a86f818e31e5eb518a478fcffae6c71db" },
+    "summary": "The original FHIR-34325 commit split asNeeded[x], added asNeededFor and the invariant, and updated medication examples.",
+    "learned": "Most of the issue was applied, but the Jira comment's multiple-repetition semantics were not present in the current source definition.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > MedicationRequest.dosageInstruction.asNeededCodeableConcept",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/MedicationRequest.dosageInstruction.asNeededCodeableConcept",
+    "ref": { "stream": "implementers", "topic": "MedicationRequest.dosageInstruction.asNeededCodeableConcept" },
+    "summary": "The originating discussion asked how to represent multiple PRN reasons and raised whether more than one criterion meant at least one or all criteria.",
+    "learned": "This confirms the ambiguity resolved by the Jira comment directing any-condition wording.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-41267 and combined commit a567a0d64d8c48762b04288128f4040061424430",
+    "url": "https://jira.hl7.org/browse/FHIR-41267",
+    "snapshot_path": "contexts/FHIR-41267/jira/FHIR-41267.md",
+    "ref": { "jira_key": "FHIR-41267", "commit": "a567a0d64d8c48762b04288128f4040061424430" },
+    "summary": "Later Applied/Persuasive with Modification issue and existing reconciliation commit corrected placement of asNeeded/asNeededFor comment text.",
+    "learned": "This seed fix should preserve that later clarification and only add the missing FHIR-34325 multiple-reason semantics.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-34325 and asNeededFor",
+    "command": "bun run zulip:search snapshot implementers 'MedicationRequest.dosageInstruction.asNeededCodeableConcept'; bun run confluence:search refs jira FHIR-34325; bun run zulip:search fts 'Dosage asNeededFor multiple PRN reasons' --limit 10; bun run confluence:search fts '\"FHIR-34325\"' --limit 10",
+    "query": "FHIR-34325 Dosage asNeededFor multiple PRN reasons",
+    "summary": "Zulip supplied the originating ambiguity, Confluence only listed the Pharmacy tracker review, and no conflicting guidance was found.",
+    "learned": "No discovered community evidence conflicts with the Jira/source conclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Focused source validation",
+    "command": "rg -n 'one or more preconditions|any of the identified conditions|asNeededFor.empty\\(\\)' source/datatypes/dosage.xml; xmllint --noout source/datatypes/dosage.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/datatypes/dosage.xml",
+    "summary": "The target definition and invariant are present, the spreadsheet XML is well formed, and the diff has no whitespace errors.",
+    "learned": "The source edit is syntactically safe and isolated to the intended Dosage definition.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

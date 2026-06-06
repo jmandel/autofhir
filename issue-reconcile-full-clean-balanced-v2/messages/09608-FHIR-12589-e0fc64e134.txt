@@ -1,0 +1,98 @@
+FHIR-12589: Audit primitive integer plus handling
+
+Issue request:
+FHIR-12589 was a Published FHIR-core datatypes change request, resolved Persuasive for DSTU2, asking that the integer and positiveInt regexes allow an optional leading plus sign. The recorded resolution was "allow +" after discussion that +100 is semantically equivalent to 100 but should not be rejected unexpectedly.
+
+Initial application:
+The issue was applied by git-svn commit d142af1ffbabbd530f4804e65e3556a022ee9d32, corresponding to Jira's svn @11056 comment. That commit changed the then-authoritative `source/datatypes.html` table to show integer as `[0]|[-+]?[1-9][0-9]*` and positiveInt as `+?[1-9][0-9]*`.
+
+Additional context:
+Current datatype publishing uses `source/datatypes.html` with `[%regex ...%]` macros fed by the active primitive spreadsheet source. The current primitive regex source allows `+` for integer and integer64, but positiveInt remains `[1-9][0-9]*` and unsignedInt remains `[0]|([1-9][0-9]*)`. That difference is intentional later context: Published issue FHIR-37368 found that the positiveInt page regex was wrong because it differed from the computable/package representation, and commit 3ef54c37a52ed2d27ea04d457899585052cd4b1f changed the page from `+?[1-9][0-9]*` back to `[1-9][0-9]*`. FHIR-16950 separately confirmed the 32-bit range semantics for positiveInt and unsignedInt and does not require changing sign handling.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The integer portion of FHIR-12589 is already satisfied in the active regex source, and restoring a leading plus for positiveInt would conflict with the later Published FHIR-37368 decision to align positiveInt with the computable representation.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR core source follow-up is needed unless a future work-group decision explicitly reverses FHIR-37368 and changes the computable positiveInt or unsignedInt lexical policy.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12589
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-37368: later-change - later Published datatypes issue specifically corrected the positiveInt page regex to match the computable/package representation without a leading plus.
+FHIR-16950: background - later Published datatypes issue clarified that integer, positiveInt, and unsignedInt are constrained to 32-bit ranges; it does not alter the sign-handling conclusion.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12589: Published/Persuasive datatypes issue with resolution "allow +" and application comment svn @11056. Learned: this establishes the original request and its intended DSTU2 application.
+- E2 Source source/datatypes/primitives.xml:107-125,312-325 and source/datatypes.html:242-303: the active source has integer/integer64 regexes with optional plus signs, positiveInt without one, and page macros that render from the primitive source. Learned: current source already satisfies the integer part and intentionally differs for positiveInt.
+- E3 Source source/fhir.ini:75-85,1510-1511,2870-2877: datatype pages and integer primitive characteristics are active build inputs. Learned: the inspected files are in current build scope.
+- E4 Git d142af1ffbabbd530f4804e65e3556a022ee9d32: explicit #12589 implementation changed the old datatypes page to allow plus signs for integer and positiveInt. Learned: the seed was initially applied in source history.
+- E5 Jira/Git FHIR-37368 and 3ef54c37a52ed2d27ea04d457899585052cd4b1f: later Published issue and implementation corrected the positiveInt page regex from `+?[1-9][0-9]*` to `[1-9][0-9]*` to match computable source. Learned: later final WG context supersedes the original positiveInt page wording.
+- E6 Command/community searches: Jira search for `positiveInt regex` surfaced FHIR-12589, FHIR-37368, and range-related issues; Zulip found only bot notifications or unrelated JSON/FHIRPath discussions; Confluence found no FHIR-12589 references. Learned: no discovered community evidence conflicts with the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12589",
+    "url": "https://jira.hl7.org/browse/FHIR-12589",
+    "snapshot_path": "contexts/FHIR-12589/jira/FHIR-12589.md",
+    "ref": { "jira_key": "FHIR-12589" },
+    "summary": "Published/Persuasive FHIR-core datatypes issue requesting optional leading plus signs for integer and positiveInt regexes.",
+    "learned": "This establishes the original request, resolution, and svn @11056 application note.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:107-125,312-325; source/datatypes.html:242-303",
+    "ref": { "path": "source/datatypes/primitives.xml", "lines": "107-125,312-325" },
+    "summary": "The primitive spreadsheet has integer and integer64 regexes with optional plus signs, while positiveInt remains `[1-9][0-9]*`; the datatypes page uses regex macros for these rows.",
+    "learned": "The active source satisfies the integer portion of FHIR-12589 and keeps the later positiveInt computable representation.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:75-85,1510-1511,2870-2877",
+    "ref": { "path": "source/fhir.ini", "lines": "75-85,1510-1511,2870-2877" },
+    "summary": "Build configuration routes primitive datatype pages to datatypes.html and marks integer, positiveInt, and unsignedInt as active primitive/ranged types.",
+    "learned": "The datatype sources inspected for the reconciliation are current build inputs.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "d142af1ffbabbd530f4804e65e3556a022ee9d32",
+    "ref": { "commit": "d142af1ffbabbd530f4804e65e3556a022ee9d32", "svn_revision": 11056 },
+    "summary": "The explicit #12589 implementation commit updated the old datatypes page regexes for integer and positiveInt.",
+    "learned": "FHIR-12589 was applied historically before later datatype-source refactors and corrections.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-37368 / 3ef54c37a52ed2d27ea04d457899585052cd4b1f",
+    "url": "https://jira.hl7.org/browse/FHIR-37368",
+    "snapshot_path": "contexts/FHIR-37368/jira/FHIR-37368.md",
+    "ref": { "jira_key": "FHIR-37368", "commit": "3ef54c37a52ed2d27ea04d457899585052cd4b1f" },
+    "summary": "Later Published/Persuasive issue resolved to update the positiveInt page regex to the computable representation; the implementation changed `+?[1-9][0-9]*` to `[1-9][0-9]*`.",
+    "learned": "The later final decision supersedes the original positiveInt page wording and makes a source edit for plus signs inappropriate now.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-12589 and positiveInt regex",
+    "command": "cd /home/jmandel/work/fhir-community-search && bun run jira:search fts 'positiveInt regex' --limit 20; bun run zulip:search fts 'positiveInt regex' --limit 20; bun run confluence:search refs jira FHIR-12589; bun run confluence:search fts '\"FHIR-12589\" positiveInt integer regex plus' --limit 10",
+    "query": "positiveInt regex; FHIR-12589 positiveInt integer regex plus",
+    "summary": "Jira search surfaced FHIR-12589, FHIR-37368, and range-related issues; Zulip had bot notifications or unrelated JSON/FHIRPath discussion; Confluence had no FHIR-12589 references.",
+    "learned": "No discovered community evidence conflicts with resolving the seed through Jira/source/git history and the later FHIR-37368 decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

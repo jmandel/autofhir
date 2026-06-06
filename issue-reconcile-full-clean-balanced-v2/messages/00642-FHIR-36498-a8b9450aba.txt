@@ -1,0 +1,93 @@
+FHIR-36498: Correct Medication med0317 dextrose ingredient
+
+Issue request:
+FHIR-36498 was a Published/Persuasive Pharmacy correction for Medication example 0317. The request said the example should represent KCl in D5W, not normal saline, with potassium chloride 20 meq/1000 mL and dextrose 5 g/100 mL.
+
+Initial application:
+Commit 8f82213bf87400686774b008004600415dfc5e74 applied part of the Jira request to source/medication/medicationexample0317.xml by changing the potassium chloride code and final strength and changing the second ingredient strength to 5 g/100 mL. It left the second ingredient code as RxNorm 313002, and later QA/display commits made that code's sodium chloride meaning visible in the current source.
+
+Additional context:
+Medication is an active resource in source/fhir.ini, and source/medication/list-Medication-examples.xml actively lists medicationexample0317 with the D5W description. FHIR-36758 is a same-artifact supporting decision whose Medication.ingredient.strength discussion uses the same KCl 20 mEq in 1 L D5W final-product strength model. The separate MedicationAdministration, MedicationDispense, and MedicationRequest examples that contain a med0317-local medication still describe 0.9% normal saline in their dosage text, so they were not changed for this Medication-page correction.
+
+AutoFHIR reconciliation:
+This commit changes the active Medication example source so the second ingredient uses RxNorm 1795612, whose current RxNorm display is "1000 ML glucose 50 MG/ML Injection", and sets the CodeableConcept text to "Dextrose 5% injectable solution". It preserves the already-applied KCl 20 meq/1000 mL and dextrose 5 g/100 mL strengths.
+
+Recommendation:
+Keep this source fix as-is. It completes the intended core Medication example correction while preserving later terminology QA behavior and avoiding unrelated normal-saline examples.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36498
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-36758: supporting-decision - Published Medication.ingredient.strength clarification uses the same KCl 20 mEq in 1 L D5W example and supports the final-product strength interpretation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36498: Published/Persuasive Pharmacy correction for Medication example 0317. Learned: the final decision required changing the example from normal saline semantics to KCl in D5W with KCl 20 meq/1000 mL and dextrose 5 g/100 mL.
+- E2 Source source/fhir.ini:201-205 and source/medication/list-Medication-examples.xml:224-232: Medication is active and medicationexample0317 is listed with the D5W description. Learned: source/medication/medicationexample0317.xml is in current build scope.
+- E3 Git 8f82213bf87400686774b008004600415dfc5e74 plus c38eadd123b694739f07a7066ce9e249abc458db and 445fa7490950755ffad8307faf2e801fd01d9ae5: initial application changed strengths but left RxNorm 313002, and later QA made the 313002 sodium chloride display visible. Learned: the remaining mismatch was an incomplete source application, not a new policy choice.
+- E4 Web RxNav REST for RxNorm 313002 and 1795612: 313002 is sodium chloride 9 MG/ML Injectable Solution; 1795612 is 1000 ML glucose 50 MG/ML Injection. Learned: the D5W ingredient needs code 1795612 to align the code and display.
+- E5 Confluence Virtual WGM Minutes page 90342275 and community searches: minutes record FHIR-36498 "Medication 0317 - agree to fix" 9-0-0, while Zulip/Confluence text searches found no conflicting D5W discussion. Learned: community evidence supports the Jira decision and does not change the scope.
+- E6 Verification command: git diff, current-value rg, CRLF-aware diff --check, and XML well-formed parsing all passed for source/medication/medicationexample0317.xml. Learned: the edit is narrow, well formed, and free of whitespace issues.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36498",
+    "url": "https://jira.hl7.org/browse/FHIR-36498",
+    "snapshot_path": "contexts/FHIR-36498/jira/FHIR-36498.md",
+    "ref": { "jira_key": "FHIR-36498" },
+    "summary": "Published/Persuasive Pharmacy correction for Medication example 0317 to represent KCl in D5W instead of normal saline.",
+    "learned": "This establishes the final work-group intent for the Medication example source fix.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:201-205; source/medication/list-Medication-examples.xml:224-232",
+    "summary": "Medication is active in fhir.ini and medicationexample0317 is listed as a Medication example with the D5W description.",
+    "learned": "The edited XML file feeds the current build and is not a stale generated artifact.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "8f82213bf87400686774b008004600415dfc5e74; c38eadd123b694739f07a7066ce9e249abc458db; 445fa7490950755ffad8307faf2e801fd01d9ae5",
+    "summary": "The initial FHIR-36498 commit changed strengths but left code 313002; later QA/display commits exposed 313002 as sodium chloride.",
+    "learned": "The current sodium chloride ingredient is a leftover code mismatch from partial application.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "web",
+    "locator": "RxNav REST rxcui properties for 313002 and 1795612",
+    "url": "https://rxnav.nlm.nih.gov/REST/rxcui/1795612/properties.json",
+    "summary": "RxNav reports 313002 as sodium chloride 9 MG/ML Injectable Solution and 1795612 as 1000 ML glucose 50 MG/ML Injection.",
+    "learned": "Changing the second ingredient to 1795612 aligns the D5W request with a valid current RxNorm display.",
+    "supports": ["reconciliation", "verification"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "Virtual WGM Minutes page 90342275",
+    "url": "https://confluence.hl7.org/spaces/PHAR/pages/90342275/Virtual+WGM+Minutes",
+    "ref": { "confluence_page_id": 90342275 },
+    "summary": "Pharmacy minutes record FHIR-36498 as 'Medication 0317 - agree to fix' with a 9-0-0 vote.",
+    "learned": "Meeting evidence corroborates the Jira disposition and does not broaden the edit beyond Medication 0317.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Targeted validation for source/medication/medicationexample0317.xml",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/medication/medicationexample0317.xml; xmllint --noout source/medication/medicationexample0317.xml",
+    "summary": "Whitespace and XML well-formed checks passed after the source edit.",
+    "learned": "The source change is syntactically safe and limited to the intended example.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

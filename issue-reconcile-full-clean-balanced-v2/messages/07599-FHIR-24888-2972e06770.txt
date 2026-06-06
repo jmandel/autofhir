@@ -1,0 +1,122 @@
+FHIR-24888: Audit wildcard include reference search
+
+Issue request:
+FHIR-24888 was Published/Persuasive with Modification for FHIR-core operations/search. It asked for a way to find all resources that reference a target resource for delete/referential-integrity workflows. The final FHIR-I decision was not to add a new $reference-search operation, but to define support for _revinclude=* and, while doing so, _include=*. The wildcard is scoped to include/revinclude behavior supported by the server, typically indexed references, and '*' should be declared in CapabilityStatement like any other include or revinclude.
+
+Initial application:
+Git commit 83c723c77c26704fa9fd9afbee5e5e52772c3d1d ("FHIR-24888 First pass") updated source/search.html to add the wildcard syntax bullets for [_include|_revinclude]=*, [resource]:*, [resource]:[parameter], and [resource]:[parameter]:[targetType], plus CapabilityStatement advertising guidance. Current source/search.html still contains those wildcard rules. Later source history added clarifications without changing the FHIR-24888 decision: FHIR-33309 tightened the support scope for wildcard includes, and FHIR-46381 clarified CapabilityStatement wildcard declaration semantics.
+
+Additional context:
+The originating Zulip thread shows the core tradeoff: a guaranteed all-references operation would require scanning references beyond ordinary search indexes, while efficient _revinclude behavior generally depends on search parameters/indexed references. FHIR-I minutes from 2021-02-01 record the approved 20-0-0 decision to define wildcard _revinclude=* and also _include=*, with existing CapabilityStatement include/revinclude string elements used for declaration. Earlier FHIR-27861 answered that broad _include=* and _revinclude=* were not standard in R4 and pointed to FHIR-24888 as the pending broader discussion.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active search page already defines [_include|_revinclude]=*, states that wildcard requests are for resources and references supported by the server and typically indexed, preserves the later clarification that wildcard resource-level includes are limited to search parameters supported for _include/_revinclude, and tells implementers to advertise wildcard support in CapabilityStatement. The active CapabilityStatement StructureDefinition comments now explicitly state that '*' is an allowed value for searchInclude/searchRevInclude declarations and that listing '*' does not imply all individual search parameters are supported.
+
+Recommendation:
+Keep this audit commit as-is. The current specification matches the published FHIR-24888 decision; future work should only reopen the topic if FHIR-I wants a separate guaranteed all-references operation rather than the bounded wildcard include/revinclude semantics approved here.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-24888
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-27861: background - answered that R4 did not allow broad _include=* or _revinclude=* and identified FHIR-24888 as the broader pending discussion.
+FHIR-33309: later-change - clarified that wildcard include/revinclude support is limited to search parameters supported for _include/_revinclude, preserving FHIR-24888's bounded-server-support scope.
+FHIR-46381: later-change - clarified CapabilityStatement searchInclude/searchRevInclude wildcard declaration semantics after FHIR-24888.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-24888: Published/Persuasive with Modification for an all-references search use case resolved by defining _revinclude=* and _include=* with server-supported/indexed-reference scope and CapabilityStatement declaration. Learned: this is the final seed issue request and approved target behavior.
+- E2 Source source/search.html:5439-5464,5558-5565: the current active search page defines [_include|_revinclude]=*, [resource]:*, and related syntax, says wildcard references are supported by the server and typically indexed, and requires CapabilityStatement advertising. Learned: the search-page side of FHIR-24888 is present in current source.
+- E3 Source source/capabilitystatement/structuredefinition-CapabilityStatement.xml:1150-1165: searchInclude allows wildcard '*' and says listing '*' makes no assertions beyond wildcard support, while searchRevInclude reuses those comments. Learned: the CapabilityStatement declaration side is covered in current conformance source.
+- E4 Git 83c723c77c26704fa9fd9afbee5e5e52772c3d1d: FHIR-24888 First pass added the wildcard include/revinclude syntax and CapabilityStatement guidance to source/search.html. Learned: the issue was historically applied to the authoritative search page.
+- E5 Zulip #implementers > reverse search for any referencing resources: participants discussed the original use case, indexed-reference limits, whether to add an operation, and whether _revinclude=* should mean all links or server-supported searchable links. Learned: community context supports the Jira resolution's bounded server-supported wildcard semantics rather than a guaranteed all-references operation.
+- E6 Confluence FHIR Infrastructure Minutes CC 20210201 page 97482813: minutes record discussion of wildcard _revinclude=*, _include=*, CapabilityStatement handling, and a Rick Geimer/Eric Haas 20-0-0 Persuasive with Mod vote. Learned: formal WG minutes confirm the final decision used by the current source.
+- E7 Jira FHIR-27861: Resolved - No Change question answered that R4 did not allow broad _include=* or _revinclude=* and pointed to FHIR-24888. Learned: it confirms the pre-FHIR-24888 gap and does not require a separate source change here.
+- E8 Git/source later context: FHIR-33309 and FHIR-46381 clarified wildcard support scope and CapabilityStatement wildcard declaration semantics already present in current source. Learned: later changes refine but do not contradict the no-change decision for FHIR-24888.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-24888",
+    "url": "https://jira.hl7.org/browse/FHIR-24888",
+    "snapshot_path": "contexts/FHIR-24888/jira/FHIR-24888.md",
+    "ref": { "jira_key": "FHIR-24888" },
+    "summary": "Published/Persuasive with Modification issue asking for an all-references search use case, resolved by defining _revinclude=* and _include=* with server-supported/indexed-reference scope and CapabilityStatement declaration.",
+    "learned": "This establishes the final approved behavior to check in current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/search.html:5439-5464,5558-5565",
+    "ref": { "path": "source/search.html", "lines": "5439-5464,5558-5565" },
+    "summary": "The active search page defines [_include|_revinclude]=* and related wildcard syntax, scopes it to server-supported references that are typically indexed, and instructs CapabilityStatement advertising.",
+    "learned": "The current search source already conveys the FHIR-24888 wildcard include/revinclude behavior.",
+    "supports": ["initial_application", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/capabilitystatement/structuredefinition-CapabilityStatement.xml:1150-1165",
+    "ref": { "path": "source/capabilitystatement/structuredefinition-CapabilityStatement.xml", "lines": "1150-1165" },
+    "summary": "searchInclude comments allow '*' and state that listing '*' only signals wildcard support, while searchRevInclude reuses those comments.",
+    "learned": "The CapabilityStatement declaration requirement is covered in active conformance source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "83c723c77c26704fa9fd9afbee5e5e52772c3d1d",
+    "ref": { "commit": "83c723c77c26704fa9fd9afbee5e5e52772c3d1d" },
+    "summary": "FHIR-24888 First pass added wildcard include/revinclude syntax and CapabilityStatement guidance to source/search.html.",
+    "learned": "The seed issue was historically applied to the authoritative search page.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > reverse search for any referencing resources",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/reverse%20search%20for%20any%20referencing%20resources",
+    "snapshot_path": "contexts/FHIR-24888/zulip/implementers--reverse-search-for-any-referencing-resources.md",
+    "ref": { "stream": "implementers", "topic": "reverse search for any referencing resources" },
+    "summary": "Participants discussed the referential-integrity use case, indexed-reference limits, an operation alternative, and whether _revinclude=* should mean all links or server-supported searchable links.",
+    "learned": "The discussion supports the bounded wildcard semantics reflected in Jira and source.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20210201 page 97482813",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/97482813/FHIR+Infrastructure+Minutes+CC+20210201",
+    "snapshot_path": "contexts/FHIR-24888/confluence/97482813.md",
+    "ref": { "confluence_page_id": 97482813 },
+    "summary": "Minutes record discussion of wildcard _revinclude=*, _include=*, CapabilityStatement handling, and a 20-0-0 Persuasive with Mod vote.",
+    "learned": "Formal WG minutes confirm the approved decision now present in source.",
+    "supports": ["issue_request", "additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-27861",
+    "url": "https://jira.hl7.org/browse/FHIR-27861",
+    "snapshot_path": "contexts/FHIR-24888/jira/FHIR-27861.md",
+    "ref": { "jira_key": "FHIR-27861" },
+    "summary": "Resolved - No Change question answered that broad _include=* and _revinclude=* were not standard in R4 and pointed to FHIR-24888 as the broader discussion.",
+    "learned": "It confirms the pre-change gap without creating a separate current-source task.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "git",
+    "locator": "FHIR-33309/FHIR-46381 later wildcard clarifications",
+    "ref": { "jira_key": "FHIR-33309", "related_jira_key": "FHIR-46381", "commit": "b9729beb4440dfa16c201e4af9da1d3e5b51ae1a" },
+    "summary": "Later source and reconciliation history clarified wildcard support scope and CapabilityStatement wildcard declaration semantics.",
+    "learned": "Later changes refine the same area but do not contradict FHIR-24888's server-supported wildcard include/revinclude decision.",
+    "supports": ["additional_context", "reconciliation"]
+  }
+]
+</evidence-manifest>

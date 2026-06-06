@@ -1,0 +1,135 @@
+FHIR-7026: Audit server timezone discovery
+
+Issue request:
+FHIR-7026 was a Published, Persuasive with Modification FHIR-core search issue from the 2015 May ballot. It objected that clients could not know the server local timezone when date searches defaulted to that timezone and requested an implementation note about the server communicating its timezone.
+
+Initial application:
+The issue was applied by git-svn commit 4dba5ab8ce (#7026 - add note about server timezone), which added HTTP-page text saying that servers should return the default timezone for date searches in HTTP response headers using the Date header, while noting that servers are not required to have a default timezone.
+
+Additional context:
+Later timezone-search work in FHIR-17630 added client-timezone guidance for client context, and the current search page also tells clients to provide a timezone when a time part is present. Later FHIR-42971 determined that the HTTP Date-header approach violated HTTP semantics because HTTP Date is UTC/GMT, and resolved to remove the HTTP-page text and instead document server default timezone discovery via the timezone extension on CapabilityStatement.meta. FHIR-17630 and FHIR-42971 are already represented on the combined reconciliation branch.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The original Date-header implementation should not be restored, and the current build-scope source already preserves the seed issue's implementer-relevant outcome through CapabilityStatement timezone discovery, client-timezone HTTP guidance, and date-search guidance.
+
+Recommendation:
+Keep this audit commit as-is. If the work group wants a different server timezone discovery mechanism in the future, handle that as a new substantive change rather than reviving the invalid HTTP Date-header note from the original FHIR-7026 application.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7026
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17630: same-change-family - later published timezone-search guidance added the client-timezone header and client-side timezone recommendations that frame the current search behavior.
+FHIR-42971: later-change - later applied decision removed the FHIR-7026 HTTP Date-header text and replaced it with CapabilityStatement.meta timezone-extension discovery; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7026: Published/Persuasive with Modification issue requested an implementation note for communicating server timezone when date searches assume server local timezone. Learned: this establishes the seed request and final workflow state.
+- E2 Git 4dba5ab8ce: original #7026 implementation added HTTP-page text instructing servers to return default timezone in response headers using Date. Learned: the seed was initially applied, but via text later found incorrect.
+- E3 Jira FHIR-42971: Applied/Persuasive issue says the HTTP Date-header timezone text violates the HTTP specification and resolves to use the timezone extension on CapabilityStatement.meta instead. Learned: this later final decision supersedes the original HTTP-header implementation path.
+- E4 Confluence page 200148794: FHIR-I minutes for 2023-10-30 record FHIR-42971 as Persuasive, 9-0-0, using the timezone extension on CapabilityStatement.meta for server timezone. Learned: meeting evidence confirms the later WG decision.
+- E5 Zulip #implementers > HTTP Date Header: implementers identified that HTTP Date is always GMT/UTC and Grahame filed FHIR-42971. Learned: community discussion explains why the old Date-header note should not be restored.
+- E6 Source source/capabilitystatement/capabilitystatement-notes.xml:41-45: current build-scope CapabilityStatement notes say a server default timezone should be indicated using the timezone code extension on CapabilityStatement.meta. Learned: current source contains the replacement server-timezone discovery rule.
+- E7 Source source/http.html:620-638: current HTTP page documents the client-timezone header and says clients should populate it and servers should use it when executing logic on behalf of a user. Learned: current source contains related client-context timezone guidance from later work.
+- E8 Source source/search.html:2925-2932,3096-3098: current active search page defines date parameter timezone expectations and still states the server local timezone assumption when both sides lack timezone. Learned: the original search context remains in build scope and is not missing the later discovery guidance.
+- E9 Source /home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-timezone.xml:32: Extension Pack source defines the timezone extension used by the current CapabilityStatement note. Learned: the referenced extension exists outside core as expected.
+- E10 Verification command/query: combined branch had no FHIR-7026 reconciliation commit before this work, while FHIR-17630 and FHIR-42971 already had reconciliation commits. Learned: publishing only a FHIR-7026 audit commit avoids duplicates.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7026",
+    "url": "https://jira.hl7.org/browse/FHIR-7026",
+    "snapshot_path": "contexts/FHIR-7026/jira/FHIR-7026.md",
+    "ref": { "jira_key": "FHIR-7026" },
+    "summary": "Published/Persuasive with Modification issue objecting that clients could not know the server timezone used for date searches and requesting an implementation note about communicating it.",
+    "learned": "This establishes the seed issue request and final workflow state.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "4dba5ab8ce",
+    "ref": { "commit": "4dba5ab8ceb94be248ac95c95164296d383a10e4" },
+    "summary": "Original #7026 implementation added HTTP-page text saying servers should return default timezone for date searches in HTTP response headers using the Date header.",
+    "learned": "The issue was initially applied, but the application used a mechanism later found incorrect.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-42971",
+    "url": "https://jira.hl7.org/browse/FHIR-42971",
+    "snapshot_path": "contexts/FHIR-42971/jira/FHIR-42971.md",
+    "ref": { "jira_key": "FHIR-42971" },
+    "summary": "Applied/Persuasive issue requiring removal of the HTTP Date-header timezone text and documentation of server timezone discovery via the timezone extension on CapabilityStatement.meta.",
+    "learned": "This later final decision supersedes the original HTTP-header implementation path.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2023-10-30 page 200148794",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/200148794/FHIR+Infrastructure+Minutes+CC+2023-10-30",
+    "ref": { "confluence_page_id": 200148794 },
+    "summary": "Minutes record FHIR-42971 as Persuasive, 9-0-0, noting use of the timezone extension on CapabilityStatement.meta for the server timezone.",
+    "learned": "Meeting evidence confirms the later WG-approved replacement for the original Date-header note.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > HTTP Date Header",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/HTTP%20Date%20Header",
+    "ref": { "stream": "implementers", "topic": "HTTP Date Header" },
+    "summary": "Implementers pointed out that HTTP Date is GMT/UTC-only, after which Grahame filed FHIR-42971.",
+    "learned": "The community rationale explains why restoring the original FHIR-7026 Date-header text would be wrong.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/capabilitystatement/capabilitystatement-notes.xml:41-45",
+    "summary": "Current CapabilityStatement notes say a server default timezone should be indicated via the timezone code extension on CapabilityStatement.meta.",
+    "learned": "Current build-scope source contains the accepted server timezone discovery mechanism.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/http.html:620-638",
+    "summary": "Current HTTP page documents the client-timezone header and says clients should populate it and servers should use it for user-context logic.",
+    "learned": "Later timezone work also provides client-context guidance around timezone-sensitive server logic.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "source",
+    "locator": "source/search.html:2925-2932,3096-3098",
+    "summary": "Current search page defines date parameter timezone expectations and still states the server local timezone assumption when both sides lack timezone.",
+    "learned": "The original search context remains active, while timezone discovery is now documented elsewhere.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-timezone.xml:32",
+    "summary": "FHIR Extension Pack source defines the timezone extension referenced by the current CapabilityStatement note.",
+    "learned": "The current core text points to an extension that exists in the expected external repository.",
+    "supports": ["source_scope", "confidence"]
+  },
+  {
+    "id": "E10",
+    "kind": "command",
+    "locator": "Idempotency checks for FHIR-7026, FHIR-17630, and FHIR-42971",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-7026' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-17630' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-42971' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "No existing FHIR-7026 reconciliation commit was found; FHIR-17630 and FHIR-42971 already had reconciliation commits on the combined branch.",
+    "learned": "Only the seed issue needs a new audit commit, and related issues should not be duplicated.",
+    "supports": ["idempotency", "reconciliation"]
+  }
+]
+</evidence-manifest>

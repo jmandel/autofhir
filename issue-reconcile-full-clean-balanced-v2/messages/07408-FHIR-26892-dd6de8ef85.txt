@@ -1,0 +1,118 @@
+FHIR-26892: Audit ElementDefinition binding target invariant
+
+Issue request:
+FHIR-26892 was Published with resolution Persuasive. It asked that ElementDefinition.binding not be allowed to carry only a strength with no binding target, because binding.valueSet and binding.description were optional and a binding with neither target was meaningless. The Jira discussion clarified that differential-only binding changes were a concern, while the final FHIR-I resolution approved proposing the substantive normative ElementDefinition rule at Error strength unless ballot feedback required best-practice treatment.
+
+Initial application:
+The current source history shows two relevant applications. The StructureDefinition source already carried snapshot-scoped sdf-10, requiring StructureDefinition.snapshot.element binding to have either valueSet or description, in the 2021 source rework/R4B history. Commit 8c5984683a, titled FHIR-26892, then added the Error invariant to source/datatypes/elementdefinition.xml as ElementDefinition.binding invariant 23 with expression description.exists() or valueSet.exists(); that commit is contained in v5.0.0.
+
+Additional context:
+The original Zulip thread and Jira comment noted that a differential can validly change only binding.strength and inherit the valueSet/description into the generated snapshot. Current source preserves the StructureDefinition snapshot-specific sdf-10 and does not add sdf-10 to StructureDefinition.differential.element. Later FHIR-48325 did not remove the FHIR-26892 target rule; it added descriptive binding strength and an invariant that descriptive bindings omit valueSet, with an already-published reconciliation commit on the combined branch. FHIR-26883 was the motivating RiskAssessment example, but it is a separate CDS issue and not decided here.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. source/fhir.ini marks ElementDefinition as normative and StructureDefinition as an active resource, and the current authoritative source already enforces the FHIR-26892 rule through ElementDefinition.binding invariant 23 plus snapshot-scoped StructureDefinition sdf-10. Removing or narrowing the normative ElementDefinition invariant to handle differential-only binding-strength deltas would change published R5/R6 conformance behavior and needs an explicit later work-group decision, not an issue-reconcile edit for this published issue.
+
+Recommendation:
+Keep this audit commit as-is. If implementer or tooling feedback shows that eld-23 should not apply to differentials, raise a new focused FHIR-I issue to decide whether to move the rule exclusively to StructureDefinition.snapshot.element or otherwise express a context-sensitive exception.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26892
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-26883: background - the RiskAssessment binding gap was cited as an example of a binding with no target, but it is a separate CDS artifact issue.
+FHIR-48325: later-change - later FHIR-I work added the descriptive BindingStrength code and a valueSet-omission invariant without superseding the FHIR-26892 target requirement; it is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26892: Published/Persuasive issue requesting an Error invariant so ElementDefinition.binding has valueSet or description. Learned: this is a final in-scope FHIR-I decision for R5.
+- E2 Zulip #conformance > elementDefinition.binding should enforce a target: Patrick, Lloyd, and Grahame discussed the missing binding target and the differential-vs-snapshot concern. Learned: source checks must avoid turning this audit into an unsupported differential policy rewrite.
+- E3 Confluence 82906389: FHIR-I minutes for 2020-05-04 record the motion to propose the normative core change, with fallback to best-practice only if ballot objections arose. Learned: the work group approved the substantive core rule.
+- E4 Git 8c5984683a: added ElementDefinition.binding invariant 23 with expression description.exists() or valueSet.exists() to source/datatypes/elementdefinition.xml. Learned: the Jira-tagged source application is present in history and shipped in v5.0.0.
+- E5 Source source/datatypes/elementdefinition.xml:2566-2667,4806-4813: ElementDefinition.binding remains 0..1, strength remains 1..1, valueSet/description remain optional individually, and invariant 23 requires one of them. Learned: the target requirement requested by the issue is present in current build-scope source.
+- E6 Source source/structuredefinition/structuredefinition-StructureDefinition.xml:943-974 and source/fhir.ini:258,1015,1241: StructureDefinition is active and snapshot.element carries sdf-10, while the differential.element block lacks that resource-level constraint. Learned: the current resource source preserves the snapshot-specific enforcement surface relevant to the Jira comment.
+- E7 Jira/Git FHIR-48325 and combined commit 2277ed5af94: later applied work added descriptive BindingStrength and fixed its CodeSystem source without removing eld-23. Learned: later decisions refine description-only bindings but do not supersede FHIR-26892.
+- E8 Commands: idempotency checks on robo-spec-combined-issue-reconcile-full-clean-balanced-v2 found no prior FHIR-26892 commit, and source/community searches found no later final issue reversing eld-23. Learned: an empty no-change audit is the bounded reconciliation result.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26892",
+    "url": "https://jira.hl7.org/browse/FHIR-26892",
+    "snapshot_path": "contexts/FHIR-26892/jira/FHIR-26892.md",
+    "ref": { "jira_key": "FHIR-26892" },
+    "summary": "Published/Persuasive FHIR-I issue requesting that ElementDefinition.binding have either valueSet or description so a binding cannot have only strength and no target.",
+    "learned": "This establishes the final in-scope R5 source requirement for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#conformance > elementDefinition.binding should enforce a target",
+    "url": "https://chat.fhir.org/#narrow/stream/conformance/topic/elementDefinition.binding%20should%20enforce%20a%20target",
+    "ref": { "stream": "conformance", "topic": "elementDefinition.binding should enforce a target" },
+    "summary": "The originating thread agreed that bindings should have valueSet or description while noting ambiguity about snapshot-only versus differential-only binding-strength changes.",
+    "learned": "The differential concern is real context, but it was not enough evidence for an AutoFHIR source rewrite of the published normative invariant.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20200504 page 82906389",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/82906389/FHIR+Infrastructure+Minutes+CC+20200504",
+    "ref": { "confluence_page_id": 82906389 },
+    "summary": "FHIR-I minutes record a 12-0-0 motion to make the normative core change and fall back to best-practice only if ballot objections arose.",
+    "learned": "Meeting evidence supports keeping the substantive Error rule represented in current source.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "8c5984683a9fd3c608c393868231833ffd36f89d",
+    "ref": { "commit": "8c5984683a9fd3c608c393868231833ffd36f89d" },
+    "summary": "The FHIR-26892 implementation commit added ElementDefinition.binding invariant 23 with expression description.exists() or valueSet.exists().",
+    "learned": "The explicit Jira-tagged application exists in source history and is contained in v5.0.0.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/elementdefinition.xml:2566-2667,4806-4813",
+    "ref": { "path": "source/datatypes/elementdefinition.xml" },
+    "summary": "ElementDefinition.binding has optional valueSet and description, and invariant 23 requires at least one of them when a binding exists.",
+    "learned": "The target requirement requested by FHIR-26892 is present in the current authoritative datatype source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/structuredefinition/structuredefinition-StructureDefinition.xml:943-974; source/fhir.ini:258,1015,1241",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml" },
+    "summary": "The active StructureDefinition resource source has sdf-10 on snapshot.element requiring binding valueSet or description, and no equivalent resource-level sdf-10 on differential.element.",
+    "learned": "Current source includes the snapshot enforcement surface relevant to the Jira comment without adding that resource-level constraint to differentials.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-48325 and combined commit 2277ed5af94",
+    "url": "https://jira.hl7.org/browse/FHIR-48325",
+    "ref": { "jira_key": "FHIR-48325", "commit": "2277ed5af94964049736bcbd183446438f28da1e" },
+    "summary": "Later applied work added the descriptive BindingStrength code and an invariant omitting valueSet for descriptive bindings, and is already represented on the combined branch.",
+    "learned": "Later binding policy refines description-only bindings but does not reverse the FHIR-26892 target invariant.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local idempotency and source/community checks",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-26892' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg 'eld-23|sdf-10|binding SHALL have either description|provide either a binding'; bun run jira:search fts ...; bun run zulip:search snapshot ...; bun run confluence:search refs jira FHIR-26892",
+    "summary": "No prior FHIR-26892 reconcile commit was found; searches confirmed the current invariant source and found no later final reversal.",
+    "learned": "The bounded reconciliation decision is no-change rather than duplicate publication or speculative source modification.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

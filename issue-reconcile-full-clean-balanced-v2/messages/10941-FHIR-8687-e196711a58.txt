@@ -1,0 +1,95 @@
+FHIR-8687: Audit schematron generation fixes
+
+Issue request:
+FHIR-8687 was a Published/Persuasive DSTU1 FHIR-core correction for generated Schematron output. It reported redundant rule contexts such as `//name`, incorrect `f:div` handling for `Narrative.div` where XHTML requires `h:div`, and incorrect choice-element paths for Quantity-flavor choices such as `Timing.repeats.bounds[x]`, which was expected to use the Quantity base name in the then-current generator.
+
+Initial application:
+The Jira comment says items #2 and #3 were applied in SVN revision 6985, and git-svn commit da4ec94bd876232cb7fbccd56bf542fe9cd81e28 is the matching `#8687 - fix schematron generation` implementation. That commit changed the old core SchematronGenerator to map constrained choice types through their base type and to use `h:div` for div paths. A follow-up same-day commit, 1a3b080e4f1fc3fe5f16b881eec9d82087b38ebb, is explicitly labeled `#8687 - fix schematron generation - fix consequences`. Lloyd later commented in Jira that the remaining redundant-context item appeared to have been done.
+
+Additional context:
+The current HL7/fhir checkout no longer contains the old Java SchematronGenerator/ProfileUtilities tooling source that was changed in 2015, but current source still publishes XML Schema/Schematron artifacts through active build-scoped inputs. `source/fhir.ini` keeps Narrative as active infrastructure source, `source/downloads.html` publishes validation schemas including Schematron, and `source/validation.html`/`source/xml.html` describe the generated Schematron files. Current source and generated output have moved on from DSTU1 naming details: current Timing XML uses `boundsDuration` intentionally, and no current generated Schematron rule path was found that recreates the old `boundsDuration`/`boundsQuantity` bug.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical generator fix was applied, the old editable generator is no longer in this checkout, and a current build.fhir.org validation-schema check found 128 generated `.sch` files with zero `//...` rule contexts, `h:div` used in global element assertions, and no `f:div` usages.
+
+Recommendation:
+Keep this no-change audit commit. If a current generated Schematron artifact regresses, investigate the current FHIR build/publisher tooling, but do not edit current core specification source for this already-applied DSTU1 generator issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8687
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8687: Published/Persuasive DSTU1 issue reporting redundant Schematron contexts, `Narrative.div` namespace handling, and Quantity-flavor choice path generation; comments cite SVN revision 6985 and say item #1 was already done. Learned: this establishes the final request and historical application pointers.
+- E2 Git da4ec94bd876232cb7fbccd56bf542fe9cd81e28: `#8687 - fix schematron generation` changed the old SchematronGenerator in SVN revision 6985. Learned: items #2 and #3 were implemented in the then-authoritative core tooling.
+- E3 Git 1a3b080e4f1fc3fe5f16b881eec9d82087b38ebb: follow-up `#8687 - fix schematron generation - fix consequences` adjusted same-day consequences after the generator change. Learned: source history confirms the issue was actively applied rather than left only as a Jira resolution.
+- E4 Source source/fhir.ini:63-74, source/downloads.html:45, source/validation.html:229-237, source/xml.html:254-257, source/datatypes/element.xml:3093-3097, and source/datatypes/timing.xml:906-910. Learned: Schematron output remains in current build scope, Narrative/XHTML and Timing are active source surfaces, and current active source already uses `h:div` where the global element XPath permits XHTML div content.
+- E5 Command current generated Schematron check: downloaded build.fhir.org/fhir-all-xsd.zip and scanned generated `.sch` files. Learned: the current publication surface has 128 `.sch` files, zero rule contexts containing `//`, zero `f:div` usages, and `h:div` assertions, so the reported generation errors are not present now.
+- E6 Community/Jira searches: exact-key and term searches found only FHIR-8687 in Jira, no Zulip hits, and no Confluence references. Learned: no discovered later decision or community record reopens the already-applied no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8687",
+    "url": "https://jira.hl7.org/browse/FHIR-8687",
+    "snapshot_path": "contexts/FHIR-8687/jira/FHIR-8687.md",
+    "ref": { "jira_key": "FHIR-8687" },
+    "summary": "Published/Persuasive DSTU1 issue reporting redundant Schematron contexts, incorrect Narrative.div namespace generation, and incorrect Quantity-flavor choice paths.",
+    "learned": "The issue is final, identifies the intended generator behavior, and records SVN revision 6985 plus a later comment that the remaining context item had been done.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "da4ec94bd876232cb7fbccd56bf542fe9cd81e28",
+    "ref": { "commit": "da4ec94bd876232cb7fbccd56bf542fe9cd81e28", "svn_revision": 6985 },
+    "summary": "The git-svn `#8687 - fix schematron generation` commit changed the old SchematronGenerator to handle h:div and constrained choice base names.",
+    "learned": "This is the concrete historical implementation matching Jira's application comment for items #2 and #3.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "1a3b080e4f1fc3fe5f16b881eec9d82087b38ebb",
+    "ref": { "commit": "1a3b080e4f1fc3fe5f16b881eec9d82087b38ebb", "svn_revision": 6987 },
+    "summary": "The same-day `#8687 - fix schematron generation - fix consequences` commit adjusted follow-up source consequences after the generator fix.",
+    "learned": "The issue has an explicit historical source trail beyond the initial generator patch.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:63-74; source/downloads.html:45; source/validation.html:229-237; source/xml.html:254-257; source/datatypes/element.xml:3093-3097; source/datatypes/timing.xml:906-910",
+    "ref": { "path": "source/datatypes/element.xml", "line": 3097 },
+    "summary": "Current source keeps Narrative active, publishes validation schemas including Schematron, and has the active global element XPath using h:div; Timing.repeat.bounds[x] is an active Duration|Range|Period choice.",
+    "learned": "The relevant current build surfaces were checked and do not require a source edit for this historical generator issue.",
+    "supports": ["build_scope", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current build.fhir.org generated Schematron scan",
+    "command": "curl -fsSL https://build.fhir.org/fhir-all-xsd.zip; unzip; find xsd -name '*.sch' ... grep for '<sch:rule ... context=\"//', 'f:div', 'h:div', and boundsDuration/boundsQuantity paths",
+    "summary": "The scan found 128 generated .sch files, zero rule contexts containing //, zero f:div usages, h:div in generated global assertions, and no current generated rule path recreating the old boundsQuantity issue.",
+    "learned": "The current publication surface does not exhibit the reported Schematron generation errors.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-8687 and schematron terms",
+    "command": "bun run jira:search fts '\"FHIR-8687\" schematron generation' --limit 10; bun run jira:search fts '\"boundsQuantity\" \"Narrative.div\" schematron' --limit 20; bun run zulip:search fts '\"FHIR-8687\" schematron generation' --limit 10; bun run confluence:search refs jira FHIR-8687; bun run confluence:search fts '\"FHIR-8687\" schematron generation' --limit 10",
+    "query": "FHIR-8687 schematron generation Narrative.div boundsQuantity",
+    "result_count": 1,
+    "summary": "Jira searches returned only FHIR-8687 for the relevant terms, while Zulip and Confluence searches found no direct records.",
+    "learned": "No discovered later issue, discussion, or minutes change the historical-application/no-current-source-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

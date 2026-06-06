@@ -1,0 +1,105 @@
+diff --git a/source/group/operationdefinition-Group-purge.xml b/source/group/operationdefinition-Group-purge.xml
+index c45fe405af9..e1026d9864f 100644
+--- a/source/group/operationdefinition-Group-purge.xml
++++ b/source/group/operationdefinition-Group-purge.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="UTF-8"?>
+ 
+ <OperationDefinition xmlns="http://hl7.org/fhir" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://hl7.org/fhir ../../publish/OperationDefinition.xsd">
+-  <id value="purge"/>
++  <id value="Group-purge"/>
+   <extension url="http://hl7.org/fhir/StructureDefinition/structuredefinition-fmm">
+     <valueInteger value="2"/>
+   </extension>
+@@ -30,11 +30,25 @@
+       <valueString value="$purge-response.txt"/>
+     </extension>
+   </extension>
+-  <url value="http://hl7.org/fhir/Operationdefinition/purge"/>
+-  <name value="purge"/>
++  <url value="http://hl7.org/fhir/build/OperationDefinition/Group-purge"/>
++  <version value="6.0.0"/>
++  <name value="Purge"/>
+   <title value="Purge Group Record"/>
++  <status value="draft"/>
+   <kind value="operation"/>
+-  <description value="This operation is used to request the removal of all current and historical versions for all resources in a Group of patient compartments.  The result will be an OperationOutcome with results and/or details about execution.&#xA;&#xA;Following are some common `issue-type` values:&#xA;- `success` the request has been completed to the server's satisfaction - the patient and associated resources are no longer accessible&#xA;- `incomplete` the request is partially complete, but additional processing will continue (e.g., the server is continuing to clean out resources)&#xA;&#xA;When supported, it is recommended (though not required) to support an [Asynchronous Request Pattern](async.html).&#xA;&#xA;Note that the deletion of resources typically involves many policy decisions.  Implementers are expected to use this operation in conjunction with their policies for such a request - e.g., soft vs. hard delete, audibility/traceability, evaluation of referential integrity, etc."/>
++  <date value="2023-12-11T10:01:24+11:00"/>
++  <publisher value="HL7 (FHIR Project)"/>
++  <contact>
++    <telecom>
++      <system value="url"/>
++      <value value="http://hl7.org/fhir"/>
++    </telecom>
++    <telecom>
++      <system value="email"/>
++      <value value="fhir@lists.hl7.org"/>
++    </telecom>
++  </contact>
++  <description value="This operation is used to request the removal of all current and historical versions for all resources in the Patient compartments of the members of a Group.  The result will be an OperationOutcome with results and/or details about execution.&#xA;&#xA;Following are some common `issue-type` values:&#xA;- `success` the request has been completed to the server's satisfaction - the patients and associated resources are no longer accessible&#xA;- `incomplete` the request is partially complete, but additional processing will continue (e.g., the server is continuing to clean out resources)&#xA;&#xA;When supported, it is recommended (though not required) to support an [Asynchronous Request Pattern](async.html).&#xA;&#xA;Note that the deletion of resources typically involves many policy decisions.  Implementers are expected to use this operation in conjunction with their policies for such a request - e.g., soft vs. hard delete, audibility/traceability, evaluation of referential integrity, etc."/>
+   <jurisdiction>
+     <coding>
+       <system value="http://unstats.un.org/unsd/methods/m49/m49.htm"/>
+@@ -42,8 +56,9 @@
+       <display value="World"/>
+     </coding>
+   </jurisdiction>
+-  <affectsState value="false"/>
++  <affectsState value="true"/>
+   <code value="purge"/>
++  <resource value="Group"/>
+   <system value="false"/>
+   <type value="false"/>
+   <instance value="true"/>
+diff --git a/source/http.html b/source/http.html
+index 80a9a53e408..cc68c9d6fd5 100644
+--- a/source/http.html
++++ b/source/http.html
+@@ -1092,12 +1092,13 @@ For servers that maintain a version history, the <code>delete</code> interaction
+ remove a resource's version history. From a version history respect,
+ deleting a resource is the equivalent of creating a special kind of history entry that has
+ no content and is marked as deleted.
+-Note that there are different interactions for deleting historical versions of a resource - 
+-see <a href="#delete-history">delete history</a>. and <a href="#delete-history-version">delete history version</a>
+-for details.  Additionally, there is an operation defined that can be used to delete the contents of one
+-or more patient compartments, <a href="patient-operation-purge.html">$purge</a>.  If servers support
+-the operation, it will be advertised in the <a href="capabilitystatement.html">CapabilityStatement</a> for that
+-server.
++Note that there are different interactions for deleting historical versions of a resource -
++see <a href="#delete-history">delete history</a> and <a href="#delete-history-version">delete history version</a>
++for details.  Additionally, operations are defined that can be used to delete the contents of patient
++compartments: <a href="patient-operation-purge.html">Patient $purge</a> for one Patient compartment, and
++<a href="group-operation-purge.html">Group $purge</a> for all Patient compartments of a Group's members.  If
++servers support these operations, they will be advertised in the <a href="capabilitystatement.html">CapabilityStatement</a>
++for that server.
+ </p>
+ <p>
+ Since deleted resources may be brought back to life, servers MAY include an <code>ETag</code> on the delete response
+@@ -1204,8 +1205,9 @@ Performing this interaction on a resource that contains no history (e.g., alread
+   </p>
+     
+   <p>
+-  The <code>delete history version</code> interaction removes a specific historical version of the resource, except the current version (which 
+-  if the resource has been deleted, will be an empty placeholder). The interaction
++  The <code>delete history version</code> interaction removes a specific historical version of the resource.
++  It is an error to use this interaction to remove the current version; use the ordinary <a href="#delete">delete</a>
++  interaction first if the current version must also be deleted. The interaction
+   is performed by an HTTP <code>DELETE</code> command as shown:
+   </p>
+   <pre>
+diff --git a/source/patient/operationdefinition-Patient-purge.xml b/source/patient/operationdefinition-Patient-purge.xml
+index a200a840afb..742a43fd3ae 100644
+--- a/source/patient/operationdefinition-Patient-purge.xml
++++ b/source/patient/operationdefinition-Patient-purge.xml
+@@ -59,10 +59,9 @@
+       <display value="World"/>
+     </coding>
+   </jurisdiction>
+-  <affectsState value="false"/>
++  <affectsState value="true"/>
+   <code value="purge"/>
+   <resource value="Patient"/>
+-  <resource value="Group"/>
+   <system value="false"/>
+   <type value="false"/>
+   <instance value="true"/>

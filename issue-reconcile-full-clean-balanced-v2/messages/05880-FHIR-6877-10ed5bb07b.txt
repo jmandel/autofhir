@@ -1,0 +1,120 @@
+FHIR-6877: Audit ProcedureRequest status overlap
+
+Issue request:
+FHIR-6877 was a Published Patient Care change request from the DSTU1 ballot cycle. It observed that Procedure and ProcedureRequest status values overlapped and asked whether ProcedureRequest should replace completed with closed, remove in-progress/accepted-style fulfillment states, or add scheduled. The final Not Persuasive with Modification resolution said the status values would be aligned with workflow patterns through GF#10293, now represented as FHIR-10293.
+
+Initial application:
+No source commit was found that directly names FHIR-6877. The linked Published workflow issue FHIR-10293 listed Procedure as an Event resource and ProcedureRequest as a Request resource, and its comments later removed FHIR-6877 from the duplicate ballot-comment list after recording that workflow changes had been applied. Source history shows the relevant application path: fd96fa1d815117d335e22713f30f6792a9c83b1d applied Procedure workflow pattern changes under #10293, e9a85998b0dbe25b03abd0045bfa30e67ce56b36 carried ProcedureRequest.status from the broad local status list into RequestStatus/request-status wording during the ProcedureRequest merge work, and 06bd9f6ffe08096694a3424721006e5fdcd82d3a later renamed ProcedureRequest to ServiceRequest.
+
+Additional context:
+ProcedureRequest is no longer active in the current build. source/fhir.ini actively lists procedure=Procedure and servicerequest=ServiceRequest, and records ProcedureRequest only as a deleted resource merged into ServiceRequest. Related audits already on the combined branch for FHIR-11120 and FHIR-6876 found the same Request-status alignment in the ProcedureRequest/ReferralRequest successor family. Later source has further refined terminology, for example using on-hold/stopped rather than the older suspended/aborted names for Event status, so the current code lists should be judged against the current workflow pattern rather than the 2015 wording literally.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change. The current build-scope source already preserves the requested workflow separation: Procedure.status is an Event-status element bound to http://hl7.org/fhir/ValueSet/event-status, ServiceRequest.status is a Request-status element bound to http://hl7.org/fhir/ValueSet/request-status, and the Request pattern narrative says requests do not track fulfillment statuses such as requested, accepted, or in-progress; those are managed through Task or corresponding Event resources.
+
+Recommendation:
+Keep this no-change audit commit. Do not edit retired ProcedureRequest source or reintroduce fulfillment states into Request.status/ServiceRequest.status unless a later work-group decision reverses the workflow separation between requester-controlled authorization status and performer/event fulfillment status.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6877
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-10293: supporting-decision - Published Patient Care workflow alignment issue referenced by FHIR-6877 and used to align Procedure as Event and ProcedureRequest as Request.
+FHIR-11120: same-change-family - Published ProcedureRequest ballot comment also resolved through GF#10293 and already audited on the combined branch as satisfied by ServiceRequest.status using request-status.
+FHIR-6876: same-change-family - Published ReferralRequest active-versus-accepted comment already audited on the combined branch; it confirms the same Request-pattern split from fulfillment status.
+FHIR-5707: background - Earlier Published Procedure/ProcedureRequest status issue added Procedure status and deferred ProcedureRequest status, setting context but not requiring a separate opportunistic decision here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6877: Published/Not Persuasive with Modification ballot issue asked about overlapping Procedure and ProcedureRequest statuses and resolved to align with workflow patterns through GF#10293. Learned: this establishes the seed request and the intended application vehicle.
+- E2 Jira FHIR-10293: Published/Persuasive Patient Care workflow standardization listed Procedure as an Event resource and ProcedureRequest as a Request resource, and comments removed FHIR-6877 after workflow changes were applied. Learned: this explains why current reconciliation should check Event/Request pattern alignment rather than old overlapping local code lists.
+- E3 Source source/fhir.ini:169-213,1474: current build resources include Procedure and ServiceRequest, while ProcedureRequest is recorded as merged into ServiceRequest. Learned: ServiceRequest is the current build-scope successor to ProcedureRequest.
+- E4 Source source/procedure/structuredefinition-Procedure.xml:195-221 and source/event/codesystem-event-status.xml:24-63: Procedure.status has the EventStatus binding to ValueSet/event-status with event lifecycle codes. Learned: the Procedure side is aligned to the Event workflow pattern.
+- E5 Source source/servicerequest/structuredefinition-ServiceRequest.xml:264-287 and source/request/codesystem-request-status.xml:24-64: ServiceRequest.status has a required binding to ValueSet/request-status with requester-controlled request lifecycle codes. Learned: the current ProcedureRequest successor uses the Request workflow status family.
+- E6 Source source/request/request-spreadsheet-introduction.xml:34-37 and source/request/request-spreadsheet-notes.xml:41-60: Request narrative states that requests do not track fulfillment statuses such as requested, accepted, or in-progress, which are managed through Task/Event. Learned: current source directly addresses the semantic overlap raised by the seed.
+- E7 Git fd96fa1d, e9a85998, 06bd9f6f: history shows #10293 Procedure workflow changes, ProcedureRequest status movement toward RequestStatus/request-status, and the later ProcedureRequest-to-ServiceRequest rename. Learned: the issue was applied through broader workflow/refactor commits rather than a direct FHIR-6877 commit.
+- E8 Command Zulip/Confluence search for FHIR-6877 and status-overlap terms: no relevant community hits or Confluence Jira refs were found. Learned: no discovered community evidence conflicts with the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6877",
+    "url": "https://jira.hl7.org/browse/FHIR-6877",
+    "snapshot_path": "contexts/FHIR-6877/jira/FHIR-6877.md",
+    "ref": { "jira_key": "FHIR-6877" },
+    "summary": "Published/Not Persuasive with Modification DSTU1 issue asking about overlap between Procedure and ProcedureRequest status values.",
+    "learned": "The final resolution directs reconciliation to the workflow-pattern alignment represented by GF/FHIR-10293.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-10293",
+    "url": "https://jira.hl7.org/browse/FHIR-10293",
+    "ref": { "jira_key": "FHIR-10293" },
+    "summary": "Published/Persuasive Patient Care workflow alignment issue listing Procedure as an Event target and ProcedureRequest as a Request target, with comments removing FHIR-6877 from the duplicate ballot list after application.",
+    "learned": "This supplies the approved application path and the Event/Request pattern lens for deciding FHIR-6877.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-213,1474",
+    "ref": { "path": "source/fhir.ini", "lines": "169-213,1474" },
+    "summary": "Procedure and ServiceRequest are active resources; ProcedureRequest is listed only as merged into ServiceRequest.",
+    "learned": "The build-scope request-side artifact is ServiceRequest, not retired ProcedureRequest source.",
+    "supports": ["source_change_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/procedure/structuredefinition-Procedure.xml:195-221; source/event/codesystem-event-status.xml:24-63",
+    "ref": { "path": "source/procedure/structuredefinition-Procedure.xml", "lines": "195-221" },
+    "summary": "Procedure.status is required and bound to ValueSet/event-status, whose code system describes event lifecycle states.",
+    "learned": "The Procedure side aligns with the Event workflow status pattern.",
+    "supports": ["reconciliation", "source_check"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:264-287; source/request/codesystem-request-status.xml:24-64",
+    "ref": { "path": "source/servicerequest/structuredefinition-ServiceRequest.xml", "lines": "264-287" },
+    "summary": "ServiceRequest.status is required and bound to ValueSet/request-status, whose code system describes requester-controlled request lifecycle states.",
+    "learned": "The current ProcedureRequest successor aligns with the Request workflow status pattern.",
+    "supports": ["reconciliation", "source_check"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/request/request-spreadsheet-introduction.xml:34-37; source/request/request-spreadsheet-notes.xml:41-60",
+    "ref": { "path": "source/request/request-spreadsheet-notes.xml", "lines": "41-60" },
+    "summary": "Request narrative says requests do not track fulfillment statuses such as requested, accepted, or in-progress and explains why those are tracked through Task/Event instead.",
+    "learned": "The current specification directly resolves the status-overlap concern raised by FHIR-6877.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "fd96fa1d815117d335e22713f30f6792a9c83b1d; e9a85998b0dbe25b03abd0045bfa30e67ce56b36; 06bd9f6ffe08096694a3424721006e5fdcd82d3a",
+    "ref": { "commit": "fd96fa1d815117d335e22713f30f6792a9c83b1d" },
+    "summary": "History shows #10293 Procedure workflow changes, ProcedureRequest status movement toward RequestStatus/request-status, and the later ProcedureRequest-to-ServiceRequest rename.",
+    "learned": "FHIR-6877 was applied through broader workflow/refactor commits rather than a direct seed-key commit.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-6877 ProcedureRequest status overlap",
+    "command": "bun run zulip:search fts '\"FHIR-6877\" ProcedureRequest status' --limit 10; bun run zulip:search fts 'ProcedureRequest status Procedure completed closed scheduled' --limit 10; bun run confluence:search refs jira FHIR-6877; bun run confluence:search fts 'ProcedureRequest status Procedure completed closed scheduled' --limit 10",
+    "query": "FHIR-6877 ProcedureRequest status overlap",
+    "result_count": 0,
+    "summary": "No relevant Zulip hits or Confluence references were found for the seed or status-overlap wording.",
+    "learned": "No discovered community evidence changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

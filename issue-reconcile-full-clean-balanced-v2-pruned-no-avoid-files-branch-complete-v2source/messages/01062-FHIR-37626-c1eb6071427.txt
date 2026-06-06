@@ -1,0 +1,104 @@
+FHIR-37626: Clarify validate resource-type endpoints
+
+Issue request:
+FHIR-37626 is a Published/Persuasive FHIR-I technical correction for R5 asking the Resource $validate operation page to stop implying that type- and instance-level invocations use literal /Resource endpoints. The issue requested examples like [base]/[resourceType]/$validate and [base]/[resourceType]/[id]/$validate instead of [base]/Resource/$validate and [base]/Resource/[id]/$validate.
+
+Initial application:
+No source commit explicitly mentioning FHIR-37626 was found. The current generated formal OperationDefinition narrative still renders URL lines with Resource in the path, and the current source did not include local Resource.$validate prose explaining that those type and instance paths require a concrete resource type. Later validate-operation work added system-level support and a summary table, but did not remove the ambiguity on the formal operation page.
+
+Additional context:
+The original Zulip thread confirms the intended interpretation: Resource was meant as a resource type placeholder, not the literal endpoint. Later FHIR-41356 added valid system-level [base]/$validate support, so the reconciliation must not say that every $validate invocation requires a resource type. FHIR-41357 added the current system/type/instance matrix and is already represented on the combined branch. The edited file is build-scope source because Resource is an active infrastructure resource in source/fhir.ini and source/resource/list-Resource-operations.xml references OperationDefinition/Resource-validate.
+
+AutoFHIR reconciliation:
+This commit adds a targeted clarification to source/resource/operationdefinition-Resource-validate.xml in both the generated footer markdown and the OperationDefinition comment. The new text states that type- and instance-level invocations use a concrete resource type such as [base]/Patient/$validate or [base]/Patient/[id]/$validate, and that abstract Resource does not define literal /Resource/$validate or /Resource/[id]/$validate endpoints. This preserves later system-level [base]/$validate support while fixing the ambiguity raised by the issue.
+
+Recommendation:
+Keep this source fix. A future publisher-level improvement could render abstract Resource operations directly as [ResourceType] in the generated URL list, but the current source clarification is necessary and safe for the present build.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37626
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-41356: later-change - added system-level [base]/$validate support, which means this fix must be scoped to type- and instance-level invocation rather than saying all validate invocations require a resource type.
+FHIR-41357: same-change-family - added the current validate invocation matrix and parameter/mode clarifications; it supports the [ResourceType] wording but is already represented by its own audit commit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37626: Published/Persuasive technical correction asking to replace literal Resource validate URLs with resourceType placeholders. Learned: this establishes the final source correction being reconciled.
+- E2 Source source/resource/operationdefinition-Resource-validate.xml:40,63: the footer markdown and comment now state that type/instance paths use concrete resource types and that /Resource/$validate is not a literal endpoint. Learned: the source fix directly addresses the ambiguity on generated operation pages.
+- E3 Source source/fhir.ini:130,623,905 and source/resource/list-Resource-operations.xml:7-10: Resource is active build-scope infrastructure content and its operations list references OperationDefinition/Resource-validate. Learned: the edited operation definition feeds the current build.
+- E4 Published spec https://build.fhir.org/operation-resource-validate.html: current generated formal narrative displays Resource in the URL list. Learned: without local clarifying prose the current page can still be read as exposing literal /Resource endpoints.
+- E5 Zulip #implementers > $validate operation url: Lee Surprenant, Paul Church, and Grahame Grieve discussed that Resource should not be literal and Grahame said it is meant to be interpreted as a resource type. Learned: community evidence confirms the Jira interpretation.
+- E6 Git history: searches for FHIR-37626 found no explicit application commit, while later commit 85f4e0aaf0 changed Resource.$validate for other validate-operation issues. Learned: current source needed a direct reconciliation commit for this seed.
+- E7 Verification command: xmllint and rg checks over the changed operation source passed. Learned: the changed XML is well-formed and contains the expected clarification text.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37626",
+    "url": "https://jira.hl7.org/browse/FHIR-37626",
+    "snapshot_path": "contexts/FHIR-37626/jira/FHIR-37626.md",
+    "ref": { "jira_key": "FHIR-37626" },
+    "summary": "Published/Persuasive FHIR-I technical correction asking Resource.$validate URLs to use [resourceType] rather than literal Resource.",
+    "learned": "This is the final WG decision and establishes the correction needed for type- and instance-level validate URLs.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/resource/operationdefinition-Resource-validate.xml:40,63",
+    "summary": "The Resource.$validate footer and comment now explain that concrete resource types such as Patient are used in type and instance REST paths, and that /Resource/$validate is not literal.",
+    "learned": "The source fix directly resolves the ambiguity raised by FHIR-37626 while leaving system-level invocation intact.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:130,623,905; source/resource/list-Resource-operations.xml:7-10",
+    "summary": "Resource is active infrastructure/build content and the Resource operations list includes OperationDefinition/Resource-validate.",
+    "learned": "The edited operation definition is in current build scope.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "build.fhir.org operation-resource-validate.html",
+    "url": "https://build.fhir.org/operation-resource-validate.html",
+    "summary": "The current CI formal OperationDefinition page renders URL lines containing Resource in the type and instance paths.",
+    "learned": "The current generated page still needs source-level clarification to prevent implementers reading Resource as a literal endpoint.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > $validate operation url",
+    "url": "https://chat.fhir.org/#narrow/stream/179166-implementers/topic/.24validate.20operation.20url",
+    "ref": { "stream": "implementers", "topic": "$validate operation url" },
+    "summary": "The thread records agreement that Resource in the listed URL should not be read as literal, and Grahame Grieve says it is meant to be interpreted as a resource type.",
+    "learned": "Community discussion confirms the intended clarification and supports a targeted wording fix.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "git log --grep FHIR-37626; commit 85f4e0aaf0",
+    "ref": { "commit": "85f4e0aaf0379ec833afdedd71f3b01a5541894e" },
+    "summary": "No explicit FHIR-37626 application commit was found; later validate-operation cleanup changed system support and the summary table for other issues.",
+    "learned": "The seed still needed a direct reconciliation, but later issue history constrains the wording so system-level $validate remains valid.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and source assertion checks",
+    "command": "xmllint --noout source/resource/operationdefinition-Resource-validate.xml source/resource/list-Resource-operations.xml source/resource/operation-Resource-validate-notes.xml && rg -n 'concrete resource type|/Resource/\\$validate|system value=\"true\"|OperationDefinition/Resource-validate' source/resource/operationdefinition-Resource-validate.xml source/resource/list-Resource-operations.xml source/resource/operation-Resource-validate-notes.xml source/fhir.ini",
+    "summary": "The changed XML parsed successfully and expected source strings were present.",
+    "learned": "The source edit is syntactically valid and contains the intended clarification.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

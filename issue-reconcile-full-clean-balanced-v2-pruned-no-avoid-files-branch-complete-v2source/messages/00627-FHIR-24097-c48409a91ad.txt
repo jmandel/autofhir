@@ -1,0 +1,105 @@
+FHIR-24097: Correct MedicationDispense status code sources
+
+Issue request:
+FHIR-24097 was a Published/Persuasive Pharmacy change request raised from QA for MedicationDispense.status. It asked that the required binding for the code-typed MedicationDispense.status use the internally defined medicationdispense-status codes rather than a terminology.hl7.org CodeSystem URI, applied for R5.
+
+Initial application:
+Commit 8c940464f5f46e1b990e93df032065d1717847de applied the core request in February 2020 by changing source/medicationdispense/codesystem-medicationdispense-status.xml and source/medicationdispense/valueset-medicationdispense-status.xml from http://terminology.hl7.org/CodeSystem/medicationdispense-status to http://hl7.org/fhir/CodeSystem/medicationdispense-status. The current active MedicationDispense StructureDefinition binds MedicationDispense.status to http://hl7.org/fhir/ValueSet/medicationdispense-status, but the application left two source inconsistencies: the CodeSystem.valueSet backlink used the wrong case in the value set canonical, and medicationdispense-example.xml still represented the primitive status element as a Coding with the old THO system URI.
+
+Additional context:
+source/fhir.ini has MedicationDispense as an active resource, so the resource definition, terminology files, and examples in source/medicationdispense are current build inputs. FHIR-36259 and its linked terminology Zulip discussion later reaffirmed that R5 FHIR-defined MedicationDispense code systems should use hl7.org/fhir rather than terminology.hl7.org; FHIR-40692 later changed MedicationDispense status code content but did not change the URI ownership conclusion.
+
+AutoFHIR reconciliation:
+This commit corrects the CodeSystem.valueSet backlink to http://hl7.org/fhir/ValueSet/medicationdispense-status and changes the primary MedicationDispense example to use the primitive code form <status value="completed"/>. That removes the remaining stale terminology.hl7.org MedicationDispense.status system reference and aligns the example with the current code-typed element.
+
+Recommendation:
+Keep this commit. It completes the original FHIR-24097 URL correction in current build-scope source without reopening the later status-code content decisions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-24097
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-36259: same-change-family - later Pharmacy issue and Zulip discussion reaffirming that R5 FHIR-defined MedicationDispense code systems should use hl7.org/fhir canonical URLs rather than terminology.hl7.org.
+FHIR-40692: later-change - later Applied issue changed MedicationDispense.status code content in the same CodeSystem but did not alter the canonical URL or binding ownership decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-24097: Published/Persuasive Pharmacy QA issue for MedicationDispense.status binding URL, applied for R5. Learned: the final work-group request was to use internally defined medicationdispense-status codes for the code-typed status element.
+- E2 Source source/fhir.ini:202: active resources entry medicationdispense=MedicationDispense. Learned: source/medicationdispense files are in current build scope.
+- E3 Source source/medicationdispense/structuredefinition-MedicationDispense.xml:174-203 and valueset-medicationdispense-status.xml:11-30. Learned: the current element is type code and the required value set includes http://hl7.org/fhir/CodeSystem/medicationdispense-status.
+- E4 Source source/medicationdispense/codesystem-medicationdispense-status.xml:22 and medicationdispense-example.xml:18-23 before this commit. Learned: current source still had a mis-cased valueSet backlink and an example Coding using the old THO system.
+- E5 Git 8c940464f5f46e1b990e93df032065d1717847de: changed the MedicationDispense status CodeSystem URL and ValueSet include from terminology.hl7.org to hl7.org/fhir. Learned: FHIR-24097 was partially applied, but not to every current source surface.
+- E6 Jira/Zulip FHIR-36259 and #terminology > terminology.fhir.org vs hl7.org/fhir for CodeSystems: later discussion confirmed these FHIR-defined code systems should be fixed to hl7.org/fhir for R5. Learned: no later decision reverses the FHIR-24097 URI direction.
+- E7 Verification command: rg checks for the stale THO URL and mis-cased canonical returned no matches, xmllint parsed the edited XML files, and git diff --check passed. Learned: the targeted source inconsistency was removed without XML or whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-24097",
+    "url": "https://jira.hl7.org/browse/FHIR-24097",
+    "snapshot_path": "contexts/FHIR-24097/jira/FHIR-24097.md",
+    "ref": { "jira_key": "FHIR-24097" },
+    "summary": "Published/Persuasive Pharmacy QA issue for MedicationDispense.status requiring internally defined medicationdispense-status codes.",
+    "learned": "This establishes the final WG intent to use the FHIR-owned medicationdispense-status canonical for the code-typed status binding.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:202",
+    "ref": { "path": "source/fhir.ini", "line": 202 },
+    "summary": "The active resources section maps medicationdispense=MedicationDispense.",
+    "learned": "MedicationDispense resource source and examples are in current build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medicationdispense/structuredefinition-MedicationDispense.xml:174-203; source/medicationdispense/valueset-medicationdispense-status.xml:11-30",
+    "ref": { "path": "source/medicationdispense/structuredefinition-MedicationDispense.xml", "line": 174 },
+    "summary": "MedicationDispense.status is type code with required binding to http://hl7.org/fhir/ValueSet/medicationdispense-status, whose compose includes http://hl7.org/fhir/CodeSystem/medicationdispense-status.",
+    "learned": "The authoritative binding surface already reflects FHIR-24097, so remaining fixes should align adjacent source rather than change binding semantics.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationdispense/codesystem-medicationdispense-status.xml:22; source/medicationdispense/medicationdispense-example.xml:18-23",
+    "ref": { "path": "source/medicationdispense/medicationdispense-example.xml", "line": 18 },
+    "summary": "Before reconciliation, the status CodeSystem backlink used medicationDispense-status and the primary example encoded status as a Coding with the old THO system URI.",
+    "learned": "These build-scope source surfaces still contradicted the FHIR-24097 canonical and primitive code representation.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "8c940464f5f46e1b990e93df032065d1717847de",
+    "ref": { "commit": "8c940464f5f46e1b990e93df032065d1717847de" },
+    "summary": "The original multi-issue application changed the MedicationDispense status CodeSystem URL and ValueSet include from terminology.hl7.org to hl7.org/fhir.",
+    "learned": "FHIR-24097 had been partially applied, but history explains why only adjacent cleanup was needed now.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#terminology > terminology.fhir.org vs hl7.org/fhir for CodeSystems",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/terminology.fhir.org%20vs%20hl7.org%2Ffhir%20for%20CodeSystems",
+    "summary": "A 2022 terminology discussion linked from FHIR-36259 said the MedicationDispense code system should not use a THO URL and should be fixed in R5.",
+    "learned": "Later community evidence supports, rather than reverses, the FHIR-24097 URI direction.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted validation for FHIR-24097 source fix",
+    "command": "rg -n 'terminology\\.hl7\\.org/CodeSystem/medicationdispense-status|medicationDispense-status' source/medicationdispense source/oids.ini source/status-codes.xml; rg -n -U '<status>\\s*\\n\\s*<coding>' source/medicationdispense/medicationdispense-example.xml; xmllint --noout source/medicationdispense/codesystem-medicationdispense-status.xml source/medicationdispense/valueset-medicationdispense-status.xml source/medicationdispense/structuredefinition-MedicationDispense.xml source/medicationdispense/medicationdispense-example.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/medicationdispense/codesystem-medicationdispense-status.xml source/medicationdispense/medicationdispense-example.xml",
+    "summary": "The stale THO URL and mis-cased canonical were absent, the edited XML parsed, and the diff whitespace check passed.",
+    "learned": "The reconciliation removed the targeted inconsistency without introducing XML or whitespace errors.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

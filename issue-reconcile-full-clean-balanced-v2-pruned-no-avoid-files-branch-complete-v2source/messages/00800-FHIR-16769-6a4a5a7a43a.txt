@@ -1,0 +1,133 @@
+FHIR-16769: Qualify CDS/CQI canonical targets
+
+Issue request:
+FHIR-16769 was Published/Persuasive with Modification for STU3 by the CDS work group. It asked whether canonicals should be handled as a special case of Reference after CDS/CQI references were replaced by canonical URLs, and the resolution recorded that canonical specifications were supported by tooling and that canonical usages in CDS and CQI resources should specify target types.
+
+Initial application:
+The issue was initially applied in SVN revision 14073, preserved as git commit 3dc81b908557, whose subject explicitly says GF#16769/GF#16765 ensured canonical references use qualifiers in knowledge resources. The current ActivityDefinition source already has targetProfile qualifiers for all of its canonical elements, showing the original ActivityDefinition application survived later refactoring.
+
+Additional context:
+FHIR-16949 is the same canonical-qualification family and says unqualified canonical is appropriate only when all knowledge/structure resources are intended targets. Later source evolution left two active CDS/CQI elements with clear non-broad semantics unqualified: FHIR-28432 and FHIR-37485 leave PlanDefinition.action.subject[x] with a canonical subject choice parallel to the EvidenceVariable-only PlanDefinition.subjectCanonical correction, and FHIR-49922 added Measure.group.component.measure as a canonical whose definition says it references a Measure. Other currently unqualified canonical elements in GuidanceResponse.module[x], RequestOrchestration.instantiatesCanonical, and ArtifactAssessment.artifact[x] describe broader or less bounded target sets, so this reconciliation does not narrow them.
+
+AutoFHIR reconciliation:
+This commit adds targetProfile="Measure" to Measure.group.component.measure, adds targetProfile="EvidenceVariable" to the canonical type on PlanDefinition.action.subject[x], and updates the PlanDefinition definition-mapping exception so its recorded extra type matches the formal canonical target. These files are active source inputs for approved PlanDefinition and Measure resources in source/fhir.ini.
+
+Recommendation:
+Keep this commit as-is. It completes the bounded current-source cleanup required by FHIR-16769 without over-constraining canonical elements whose intended target set is broad or ambiguous; any future narrowing of GuidanceResponse.module[x], RequestOrchestration.instantiatesCanonical, or ArtifactAssessment.artifact[x] should be handled by a targeted work-group decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-16769
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-16949: same-change-family - general FHIR-I decision that canonical declarations should be qualified unless every knowledge/structure resource is an intended target.
+FHIR-28432: later-change - added canonical subject choices to PlanDefinition and ActivityDefinition for pharmaceutical quality use cases, creating the PlanDefinition.action.subject[x] context later corrected by this reconciliation.
+FHIR-37485: later-change - moved non-canonical product definition targets out of PlanDefinition.subjectCanonical, leaving EvidenceVariable as the bounded canonical subject target.
+FHIR-49922: later-change - added Measure.group.component.measure as an unqualified canonical while moving calculation characterization to Measure.group.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-16769: Published/Persuasive with Modification CDS issue requiring CDS/CQI canonical usages to specify target types. Learned: establishes the seed decision and target-profile requirement.
+- E2 Jira FHIR-16949: Published/Persuasive same-family issue requiring canonical declarations to be qualified except when all knowledge/structure resources are intended. Learned: supports treating clear non-broad unqualified canonicals as source defects.
+- E3 Git 3dc81b908557: SVN 14073 application commit explicitly applied GF#16769 by ensuring canonical references use qualifiers in knowledge resources. Learned: initial application was real but later source additions needed a current audit.
+- E4 Source source/fhir.ini:268,273-274,486,572,608,1320,1389,1417: Measure, ActivityDefinition, and PlanDefinition are active approved resources owned by CQI/CDS. Learned: edited StructureDefinition files are in current build scope.
+- E5 Source source/measure/structuredefinition-Measure.xml:1314-1323 and source/plandefinition/structuredefinition-PlanDefinition.xml:1511-1529: current source had clear Measure and PlanDefinition action-subject canonical semantics without formal target profiles. Learned: these were bounded source defects under the seed rule.
+- E6 Source source/plandefinition/plandefinition-definition-mapping-exceptions.xml:104-108: companion mapping metadata recorded PlanDefinition.action.subject[x] extra type as unqualified canonical. Learned: metadata needed the same EvidenceVariable target to stay aligned.
+- E7 Jira FHIR-28432, FHIR-37485, FHIR-49922: later final changes introduced or refined the affected PlanDefinition and Measure elements. Learned: the fix follows later subjectCanonical and composite-measure decisions rather than reverting them.
+- E8 Command community searches for FHIR-16769 and canonical target-profile terms found no relevant Zulip or Confluence discussion. Learned: no discovered community record changes the Jira/source conclusion.
+- E9 Verification commands: XML parsing, whitespace diff check, and a canonical targetProfile audit confirmed ActivityDefinition, PlanDefinition, and Measure now have no unqualified canonical types. Learned: the edited source is syntactically valid and satisfies the bounded reconciliation check.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-16769",
+    "url": "https://jira.hl7.org/browse/FHIR-16769",
+    "snapshot_path": "contexts/FHIR-16769/jira/FHIR-16769.md",
+    "ref": { "jira_key": "FHIR-16769" },
+    "summary": "Published/Persuasive with Modification CDS issue requiring CDS/CQI canonical usages to specify target types after references were replaced by canonicals.",
+    "learned": "This is final work-group intent for the seed and establishes the target-profile requirement used for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-16949",
+    "url": "https://jira.hl7.org/browse/FHIR-16949",
+    "snapshot_path": "contexts/FHIR-16769/jira/FHIR-16949.md",
+    "ref": { "jira_key": "FHIR-16949" },
+    "summary": "Published/Persuasive same-family issue requiring canonical declarations to be qualified except when all knowledge/structure resources are valid targets.",
+    "learned": "It supports fixing clear non-broad unqualified canonical declarations while leaving broad canonical surfaces untouched.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "3dc81b908557",
+    "ref": { "commit": "3dc81b908557be64248363dc4e5bbf5ed5213965" },
+    "summary": "SVN 14073 application commit explicitly applied GF#16769 by ensuring canonical references use qualifiers in knowledge resources.",
+    "learned": "The original issue was applied, but later source additions still needed a current-source audit.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:268,273-274,486,572,608,1320,1389,1417",
+    "ref": { "path": "source/fhir.ini", "lines": "268,273-274,486,572,608,1320,1389,1417" },
+    "summary": "Measure, ActivityDefinition, and PlanDefinition are active resources and approved/current CDS or CQI artifacts.",
+    "learned": "The edited Measure and PlanDefinition StructureDefinition files are current build inputs.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/measure/structuredefinition-Measure.xml:1314-1323; source/plandefinition/structuredefinition-PlanDefinition.xml:1511-1529",
+    "ref": { "path": "source/measure/structuredefinition-Measure.xml; source/plandefinition/structuredefinition-PlanDefinition.xml", "lines": "1314-1323; 1511-1529" },
+    "summary": "Measure.group.component.measure and PlanDefinition.action.subject[x] had clear non-broad canonical meanings but lacked formal targetProfile qualifiers.",
+    "learned": "These were the bounded current source defects addressed by this commit.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/plandefinition/plandefinition-definition-mapping-exceptions.xml:104-108",
+    "ref": { "path": "source/plandefinition/plandefinition-definition-mapping-exceptions.xml", "lines": "104-108" },
+    "summary": "PlanDefinition mapping metadata recorded action.subject[x] as an unqualified canonical extra type.",
+    "learned": "The companion source metadata needed to be kept aligned with the formal StructureDefinition targetProfile.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-28432, FHIR-37485, FHIR-49922",
+    "url": "https://jira.hl7.org/browse/FHIR-37485",
+    "snapshot_path": "contexts/FHIR-16769/jira/FHIR-37485.md",
+    "ref": { "jira_key": "FHIR-37485" },
+    "summary": "Later final PlanDefinition and Measure decisions introduced/refined the affected subject and component-measure elements.",
+    "learned": "The reconciliation follows later decisions instead of restoring obsolete product-definition canonical semantics.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-16769 canonical target profiles",
+    "command": "bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-16769%'\"; bun run zulip:search fts 'canonical targetProfile knowledge resources' --limit 10; bun run confluence:search refs jira FHIR-16769; bun run confluence:search fts '\"canonical references\" \"knowledge resources\"' --limit 10",
+    "query": "FHIR-16769 canonical targetProfile knowledge resources",
+    "result_count": 0,
+    "summary": "No relevant Zulip or Confluence discussion was found for the seed or target-profile terms.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "XML and targetProfile validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; xmllint --noout source/measure/structuredefinition-Measure.xml source/plandefinition/structuredefinition-PlanDefinition.xml source/plandefinition/plandefinition-definition-mapping-exceptions.xml; python3 targetProfile audit",
+    "summary": "Whitespace and XML checks passed, and the audit confirmed ActivityDefinition, PlanDefinition, and Measure have no unqualified canonical types after the fix.",
+    "learned": "The edited source is syntactically valid and satisfies the bounded reconciliation check.",
+    "supports": ["confidence", "reconciliation"]
+  }
+]
+</evidence-manifest>

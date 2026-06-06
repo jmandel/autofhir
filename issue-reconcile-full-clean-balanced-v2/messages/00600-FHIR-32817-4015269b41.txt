@@ -1,0 +1,119 @@
+FHIR-32817: Align Consent policy model metadata
+
+Issue request:
+FHIR-32817 was Published/Persuasive with Modification for FHIR-core Consent. It asked for an explicit and unambiguous computable Consent default decision, and the final resolution changed the former Consent.policy and Consent.policyRule model into regulatoryBasis, policyBasis, and policyText so regulatory/indexing policy context is separated from computable policy enforcement.
+
+Initial application:
+The issue was initially applied by commit 7ec3c37642c57792ee12bc07696299ddcc974dd4, which added Consent.regulatoryBasis, Consent.policyBasis, and Consent.policyText to source/consent/structuredefinition-Consent.xml. Later FHIR-39597 application moved the default permit/deny value from provision.type to Consent.decision. The active Consent StructureDefinition and Consent narrative already reflect those decisions, but the active FHIR ModelInfo Library still exposed the old Consent.policy, Consent.policyRule, and Consent.Provision.type metadata.
+
+Additional context:
+Consent is an active resource, Library is an active resource, and source/library/list-Library-examples.xml includes Library/library-fhir-model-definition as a current FHIR Model Definition example. FHIR-45450 later changed policyBasis.url to policyBasis.uri, and that correction is already represented on the combined branch; this commit therefore uses the current URI child. FHIR-43331 and the linked Zulip discussion confirm regulatoryBasis is not the computable decision input; computable policy is represented through policyBasis and/or provisions with the default decision in Consent.decision.
+
+AutoFHIR reconciliation:
+Updated source/library/library-fhir-model-definition-content.xml so the Consent model metadata now defines Consent.PolicyBasis with reference and uri children, exposes regulatoryBasis, policyBasis, policyText, and decision on Consent, represents Consent.provision as a list, and removes the stale Consent.policy, Consent.policyRule, and Consent.Provision.type entries from that computable model surface.
+
+Recommendation:
+Keep this source fix. It closes the remaining current-build computable metadata gap for FHIR-32817 without reopening the already-published Consent StructureDefinition and narrative decisions. Further broad cleanup of unrelated stale Consent ModelInfo fields, if desired, should be tracked separately from this policy/default-decision reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32817
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-39597: same-change-family - removed provision zero by moving Consent.provision.type to Consent.decision, which is the current form of the explicit default decision.
+FHIR-45450: later-change - changed Consent.policyBasis.url back to Consent.policyBasis.uri; already represented on the combined branch and reflected in this model metadata fix.
+FHIR-43331: supporting-decision - later no-change question confirms regulatoryBasis is non-computable and computable decisions use policyBasis/provision plus Consent.decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32817: Published/Persuasive with Modification issue changed Consent.policy and Consent.policyRule into regulatoryBasis, policyBasis, and policyText while seeking an explicit computable default decision. Learned: this is the seed final WG intent for the current reconciliation.
+- E2 Source source/consent/structuredefinition-Consent.xml:363-535 and source/consent/consent-notes.xml:66-68,263-266: current authoritative Consent source defines regulatoryBasis, policyBasis, policyText, Consent.decision, and narrative guidance to inspect Consent.decision for the base permit/deny decision. Learned: primary Consent source is already correct.
+- E3 Source source/library/library-fhir-model-definition-content.xml:1553-1555,7381-7410,9132-9144: the current-build FHIR ModelInfo Library now exposes Consent.PolicyBasis, regulatoryBasis, policyBasis, policyText, Consent.decision, and list-valued provisions, and no longer exposes stale Consent.policy/policyRule/provision.type metadata. Learned: the remaining computable metadata gap was fixed.
+- E4 Source source/fhir.ini:170-266 and source/library/list-Library-examples.xml:67-76: Consent and Library are active resources and the FHIR Model Definition Library is an active example. Learned: the edited model metadata is in current build scope.
+- E5 Git 7ec3c37642c57792ee12bc07696299ddcc974dd4, e8f77ac72e93779d5ff23eda48ac3445f8a0e64c, and 480e19ec9f9459308594a020aa2a5c967907ce81: history shows the initial FHIR-32817 policy element application, the later FHIR-39597 decision move, and the already-published FHIR-45450 URI correction. Learned: this commit aligns the remaining model surface with the accepted issue family.
+- E6 Jira/Zulip FHIR-43331 and #Security and Privacy > Consent.policyRule and provision: later question/discussion states regulatoryBasis is non-computable and the default decision is now in decision. Learned: community context supports not treating regulatoryBasis/policyRule codes as the computable default decision.
+- E7 Command search for FHIR-32817 and Consent policyBasis/policyRule in Jira, Zulip, and Confluence: only the seed, FHIR-43331, and one supporting Zulip thread were found; no Confluence references were found. Learned: no discovered community evidence conflicts with the source fix.
+- E8 Verification command: xmllint on edited/related XML, CRLF-aware git diff --check, and focused rg searches for stale Consent policy/provision metadata passed. Learned: the edit is syntactically valid and removes the targeted stale model entries while preserving intentional fhir.ini aliases.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32817",
+    "url": "https://jira.hl7.org/browse/FHIR-32817",
+    "snapshot_path": "contexts/FHIR-32817/jira/FHIR-32817.md",
+    "ref": { "jira_key": "FHIR-32817" },
+    "summary": "Published/Persuasive with Modification Consent issue separating regulatory/indexing policy context from computable policy enforcement and requesting an explicit default decision.",
+    "learned": "This establishes final WG intent for replacing Consent.policy/policyRule with regulatoryBasis, policyBasis, and policyText while preserving an explicit computable default decision.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/consent/structuredefinition-Consent.xml:363-535; source/consent/consent-notes.xml:66-68,263-266",
+    "ref": { "path": "source/consent/structuredefinition-Consent.xml", "lines": "363-535" },
+    "summary": "The active Consent StructureDefinition and narrative define regulatoryBasis, policyBasis, policyText, and Consent.decision and direct readers to Consent.decision for the base permit/deny decision.",
+    "learned": "The main Consent source already represents the issue correctly, so the remaining problem was a parallel computable metadata surface.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:1553-1555,7381-7410,9132-9144",
+    "ref": { "path": "source/library/library-fhir-model-definition-content.xml", "lines": "1553-1555,7381-7410,9132-9144" },
+    "summary": "The FHIR ModelInfo Library metadata now exposes Consent.PolicyBasis, regulatoryBasis, policyBasis, policyText, Consent.decision, and list-valued provisions instead of stale Consent.policy, Consent.policyRule, and provision.type entries.",
+    "learned": "This is the source-changing reconciliation needed for the current build's computable model surface.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-266; source/library/list-Library-examples.xml:67-76",
+    "ref": { "path": "source/fhir.ini", "lines": "170-266" },
+    "summary": "Consent and Library are active resources, and the Library examples list includes Library/library-fhir-model-definition as the FHIR Model Definition.",
+    "learned": "The edited ModelInfo Library is a current-build source artifact, not an out-of-scope historical file.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "7ec3c37642c57792ee12bc07696299ddcc974dd4; e8f77ac72e93779d5ff23eda48ac3445f8a0e64c; 480e19ec9f9459308594a020aa2a5c967907ce81",
+    "ref": { "commit": "7ec3c37642c57792ee12bc07696299ddcc974dd4" },
+    "summary": "History shows initial FHIR-32817 policy element application, later FHIR-39597 movement of provision.type to Consent.decision, and the already-published FHIR-45450 URI correction.",
+    "learned": "The model metadata fix follows the accepted issue sequence rather than the original zero-th provision proposal literally.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#Security and Privacy > Consent.policyRule and provision",
+    "url": "https://chat.fhir.org/#narrow/stream/Security%20and%20Privacy/topic/Consent.policyRule%20and%20provision",
+    "ref": { "stream": "Security and Privacy", "topic": "Consent.policyRule and provision" },
+    "summary": "A 2023 discussion led to FHIR-43331 and clarified confusion between R4 policyRule, R5 regulatoryBasis, and computable default decisions.",
+    "learned": "The discussion supports the current interpretation that regulatoryBasis is not the computable permit/deny input.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-32817 and Consent policyBasis/policyRule",
+    "command": "bun run jira:search fts '\"FHIR-32817\" Consent policyBasis policyRule' --limit 10; bun run jira:search fts 'Consent policyBasis default decision policyRule' --limit 10; bun run zulip:search fts '\"FHIR-32817\"' --limit 10; bun run zulip:search fts 'Consent policyBasis policyRule' --limit 10; bun run confluence:search refs jira FHIR-32817; bun run confluence:search fts '\"FHIR-32817\"' --limit 10; bun run confluence:search fts 'Consent policyBasis policyRule' --limit 10",
+    "query": "FHIR-32817; Consent policyBasis policyRule; Consent policyBasis default decision policyRule",
+    "result_count": 3,
+    "summary": "Searches found the seed, FHIR-43331, and one relevant Zulip thread; no direct FHIR-32817 Zulip or Confluence records were found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Focused source validation",
+    "command": "xmllint --noout source/library/library-fhir-model-definition-content.xml source/consent/structuredefinition-Consent.xml source/consent/consent-notes.xml source/consent/consent-introduction.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg -n 'Consent\\.Policy(?!Basis)|elementType=\"FHIR\\.Consent\\.Policy\"|name=\"policyRule\"|name=\"type\" elementType=\"FHIR\\.ConsentProvisionType\"' source/library/library-fhir-model-definition-content.xml --pcre2",
+    "summary": "XML parsing and CRLF-aware whitespace checks passed, and focused searches found no stale Consent policy/provision metadata in the edited ModelInfo Library.",
+    "learned": "The source change is syntactically safe and satisfies the targeted reconciliation check.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

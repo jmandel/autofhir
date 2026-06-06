@@ -1,0 +1,122 @@
+FHIR-36214: Audit Device association rename
+
+Issue request:
+FHIR-36214 was a Published R5 Device change request with a Persuasive with Modification resolution. It asked to revise Device.associationStatus into a backbone named associationState containing status, statusReason, and subject so the state and patient association details were grouped together.
+
+Initial application:
+The issue appears to have been applied through PR #1774, merged as 246a31f1c76d7c93679f83e2b73847895473621a. The Jira comment points at PR-head commit 235bdc99b4a8d2094926152516a4b3923c930ea5; the substantive source change is in that branch history at f97a700790904dd18c9b22d002021a75d9f61f16, which replaced Device.associationStatus with Device.associationState and added status, statusReason, and humanSubject.
+
+Additional context:
+FHIR-32570 used the FHIR-36214 backbone to remove Device.subject. FHIR-34134 then changed associationState to association and added bodyStructure. FHIR-38904 later superseded the Device-level association backbone by moving patient association tracking out of Device into the active DeviceAssociation resource to avoid patient-identifying information in reusable Device instances. Current fhir.ini includes both Device and DeviceAssociation as active resources, and FHIR-38904 is already represented on the combined branch.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. In current source, the old Device.association block is entirely XML-commented, `xmllint` reports zero active Device association/associationState/associationStatus elements, and the active build-scope model is DeviceAssociation. Editing the commented legacy Device block would not change the current specification and could obscure the later published move to DeviceAssociation.
+
+Recommendation:
+Keep this audit commit as-is. Do not resurrect Device.associationState or rename DeviceAssociation.associationStatus for this R5 Device issue; any further status modeling work belongs to the later DeviceAssociation issue family.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36214
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32570: same-change-family - used FHIR-36214's associationState backbone to remove Device.subject.
+FHIR-34134: later-change - renamed associationState to association and added bodyStructure before publication.
+FHIR-38904: later-change - moved the association backbone out of Device into DeviceAssociation and is already audited on the combined branch.
+FHIR-32409: background - referenced by FHIR-36214 comments for the statusReason binding/value-set work, but it is a separate terminology/binding issue.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36214: Published/Persuasive with Modification R5 Device issue requiring associationStatus to become associationState. Learned: this establishes the original final WG request for the seed.
+- E2 Git 246a31f/f97a700: PR #1774 merged the branch whose source diff replaced Device.associationStatus with Device.associationState and added the requested child elements. Learned: the seed was applied before this reconciliation.
+- E3 Jira FHIR-34134: Published/Persuasive with Modification issue changed associationState to association and added bodyStructure. Learned: later final WG intent changed the exact backbone name from the FHIR-36214 resolution.
+- E4 Jira FHIR-38904: Published/Persuasive with Modification issue removed Device.association and created DeviceAssociation to avoid PHI leakage in reusable Device instances. Learned: current source should not contain an active Device association backbone.
+- E5 Source source/device/structuredefinition-Device.xml:1231: the Device.association block is inside an XML comment, and `xmllint` reports zero active Device association/associationState/associationStatus elements. Learned: no current Device source hunk remains to fix for FHIR-36214.
+- E6 Source source/fhir.ini:185,305,2160 and source/deviceassociation/structuredefinition-DeviceAssociation.xml:120: Device and DeviceAssociation are active resources, with DeviceAssociation carrying the later status model. Learned: the current build-scope replacement is DeviceAssociation, not Device.associationState.
+- E7 Confluence 2022-03-07 and 2022-06-20 OO HCP minutes: the work group discussed/voted the Device association family, later marking FHIR-32570 addressed by FHIR-36214 and FHIR-32409 done for associationState.statusReason examples. Learned: meeting evidence aligns with Jira/source history and does not require a new core edit.
+- E8 Verification command/query: `xmllint --xpath count(...) source/device/structuredefinition-Device.xml; bun run zulip:search fts '"FHIR-36214" "Device" "associationState"'; bun run confluence:search refs jira FHIR-36214`. Learned: active Device association count is zero, Zulip had no direct conflicting hits, and Confluence references were the expected OO minutes.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36214",
+    "url": "https://jira.hl7.org/browse/FHIR-36214",
+    "snapshot_path": "contexts/FHIR-36214/jira/FHIR-36214.md",
+    "ref": { "jira_key": "FHIR-36214" },
+    "summary": "Published/Persuasive with Modification R5 Device issue requiring associationStatus to become associationState with status, statusReason, and subject.",
+    "learned": "This establishes the original final work-group request for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "246a31f1c76d7c93679f83e2b73847895473621a / f97a700790904dd18c9b22d002021a75d9f61f16",
+    "ref": { "merge_commit": "246a31f1c76d7c93679f83e2b73847895473621a", "source_commit": "f97a700790904dd18c9b22d002021a75d9f61f16" },
+    "summary": "PR #1774 merged the branch whose source diff replaced Device.associationStatus with Device.associationState and added status, statusReason, and humanSubject.",
+    "learned": "The seed issue was implemented before this reconciliation, even though Jira's applied comment points at the PR head rather than the specific source-changing ancestor.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-34134",
+    "url": "https://jira.hl7.org/browse/FHIR-34134",
+    "snapshot_path": "contexts/FHIR-36214/jira/FHIR-34134.md",
+    "ref": { "jira_key": "FHIR-34134" },
+    "summary": "Published/Persuasive with Modification issue changed associationState to association and added bodyStructure.",
+    "learned": "Later final work-group intent superseded the exact associationState name from FHIR-36214.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-38904",
+    "url": "https://jira.hl7.org/browse/FHIR-38904",
+    "snapshot_path": "contexts/FHIR-36214/jira/FHIR-38904.md",
+    "ref": { "jira_key": "FHIR-38904" },
+    "summary": "Published/Persuasive with Modification issue removed Device.association and created DeviceAssociation to keep patient-identifying association data out of reusable Device instances.",
+    "learned": "The current specification should not have an active Device association backbone to rename or adjust for FHIR-36214.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:1231",
+    "summary": "The legacy Device.association block is wholly inside an XML comment; an xmllint count found zero active Device association, associationState, or associationStatus elements.",
+    "learned": "No build-scope Device element remains that needs a FHIR-36214 source edit.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:185,305,2160 and source/deviceassociation/structuredefinition-DeviceAssociation.xml:120",
+    "summary": "Device and DeviceAssociation are active resources, and DeviceAssociation contains the later status/statusReason/associationStatus model.",
+    "learned": "Current build-scope association tracking is handled by DeviceAssociation rather than by Device.associationState.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "OO HCP minutes 2022-03-07 page 94634837 and 2022-06-20 page 131047647",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/94634837/2022-03-07+HCP",
+    "snapshot_path": "contexts/FHIR-36214/confluence/94634837.md",
+    "ref": { "confluence_page_id": 94634837 },
+    "summary": "OO HCP minutes discussed the Device association issue family; later minutes marked FHIR-32570 addressed by FHIR-36214 and FHIR-32409 done for associationState.statusReason examples.",
+    "learned": "Meeting evidence is consistent with the Jira/source sequence and does not identify a conflicting current-spec requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Source and community verification for FHIR-36214 Device associationState",
+    "command": "xmllint --xpath count(...) source/device/structuredefinition-Device.xml; bun run zulip:search fts '\"FHIR-36214\" \"Device\" \"associationState\"' --limit 10; bun run confluence:search refs jira FHIR-36214",
+    "query": "FHIR-36214 Device associationState",
+    "summary": "The source check found zero active Device association elements, Zulip returned no direct conflicting hits, and Confluence refs returned the expected OO HCP minutes.",
+    "learned": "No discovered source or community evidence changes the no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

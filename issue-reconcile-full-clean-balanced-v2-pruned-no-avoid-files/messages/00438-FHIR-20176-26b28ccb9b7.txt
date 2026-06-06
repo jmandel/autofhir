@@ -1,0 +1,108 @@
+FHIR-20176: Enforce bodySite BodyStructure subSite rule
+
+Issue request:
+FHIR-20176 was Published with a Persuasive with Modification resolution for the FM Claim family. It requested replacing the older bodySite/subSite overlap with a repeating bodySite backbone containing site[x] as either a coded site or Reference(BodyStructure), retaining subSite as coded detail, and adding the business rule that subSite must not be present when a BodyStructure reference is used.
+
+Initial application:
+Commit acb64eec3ca82f9a8d18d4091f2416029ee45dcd applied the structural part for R5 by changing Claim.item.bodySite, ExplanationOfBenefit.item.bodySite, ExplanationOfBenefit.addItem.bodySite, and ClaimResponse.addItem.bodySite to a BackboneElement with a repeating CodeableReference(BodyStructure) site plus bodySite.subSite. The current source still had that structure but did not have the requested invariant, and the combined reconciliation branch had no existing FHIR-20176 commit.
+
+Additional context:
+Claim, ClaimResponse, and ExplanationOfBenefit are active resources in source/fhir.ini, so their StructureDefinition XML files are authoritative build inputs. The current model uses CodeableReference rather than literal site[x] child names, so the Jira siteReference condition maps to site.reference in FHIRPath. ExplanationOfBenefit.addItem.bodySite is included because the original FHIR-20176 implementation converted it with the same pattern and it has the same BodyStructure-reference/subSite ambiguity. Later FHIR-38849 and FHIR-54843 discussions mention the same BodyStructure/subSite family but do not supersede the FM rule being reconciled here.
+
+AutoFHIR reconciliation:
+Added error invariants to the active Claim, ExplanationOfBenefit, and ClaimResponse bodySite backbone elements so site.reference.exists() implies subSite.empty(). This completes the missing business rule while preserving the already-applied CodeableReference structure and existing coded dental subSite examples.
+
+Recommendation:
+Keep this source fix. It is a narrow completion of the Published FHIR-20176 resolution; broader BodyStructure guidance and OO-owned bodyStructure cardinality work should remain with their later Jira issues rather than expanding this FM reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20176
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-38849: background - a later Resolved - No Change issue rejected spreading the EOB bodySite.subSite pattern to additional resources and supports keeping this reconciliation scoped to the Claim-family artifacts already changed for FHIR-20176.
+FHIR-54843: later-change - a later R6 BodyStructure guidance issue mentions these Claim-family elements, but it is not Applied/Published in this run and does not remove the FHIR-20176 invariant requirement.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20176: Published/Persuasive with Modification resolution requested BodyStructure reference support for Claim/ExplanationOfBenefit item bodySite and ClaimResponse.addItem plus an invariant forbidding subSite when siteReference exists. Learned: final FM intent includes both the structural change and the missing business rule.
+- E2 Source source/claim/structuredefinition-Claim.xml:1642, source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:1716 and :2871, source/claimresponse/structuredefinition-ClaimResponse.xml:1396. Learned: the current authoritative sources use bodySite.site CodeableReference(BodyStructure) with bodySite.subSite, so the invariant must target site.reference.
+- E3 Source source/fhir.ini:1111,1157,1338,1339,1372. Learned: Claim, ClaimResponse, and ExplanationOfBenefit are active current-build resources, making these StructureDefinition files in scope.
+- E4 Git acb64eec3ca82f9a8d18d4091f2416029ee45dcd: applied FHIR-20176 by converting the Claim-family bodySite structures but omitted the invariant. Learned: reconciliation should complete the prior application rather than redesign the model.
+- E5 Jira FHIR-38849 and FHIR-54843: later BodyStructure/subSite issues discuss related modeling but do not supersede this Published FM decision. Learned: no later final decision found that reverses the need for the invariant.
+- E6 Community search: Zulip and Confluence searches for FHIR-20176 and bodySite/BodyStructure terms found no directly relevant conflicting discussions. Learned: confidence rests on Jira, source, and git evidence with no discovered community conflict.
+- E7 Verification command: xmllint --noout on the three edited StructureDefinition XML files and git diff --check both passed. Learned: the source edit is syntactically valid XML and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20176",
+    "url": "https://jira.hl7.org/browse/FHIR-20176",
+    "snapshot_path": "contexts/FHIR-20176/jira/FHIR-20176.md",
+    "ref": { "jira_key": "FHIR-20176" },
+    "summary": "Published/Persuasive with Modification FM issue requesting Claim-family bodySite support for BodyStructure references and an invariant forbidding subSite when siteReference exists.",
+    "learned": "This establishes the final requested business rule that was only partially applied in source.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/claim/structuredefinition-Claim.xml:1642; source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:1716,2871; source/claimresponse/structuredefinition-ClaimResponse.xml:1396",
+    "ref": { "paths": "source/claim/structuredefinition-Claim.xml; source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml; source/claimresponse/structuredefinition-ClaimResponse.xml" },
+    "summary": "Current source has bodySite backbone elements with repeating site CodeableReference(BodyStructure) and bodySite.subSite CodeableConcept.",
+    "learned": "The Jira siteReference condition maps to site.reference in the current CodeableReference representation.",
+    "supports": ["current_source", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:1111,1157,1338,1339,1372",
+    "summary": "fhir.ini lists Claim, ClaimResponse, and ExplanationOfBenefit as active resources/status entries.",
+    "learned": "The edited StructureDefinition files are current-build inputs rather than retired or out-of-scope artifacts.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "acb64eec3ca82f9a8d18d4091f2416029ee45dcd",
+    "ref": { "commit": "acb64eec3ca82f9a8d18d4091f2416029ee45dcd" },
+    "summary": "Historical commit applied FHIR-20176 by converting the Claim-family bodySite structures to BodySite backbones with CodeableReference(BodyStructure) site and subSite.",
+    "learned": "The structural portion was applied, but the requested invariant was not present before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-38849; FHIR-54843",
+    "url": "https://jira.hl7.org/browse/FHIR-38849",
+    "snapshot_path": "contexts/FHIR-20176/jira/FHIR-38849.md",
+    "ref": { "jira_key": "FHIR-38849" },
+    "summary": "Later BodyStructure/subSite issues mention related modeling, including a no-change decision not to spread the EOB subSite pattern and a not-yet-applied R6 BodyStructure guidance issue.",
+    "learned": "These issues provide context but do not supersede the Published FHIR-20176 invariant requirement.",
+    "supports": ["additional_context", "related_not_decided"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence searches for FHIR-20176 bodySite BodyStructure",
+    "command": "bun run zulip:search fts '\"FHIR-20176\" Claim bodySite BodyStructure' --limit 10; bun run zulip:search fts 'bodySite CodeableReference subSite BodyStructure' --limit 20; bun run confluence:search refs jira FHIR-20176; bun run confluence:search fts '\"FHIR-20176\" Claim bodySite BodyStructure' --limit 10",
+    "query": "FHIR-20176 Claim bodySite BodyStructure; bodySite CodeableReference subSite BodyStructure",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence hits were found for the issue key or bodySite/BodyStructure terms.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/claim/structuredefinition-Claim.xml source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml source/claimresponse/structuredefinition-ClaimResponse.xml; xmllint --noout source/claim/structuredefinition-Claim.xml source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml source/claimresponse/structuredefinition-ClaimResponse.xml",
+    "summary": "Whitespace check and XML parsing completed without errors.",
+    "learned": "The reconciliation edit is syntactically valid and clean for commit.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

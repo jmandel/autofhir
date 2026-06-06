@@ -1,0 +1,116 @@
+FHIR-27134: Audit extension SearchParameter indexing guidance
+
+Issue request:
+FHIR-27134 is a Published FHIR-core/FHIR-I change request, resolved Persuasive with Modification for R5, asking searchparameter.html#srch to stop describing extension search parameters in XPath terms, encourage FHIRPath expressions that select the extension value with .value, reject type assertions against the Extension node itself, allow servers to attempt legacy expressions that only select the Extension, and review core extension SearchParameter definitions such as mothersMaidenName.
+
+Initial application:
+The request was applied in HL7/fhir commit 177a10ad8a6241a1eb93396928e4337423f9788e, which rewrote source/searchparameter/searchparameter-notes.xml around the SearchParameters on Extensions section and added .value to extension SearchParameter expressions, including the then-core mothersMaidenName search parameter. Later source refactors kept the section in the active SearchParameter resource notes and moved standard extension SearchParameters such as mothersMaidenName to the FHIR Extension Pack.
+
+Additional context:
+source/fhir.ini actively lists searchparameter=SearchParameter, so source/searchparameter/searchparameter-notes.xml is current build input. The current section uses FHIRPath examples ending in .value, says servers MAY try expressions that select only the extension but need not support them, and explains that casting the Extension directly leads to an empty index. A current scan found active core extension SearchParameter expressions either select .value or use an extension only as an exists() marker before indexing a different value. The mothersMaidenName SearchParameter now lives in the FHIR Extension Pack with an expression ending in .value. Related audit commits for FHIR-20462, FHIR-33012, FHIR-38080, and FHIR-51587 are already represented on the combined branch and do not require duplicate decisions here.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change because the current FHIR source and moved extension-pack source already implement the Published FHIR-27134 decision without a semantic gap in the current build.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-27134 unless a future policy change decides to remove support for legacy extension-only expressions rather than merely discouraging them.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-27134
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-20462: same-change-family - earlier mother's maiden name search path correction; already audited on the combined branch and now satisfied in the Extension Pack with .value.
+FHIR-33012: same-change-family - same SearchParameters on Extensions section, concerning multiple-base guidance rather than .value extraction; already audited on the combined branch.
+FHIR-38080: later-change - registry/extension-pack move context for extension SearchParameters such as mothersMaidenName; already audited on the combined branch.
+FHIR-51587: later-change - newer SearchParameter FHIRPath/performance guidance preserved alongside the FHIR-27134 extension guidance; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-27134: Published/Persuasive with Modification for R5; requested FHIRPath/.value guidance, legacy extension-only tolerance, and core SearchParameter cleanup. Learned: establishes final WG intent for this audit.
+- E2 Source source/fhir.ini:169-248,620-626: searchparameter=SearchParameter is active and owned by FHIR-I. Learned: the SearchParameter resource notes are current build input.
+- E3 Source source/searchparameter/searchparameter-notes.xml:58-99: current SearchParameters on Extensions guidance uses .value examples, legacy extension-only tolerance, .value.ofType(...), and warns that casting the Extension itself creates an empty index. Learned: current source conveys the requested rule.
+- E4 Command rg extension SearchParameter expressions: current core extension SearchParameter expressions select .value or use extension().exists() only as a marker before indexing another value. Learned: no active core SearchParameter expression still violates the FHIR-27134 rule.
+- E5 Source /home/jmandel/work/fhir-extensions/input/definitions/Patient/SearchParameter-profile-patient-extensions-Patient-mothersMaidenName.xml:32-35: mothersMaidenName now lives in the Extension Pack and its expression ends in .value. Learned: the named example from the issue is correct in its current source of truth.
+- E6 Git 177a10ad8a6241a1eb93396928e4337423f9788e: implemented FHIR-27134 by rewriting SearchParameters on Extensions and adding .value to extension SearchParameter expressions. Learned: the Published issue was historically applied.
+- E7 Zulip #implementers > extension SearchParameter expressions: original reporter and Grahame confirmed the intended expression should reach .value, while servers may need to cope with existing extension-only examples. Learned: community discussion matches the Jira resolution and current source.
+- E8 Confluence FHIR-I Minutes 2020-08-31 page 91985630: records the 11-0-0 FHIR-I motion to encourage .value while allowing servers to try expressions without it. Learned: meeting evidence confirms the Jira disposition.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-27134",
+    "url": "https://jira.hl7.org/browse/FHIR-27134",
+    "snapshot_path": "contexts/FHIR-27134/jira/FHIR-27134.md",
+    "ref": { "jira_key": "FHIR-27134" },
+    "summary": "Published/Persuasive with Modification issue requiring searchparameter.html#srch to use FHIRPath/.value guidance for extension SearchParameters and to review core definitions such as mothersMaidenName.",
+    "learned": "This is the final WG intent and defines the expected current-source behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-248,620-626",
+    "summary": "The active resources list includes searchparameter=SearchParameter and the workgroup mapping assigns searchparameter=fhir.",
+    "learned": "SearchParameter resource notes are in current core build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/searchparameter/searchparameter-notes.xml:58-99",
+    "summary": "The current SearchParameters on Extensions section gives FHIRPath expressions ending in .value, permits but does not require legacy extension-only processing, and warns that casting the Extension node itself yields an empty index.",
+    "learned": "The current core source already conveys the FHIR-27134 rule.",
+    "supports": ["reconciliation", "source_check"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current core extension SearchParameter expression scan",
+    "command": "rg -n '<expression value=\"[^\"]*extension\\(' source --glob '*.xml'; rg -n '<expression value=\"[^\"]*extension\\(' source --glob '*.xml' | awk '!/\\.value/ {print}'",
+    "result_count": 0,
+    "summary": "The heuristic no-.value scan returned no active core extension SearchParameter expression lines lacking .value; the QuestionnaireResponse hit uses extension().exists() as a marker and indexes answer.value.",
+    "learned": "No current core SearchParameter definition appears to need a FHIR-27134 cleanup edit.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/Patient/SearchParameter-profile-patient-extensions-Patient-mothersMaidenName.xml:32-35",
+    "summary": "The Extension Pack mothersMaidenName SearchParameter has code mothersMaidenName, base Patient, type string, and expression Patient.extension(...patient-mothersMaidenName).value.",
+    "learned": "The specific example called out in the Jira is now correct in its current source repository.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "177a10ad8a6241a1eb93396928e4337423f9788e",
+    "ref": { "commit": "177a10ad8a6241a1eb93396928e4337423f9788e" },
+    "summary": "Commit 'FHIR-27134 Clarify expected behavior for search parameter extraction / indexing' rewrote source/searchparameter/searchparameter-notes.xml and added .value to extension SearchParameter expressions.",
+    "learned": "FHIR-27134 was applied historically, and later source retains the semantic result.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > extension SearchParameter expressions",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/extension%20SearchParameter%20expressions",
+    "summary": "The original discussion says the correct expression for searchable extension values should reach .value, while implementations may need to cope with existing extension-only examples.",
+    "learned": "The community rationale aligns with Jira and current source, with no conflicting later guidance found.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20200831 page 91985630",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/91985630/FHIR+Infrastructure+Minutes+CC+20200831",
+    "ref": { "confluence_page_id": 91985630 },
+    "summary": "FHIR-I minutes record the FHIR-27134 motion: refer to FHIRPath vs XPath, encourage .value, and allow servers to try processing without it.",
+    "learned": "Meeting evidence confirms the final disposition implemented in current source.",
+    "supports": ["additional_context", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,102 @@
+FHIR-50606: Include processing-error in DetectedIssue status ValueSet
+
+Issue request:
+FHIR-50606 is an Applied/Persuasive CDS change request for R6 asking to add a Detected Issue Status value "processing-error", defined as an error occurring in evaluation of the proposed action and distinct from unknown or entered-in-error.
+
+Initial application:
+The issue was partially applied by git commit 905e7a8ef4133ee52222a28eb35fb061cf9e0599 from PR 3809, which added the CodeSystem concept and updated DetectedIssue.status short/comment text. A follow-up QA commit 46a47e604d2492e8e74a315907263b2fe2590667 updated the Event mapping exception. The ValueSet compose, however, still included only "mitigated" from http://hl7.org/fhir/detectedissue-status, so the required DetectedIssue.status binding did not actually permit processing-error.
+
+Additional context:
+DetectedIssue is an active current-build resource in source/fhir.ini. The CodeSystem already defines processing-error and the StructureDefinition already describes it, but the ValueSet is a restricted compose that enumerates concepts from both ObservationStatus and detectedissue-status, so adding the CodeSystem code alone was insufficient. Jira, Zulip, and Confluence searches found no related final decision or community discussion that changes the Applied request.
+
+AutoFHIR reconciliation:
+This commit adds processing-error to source/detectedissue/valueset-detectedissue-status.xml under the existing detectedissue-status include, matching the existing CodeSystem display and making the required ValueSet binding include the applied code.
+
+Recommendation:
+Keep this source change. It completes the Applied issue in the authoritative current-build terminology source; no further core follow-up was identified beyond the ordinary generated artifact refresh performed by the build.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-50606
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-50606: Applied/Persuasive CDS issue requesting processing-error in the Detected Issue Status value set, with PR 3809 noted in comments. Learned: this is final WG intent and the target code/value set requirement.
+- E2 Source source/fhir.ini:170-185: DetectedIssue is listed as an active resource. Learned: source/detectedissue terminology files are in current build scope.
+- E3 Source source/detectedissue/codesystem-detectedissue-status.xml:47-50 and structuredefinition-DetectedIssue.xml:133-153: processing-error was already present in the CodeSystem and DetectedIssue.status prose/binding target. Learned: prior application covered the code definition and resource prose but depends on the ValueSet to make the code valid.
+- E4 Source source/detectedissue/valueset-detectedissue-status.xml:60-69: the detectedissue-status include now enumerates mitigated and processing-error. Learned: the required ValueSet binding now contains the requested code.
+- E5 Git 905e7a8ef4133ee52222a28eb35fb061cf9e0599 and 46a47e604d2492e8e74a315907263b2fe2590667: PR 3809 added the CodeSystem/StructureDefinition pieces and a QA follow-up updated mapping exceptions. Learned: the missing ValueSet compose concept was an omitted application location, not a later reversal.
+- E6 Command community search: Jira found only FHIR-50606 for processing-error DetectedIssue status; Zulip and Confluence searches for FHIR-50606 and processing-error DetectedIssue found no results. Learned: no discovered community record changes the Jira/source conclusion.
+- E7 Verification command: XML parse plus ValueSet compose query reported detectedissue-status include codes "mitigated, processing-error" and git diff --check passed. Learned: the edited XML is syntactically valid and the intended code is present without whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-50606",
+    "url": "https://jira.hl7.org/browse/FHIR-50606",
+    "snapshot_path": "contexts/FHIR-50606/jira/FHIR-50606.md",
+    "ref": { "jira_key": "FHIR-50606" },
+    "summary": "Applied/Persuasive CDS issue requesting a processing-error value for Detected Issue Status, distinct from unknown and entered-in-error.",
+    "learned": "This establishes final WG intent to make processing-error a valid DetectedIssue status value in R6.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-185",
+    "summary": "DetectedIssue is listed as an active resource in the current build configuration.",
+    "learned": "The source/detectedissue terminology files are in current FHIR build scope.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/detectedissue/codesystem-detectedissue-status.xml:47-50; source/detectedissue/structuredefinition-DetectedIssue.xml:133-153",
+    "summary": "processing-error is already defined in the CodeSystem and mentioned in DetectedIssue.status prose, whose required binding points at ValueSet/detectedissue-status.",
+    "learned": "The remaining semantic gap was the ValueSet compose, not the CodeSystem or resource definition text.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/detectedissue/valueset-detectedissue-status.xml:60-69",
+    "summary": "The detectedissue-status include now enumerates both mitigated and processing-error.",
+    "learned": "The required DetectedIssue.status ValueSet now contains the requested code.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "905e7a8ef4133ee52222a28eb35fb061cf9e0599; 46a47e604d2492e8e74a315907263b2fe2590667",
+    "ref": { "commit": "905e7a8ef4133ee52222a28eb35fb061cf9e0599" },
+    "summary": "PR 3809 application added the CodeSystem concept and resource prose; the QA follow-up updated Event mapping exceptions.",
+    "learned": "History shows partial application but no ValueSet compose update, supporting a targeted fix.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-50606 and processing-error DetectedIssue",
+    "command": "bun run jira:search fts '\"processing-error\" DetectedIssue status' --limit 10; bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-50606%' ...\"; bun run confluence:search refs jira FHIR-50606; bun run confluence:search fts '\"processing-error\" DetectedIssue' --limit 10",
+    "query": "FHIR-50606; processing-error DetectedIssue status",
+    "result_count": 1,
+    "summary": "Jira returned only FHIR-50606; Zulip and Confluence returned no directly relevant hits.",
+    "learned": "No discovered community record or related final issue changes the Applied Jira/source conclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted XML and diff validation",
+    "command": "git diff --check -- source/detectedissue/valueset-detectedissue-status.xml; python3 - <<'PY' ... ElementTree parse and ValueSet compose query ... PY",
+    "summary": "The XML parsed successfully, diff whitespace check passed, and the detectedissue-status include codes were mitigated and processing-error.",
+    "learned": "The source edit is syntactically valid and places the requested code in the intended ValueSet include.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

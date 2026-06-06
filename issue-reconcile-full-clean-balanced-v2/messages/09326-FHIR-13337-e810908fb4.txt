@@ -1,0 +1,109 @@
+FHIR-13337: Request review for default/missing split
+
+Issue request:
+FHIR-13337 is a Published/Persuasive STU3 FHIR-I issue asking that the ElementDefinition Missing Elements page split its combined list of default values and meaningWhenMissing values into separate default-value and missing-meaning lists. The later Jira comment that mattered said this was no longer needed once default values had been removed.
+
+Initial application:
+No git commit explicitly mentions FHIR-13337. Historical git-svn commits dd83fb1f and 72143f2f removed default values and default-value examples from ElementDefinition source and added the current guidance that FHIR resources and datatypes do not define default values, matching the Jira comment's no-action rationale rather than implementing a separate generated list.
+
+Additional context:
+The same default/missing policy family is already represented on the combined branch. FHIR-15121 fixed one remaining invariant issue and records the broader decision that defaultValue[x] is not for FHIR resources, while FHIR-13482 later restored defaultValueBoolean=false on the current ImplementationGuide isExample successor fields. Current source/fhir.ini actively builds both ElementDefinition and ImplementationGuide. Source/elementdefinition.html still exposes only the single <%missing-element-list%> placeholder, and the STU3 rendered page shows that this placeholder historically emitted default values and meaningWhenMissing entries together. No separate editable default-value-list placeholder was found in this source tree.
+
+AutoFHIR reconciliation:
+This is an empty human-review audit commit. I did not make a source edit because a safe source fix requires resolving the already-published related decisions and/or build tooling support: either keep the restored FHIR-13482 defaults and add true separate generated lists, or apply the FHIR-15121 no-FHIR-resource-default policy and leave no default list to split. A static hand-written list in elementdefinition.html would risk drift and may duplicate generated output.
+
+Recommendation:
+Revisit with FHIR-I and the build tooling owner. If the ImplementationGuide default values restored for FHIR-13482 remain intentional, add generator/template support for separate defaultValue and meaningWhenMissing lists and update the nearby narrative. If the FHIR-15121 policy should take precedence, remove the resource defaults instead; then FHIR-13337 remains satisfied by the no-defaults outcome.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13337
+Issue-Reconcile-Decision: human-review
+
+<related-jiras>
+FHIR-15121: same-change-family - broader Published grouper removed defaultValue[x] use for FHIR resources and retained meaningWhenMissing; already represented on the combined branch by cba69271.
+FHIR-13482: conflicting-decision - Published issue restoring a false default for ImplementationGuide resource example/isExample fields; already represented on the combined branch by f78699f5 and reintroduces the condition FHIR-13337 was meant to make readable.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13337: Published/Persuasive request to split the default-values and meaningWhenMissing list, with a later comment saying no action was needed after default values were removed. Learned: the original request was valid only if default values remained in the generated list.
+- E2 Git dd83fb1f and 72143f2f: historical commits removed default values and the default examples from ElementDefinition source. Learned: the initial application path was removal of defaults, not a split-list implementation.
+- E3 Source source/fhir.ini:85,88,197; source/elementdefinition.html:511-541; source/implementationguide/structuredefinition-ImplementationGuide.xml:731-740,991-1000. Learned: ElementDefinition and ImplementationGuide are active build-scope sources; current local combined-family source has both the single generated list placeholder and restored IG default values.
+- E4 Jira/Git FHIR-15121 cba69271: already-published combined-branch reconciliation for the broader defaults/meaningWhenMissing policy. Learned: do not duplicate that issue, but it constrains the safe interpretation of FHIR-13337.
+- E5 Jira/Git FHIR-13482 f78699f5: already-published combined-branch reconciliation restoring defaultValueBoolean=false on IG isExample fields. Learned: the combined branch intentionally reintroduces default values that can make FHIR-13337 relevant again.
+- E6 Published STU3 elementdefinition.html: the rendered Missing Elements section used one list containing both default values and meaningWhenMissing entries. Learned: the existing placeholder historically generated the combined list FHIR-13337 wanted split.
+- E7 Zulip/Confluence FHIR-I 2018 evidence: the conformance thread and WGM minutes record the motion to remove defaultValue[x] for FHIR resources while retaining meaningWhenMissing. Learned: community evidence supports the no-defaults rationale but does not resolve the later FHIR-13482 restored-default conflict.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13337",
+    "url": "https://jira.hl7.org/browse/FHIR-13337",
+    "snapshot_path": "contexts/FHIR-13337/jira/FHIR-13337.md",
+    "ref": { "jira_key": "FHIR-13337" },
+    "summary": "Published/Persuasive request to split ElementDefinition's combined default-values and meaningWhenMissing list, with a later comment saying no action was needed once default values were removed.",
+    "learned": "This establishes the seed request and the historical no-action rationale.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "dd83fb1f2ac73c98af6be086bb76b925c37b1f4e; 72143f2fd3d86e1d1de43b7aab6821463d9611ab",
+    "ref": { "commits": "dd83fb1f2ac73c98af6be086bb76b925c37b1f4e; 72143f2fd3d86e1d1de43b7aab6821463d9611ab" },
+    "summary": "Historical commits removed default values and default-value examples from the ElementDefinition spreadsheet and narrative.",
+    "learned": "FHIR-13337 was initially addressed by removing defaults rather than by splitting the generated list.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:85,88,197; source/elementdefinition.html:511-541; source/implementationguide/structuredefinition-ImplementationGuide.xml:731-740,991-1000",
+    "ref": { "paths": "source/fhir.ini; source/elementdefinition.html; source/implementationguide/structuredefinition-ImplementationGuide.xml" },
+    "summary": "ElementDefinition and ImplementationGuide are active build-scope sources; ElementDefinition still has one missing-element-list placeholder, and the local combined-family source has defaultValueBoolean=false on IG isExample fields.",
+    "learned": "A current fix must account for both the active template and the restored default values.",
+    "supports": ["current_source", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-15121 / cba69271d82f0acb565773e3aac3033dd67cde32",
+    "url": "https://jira.hl7.org/browse/FHIR-15121",
+    "snapshot_path": "contexts/FHIR-15121/jira/FHIR-15121.md",
+    "ref": { "jira_key": "FHIR-15121", "commit": "cba69271d82f0acb565773e3aac3033dd67cde32" },
+    "summary": "Already-represented combined-branch reconciliation for the broader defaults/meaningWhenMissing policy and invariant.",
+    "learned": "The broader no-FHIR-resource-default policy is not safe to duplicate or reinterpret in this seed commit.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-13482 / f78699f51eacb4c916f047907503ccc582ad51a4",
+    "url": "https://jira.hl7.org/browse/FHIR-13482",
+    "snapshot_path": "contexts/FHIR-13482/jira/FHIR-13482.md",
+    "ref": { "jira_key": "FHIR-13482", "commit": "f78699f51eacb4c916f047907503ccc582ad51a4" },
+    "summary": "Already-represented combined-branch reconciliation restoring defaultValueBoolean=false on ImplementationGuide resource example/isExample fields.",
+    "learned": "The combined branch has an intentional restored default that revives the split-list concern and conflicts with the simple no-defaults rationale.",
+    "supports": ["additional_context", "human_review"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "https://hl7.org/fhir/STU3/elementdefinition.html#missing",
+    "url": "https://hl7.org/fhir/STU3/elementdefinition.html#missing",
+    "summary": "The STU3 rendered Missing Elements section has a single generated list containing both default values such as SampledData.factor and meaningWhenMissing entries such as Period.end.",
+    "learned": "The current single placeholder historically generated the combined list that FHIR-13337 requested to split.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and source searches for FHIR-13337 defaultValue meaningWhenMissing",
+    "command": "bun run zulip:search fts 'ElementDefinition default values missing meaning' --limit 10; bun run confluence:search fts 'ElementDefinition default values missing meaning' --limit 10; rg -n '<%[^%]*(missing|default)[^%]*%>' source",
+    "summary": "Searches found the 2018 FHIR-I discussion/minutes supporting removal of defaultValue[x] while retaining meaningWhenMissing, and source search found only the single missing-element-list placeholder.",
+    "learned": "Community evidence supports the original no-defaults rationale, while current source lacks an obvious safe split-list mechanism.",
+    "supports": ["additional_context", "confidence"]
+  }
+]
+</evidence-manifest>

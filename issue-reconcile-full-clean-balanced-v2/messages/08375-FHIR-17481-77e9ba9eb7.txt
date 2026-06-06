@@ -1,0 +1,101 @@
+FHIR-17481: Audit individual search parameter expressions
+
+Issue request:
+FHIR-17481 was Published/Persuasive and auto-approved for STU3. It reported that generated individual-* SearchParameter definitions, exemplified by individual-address, omitted Person.address from expression while listing Person as a base and also duplicated several XPath fragments.
+
+Initial application:
+The Jira comment records svn revision 14532. In git history this corresponds to f25a484e20387684e12152c5625b387c453dd71f, whose subject is "GF#13864 + GF#16001 + GF#17481 - fix errors generating search parameters" and which updated search-parameter generation logic. The checked historical release3 and release4 generated bundles now include Person.address and non-duplicated XPath for individual-address and the other affected individual address parameters.
+
+Additional context:
+The current build source no longer stores full generated expressions in the common-search-parameters source bundle; it stores the common SearchParameter code and base list that the publisher uses to generate the registry bundle. source/fhir.ini actively includes SearchParameter as a resource, and source/searchparameter/common-search-parameters.xml includes Person as a base for individual-address and the other individual address variants that FHIR-17481 was concerned about. A current CI bundle check of https://build.fhir.org/search-parameters.json shows individual-address with bases Patient, Person, Practitioner, and RelatedPerson and expression "Patient.address | Person.address | Practitioner.address | RelatedPerson.address". The Zulip thread that led to the Jira issue confirms the same bug report and no conflicting rationale was found in Confluence.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current authoritative source already carries the Person base for the affected common individual address parameters, the generated current CI expression includes Person.address, and the old duplicate XPath problem is not present in the current generated surface.
+
+Recommendation:
+Keep this no-change audit commit. Further source edits would be redundant unless a future publisher regression again omits one of the declared bases from generated common SearchParameter expressions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17481
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17481: Published/Persuasive issue requesting fixes for individual-* SearchParameter generated expressions and duplicate XPath. Learned: this is a final auto-approved correction request for the common individual search parameter generation surface.
+- E2 Zulip #implementers > SearchParameter individual-* definitions fix needed: Steve Munini reported the same individual-address omission and Lloyd McKenzie confirmed it looked like a bug before the tracker was filed. Learned: community evidence matches the Jira request and does not broaden the requested source change.
+- E3 Git f25a484e20387684e12152c5625b387c453dd71f: historical commit subject explicitly includes GF#17481 and fixes errors generating search parameters. Learned: the issue was applied in the historical generator path recorded by the Jira comment's svn revision 14532.
+- E4 Source source/searchparameter/common-search-parameters.xml:36: individual-address currently declares Patient, Person, Practitioner, and RelatedPerson bases; lines 45-83 do the same for the address variants. Learned: the current authoritative common SearchParameter source includes Person for the affected base lists.
+- E5 Source source/fhir.ini:248 and source/searchparameter/common-search-parameters.xml:1: SearchParameter is an active resource and the common search parameter bundle is present under that active resource folder. Learned: the inspected source is in current build scope.
+- E6 Published spec https://build.fhir.org/search-parameters.json: current CI bundle has individual-address expression "Patient.address | Person.address | Practitioner.address | RelatedPerson.address" and no XPath value. Learned: current generated output no longer has the missing Person.address or duplicate XPath problem.
+- E7 Verification command: parsed 14 current individual common parameters and matched every declared base/code to a per-resource SearchParameter source expression. Learned: no current common individual parameter base is missing its corresponding source expression.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17481",
+    "url": "https://jira.hl7.org/browse/FHIR-17481",
+    "snapshot_path": "contexts/FHIR-17481/jira/FHIR-17481.md",
+    "ref": { "jira_key": "FHIR-17481" },
+    "summary": "Published/Persuasive STU3 correction request saying individual-* generated SearchParameter expressions omitted Person.address where Person was a base and had duplicate XPath fragments.",
+    "learned": "This establishes the final issue request and the expected generated SearchParameter behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > SearchParameter individual-* definitions fix needed",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/SearchParameter%20individual-*%20definitions%20fix%20needed",
+    "summary": "The thread contains the same individual-address report and a request to file a change proposal.",
+    "learned": "The community discussion confirms the bug report and does not add a conflicting or broader requirement.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "f25a484e20387684e12152c5625b387c453dd71f",
+    "ref": { "commit": "f25a484e20387684e12152c5625b387c453dd71f" },
+    "summary": "Commit subject 'GF#13864 + GF#16001 + GF#17481 - fix errors generating search parameters' matches the Jira comment's svn revision 14532.",
+    "learned": "FHIR-17481 was historically applied in the search-parameter generation path.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/searchparameter/common-search-parameters.xml:36-83",
+    "summary": "The current common individual address SearchParameter definitions declare Person in the base list alongside Patient, Practitioner, and RelatedPerson.",
+    "learned": "The current authoritative source includes the Person base that drives generated Person.address expressions for the affected parameters.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:248; source/searchparameter/common-search-parameters.xml:1",
+    "summary": "SearchParameter is active in fhir.ini and the common search parameter bundle is in the active searchparameter resource folder.",
+    "learned": "The inspected common search parameter source is in current build scope.",
+    "supports": ["source_scope", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/search-parameters.json",
+    "url": "https://build.fhir.org/search-parameters.json",
+    "summary": "The current CI search-parameters bundle reports individual-address bases Patient, Person, Practitioner, RelatedPerson and expression 'Patient.address | Person.address | Practitioner.address | RelatedPerson.address'.",
+    "learned": "Current generated output reflects the requested Person.address fix and no longer carries the old duplicate XPath surface.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current individual common SearchParameter source validation",
+    "command": "python3 - <<'PY' ... parse source/searchparameter/common-search-parameters.xml and matching source/<base>/bundle-<base>-search-params.xml ... PY",
+    "summary": "Checked 14 current individual common parameters; no declared base/code pair was missing or unexpected in the corresponding per-resource SearchParameter source.",
+    "learned": "The current source model is internally consistent for the individual common search parameters.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,111 @@
+FHIR-5342: Audit AuditEvent participant reference targets
+
+Issue request:
+FHIR-5342 is a Published FHIR-core AuditEvent ballot issue from DSTU1 resolved Persuasive with Modification. It asked to broaden SecurityEvent.participant.reference from Practitioner|Patient|Device to include RelatedPerson, with the accepted application also adding Organization while explicitly not adding Group at that time because Group rules then did not support collective actors.
+
+Initial application:
+The issue appears to have been applied in git commit 8e3bf13ba6, "Updated AuditEvent for [5775] [5342] [5337] [5336]", which changed the then-authoritative AuditEvent spreadsheet reference type from Reference(Practitioner|Patient|Device) to Reference(Practitioner|Organization|Device|Patient|RelatedPerson). The later SecurityEvent to AuditEvent rename and generated-source migrations moved that same concept into the current StructureDefinition source.
+
+Additional context:
+AuditEvent is an active build resource in source/fhir.ini, and source/fhir.ini maps the old AuditEvent.participant name to the current AuditEvent.agent element. Later final AuditEvent decisions changed the element name from agent.reference to agent.who and broadened the allowed actor types: FHIR-17412 renamed agent.reference to agent.who, FHIR-32454 aligned agent.who with Event performer actor types, and FHIR-49672 added further agent kinds after FHIR-49304 workflow actor guidance. Those later changes explain the extra current target profiles and do not reverse the FHIR-5342 requirement that RelatedPerson and Organization be allowed.
+
+AutoFHIR reconciliation:
+No source change was made. The current active source for AuditEvent.agent.who already includes Practitioner, Organization, Patient, Device, and RelatedPerson, plus later-added actor types including PractitionerRole, CareTeam, DeviceDefinition, Group, and HealthcareService. Adding or removing target profiles for this old ballot item would either duplicate current behavior or undo later applied decisions.
+
+Recommendation:
+Keep this no-change audit commit as-is. No FHIR core follow-up is needed for FHIR-5342 unless the Security work group separately reopens the broader question of which resources may act as AuditEvent agents.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5342
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17412: later-change - renamed AuditEvent.agent.reference to AuditEvent.agent.who while preserving reference semantics for the participant/agent actor.
+FHIR-32454: later-change - required AuditEvent.agent.who to recognize Event performer.actor types, adding CareTeam and confirming later expansion beyond the DSTU1 list.
+FHIR-49672: later-change - applied the R6 Security decision to add newer agent kinds such as HealthcareService to AuditEvent.agent.who.
+FHIR-49304: background - workflow actor guidance that informed FHIR-49672 and explains why Group/HealthcareService can appear in the modern actor list.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5342: Published/Persuasive with Modification ballot issue requested broadening SecurityEvent.participant.reference to include RelatedPerson, with applied discussion also adding Organization and not Group. Learned: this establishes the seed's final requested source behavior.
+- E2 Source source/fhir.ini:224 and source/fhir.ini:2733: AuditEvent is an active resource and the old participant element maps to AuditEvent.agent. Learned: the current build-scope element to inspect is AuditEvent.agent.who.
+- E3 Source source/auditevent/structuredefinition-AuditEvent.xml:708-728: AuditEvent.agent.who is Reference with target profiles including Practitioner, Organization, Patient, Device, RelatedPerson, Group, CareTeam, DeviceDefinition, HealthcareService, and PractitionerRole. Learned: the FHIR-5342 required target profiles are already present in authoritative current source.
+- E4 Git 8e3bf13ba6: the 2015 application commit for [5342] changed AuditEvent.participant.reference from Reference(Practitioner|Patient|Device) to Reference(Practitioner|Organization|Device|Patient|RelatedPerson). Learned: the issue was historically applied before the source format and element name changed.
+- E5 Jira/Git FHIR-17412 and 6c0a0563b3: later Published AuditEvent work renamed agent.reference to agent.who and simplified Identifier/Reference handling. Learned: a name mismatch with the original Jira is expected and not a missing application.
+- E6 Jira/Git FHIR-32454, FHIR-49672, 8209c17a86, and 3908783507: later AuditEvent decisions intentionally added Event performer actor types and newer agent kinds. Learned: the current broader target list is later intentional context, not a regression against FHIR-5342.
+- E7 Community search: quoted Zulip and Confluence searches for FHIR-5342/AuditEvent/RelatedPerson plus Confluence Jira refs found no relevant hits. Learned: no discovered community record changes the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5342",
+    "url": "https://jira.hl7.org/browse/FHIR-5342",
+    "snapshot_path": "contexts/FHIR-5342/jira/FHIR-5342.md",
+    "ref": { "jira_key": "FHIR-5342" },
+    "summary": "Published/Persuasive with Modification DSTU1 AuditEvent ballot issue requesting RelatedPerson on SecurityEvent.participant.reference, with application discussion adding Organization and omitting Group at that time.",
+    "learned": "The final seed requirement is to ensure the participant/agent reference allows RelatedPerson and Organization alongside the prior actor types.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:224 and source/fhir.ini:2733",
+    "ref": { "path": "source/fhir.ini", "lines": "224,2733" },
+    "summary": "AuditEvent is active in the build and AuditEvent.participant maps to AuditEvent.agent.",
+    "learned": "The current build-scope successor for the original SecurityEvent.participant.reference request is AuditEvent.agent.who.",
+    "supports": ["build_scope", "source_mapping"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:708-728",
+    "ref": { "path": "source/auditevent/structuredefinition-AuditEvent.xml", "lines": "708-728" },
+    "summary": "AuditEvent.agent.who is a Reference whose target profiles include Practitioner, Organization, Patient, Device, RelatedPerson, Group, CareTeam, DeviceDefinition, HealthcareService, and PractitionerRole.",
+    "learned": "The actor references required by FHIR-5342 are present in the authoritative current source.",
+    "supports": ["reconciliation", "no_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "8e3bf13ba6",
+    "ref": { "commit": "8e3bf13ba666e95767275e11df012bf9e4d7ceba" },
+    "summary": "2015 commit 'Updated AuditEvent for [5775] [5342] [5337] [5336]' changed the AuditEvent spreadsheet reference type to include Organization and RelatedPerson.",
+    "learned": "FHIR-5342 was historically applied before later source refactors and element renames.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-17412 / git 6c0a0563b3",
+    "url": "https://jira.hl7.org/browse/FHIR-17412",
+    "ref": { "jira_key": "FHIR-17412", "commit": "6c0a0563b3ac6a188b713f2f1a04ff26229100cf" },
+    "summary": "Published AuditEvent issue renamed agent.reference to agent.who and simplified redundant Identifier/Reference elements.",
+    "learned": "The modern agent.who element name is a later intentional successor to the original participant.reference location.",
+    "supports": ["additional_context", "source_mapping"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-32454 / FHIR-49672 with git 8209c17a86 and 3908783507",
+    "url": "https://jira.hl7.org/browse/FHIR-49672",
+    "ref": { "jira_key": "FHIR-49672", "commit": "390878350715eca86888de3f0cfe40e5cec1200c" },
+    "summary": "Later AuditEvent decisions added Event performer actor types and newer agent kinds to AuditEvent.agent.who.",
+    "learned": "The current target-profile list is intentionally broader than the 2015 applied list and should not be narrowed for FHIR-5342.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-5342 AuditEvent RelatedPerson",
+    "command": "bun run zulip:search fts '\"FHIR-5342\" AuditEvent RelatedPerson' --limit 10; bun run confluence:search refs jira FHIR-5342; bun run confluence:search fts '\"FHIR-5342\" AuditEvent RelatedPerson' --limit 10",
+    "query": "FHIR-5342 AuditEvent RelatedPerson",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

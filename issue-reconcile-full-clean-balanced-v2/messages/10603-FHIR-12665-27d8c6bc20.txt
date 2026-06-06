@@ -1,0 +1,122 @@
+FHIR-12665: Audit regex validator support
+
+Issue request:
+FHIR-12665 was a Published/Persuasive DSTU2 FHIR-I change request asking the FHIR Validator to support extension-regex.html so profiles could declare value patterns without custom validation code. The Jira resolution text says Auto-deferred, but the applied-history signal is the Jira comment citing SVN revision 11986 and the related regex-consolidation task FHIR-13328.
+
+Initial application:
+The issue was applied by git-svn commit 3aa34558348514881e2df90a50796815e13cfc68, corresponding to SVN revision 11986. That commit changed the then-in-repository Java InstanceValidator to read the regex extension while checking primitive values. The related FHIR-13328 application later changed ToolingExtensions.EXT_REGEX from StructureDefinition/structuredefinition-regex to StructureDefinition/regex, aligning tooling with the retained extension URL.
+
+Additional context:
+The current core checkout no longer contains the old implementations/java validator source or any active source reference to extension-regex, structuredefinition-regex, or http://hl7.org/fhir/StructureDefinition/regex. FHIR-13328 has already been represented on the combined branch with an audit commit, and later Published issue FHIR-37359 removed active core use of the regex extension in favor of ElementDefinition.constraint or SDC equivalents. The FHIR Extension Pack retains StructureDefinition/regex only as a retired/deprecated compatibility artifact with the same constraint-based recommendation.
+
+AutoFHIR reconciliation:
+Made no source changes. The original validator implementation surface is outside this current FHIR core build, and reintroducing active core regex-extension content would conflict with the later FHIR-37359 retirement/removal decision. Any live validator compatibility work belongs in the current validator/tooling repository rather than this core source checkout.
+
+Recommendation:
+Keep this audit commit as-is. No core follow-up is needed for FHIR-12665; if implementers need to change live validator behavior for historical R4 regex-extension instances, file that against the current validator/tooling codebase, and keep core aligned with the later constraint-based guidance.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12665
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-13328: same-change-family - consolidated structuredefinition-regex and regex after the seed issue and is already represented on the combined branch.
+FHIR-37359: later-change - later Published FHIR-I decision removed the regex extension as an active core validation mechanism in favor of constraints.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12665: Published/Persuasive issue requesting validator support for extension-regex.html, with Jira comments citing SVN r11986 and FHIR-13328. Learned: establishes the seed request and its applied-history pointer.
+- E2 Zulip #implementers > Profiling:- Specify format for valid values: original reporter asked about regex profile validation; Lloyd noted extension-regex existed but was not validator-supported, Grahame said it should be supported, and the reporter filed GF#12665. Learned: confirms the issue intent was validator/tool behavior rather than new core spec prose.
+- E3 Git 3aa34558348514881e2df90a50796815e13cfc68: #12665 / SVN r11986 changed the old Java InstanceValidator to read regex extension data when validating primitive values. Learned: confirms historical application in implementation code that is no longer present in the current checkout.
+- E4 Current source search: no implementations/java validator source and no active current source references to extension-regex, structuredefinition-regex, or StructureDefinition/regex were found. Learned: there is no current core build source location to fix for the seed.
+- E5 Jira/Git FHIR-13328 and commit ac40a7f7047fa21627ab3c895ea6e1aa6c898245: the related consolidation issue is already audited on the combined branch. Learned: the related extension-name cleanup should not be duplicated here.
+- E6 Jira/Git FHIR-37359 and commit 5790b437946b033512a535f1aff5160c69d53c7c: later Published issue removed active core regex-extension use in favor of constraints. Learned: later final WG action rules out reintroducing active core regex-extension content.
+- E7 FHIR Extension Pack input/definitions/datatypes/StructureDefinition-regex.json: regex is retained externally as retired/deprecated with a reason recommending element constraints for human-readable messages. Learned: any remaining compatibility artifact is outside core and already reflects later retirement.
+- E8 Community searches: Zulip found the 2023 FHIR Validator thread where Grahame believed the regex support had been implemented; Confluence refs/FTS found no relevant FHIR-12665 regex decision record. Learned: no discovered community evidence creates a current core source obligation.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12665",
+    "url": "https://jira.hl7.org/browse/FHIR-12665",
+    "snapshot_path": "contexts/FHIR-12665/jira/FHIR-12665.md",
+    "ref": { "jira_key": "FHIR-12665", "svn_revision": 11986 },
+    "summary": "Published/Persuasive DSTU2 issue requesting FHIR Validator support for extension-regex.html; comments cite SVN r11986 and FHIR-13328.",
+    "learned": "This establishes the seed request and points to historical validator-code application rather than a current narrative/source change.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Profiling:- Specify format for valid values",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Profiling%3A-%20Specify%20format%20for%20valid%20values",
+    "ref": { "stream": "implementers", "topic": "Profiling:- Specify format for valid values" },
+    "summary": "The original discussion identified extension-regex as the profiling mechanism, noted missing validator/tool support, and led the reporter to file GF#12665.",
+    "learned": "The approved request was about validator/tool behavior, not adding redundant current core spec prose.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "3aa34558348514881e2df90a50796815e13cfc68",
+    "ref": { "commit": "3aa34558348514881e2df90a50796815e13cfc68", "svn_revision": 11986 },
+    "summary": "The #12665 git-svn commit changed the old Java InstanceValidator under implementations/java/org.hl7.fhir.validation to read regex extension values during primitive validation.",
+    "learned": "This confirms that the Jira-cited application landed in implementation code that is not part of the current core checkout.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current core source grep for validator and regex extension anchors",
+    "command": "rg -n 'class InstanceValidator|ToolingExtensions|EXT_REGEX' .; rg -n 'http://hl7.org/fhir/StructureDefinition/regex|extension-regex|structuredefinition-regex' source",
+    "result_count": 0,
+    "summary": "No current validator implementation classes or active core source references to the regex extension anchors were found.",
+    "learned": "The current FHIR core build has no in-scope source file needing a FHIR-12665 edit.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-13328 / ac40a7f7047fa21627ab3c895ea6e1aa6c898245",
+    "url": "https://jira.hl7.org/browse/FHIR-13328",
+    "snapshot_path": "contexts/FHIR-13328/jira/FHIR-13328.md",
+    "ref": { "jira_key": "FHIR-13328", "commit": "ac40a7f7047fa21627ab3c895ea6e1aa6c898245" },
+    "summary": "Related Published issue consolidated structuredefinition-regex and regex and is already represented by an audit commit on the combined branch.",
+    "learned": "The related extension-name cleanup should not be duplicated in this seed commit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-37359 / 5790b437946b033512a535f1aff5160c69d53c7c",
+    "url": "https://jira.hl7.org/browse/FHIR-37359",
+    "snapshot_path": "contexts/FHIR-37359/jira/FHIR-37359.md",
+    "ref": { "jira_key": "FHIR-37359", "commit": "5790b437946b033512a535f1aff5160c69d53c7c" },
+    "summary": "Later Published issue resolved to remove the regex extension from active core use in favor of constraints with user-facing messages.",
+    "learned": "Later final WG action means reintroducing active core regex-extension content would be incorrect.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-regex.json:13-22,49-56",
+    "ref": { "path": "input/definitions/datatypes/StructureDefinition-regex.json" },
+    "summary": "The Extension Pack defines StructureDefinition/regex as retired/deprecated and recommends constraints as the replacement mechanism.",
+    "learned": "The surviving compatibility artifact is outside core and already reflects later retirement guidance.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community searches for FHIR-12665 regex validator",
+    "command": "bun run zulip:search snapshot implementers 'Profiling:- Specify format for valid values'; bun run zulip:search snapshot 'FHIR Validator' 'regex extension used by validator?'; bun run confluence:search refs jira FHIR-12665; bun run confluence:search fts '\"FHIR-12665\" regex' --limit 10",
+    "query": "FHIR-12665 regex validator",
+    "summary": "Zulip supplied the original seed discussion and a 2023 validator thread where Grahame believed support was implemented; Confluence had no relevant regex decision record.",
+    "learned": "Community evidence is consistent with historical validator support and does not create a current core source change.",
+    "supports": ["additional_context", "confidence"]
+  }
+]
+</evidence-manifest>

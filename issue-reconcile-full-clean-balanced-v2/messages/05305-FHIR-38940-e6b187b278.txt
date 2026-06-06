@@ -1,0 +1,107 @@
+FHIR-38940: Audit Bundle constraint FHIRPath consistency
+
+Issue request:
+FHIR-38940 was a Published/Persuasive FHIR-I change request raised against R4 and applied for R5. It asked that Bundle constraint FHIRPath use a consistent local element form, changing expressions that referred to Bundle.[element] or %resource.[element] to just [element] where that is the correct context.
+
+Initial application:
+The Jira comment points to HL7/fhir#2428. Commit 9d62b7791f99105778f23844e42d13f7ae60eec9 initially changed source/bundle/structuredefinition-Bundle.xml by replacing %resource.type with type in the then-current bdl-3/bdl-4 constraints and replacing Bundle.issues with issues in bdl-16/bdl-17. The PR was merged by 0bf45b6fab56d2e4958f3852b7fc0f529472a2c6. A follow-up commit, 1b2d9f9e248c7fc83375414cd62617e2c3500c50, reverted the bdl-3/bdl-4 %resource.type changes because those expressions evaluated inside entry.all(), where the unqualified type path was not in context.
+
+Additional context:
+FHIR-38942 later split the old bdl-3/bdl-4 rules into bdl-3a through bdl-3d. In the current active Bundle StructureDefinition, those constraints and the surrounding Bundle constraints use unqualified root element names such as type, entry, identifier, timestamp, link, and issues. source/fhir.ini actively registers Bundle, so source/bundle/structuredefinition-Bundle.xml is in build scope. A search of the Bundle directory found remaining Bundle.* expressions only in Bundle search-parameter definitions, not in Bundle constraints, so they are outside the requested constraint cleanup.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current active Bundle constraints already reflect the FHIR-38940 consistency goal while preserving the later technical correction that unqualified paths must only be used in the correct FHIRPath context.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR core source follow-up is needed for FHIR-38940; do not rewrite Bundle search-parameter expressions as part of this issue because they are not the constraint expressions covered by the Jira decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-38940
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-38942: supporting-decision - later Bundle invariant work split the old bdl-3/bdl-4 rules into bdl-3a through bdl-3d, which removed the obsolete %resource.type pattern from the active constraints while preserving semantics.
+FHIR-38941: background - adjacent Bundle issue in the same FHIR-I vote/PR neighborhood, but it concerns Bundle.link navigation text rather than constraint FHIRPath consistency.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-38940: Published/Persuasive with resolution to use local element names in Bundle constraint expressions rather than Bundle.[element] or %resource.[element]. Learned: establishes final WG intent for the seed.
+- E2 Confluence FHIR-I Minutes 2022-10-17 page 139672233: records FHIR-38940 Persuasive, Bas van den Heuvel/Josh Mandel, 14-0-0. Learned: confirms the work-group vote behind the Jira disposition.
+- E3 Git 9d62b7791f: initial FHIR-38940 application changed Bundle constraints from %resource.type/Bundle.issues toward type/issues. Learned: shows the original source application path from HL7/fhir#2428.
+- E4 Git 1b2d9f9e24: reverted the bdl-3/bdl-4 type changes because %resource was necessary inside entry.all(). Learned: explains why literal replacement was not always FHIRPath-correct in the old expression shape.
+- E5 Git 7fd7b9ce04 and source/bundle/structuredefinition-Bundle.xml:86-201: later Bundle invariant work introduced current bdl-3a through bdl-3d and current constraints use unqualified root elements. Learned: current source satisfies the Jira goal without reintroducing invalid context assumptions.
+- E6 Source source/fhir.ini:935,952,1103,1331 and source/bundle/structuredefinition-Bundle.xml:86-201: Bundle is active in the build and its root constraints are current source. Learned: the audited file is authoritative for this reconciliation.
+- E7 Command searches: no existing Issue-Reconcile-Key was found on the combined branch; exact Zulip search for "FHIR-38940" found no results; Bundle-directory expression search found Bundle.* only in search-parameter expressions. Learned: there is no duplicate audit, no discovered community contradiction, and no remaining Bundle constraint expression needing a source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-38940",
+    "url": "https://jira.hl7.org/browse/FHIR-38940",
+    "snapshot_path": "contexts/FHIR-38940/jira/FHIR-38940.md",
+    "ref": { "jira_key": "FHIR-38940" },
+    "summary": "Published/Persuasive FHIR-I request to make Bundle constraint FHIRPath references consistent by using local element names instead of Bundle.[element] or %resource.[element] where appropriate.",
+    "learned": "This establishes the final work-group intent and the source area to audit.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2022-10-17 page 139672233",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/139672233/FHIR+Infrastructure+Minutes+CC+2022-10-17",
+    "ref": { "confluence_page_id": 139672233 },
+    "summary": "Minutes record FHIR-38940 as Persuasive with a Bas van den Heuvel/Josh Mandel 14-0-0 vote.",
+    "learned": "The meeting evidence confirms the Jira disposition and does not narrow the approved scope beyond the Bundle constraint cleanup.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "9d62b7791f99105778f23844e42d13f7ae60eec9",
+    "ref": { "commit": "9d62b7791f99105778f23844e42d13f7ae60eec9" },
+    "summary": "Initial FHIR-38940 commit changed Bundle constraints from %resource.type/Bundle.issues toward type/issues.",
+    "learned": "This is the explicit source application linked from the Jira comment and merged through HL7/fhir#2428.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "1b2d9f9e248c7fc83375414cd62617e2c3500c50",
+    "ref": { "commit": "1b2d9f9e248c7fc83375414cd62617e2c3500c50" },
+    "summary": "Follow-up commit reverted bdl-3/bdl-4 unqualified type references because %resource was necessary inside entry.all().",
+    "learned": "Literal replacement was not always safe in the old FHIRPath context, so the current-source audit must account for later refactoring rather than simply reapply the old diff.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/bundle/structuredefinition-Bundle.xml:86-201",
+    "ref": { "path": "source/bundle/structuredefinition-Bundle.xml", "lines": "86-201" },
+    "summary": "Current active Bundle constraints bdl-1 through bdl-18 use local expressions such as type, entry, identifier, timestamp, link, and issues; bdl-3a through bdl-3d avoid the old %resource.type pattern.",
+    "learned": "The current authoritative Bundle source already satisfies the FHIR-38940 consistency goal.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:935,952,1103,1331",
+    "ref": { "path": "source/fhir.ini", "lines": "935,952,1103,1331" },
+    "summary": "fhir.ini actively registers Bundle as an infrastructure resource with abbreviation bdl and approved status.",
+    "learned": "The audited Bundle StructureDefinition is in current FHIR build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative duplicate/community/remaining-constraint searches",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-38940' --format='%H %s' -n 1 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run zulip:search fts '\"FHIR-38940\"' --limit 10; git grep -n -E '<expression value=\"[^\"]*(Bundle\\.|%resource\\.)' -- source/bundle",
+    "query": "FHIR-38940; Bundle constraint expressions containing Bundle. or %resource.",
+    "summary": "No prior reconcile trailer or Zulip hits were found; the Bundle-directory qualified expression hits are search-parameter expressions, not constraints.",
+    "learned": "There is no duplicate audit or discovered community contradiction, and no active Bundle constraint expression remains to edit for this issue.",
+    "supports": ["absence_of_conflict", "reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

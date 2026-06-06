@@ -1,0 +1,120 @@
+FHIR-19687: Audit Patient merge behavior outside core
+
+Issue request:
+FHIR-19687 was a Published PA change request, resolved Persuasive with Modification for R5, asking how searches and patient compartments should behave when a Patient has been linked, merged, or unlinked. The final resolution relied on the PA Merge Operation work: patient linking was expected primarily for cross-system linking, intra-system duplicate handling should follow merge behavior, servers should move data from the old patient to the new patient for merges, the old Patient should be inactive and linked to the new Patient, and search results could include OperationOutcome guidance for in-progress or redirected merge cases.
+
+Initial application:
+PA's Merge Operation page and minutes supplied the detailed behavior before source application. Core source was then explicitly changed by 96213161a5, which added source/patient/operationdefinition-Patient-merge.xml, Patient/$merge examples, and the Patient operation list entry, and by 389af0dfa6, which added extended merge usage notes. Merge commit b494aee51b brought those FHIR-19687 changes into the main history.
+
+Additional context:
+Patient remains active in the current core build, and source/patient/patient-notes.xml still tells readers there are two approaches, linking and merging. However, the current core build no longer owns the Patient/$merge OperationDefinition page: b487fdda4b removed OperationDefinition/Patient-merge from source/patient/list-Patient-operations.xml and changed core Patient and Parameters links to the Administrative Incubator IG. The old source/patient/operation-Patient-merge-notes.xml file remains in the checkout but is not referenced by current core links or the Patient operation list. Later same-family Patient merge issues, including FHIR-38183, FHIR-38877, and FHIR-38888, have already been represented on the combined branch and support the same build-scope conclusion.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no core source change. The active core Patient page points to the external Patient/$merge page, and that current external page contains the merge semantics needed for this issue: source and target patients, source inactive/replaced-by handling, reference updates during merge processing, OperationOutcome guidance, and post-merge search expectations. Editing unreferenced legacy core notes or reintroducing a core OperationDefinition would not be a correct current-build fix.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR core source follow-up is needed for FHIR-19687; future normative or trial-use changes to Patient/$merge behavior should be made in HL7/admin-incubator, with core changed only if the external link or high-level Patient-page pointer becomes stale.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19687
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-38183: same-change-family - later Patient narrative update that kept the Merging records section and $merge pointer aligned with the Patient merge work; already audited on the combined branch.
+FHIR-38877: later-change - later clarification of Patient $merge post-merge GET/search expectations; already audited on the combined branch.
+FHIR-38888: later-change - later clarification/addition of Patient $merge notification and FHIR Messaging content; already audited on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19687: Published/Persuasive with Modification PA issue for querying data when a Patient has been linked or merged, applied for R5. Learned: this establishes final WG intent and the required merge/search behavior.
+- E2 Confluence Merge Operation page 58657695: PA Merge Operation content references FHIR-19687 and defines Patient/$merge behavior, including source inactive/replaced-by handling, POST-only operation shape, Task/asynchronous handling, OperationOutcome, and post-merge searches. Learned: this is the detailed source of the Jira resolution.
+- E3 Confluence PA minutes 2020-06-24 page 86969781 and 2021 Jan WGM page 97484271: minutes record that merge cases rewired references for consistent search, link cases remained client-side/cross-system, and the issue proceeded to the 10-0-0 WGM disposition. Learned: meeting evidence matches the Jira resolution and bounds linking versus merging.
+- E4 Git 96213161a5, 389af0dfa6, and b494aee51b: FHIR-19687 added the core Patient/$merge OperationDefinition, examples, operation list entry, and usage notes. Learned: the issue was explicitly applied before this reconciliation.
+- E5 Source source/fhir.ini:170-212, source/patient/patient-notes.xml:31-48, source/patient/list-Patient-operations.xml:7-16, and source/parameters/parameters-examples-header.xml:14: Patient is active, the current Patient narrative links $merge externally, and the current core Patient operations list omits Patient-merge. Learned: the current core build surface delegates detailed merge behavior outside core.
+- E6 Git b487fdda4b: removed Patient-merge from core operations and changed Patient/Parameters links to the Administrative Incubator Patient/$merge page. Learned: the absence of a core OperationDefinition is an intentional later scope move, not an unapplied FHIR-19687 defect.
+- E7 Web https://build.fhir.org/ig/HL7/admin-incubator/branches/main/en/OperationDefinition-Patient-merge.html: current linked external page contains source/target merge semantics, reference rewiring, OperationOutcome guidance, and post-merge search expectations. Learned: the owning current artifact already carries the applied behavior.
+- E8 Command searches: combined-branch idempotency check found no FHIR-19687 audit; Jira link SQL found no direct linked issues; Zulip searches found no direct FHIR-19687 conflict; Confluence refs found the Merge Operation and PA minutes. Learned: no duplicate publication or conflicting community evidence changes the external-repo decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19687",
+    "url": "https://jira.hl7.org/browse/FHIR-19687",
+    "snapshot_path": "contexts/FHIR-19687/jira/FHIR-19687.md",
+    "ref": { "jira_key": "FHIR-19687" },
+    "summary": "Published/Persuasive with Modification PA issue asking how queries and patient compartments should behave when a Patient is linked, merged, or unlinked.",
+    "learned": "The final WG decision requires merge behavior with inactive/replaced-by source patients, moved references, and OperationOutcome guidance for search/client resolution.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "Merge Operation page 58657695",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/58657695/Merge+Operation",
+    "ref": { "confluence_page_id": 58657695 },
+    "summary": "The PA Merge Operation page references FHIR-19687 and defines Patient/$merge behavior, including source inactive/replaced-by handling, POST-only operation shape, asynchronous Task handling, OperationOutcome, and post-merge search expectations.",
+    "learned": "This is the detailed content named by the Jira resolution and explains what was supposed to be applied.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "PA minutes pages 86969781 and 97484271",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/97484271/2021+Jan+WGM+Minutes",
+    "ref": { "confluence_page_id": 97484271 },
+    "summary": "PA minutes record the June 2020 merge/link distinction and the January 2021 WGM disposition for FHIR-19687.",
+    "learned": "The minutes confirm that merge rewires references for consistent search while link behavior remains cross-system/client-side, matching the Jira decision.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "96213161a5; 389af0dfa6; b494aee51b",
+    "ref": { "commit": "b494aee51bf3748f696585182241c9054643d949" },
+    "summary": "FHIR-19687 application commits added Patient/$merge OperationDefinition, examples, operation list entry, and extended usage notes to core.",
+    "learned": "The issue was explicitly applied in source history before the later build-scope move.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-212; source/patient/patient-notes.xml:31-48; source/patient/list-Patient-operations.xml:7-16; source/parameters/parameters-examples-header.xml:14",
+    "ref": { "path": "source/patient/patient-notes.xml" },
+    "summary": "Patient is an active core resource, the current Patient narrative links merge behavior to the Administrative Incubator Patient/$merge page, and the current core Patient operations list excludes Patient-merge.",
+    "learned": "The active core build surface delegates detailed Patient/$merge behavior outside core rather than containing a local OperationDefinition.",
+    "supports": ["additional_context", "source_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "b487fdda4bb4a5382a93dbb5a811efd02425b9bc",
+    "ref": { "commit": "b487fdda4bb4a5382a93dbb5a811efd02425b9bc" },
+    "summary": "Commit 'more PA Operations out' removed Patient-merge from core operations and changed core Patient/Parameters links to the Administrative Incubator IG.",
+    "learned": "The missing local Patient/$merge OperationDefinition is an intentional later scope move, not a current core defect.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "web",
+    "locator": "Administrative Incubator Patient/$merge continuous build",
+    "url": "https://build.fhir.org/ig/HL7/admin-incubator/branches/main/en/OperationDefinition-Patient-merge.html",
+    "summary": "The linked current external page contains source/target merge semantics, source inactive/replaced-by handling, reference rewiring during merge processing, OperationOutcome guidance, and post-merge search expectations.",
+    "learned": "The current owning artifact already carries the behavior required by FHIR-19687.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Idempotency, source, Jira, Zulip, and Confluence searches for FHIR-19687",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-19687' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n 'operationdefinition-Patient-merge|OperationDefinition/Patient-merge|patient-operation-merge.html' source; bun run jira:search sql \"SELECT ... links ... FHIR-19687\"; bun run zulip:search fts '\"FHIR-19687\" Patient merge link' --limit 10; bun run confluence:search refs jira FHIR-19687",
+    "query": "FHIR-19687 Patient merge link",
+    "result_count": 0,
+    "summary": "No existing combined-branch FHIR-19687 audit, no active local core Patient-merge references, no direct Jira linked issues, and no direct Zulip conflict were found; Confluence refs found the expected Merge Operation and PA minutes.",
+    "learned": "No duplicate publication or conflicting community evidence changes the external-repo conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

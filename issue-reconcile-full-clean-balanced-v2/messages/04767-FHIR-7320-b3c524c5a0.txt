@@ -1,0 +1,102 @@
+FHIR-7320: Audit Claim hospitalization period handling
+
+Issue request:
+FHIR-7320 was Published with a Persuasive with Modification resolution for DSTU1. It requested an admit/discharge date-time representation because service dates might not cover an entire hospitalization, and the accepted resolution said to add a 0..1 Claim header hospitalization Period following EpisodeOfCare and Encounter patterns.
+
+Initial application:
+No commit with an explicit FHIR-7320/Jira key was found in the local git history. The closest historical application is git commit 649fcd4cbf21557ae6db78e0afb908f3030dad7a, "Updates to claim", which added Claim.hospitalization 0..1 Period to the Claim spreadsheet with a "Period in hospital" label and also added Claim.billablePeriod.
+
+Additional context:
+Claim is active in source/fhir.ini. Later Published issue FHIR-13826 changed the same area: commit 4a2f618cfd6a35e6bf8445eab10ac7310da3de6c removed standalone Claim.hospitalization from examples and represented hospitalization through Claim.information with the hospitalized category and a timingPeriod. Subsequent R4 refactoring in afb5ec66f68641293bb7950b6e0eeb118fa1444a renamed Claim.information to Claim.supportingInfo. The combined branch already contains a separate FHIR-13826 audit commit, efadbcfd8350e31147a8869617165b8b1b57dd33, confirming this later representation.
+
+AutoFHIR reconciliation:
+This is an empty audit commit. No source change is needed because current Claim source has Claim.supportingInfo.category bound to claim-informationcategory, Claim.supportingInfo.timing[x] permits Period, and current examples encode hospitalization with the hospitalized category and timingPeriod. Restoring a standalone Claim.hospitalization element would conflict with the later published FHIR-13826 decision.
+
+Recommendation:
+Keep this audit commit as-is. Do not re-add the retired standalone Claim.hospitalization field; use Claim.supportingInfo with the hospitalized category and timingPeriod for hospitalization/admit-discharge periods. Any future expansion of admission/discharge category codes should proceed through the separate UTG/THO proposal process, not this closed DSTU1 core tracker.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7320
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13826: later-change - Published FM issue that removed standalone Claim/EOB hospitalization fields and moved the fact into information/supportingInfo.
+UP-691: background - unresolved UTG proposal draft for broader claim information category harmonization, including admission/discharge date codes, but not a final core decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7320: Published/Persuasive with Modification, voted 2015-08-07, asking for a Claim hospitalization Period to hold admit and discharge dates. Learned: this establishes the seed request and the original target behavior.
+- E2 Source source/fhir.ini:169,240: Claim is listed in the active [resources] section. Learned: Claim source files are in current build scope.
+- E3 Git 649fcd4cbf21557ae6db78e0afb908f3030dad7a: the Claim spreadsheet patch added Claim.hospitalization 0..1 Period with "Period in hospital" wording. Learned: the original request appears to have been applied historically even though the commit did not cite FHIR-7320.
+- E4 Git 4a2f618cfd6a35e6bf8445eab10ac7310da3de6c and afb5ec66f68641293bb7950b6e0eeb118fa1444a: FHIR-13826 removed standalone hospitalization examples in favor of information/hospitalized timingPeriod, then R4 renamed information to supportingInfo. Learned: later published FM decisions intentionally changed where hospitalization periods are represented.
+- E5 Source source/claim/structuredefinition-Claim.xml:800-818,857-883 and source/claim/claim-example-institutional-rich.xml:118-129; source/claim/claim-example-cms1500-medical.xml:161-172: current Claim binds supportingInfo.category to claim-informationcategory, allows Period timing, and examples use hospitalized timingPeriod. Learned: current source preserves the admit/discharge period capability without the retired standalone element.
+- E6 Published terminology https://terminology.hl7.org/CodeSystem-claiminformationcategory.json: hospitalized is defined as an indication that the patient was hospitalized, with the period if known or a Yes/No boolean otherwise. Learned: the terminology backing the current representation carries the hospitalization meaning.
+- E7 Command community/context search: Jira searches found the seed, FHIR-13826, and unresolved UP-691; Zulip and Confluence searches for FHIR-7320/Claim hospitalization terms found no relevant or conflicting discussion. Learned: no discovered final community evidence reverses the source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7320",
+    "url": "https://jira.hl7.org/browse/FHIR-7320",
+    "snapshot_path": "contexts/FHIR-7320/jira/FHIR-7320.md",
+    "ref": { "jira_key": "FHIR-7320" },
+    "summary": "Published/Persuasive with Modification issue requesting Claim admit and discharge date-time support via a 0..1 hospitalization Period.",
+    "learned": "This establishes the original approved request for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,240",
+    "summary": "The active resources list includes claim=Claim.",
+    "learned": "The inspected Claim definition and examples are part of the current build scope.",
+    "supports": ["build_scope", "source_check"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "649fcd4cbf21557ae6db78e0afb908f3030dad7a",
+    "summary": "The 2015 Claim update added Claim.hospitalization 0..1 Period with a Period in hospital label in the Claim spreadsheet.",
+    "learned": "The original FHIR-7320 request appears to have been applied historically despite lacking an explicit issue key in the commit message.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "4a2f618cfd6a35e6bf8445eab10ac7310da3de6c; afb5ec66f68641293bb7950b6e0eeb118fa1444a; efadbcfd8350e31147a8869617165b8b1b57dd33",
+    "summary": "FHIR-13826 removed standalone Claim hospitalization usage in favor of information/hospitalized timingPeriod, R4 renamed information to supportingInfo, and the combined branch already audits that later issue.",
+    "learned": "Current source should be judged against the later published supportingInfo representation rather than the retired standalone element.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/claim/structuredefinition-Claim.xml:800-818,857-883; source/claim/claim-example-institutional-rich.xml:118-129; source/claim/claim-example-cms1500-medical.xml:161-172",
+    "summary": "Claim.supportingInfo.category binds to claim-informationcategory, supportingInfo.timing[x] permits Period, and Claim examples use the hospitalized category with timingPeriod values.",
+    "learned": "The current build-scope source still conveys hospitalization/admit-discharge periods through supportingInfo.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "THO CodeSystem claiminformationcategory hospitalized code",
+    "url": "https://terminology.hl7.org/CodeSystem-claiminformationcategory.json",
+    "summary": "The hospitalized code means the patient was hospitalized, with the period if known or a Yes/No boolean otherwise.",
+    "learned": "The terminology backing Claim.supportingInfo carries the hospitalization-period semantics needed for the seed issue.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-7320 and Claim hospitalization terms",
+    "command": "bun run jira:search fts '\"FHIR-7320\" Claim hospitalization admit discharge' --limit 20; bun run jira:search fts '\"hospitalization\" Claim admit discharge' --limit 20; bun run zulip:search fts '\"FHIR-7320\" Claim hospitalization admit discharge' --limit 10; bun run confluence:search refs jira FHIR-7320; bun run confluence:search fts '\"FHIR-7320\" Claim hospitalization admit discharge' --limit 10",
+    "query": "FHIR-7320 Claim hospitalization admit discharge; Claim hospitalization supportingInfo",
+    "summary": "Searches found the seed issue, the later FHIR-13826 decision, and unresolved UP-691; no relevant Zulip or Confluence references were found.",
+    "learned": "No discovered final community or meeting evidence changes the no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,108 @@
+FHIR-20391: Audit sdf-20 XPath correction
+
+Issue request:
+FHIR-20391 was a Published/Persuasive FHIR-I technical correction for FHIR-core StructureDefinition. It reported that invariant sdf-20's XPath checked the first differential element with `not(f:element[1]/f:slicing)` even though the matching FHIRPath expression checks the root element with `element.where(path.contains('.').not()).slicing.empty()`.
+
+Initial application:
+The issue was explicitly applied in commit 011a0f83e202c9b0315015d1bc60cfca0fbcfa13, which changed the StructureDefinition sdf-20 XPath from `not(f:element[1]/f:slicing)` to `not(exists(f:element[not(contains(f:path/@value,'.'))]/f:slicing))`. The current source no longer carries either XPath expression.
+
+Additional context:
+FHIR-13768 was the predecessor issue that fixed the FHIRPath expression for the same root-versus-first-element problem. Later ElementDefinition XPath-removal work removed constraint XPath usage from active StructureDefinition resource definitions; source/fhir.ini also records `ElementDefinition.constraint.xpath=XPath removed due to lack of use and maintenance`. A related FHIR-37871 reconciliation already handled remaining ModelInfo sidecar exposure of ElementDefinition.constraint.xpath and is not duplicated here.
+
+AutoFHIR reconciliation:
+Made no source change. StructureDefinition is an active resource in source/fhir.ini, and the active source/structuredefinition/structuredefinition-StructureDefinition.xml sdf-20 constraint retains the correct FHIRPath expression but has no XPath field to fix. The obsolete bad XPath only remains in historical release snapshots under tools/history, which are not current source corrections for this R5-applied issue.
+
+Recommendation:
+Keep this audit commit as-is. The current build source is correct for FHIR-20391; do not reintroduce XPath just to mirror the historical correction. Any future work on historical release archives or tooling packages should be handled separately from this current-spec reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20391
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13768: same-change-family - predecessor Published/Persuasive issue that corrected the sdf-20 FHIRPath expression to check the root element rather than the first element.
+FHIR-37871: later-change - later Published/Persuasive decision to remove ElementDefinition.constraint.xpath usage, explaining why no sdf-20 XPath remains in current source.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20391: Published/Persuasive technical correction for StructureDefinition sdf-20 XPath, with Jira comment linking R4B commit 011a0f8. Learned: this establishes the requested root-element XPath correction and prior application lead.
+- E2 Jira FHIR-13768: Published/Persuasive predecessor issue for the same sdf-20 root-versus-first-element problem, fixing the FHIRPath expression. Learned: this confirms the intended invariant semantics.
+- E3 Source source/fhir.ini:258,1241,1716 and source/structuredefinition/structuredefinition-StructureDefinition.xml:1001-1006: StructureDefinition is active, sdf-20 has the correct FHIRPath expression, and no XPath child remains. Learned: the current authoritative source has no bad XPath to edit.
+- E4 Git 011a0f83e202c9b0315015d1bc60cfca0fbcfa13: changed sdf-20 XPath from the first-element check to the root-element check. Learned: FHIR-20391 was historically applied.
+- E5 Git 88a1f3d6bd60f7618ae140179b008ac5686e8a08: removed XPath usage from StructureDefinition constraints, including sdf-20. Learned: the absence of current XPath is an intentional later source change, not a missed application.
+- E6 Zulip #implementers > No slicing on the root element: participants discussed sparse differentials and confirmed sdf-20 should not treat the first element as the root. Learned: community context supports the Jira/source interpretation and reveals no conflicting current requirement.
+- E7 Verification command/query: current-source grep found no `not(f:element[1]/f:slicing)` under source, combined-branch grep found no existing FHIR-20391 audit, and Confluence refs/FTS found no relevant conflicting records. Learned: no source edit or duplicate commit is needed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20391",
+    "url": "https://jira.hl7.org/browse/FHIR-20391",
+    "snapshot_path": "contexts/FHIR-20391/jira/FHIR-20391.md",
+    "ref": { "jira_key": "FHIR-20391" },
+    "summary": "Published/Persuasive FHIR-I technical correction reporting that StructureDefinition sdf-20's XPath checked f:element[1] instead of the root element matched by the FHIRPath expression.",
+    "learned": "This establishes the seed issue request and the expected XPath correction.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-13768",
+    "url": "https://jira.hl7.org/browse/FHIR-13768",
+    "ref": { "jira_key": "FHIR-13768" },
+    "summary": "Published/Persuasive predecessor issue requiring sdf-20 to check the root element with element.where(path.contains('.').not()).slicing.empty().",
+    "learned": "This confirms the invariant semantics that FHIR-20391 expected the XPath to mirror.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:258,1241,1716; source/structuredefinition/structuredefinition-StructureDefinition.xml:1001-1006",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml", "start_line": 1001, "end_line": 1006 },
+    "summary": "StructureDefinition is an active resource and sdf-20 currently has the correct FHIRPath expression without any XPath child element.",
+    "learned": "The current authoritative source has no obsolete sdf-20 XPath to correct.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "011a0f83e202c9b0315015d1bc60cfca0fbcfa13",
+    "ref": { "commit": "011a0f83e202c9b0315015d1bc60cfca0fbcfa13" },
+    "summary": "The R4B commit explicitly mentioning FHIR-20391 changed sdf-20 XPath from not(f:element[1]/f:slicing) to a root-path check.",
+    "learned": "FHIR-20391 was historically applied before the XPath field was later removed.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "88a1f3d6bd60f7618ae140179b008ac5686e8a08",
+    "ref": { "commit": "88a1f3d6bd60f7618ae140179b008ac5686e8a08" },
+    "summary": "The later ElementDefinition update removed XPath usage from StructureDefinition constraints, including the sdf-20 XPath line.",
+    "learned": "The lack of sdf-20 XPath in current source is intentional later history, not a missing FHIR-20391 fix.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > No slicing on the root element",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/No%20slicing%20on%20the%20root%20element",
+    "ref": { "stream": "implementers", "topic": "No slicing on the root element" },
+    "summary": "The thread discusses sparse StructureDefinition differentials and confirms that sdf-20 should check the actual root element, not whichever element appears first.",
+    "learned": "Community context supports the Jira interpretation and does not identify a conflicting current-source requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Targeted source, history, idempotency, and community searches",
+    "command": "rg -n 'not\\(f:element\\[1\\]/f:slicing\\)' source; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-20391' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; bun run confluence:search refs jira FHIR-20391; bun run confluence:search fts '20391 xpath StructureDefinition' --limit 10; bun run zulip:search fts '20391 xpath StructureDefinition' --limit 10",
+    "query": "FHIR-20391 sdf-20 xpath StructureDefinition",
+    "summary": "No bad sdf-20 XPath exists in active source, no prior combined-branch FHIR-20391 audit was found, and no conflicting Confluence or direct FTS community records were found.",
+    "learned": "This supports an empty no-change audit rather than a source edit or duplicate publish.",
+    "supports": ["verification", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,116 @@
+FHIR-25929: Finish Pharmacy CodeableReference cleanup
+
+Issue request:
+FHIR-25929 was a Published/Persuasive R5 Pharmacy change request to replace every Pharmacy choice attribute that offered CodeableConcept and Reference alternatives with CodeableReference across Medication, MedicationAdministration, MedicationDispense, MedicationKnowledge, MedicationPrescription/MedicationRequest, and MedicationStatement.
+
+Initial application:
+Historical Pharmacy commits 8c940464 and 1dcdc4c applied the R5 CodeableReference migration to the main resource definitions and many examples. Current Medication, MedicationAdministration, MedicationDispense, MedicationRequest, and MedicationStatement StructureDefinitions now use CodeableReference for the relevant medication, reason, device, performer, ingredient, and notPerformedReason elements, and a current source check found no remaining CodeableConcept+Reference mixed choice in the medication StructureDefinitions. The reconciliation did find remaining active source locations missed by the initial application: three non-Archive example resources still used the old medicationReference element, and MedicationRequest/MedicationStatement comments and example listings still named obsolete reasonCode, reasonReference, or reasonForUseReference fields.
+
+Additional context:
+source/fhir.ini lists Medication, MedicationAdministration, MedicationDispense, MedicationRequest, and MedicationStatement as active resources and records that MedicationPrescription became MedicationRequest. MedicationKnowledge source already uses CodeableReference at the relevant indication and ingredient item elements, and later git history removed MedicationKnowledge from the active fhir.ini resource list. Direct Zulip and Confluence searches for FHIR-25929 found no conflicting community discussion; a later PHWG minutes page references the Pharmacy WG R5 update of medication elements to CodeableReference as accepted context for a related Immunization discussion.
+
+AutoFHIR reconciliation:
+This commit converts the active MedicationAdministration, MedicationDispense, and MedicationRequest example resources from medicationReference to medication CodeableReference/reference form. It also updates active MedicationRequest and MedicationStatement comments, MedicationRequest example list/header descriptions, and resource-side mapping-exception text so current rendered guidance names reason, reason.reference, or coded reason instead of removed R4 choice element names. It intentionally leaves Archive examples and external/pattern mapping values such as reasonCode map expressions unchanged because those are not current resource element declarations.
+
+Recommendation:
+Keep this source-changing commit. The current core Pharmacy source now consistently exposes the FHIR-25929 CodeableReference model for active resources and examples; any broader cleanup of archived examples or generic workflow pattern wording should be handled separately if a work group decides those historical/pattern artifacts are in scope.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25929
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-25800: same-change-family - shared the February 2020 Pharmacy implementation commits but concerns separate MedicationStatement/example alignment and is not decided here.
+FHIR-19913: background - shared the February 2020 Pharmacy source commit but is separate from the CodeableReference migration.
+FHIR-27018: background - later Immunization discussion cited Pharmacy's R5 CodeableReference medication update as context, but it concerns a different resource family.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25929: Published/Persuasive R5 Pharmacy issue requesting all CodeableConcept-or-Reference Pharmacy choices become CodeableReference. Learned: establishes the final WG intent and applied-version scope.
+- E2 Source source/fhir.ini:201-205 and source/fhir.ini:1469: active build resources include Medication, MedicationAdministration, MedicationDispense, MedicationRequest, and MedicationStatement, with MedicationPrescription mapped to MedicationRequest. Learned: identifies the current core build scope for the source fix.
+- E3 Git 8c940464 and 1dcdc4c: February 2020 Pharmacy commits mentioning FHIR-25929 changed medication source and examples for R5. Learned: shows the initial application existed but was mixed with neighboring Pharmacy work and could leave stragglers.
+- E4 Source source/medication*/structuredefinition-*.xml plus verification script: relevant current StructureDefinitions use CodeableReference, and no CodeableConcept+Reference mixed choice remains. Learned: the remaining problem was stale examples and explanatory text, not the main element type declarations.
+- E5 Source edited files: medicationadministration-example.xml:20, medicationdispense-example.xml:25, medicationrequest-example.xml:21, MedicationRequest.xml:254/744, and MedicationStatement.xml:405 were updated to current CodeableReference/reason naming. Learned: active source now no longer points implementers at removed choice element names.
+- E6 Git 5a4307d: later commit removed MedicationKnowledge from active fhir.ini resources; current MedicationKnowledge source still has CodeableReference at indication and ingredient item. Learned: no MedicationKnowledge build-scope edit was needed for this issue.
+- E7 Community search: direct Zulip and Confluence searches for FHIR-25929 plus CodeableReference/Pharmacy found no direct hits or conflicts; Confluence page 79500036 notes Pharmacy's R5 medication CodeableReference update as later background. Learned: community evidence did not contradict the Jira/source conclusion.
+- E8 Verification command: parsed non-Archive Pharmacy XML, checked for old choice XML element names, checked medication StructureDefinition type combinations, and ran CRLF-aware git diff whitespace check. Learned: the edited source is well-formed and the targeted stale names are absent from active non-Archive XML elements.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25929",
+    "url": "https://jira.hl7.org/browse/FHIR-25929",
+    "snapshot_path": "contexts/FHIR-25929/jira/FHIR-25929.md",
+    "ref": { "jira_key": "FHIR-25929" },
+    "summary": "Published/Persuasive R5 Pharmacy issue requesting all CodeableConcept-or-Reference Pharmacy choices be changed to CodeableReference.",
+    "learned": "This is the final WG decision and establishes the expected current model.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:201-205 and source/fhir.ini:1469",
+    "summary": "The active resource list includes MedicationAdministration, MedicationDispense, MedicationRequest, MedicationStatement, and Medication; fhir.ini records MedicationPrescription became MedicationRequest.",
+    "learned": "These entries define the current core build scope for the Pharmacy resources affected by the issue.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "8c940464f5f46e1b990e93df032065d1717847de and 1dcdc4c567b23fc3748c6474ab1688bf53d662e1",
+    "ref": { "commit_1": "8c940464f5f46e1b990e93df032065d1717847de", "commit_2": "1dcdc4c567b23fc3748c6474ab1688bf53d662e1" },
+    "summary": "February 2020 Pharmacy commits mention FHIR-25929 and changed medication source and examples for R5.",
+    "learned": "The original application occurred, but some active example and explanatory source remained stale.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Medication StructureDefinition CodeableReference scan",
+    "command": "python3 - <<'PY' ... parse source/medication*/structuredefinition-*.xml and fail on any element with both CodeableConcept and Reference types ... PY",
+    "summary": "The scan found the relevant CodeableReference elements and no remaining CodeableConcept+Reference mixed choice in medication StructureDefinitions.",
+    "learned": "The authoritative element declarations are already aligned; remaining fixes were stale active examples and text.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/medicationadministration/medicationadministration-example.xml:20; source/medicationdispense/medicationdispense-example.xml:25; source/medicationrequest/medicationrequest-example.xml:21; source/medicationrequest/structuredefinition-MedicationRequest.xml:254,744; source/medicationstatement/structuredefinition-MedicationStatement.xml:405",
+    "summary": "This commit converts old medicationReference examples to medication CodeableReference/reference and updates reason comments to current reason/reason.reference wording.",
+    "learned": "Active source no longer directs implementers to removed choice element names.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "5a4307d78b0209f61bbc68d582c1e190b3aaee5c",
+    "ref": { "commit": "5a4307d78b0209f61bbc68d582c1e190b3aaee5c" },
+    "summary": "A later source commit removed MedicationKnowledge from active fhir.ini resources; remaining MedicationKnowledge source already uses CodeableReference at the relevant elements.",
+    "learned": "No current-build MedicationKnowledge edit was required for this reconciliation.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-25929 CodeableReference Pharmacy",
+    "command": "bun run zulip:search fts '\"FHIR-25929\" CodeableReference Pharmacy' --limit 10; bun run confluence:search refs jira FHIR-25929; bun run confluence:search fts '\"FHIR-25929\" CodeableReference Pharmacy' --limit 10; bun run confluence:search snapshot 79500036",
+    "query": "FHIR-25929 CodeableReference Pharmacy",
+    "result_count": 0,
+    "summary": "No direct FHIR-25929 Zulip or Confluence hits were found; Confluence page 79500036 provides later background that Pharmacy updated medication elements to CodeableReference for R5.",
+    "learned": "Community evidence did not conflict with the Jira/source conclusion.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Final XML and whitespace checks",
+    "command": "python3 XML parse and stale-name checks over non-Archive Pharmacy XML; python3 StructureDefinition type scan; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Non-Archive Pharmacy XML parsed, old choice XML element names were absent, medication StructureDefinitions had no CodeableConcept+Reference mixed choice, and the CRLF-aware whitespace check passed.",
+    "learned": "The reconciliation is syntactically safe and targeted to the intended stale source.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

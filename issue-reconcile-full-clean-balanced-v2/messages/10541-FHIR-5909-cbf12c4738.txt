@@ -1,0 +1,99 @@
+FHIR-5909: Audit primitive value rendering
+
+Issue request:
+FHIR-5909 was a Published / Persuasive DSTU1 FHIR-core issue on the profiles page. It asked that when a simple type is profiled only to define extensions, the rendered definition should not expose the unchanged primitive "value" property in a way that adds noise or implies the value was specially constrained.
+
+Initial application:
+No migrated commit explicitly mentions FHIR-5909. The Jira comments record Grahame's concern that hiding value entirely could make the inlined primitive datatype ambiguous, then state "already done elsewhere." The closest historical source trail is old profile/rendering tooling work: b90a9b36e98cd84889f821e579d69824391c1f30 fixed primitive datatype profile definitions, and b1640e6611a7d2b99e6c31bd31ad7205dcb5dbb5 / FHIR-8171 improved differential rendering by showing inherited base cardinality, type, and definition information greyed out instead of making readers switch to the snapshot. Those legacy Java generator files are not current build-scope source in this checkout.
+
+Additional context:
+Current build-scope profiling guidance says differentials are sparse and describe only differences, while snapshots are complete and retain inherited constraints. The current profile presentation table says the Differential Table is the differential view and that additional context not in the differential is shown partially transparent. Current primitive-value guidance also provides explicit mustHaveValue and valueAlternatives shortcuts for the modern case where a primitive's value is actually constrained or replaced by allowed extensions.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already preserves the issue's implementer-facing intent: unchanged inherited primitive value structure is not treated as a new constraint in the differential, but enough inherited context may be displayed transparently to avoid ambiguity. Adding a new local warning would duplicate existing differential/snapshot and primitive-value guidance rather than correct current spec behavior.
+
+Recommendation:
+Keep this audit commit as-is. Revisit only if the current renderer regresses by making unchanged inherited primitive value elements appear as profile-authored constraints instead of transparent context, or if a new work-group decision changes how primitive extension differentials should be rendered.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5909
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-8171: same-change-family - later DSTU1 profiles-page decision explicitly approved greyed inherited base cardinality/type/definition context in differential rendering.
+FHIR-6060: supporting-decision - companion primitive-extension documentation issue confirms current spec links to primitive datatype extension representation rather than relying on noisy inlined value rows.
+FHIR-20385: later-change - later profiling guidance covers when inherited descriptive ElementDefinition content can be removed or suppressed when it becomes invalid or irrelevant in a constrained context.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5909: Published/Persuasive issue asking not to show an unchanged primitive value property when simple-type profiles only define extensions; comments say hiding value entirely was ambiguous and later "already done elsewhere." Learned: the final issue is a renderer/presentation audit, not a current conformance-rule change.
+- E2 Git b90a9b36e98cd84889f821e579d69824391c1f30: 2015 commit "fix definition of primitive data types in profiles" changed the old ProfileGenerator's primitive datatype profile output. Learned: relevant primitive-profile generator work occurred before the Jira was closed as already handled.
+- E3 Jira/Git FHIR-8171 and b1640e6611a7d2b99e6c31bd31ad7205dcb5dbb5: Published profiles-page issue and svn build@6682 commit improved differential rendering by showing inherited base cardinality/type/definition information greyed out. Learned: the related accepted renderer behavior is transparent inherited context, not fully hiding all unchanged base information.
+- E4 Source source/profiling.html:491-519 and 1216-1217: current build-scope profiling source states differentials contain only changes, snapshots are complete, and differential tables show non-differential context partially transparent. Learned: current source already addresses the ambiguity/noise balance raised by FHIR-5909.
+- E5 Source source/elementdefinition.html:470-496 and source/profiling.html:328-401: current primitive and profiling guidance defines mustHaveValue/valueAlternatives and suppression of selected descriptive inherited properties. Learned: current spec has explicit mechanisms for real primitive-value constraints or context-specific inherited-property cleanup.
+- E6 Command searches for FHIR-5909/FHIR-8171 in Zulip and Confluence plus combined-branch idempotency checks: no directly relevant community conflict or prior FHIR-5909/FHIR-8171 reconcile commit was found. Learned: no discovered evidence requires a source edit or blocks a new audit commit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5909",
+    "url": "https://jira.hl7.org/browse/FHIR-5909",
+    "snapshot_path": "contexts/FHIR-5909/jira/FHIR-5909.md",
+    "ref": { "jira_key": "FHIR-5909" },
+    "summary": "Published/Persuasive profiles-page issue asking that unchanged primitive value properties not be displayed as if constrained when profiling simple types for extensions.",
+    "learned": "The issue establishes a presentation concern about differential noise and ambiguity, with Jira comments saying the behavior was already handled elsewhere.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "b90a9b36e98cd84889f821e579d69824391c1f30",
+    "ref": { "commit": "b90a9b36e98cd84889f821e579d69824391c1f30" },
+    "summary": "Historical commit 'fix definition of primitive data types in profiles' changed the old ProfileGenerator primitive datatype profile output.",
+    "learned": "Primitive-profile generator behavior was being corrected in the relevant DSTU1 window even though no FHIR-5909-tagged commit exists.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "b1640e6611a7d2b99e6c31bd31ad7205dcb5dbb5 / FHIR-8171",
+    "url": "https://jira.hl7.org/browse/FHIR-8171",
+    "snapshot_path": "contexts/FHIR-5909/jira/FHIR-8171.md",
+    "ref": { "commit": "b1640e6611a7d2b99e6c31bd31ad7205dcb5dbb5", "jira_key": "FHIR-8171" },
+    "summary": "FHIR-8171 and svn build@6682 improved profile differential rendering to show inherited base cardinality/type/definition information greyed out.",
+    "learned": "The same renderer family resolved the tension by transparent inherited context rather than presenting inherited data as authored constraints.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/profiling.html:491-519; source/profiling.html:1216-1217",
+    "ref": { "path": "source/profiling.html", "start_line": 491, "end_line": 1217 },
+    "summary": "Current profiling guidance says differentials only state changes, snapshots are complete, and differential tables show non-differential context partially transparent.",
+    "learned": "The active source already conveys the intended differential/snapshot distinction for profile readers.",
+    "supports": ["current_state", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/elementdefinition.html:470-496; source/profiling.html:328-401",
+    "summary": "Current source defines primitive-value profiling shortcuts and the mechanism to suppress certain inherited descriptive properties when constraints make them irrelevant.",
+    "learned": "Modern source has explicit mechanisms for real primitive-value constraints and inherited-property cleanup, so no FHIR-5909-specific prose is missing.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community and idempotency searches for FHIR-5909/FHIR-8171",
+    "command": "bun run zulip:search fts '\"FHIR-5909\"' --limit 10; bun run confluence:search refs jira FHIR-5909; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-5909' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "query": "FHIR-5909 primitive value constrained profiles",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence references and no prior FHIR-5909 reconcile commit were found; broader profile searches found no conflicting decision.",
+    "learned": "No discovered community or branch-state evidence changes the no-change audit conclusion.",
+    "supports": ["absence_of_conflict", "confidence", "idempotency"]
+  }
+]
+</evidence-manifest>

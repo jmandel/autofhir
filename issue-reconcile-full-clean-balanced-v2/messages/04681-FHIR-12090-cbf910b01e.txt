@@ -1,0 +1,112 @@
+FHIR-12090: Audit Goal target migration
+
+Issue request:
+FHIR-12090 was a Published/Persuasive with Modification Patient Care change request for FHIR-core Goal, raised from QI-Core #16 in DSTU2. It asked to resolve the clash between the old goal-target extension and Goal's target/date representation; the final resolution was to move goal-target into the Goal resource as a Target backbone element with measure, detail, and due child elements.
+
+Initial application:
+The January 2017 application commit bd819cfbf9a33c335e7030ff69591f11f7a57882 moved the old goal-target extension content into the Goal spreadsheet and updated the main Goal and CarePlan examples to use Goal.target instead of the extension. Current source migration preserved that application in source/goal/structuredefinition-Goal.xml, where Goal.target carries a GF#12090 committee note and defines the target backbone with measure, detail, and due.
+
+Additional context:
+Goal is active in source/fhir.ini, so source/goal/structuredefinition-Goal.xml is the current authoritative source. Later Patient Care decisions intentionally changed the original 2017 shape: FHIR-12585 added the measure-if-detail invariant, FHIR-12661 added the Goal.target.measure example binding, FHIR-17572 changed Goal.target to 0..* for multi-component goals and added the all-targets-must-be-met guidance, FHIR-17753 added string, boolean, integer, and Ratio to Goal.target.detail[x], and FHIR-46293 removed an orphaned detail binding. A source search found the old goal-target extension only in source/careplan/careplan-example-asthma.xml outside historical archives; exact reference searches found that stale asthma XML is not listed in the CarePlan examples list or otherwise referenced by current source, and it also contains broader obsolete resource syntax, so it is not a safe current-build source fix for this issue. The FHIR Extension Pack has no goal-target definition to reconcile.
+
+AutoFHIR reconciliation:
+Made no source change. The active Goal StructureDefinition already implements the FHIR-12090 migration as modified by later final decisions, and editing an unlisted stale CarePlan asthma file would not improve the current built specification.
+
+Recommendation:
+Keep this empty audit commit as-is. If the unlisted asthma example is ever reactivated, update it as a separate whole-example cleanup against the current CarePlan, Goal, MedicationRequest, and related schemas rather than treating that dormant file as an incomplete FHIR-12090 application.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12090
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12585: later-change - added the invariant requiring Goal.target.measure when Goal.target.detail is populated.
+FHIR-12661: later-change - added the example binding for Goal.target.measure.
+FHIR-17572: later-change - changed Goal.target from 0..1 to 0..* and added multi-target semantics.
+FHIR-17753: later-change - added additional Goal.target.detail[x] data types after the original migration.
+FHIR-46293: later-change - removed an orphaned Goal.target.detail binding in current R6 source.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12090: Published/Persuasive with Modification PC issue resolving the goal-target extension clash by moving goal-target into Goal.target with measure, detail, and due. Learned: establishes the final seed request and confirms it was a source-changing applied/published issue.
+- E2 Source source/fhir.ini:1106,1161,1334,1373 and source/goal/structuredefinition-Goal.xml:455-548: CarePlan and Goal are active resources, and active Goal source defines Goal.target, Goal.target.measure, Goal.target.detail[x], and Goal.target.due[x]. Learned: the authoritative current Goal source is in build scope and contains the migrated target backbone.
+- E3 Git bd819cfbf9a33c335e7030ff69591f11f7a57882: application commit moved goal-target into Goal.target and updated the main Goal and CarePlan examples away from the extension. Learned: the issue was historically applied before source migration.
+- E4 Jira FHIR-12585, FHIR-12661, FHIR-17572, FHIR-17753, and FHIR-46293: later final Goal.target decisions changed cardinality, invariant, binding, detail types, and binding cleanup. Learned: current source differences from the original FHIR-12090 resolution are intentional later changes rather than incomplete application.
+- E5 Source/command search: rg found the old goal-target extension only in source/careplan/careplan-example-asthma.xml outside tools/history; exact searches found no current source references to careplan-example-asthma, and list-CarePlan-examples.xml does not list it. Learned: the only residual extension use is dormant stale example source, not an active build-scope correction for this issue.
+- E6 Zulip and Confluence search: #committers > Task mgmt discussed assigning GF#12090 to Patient Care because PC owned Goal/CarePlan outcomes work; Confluence refs for FHIR-12090 found no pages. Learned: community evidence supports PC ownership and does not conflict with the Jira/source conclusion.
+- E7 Verification commands: idempotency check on the combined branch, current-source rg checks for Goal.target and goal-target, extension-pack rg for goal-target, and git status. Learned: no duplicate FHIR-12090 audit exists, the active source has the target backbone, no extension-pack copy needs work, and the worker tree had no source edits.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12090",
+    "url": "https://jira.hl7.org/browse/FHIR-12090",
+    "snapshot_path": "contexts/FHIR-12090/jira/FHIR-12090.md",
+    "ref": { "jira_key": "FHIR-12090" },
+    "summary": "Published/Persuasive with Modification Patient Care issue resolving the old goal-target extension clash by moving goal-target into the Goal resource as a target backbone element.",
+    "learned": "This establishes the seed request and confirms the relevant work-group decision was final and source-changing.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1106,1161,1334,1373; source/goal/structuredefinition-Goal.xml:455-548",
+    "ref": { "path": "source/goal/structuredefinition-Goal.xml", "line": 455 },
+    "summary": "CarePlan and Goal are active resources, and current Goal source defines Goal.target with measure, detail[x], due[x], and a GF#12090 committee note.",
+    "learned": "The authoritative current source is in build scope and already contains the migrated target backbone requested by FHIR-12090.",
+    "supports": ["additional_context", "reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "bd819cfbf9a33c335e7030ff69591f11f7a57882",
+    "ref": { "commit": "bd819cfbf9a33c335e7030ff69591f11f7a57882" },
+    "summary": "The January 2017 application commit moved goal-target into Goal.target and updated the main Goal and CarePlan examples to use the new backbone element.",
+    "learned": "FHIR-12090 was historically applied, and current source migration preserves the applied Goal.target structure.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-12585, FHIR-12661, FHIR-17572, FHIR-17753, FHIR-46293",
+    "ref": { "jira_keys": "FHIR-12585,FHIR-12661,FHIR-17572,FHIR-17753,FHIR-46293" },
+    "summary": "Later final Goal.target decisions added the measure/detail invariant, example binding, 0..* target cardinality, extra detail[x] types, and detail-binding cleanup.",
+    "learned": "Differences between current Goal.target and the original 2017 FHIR-12090 resolution are intentional later decisions, not incomplete application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Residual goal-target source search",
+    "command": "rg -n 'goal-target|StructureDefinition/goal-target' source -g '!tools/**'; rg -n 'careplan-example-asthma|CarePlan/asthma|<id value=\"asthma\"' source",
+    "query": "goal-target; careplan-example-asthma",
+    "result_count": 1,
+    "summary": "The only non-history source hit for the old goal-target extension is source/careplan/careplan-example-asthma.xml, and exact source reference searches find only that file's own id.",
+    "learned": "The residual extension use is in dormant stale example source rather than a current CarePlan example-list entry or active Goal definition.",
+    "supports": ["additional_context", "source_change_scope", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#committers > Task mgmt",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/Task%20mgmt",
+    "summary": "A November 2016 committers thread asked why GF#12090 was assigned to FHIR-I, and Michelle Miller agreed Patient Care should own it because PC was discussing related Goal and CarePlan outcomes work.",
+    "learned": "Community context supports Patient Care ownership and does not change the Jira/source conclusion.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Confluence and duplicate checks",
+    "command": "bun run confluence:search refs jira FHIR-12090; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-12090' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n 'goal-target|StructureDefinition/goal-target' /home/jmandel/work/fhir-extensions",
+    "query": "FHIR-12090; goal-target",
+    "result_count": 0,
+    "summary": "No Confluence pages referenced FHIR-12090, no existing combined-branch audit commit was found before publishing, and the FHIR Extension Pack contains no goal-target definition.",
+    "learned": "No external community, duplicate-publish, or extension-pack evidence requires a source change.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

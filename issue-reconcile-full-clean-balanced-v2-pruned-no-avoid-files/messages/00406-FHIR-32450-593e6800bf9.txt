@@ -1,0 +1,107 @@
+FHIR-32450: Model media example as an AuditEvent entity
+
+Issue request:
+FHIR-32450 was Published/Persuasive with Modification for R5. It asked that AuditEvent.agent.location, agent.policy, agent.media, and agent.network stop reading like event-wide attributes: location and policy should be agent-specific, agent.media should be removed in favor of AuditEvent.entity.agent for persistence media, network should describe the agent endpoint, and the DICOM mappings should reflect entity.agent and network[x].
+
+Initial application:
+The issue was initially applied by 3d204189e2, which updated source/auditevent/structuredefinition-AuditEvent.xml to make agent.location and agent.policy agent-specific, replace the old agent.network backbone with agent.network[x], remove agent.media, add AuditEvent.entity.agent, and map entity.agent/network[x] to the relevant DICOM concepts. That implementation left source/auditevent/audit-event-example-media.xml as an active example that still modeled the destination media itself as an AuditEvent.agent and included a TODO to convert the old media detail into an entity.agent pattern.
+
+Additional context:
+AuditEvent is active in source/fhir.ini, and list-AuditEvent-examples.xml includes audit-event-example-media, so the example is part of the current build surface. FHIR-32459, handled in the same block-vote family, further changed network to network[x] with Reference(Endpoint), uri, or string; the current StructureDefinition already reflects that later network shape. FHIR-32456 supports the same media/network distinction by clarifying media as persistent data at rest rather than transport.
+
+AutoFHIR reconciliation:
+This commit fixes the active media example only. It removes the top-level media-as-agent entry, adds the destination media as an AuditEvent.entity, preserves the DICOM Destination Media role and DVD media type as entity role/detail, and shows the human user responsible for the media use under entity.agent. No StructureDefinition edit is needed because the authoritative definitions and mappings already match the Jira resolution.
+
+Recommendation:
+Keep this source fix. It completes the remaining example-level application for FHIR-32450 without reopening the already-applied agent.location, agent.policy, agent.network[x], or entity.agent definitions. Related issues FHIR-32456 and FHIR-32459 should be audited separately if their own reconciliation workers require independent per-issue decisions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32450
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-32456: same-change-family - clarified the media/network distinction that explains why media should be represented as persistent entity information rather than transport.
+FHIR-32459: same-change-family - supplied the later network[x] shape referenced by the FHIR-32450 resolution and already reflected in current AuditEvent.agent.network[x].
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32450: Published/Persuasive with Modification issue requiring agent-specific definitions, removal of agent.media, addition of entity.agent, and DICOM mapping updates. Learned: this is the final work-group decision and defines the target behavior.
+- E2 Source source/auditevent/structuredefinition-AuditEvent.xml:782,813,841,1322: current AuditEvent has agent-specific location/policy text, agent.network[x], and entity.agent with DICOM mapping. Learned: the authoritative StructureDefinition is already mostly correct.
+- E3 Source source/auditevent/list-AuditEvent-examples.xml:103-113 and source/fhir.ini:224: AuditEvent/example-media is listed and AuditEvent is active. Learned: the edited media example is in current build scope.
+- E4 Source source/auditevent/audit-event-example-media.xml:115-156: the example now represents destination media as an entity with nested entity.agent rather than as a top-level agent. Learned: the remaining stale example has been reconciled to the FHIR-32450 model.
+- E5 Git 3d204189e2: security block vote updates for FHIR-33020, FHIR-32466, FHIR-32450, and FHIR-32459 changed the AuditEvent StructureDefinition and left the media-example TODO. Learned: prior application was real but incomplete for this active example.
+- E6 Community Confluence/Zulip searches for FHIR-32450: Security minutes and the Security and Privacy block-vote thread list FHIR-32450 with the AuditEvent media/network block. Learned: community evidence confirms the block-vote family and does not conflict with the source fix.
+- E7 Verification command: xmllint --noout source/auditevent/audit-event-example-media.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; ./gradlew test --quiet. Learned: the edited XML parses, the CRLF-aware whitespace check passes, and repository tests complete.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32450",
+    "url": "https://jira.hl7.org/browse/FHIR-32450",
+    "snapshot_path": "contexts/FHIR-32450/jira/FHIR-32450.md",
+    "ref": { "jira_key": "FHIR-32450" },
+    "summary": "Published/Persuasive with Modification issue requiring AuditEvent agent-specific location, policy, and network definitions, removal of agent.media, addition of entity.agent, and DICOM mapping updates.",
+    "learned": "This is the final work-group decision and establishes the target AuditEvent media/network model.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:782,813,841,1322",
+    "ref": { "path": "source/auditevent/structuredefinition-AuditEvent.xml", "lines": "782,813,841,1322" },
+    "summary": "Current AuditEvent has agent-specific location and policy text, agent.network[x], and AuditEvent.entity.agent with DICOM mapping to ActiveParticipant.MediaType.",
+    "learned": "The authoritative StructureDefinition already reflects the core FHIR-32450 changes, so the remaining correction is example-level.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:224 and source/auditevent/list-AuditEvent-examples.xml:103-113",
+    "ref": { "paths": "source/fhir.ini; source/auditevent/list-AuditEvent-examples.xml" },
+    "summary": "AuditEvent is an active resource and AuditEvent/example-media is listed among AuditEvent examples.",
+    "learned": "The media example is in current build scope and is a valid target for reconciliation.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/auditevent/audit-event-example-media.xml:115-156",
+    "ref": { "path": "source/auditevent/audit-event-example-media.xml", "lines": "115-156" },
+    "summary": "The media example now models destination media as an AuditEvent.entity with media type detail and a nested entity.agent for the responsible human user.",
+    "learned": "The stale media-as-agent example was corrected to demonstrate the model introduced by FHIR-32450.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "3d204189e2",
+    "ref": { "commit": "3d204189e23e03f0b4f11d03d491bc1d868e399b" },
+    "summary": "Security block-vote commit for FHIR-33020, FHIR-32466, FHIR-32450, and FHIR-32459 updated the AuditEvent StructureDefinition and removed the old agent.media element.",
+    "learned": "Prior application handled the main definition changes but left an active media example TODO to migrate to entity.agent.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Confluence and Zulip searches for FHIR-32450 AuditEvent media/network block vote",
+    "command": "bun run confluence:search refs jira FHIR-32450 --limit 10; bun run zulip:search fts '\"FHIR-32450\"' --limit 10; bun run zulip:search fts '\"entity.agent\" AuditEvent media' --limit 10",
+    "query": "FHIR-32450 AuditEvent media network entity.agent",
+    "result_count": 11,
+    "summary": "Confluence minutes reference FHIR-32450 in the AuditEvent media/network block, and Zulip has the Security and Privacy block-vote notice listing FHIR-32450.",
+    "learned": "Community evidence confirms the issue family and reveals no conflicting later instruction for the active media example.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local validation commands",
+    "command": "xmllint --noout source/auditevent/audit-event-example-media.xml && git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check && ./gradlew test --quiet",
+    "summary": "The edited XML parses, CRLF-aware whitespace checking passes, and Gradle tests complete successfully.",
+    "learned": "The targeted source change is syntactically safe for the repository baseline checks available here.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

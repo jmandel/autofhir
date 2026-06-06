@@ -1,0 +1,112 @@
+FHIR-7613: Audit Encounter diagnosis handling
+
+Issue request:
+FHIR-7613 is a Published/Persuasive Patient Administration issue from the DSTU1 ballot asking how Encounter diagnoses support primary/secondary sequence and facility versus professional billing distinctions. The accepted resolution kept reason/indication as separate multi-cardinality properties after a technical correction, used a positiveInt primaryDiagnosis standard extension to express sequence, and requested implementer feedback on whether a richer approach was needed.
+
+Initial application:
+The issue was applied in git commit 0983925cea, whose subject explicitly lists tracker 7613 and says it handled Encounter diagnosis and the primaryDiagnosis standard extension. That commit added the encounter-primaryDiagnosis extension for Encounter.reason, Encounter.indication, and Encounter.hospitalization.admittingDiagnosis, and added comments explaining that primary diagnosis order used a sequence value with 1 as primary. Later source history moved from the DSTU1 reason/indication-plus-extension shape to Encounter.diagnosis with role/rank and then to the current Encounter.reason, Encounter.diagnosis, and Account.diagnosis model.
+
+Additional context:
+The original extension path is intentionally no longer current: FHIR-25215 removed stale Encounter.reason references to the deleted primaryDiagnosis extension. FHIR-16148 redesigned Encounter.reason and Encounter.diagnosis so reasons are expected problems and diagnoses are conditions addressed during the encounter. FHIR-19285 moved ranked billing diagnoses and procedures from Encounter to Account, where Account.diagnosis.sequence now supplies the primary/secondary/tertiary ordering needed for billing. FHIR-38807 and the combined-branch FHIR-19285 reconciliation have already corrected remaining current-source wording in this same design family. Encounter, Account, and Condition are active build resources in source/fhir.ini, and current source contains no primaryDiagnosis extension in core or the extension-pack checkout.
+
+AutoFHIR reconciliation:
+This commit makes no source change. The current specification already gives implementers the necessary guidance: Encounter.reason and Encounter.diagnosis distinguish expected reasons from addressed conditions, Encounter.diagnosis.use classifies encounter diagnoses, Account.diagnosis.sequence ranks billing-related diagnoses, and Condition notes explicitly direct primary/secondary/tertiary billing rank to Account.diagnosis.sequence.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce the retired primaryDiagnosis extension or Encounter.diagnosis.rank for this DSTU1 issue; any future non-billing diagnosis ranking requirement should be raised as a new work-group decision against the current Encounter/Account model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7613
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25215: later-change - removed stale Encounter.reason comments that still pointed to the deleted primaryDiagnosis extension.
+FHIR-16148: later-change - redesigned Encounter.reason and Encounter.diagnosis and defined the current reason-versus-diagnosis distinction.
+FHIR-19285: later-change - moved ranked billing diagnoses and procedures from Encounter to Account and is already represented on the combined branch.
+FHIR-38807: supporting-decision - ensured outstanding Encounter.reason and Encounter.diagnosis changes were applied for R5 and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7613: Published/Persuasive DSTU1 Encounter issue asked how to handle encounter diagnosis sequencing and billing distinctions; resolution used the positiveInt primaryDiagnosis extension and asked for implementer feedback. Learned: this is the seed request and the historical target for the reconciliation.
+- E2 Git 0983925cea: original implementation commit explicitly lists tracker 7613 and added encounter-primaryDiagnosis plus comments on Encounter.reason/Encounter.indication. Learned: the seed was applied historically, but through a model that later source and Jira decisions replaced.
+- E3 Source source/fhir.ini:180,190,262; source/encounter/structuredefinition-Encounter.xml:787-936; source/account/structuredefinition-Account.xml:474-550; source/condition/condition-notes.xml:85-94. Learned: active current build source distinguishes Encounter reason/diagnosis and sends billing diagnosis rank to Account.diagnosis.sequence.
+- E4 Jira FHIR-25215: Published/Persuasive issue removed Encounter.reason comments referring to the non-existent primaryDiagnosis extension. Learned: later final action intentionally retired the seed's extension-based application path.
+- E5 Jira FHIR-16148 and FHIR-19285: later Published PA decisions redesigned Encounter reason/diagnosis and moved ranked billing diagnosis/procedure information to Account. Learned: these final decisions supersede the DSTU1 representation and establish why no current Encounter edit is needed.
+- E6 Community Zulip/Confluence search: primaryDiagnosis Zulip thread confirms the extension was removed/replaced by Encounter.diagnosis.rank in older releases, and PA Confluence design page 51223352 records dropping Encounter rank and using Account for billing rank. Learned: community evidence matches the Jira/source history and shows no conflicting current direction.
+- E7 Verification command/query: rg for primaryDiagnosis and Encounter.diagnosis.rank in current core and extension-pack source, plus combined-branch idempotency checks for FHIR-7613 and related issues. Learned: no active primaryDiagnosis source remains, only the fhir.ini migration map mentions retired Encounter.diagnosis.rank, and related reconciliations are already represented.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7613",
+    "url": "https://jira.hl7.org/browse/FHIR-7613",
+    "snapshot_path": "contexts/FHIR-7613/jira/FHIR-7613.md",
+    "ref": { "jira_key": "FHIR-7613" },
+    "summary": "Published/Persuasive DSTU1 Encounter issue asking how encounter diagnoses support primary/secondary sequence and facility/professional billing distinctions.",
+    "learned": "The final historical resolution used a positiveInt primaryDiagnosis extension and explicitly invited later implementer feedback, so the current check must consider later model changes.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "0983925cea4a4bac6ef715d2060f15156f6916d7",
+    "ref": { "commit": "0983925cea4a4bac6ef715d2060f15156f6916d7" },
+    "summary": "Original implementation commit explicitly lists tracker 7613 and added the encounter-primaryDiagnosis standard extension plus Encounter reason/indication comments.",
+    "learned": "FHIR-7613 was historically applied, but by an extension-based model that later Encounter and Account decisions replaced.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:180,190,262; source/encounter/structuredefinition-Encounter.xml:787-936; source/account/structuredefinition-Account.xml:474-550; source/condition/condition-notes.xml:85-94",
+    "ref": { "path": "source/encounter/structuredefinition-Encounter.xml" },
+    "summary": "Condition, Encounter, and Account are active build resources; current source distinguishes reasons from addressed diagnoses and points billing-related numeric diagnosis rank to Account.diagnosis.sequence.",
+    "learned": "The current build already conveys the implementer guidance needed for primary/secondary diagnosis and billing rank without a new source change.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-25215",
+    "url": "https://jira.hl7.org/browse/FHIR-25215",
+    "snapshot_path": "contexts/FHIR-25215/jira/FHIR-25215.md",
+    "ref": { "jira_key": "FHIR-25215" },
+    "summary": "Published/Persuasive issue removed Encounter.reason comments that referred to the missing primaryDiagnosis extension.",
+    "learned": "The seed's original extension-based guidance was intentionally removed from current Encounter source rather than accidentally omitted.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-16148 and FHIR-19285",
+    "url": "https://jira.hl7.org/browse/FHIR-16148",
+    "snapshot_path": "contexts/FHIR-16148/jira/FHIR-16148.md",
+    "ref": { "jira_key": "FHIR-16148" },
+    "summary": "Later Published PA decisions redesigned Encounter.reason/diagnosis and moved ranked billing diagnoses and procedures from Encounter to Account.",
+    "learned": "These decisions supersede the DSTU1 Encounter representation and explain why Account.diagnosis.sequence is the correct current rank location.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for primaryDiagnosis and Encounter diagnosis rank",
+    "command": "bun run zulip:search snapshot implementers 'primaryDiagnosis Extension'; bun run confluence:search refs jira FHIR-16148; bun run confluence:search snapshot 51223352",
+    "query": "primaryDiagnosis Extension; FHIR-16148; Encounter diagnosis rank Account",
+    "summary": "Zulip records that the primaryDiagnosis extension was removed and replaced by Encounter.diagnosis.rank in older releases; PA Confluence design notes record dropping Encounter rank and using Account for billing rank.",
+    "learned": "Community evidence supports the Jira/source conclusion and reveals no conflicting current direction for FHIR-7613.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source and combined-branch verification",
+    "command": "rg -n 'encounter-primaryDiagnosis|primaryDiagnosis|primary diagnosis' source /home/jmandel/work/fhir-extensions; rg -n 'Encounter\\.diagnosis\\.rank|Account\\.diagnosis\\.sequence' source; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-7613' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "No active core or extension-pack primaryDiagnosis source remains; Account.diagnosis.sequence is present; the combined branch did not already contain FHIR-7613 before this audit.",
+    "learned": "The no-change decision is idempotent and current-source based rather than relying on stale generated output.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

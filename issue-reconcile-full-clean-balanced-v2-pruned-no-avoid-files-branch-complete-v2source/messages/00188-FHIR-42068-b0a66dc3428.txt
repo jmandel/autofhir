@@ -1,0 +1,116 @@
+FHIR-42068: Add APD classification for PhPID
+
+Issue request:
+FHIR-42068 was Applied/Persuasive for BRR and asked for a place on AdministrableProductDefinition to carry PhPID and similar classifications without treating PhPID as an identifier. The final Jira resolution changed the original code proposal to add AdministrableProductDefinition.classification as CodeableReference [0..*] targeting AdministrableProductDefinition, and the issue text also required the PhPID mapping and examples to stop implying that real APDs carry PhPID in identifier.
+
+Initial application:
+The issue appears to have been partially applied by fc82f5ce7ebbb03cf27788dbf277cb3ec50ef547, a combined FHIR-43019/FHIR-42068 commit. That commit correctly clarified AdministrableProductDefinition.identifier as an instance identifier and removed the PhPID IDMP mapping from identifier, but it added AdministrableProductDefinition.code as Coding [0..*] rather than the final resolved classification CodeableReference, and it left the active APD example and invariant test using a PhPID-valued identifier.
+
+Additional context:
+AdministrableProductDefinition is an active BRR resource in source/fhir.ini. The Zulip discussion that led to FHIR-42068 shows the progression from APD.code to repeatable CodeableReference and explicitly records agreement that PhPID is a classification and should support references to parent APDs. BRR minutes on 2024-10-22 record the 15-0-0 vote for FHIR-42068 alongside related MedicinalProduct issues. FHIR-43019 only shared the original implementation commit and concerns property.value[x] Range, so it is not decided here.
+
+AutoFHIR reconciliation:
+This commit changes the authoritative AdministrableProductDefinition StructureDefinition from code/Coding to classification/CodeableReference with targetProfile AdministrableProductDefinition, keeps the PhPID IDMP mapping on the new classification element, and updates the active APD example plus the apd-1 invariant test fixture so their placeholder PhPID is represented as classification.concept instead of identifier. It leaves generated-looking diagram artifacts for normal regeneration rather than hand-editing them.
+
+Recommendation:
+Keep this source fix. A normal publication/build regeneration can update derived schema, JSON, and diagram artifacts; no further work-group review is needed unless BRR wants to revisit the example binding used for coded APD classifications.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-42068
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-43019: background - shared the prior implementation commit but concerns AdministrableProductDefinition.property.value[x] Range and is not decided by this reconciliation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-42068: Applied/Persuasive BRR issue whose final resolution says to add AdministrableProductDefinition.classification as CodeableReference [0..*]. Learned: the current source must expose classification, not the earlier code/Coding draft.
+- E2 Source source/fhir.ini:150,292,587: AdministrableProductDefinition is an active resource owned by BRR in the current build configuration. Learned: the StructureDefinition and examples under source/administrableproductdefinition are in scope.
+- E3 Source source/administrableproductdefinition/structuredefinition-AdministrableProductDefinition.xml:276: classification is now CodeableReference with targetProfile AdministrableProductDefinition and PhPID mapping. Learned: the authoritative element now matches the final Jira resolution.
+- E4 Source source/administrableproductdefinition/administrableproductdefinition-example.xml:5 and source/administrableproductdefinition/invariant-tests/apd-1.f1.fail.xml:19: the placeholder PhPID is now represented under classification.concept. Learned: source examples no longer teach PhPID-as-identifier for real APDs.
+- E5 Git fc82f5ce7ebbb03cf27788dbf277cb3ec50ef547: prior implementation commit added APD.code/Coding and changed identifier mapping. Learned: prior application was partial and used the earlier proposal rather than the final Jira resolution.
+- E6 Zulip #BRR - Pharmacy model > Different usecases of AdministrableProductDefinition: 2023-08-29/2023-09-09 discussion records that PhPID is not an APD identifier and converges on repeatable CodeableReference/classification semantics. Learned: community discussion supports the resolved shape and example correction.
+- E7 Confluence BRR 2024-10-22 Conference Call page 281216639: minutes record review/vote of FHIR-42068 with related MedicinalProduct issues at 15-0-0. Learned: the Jira resolution reflects a formal BRR decision.
+- E8 Verification command/query: git diff --check with cr-at-eol, XML parse of edited files, and rg for remaining AdministrableProductDefinition.code/phpididentifiersets. Learned: edited XML is well formed and no authoritative APD source still carries the stale code element or PhPID identifier example.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-42068",
+    "url": "https://jira.hl7.org/browse/FHIR-42068",
+    "snapshot_path": "contexts/FHIR-42068/jira/FHIR-42068.md",
+    "ref": { "jira_key": "FHIR-42068" },
+    "summary": "Applied/Persuasive BRR issue requesting a place on AdministrableProductDefinition for PhPID/classifications, with final resolution to add AdministrableProductDefinition.classification as CodeableReference [0..*].",
+    "learned": "The current resource needs classification CodeableReference semantics rather than only the earlier code/Coding draft.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:150,292,587",
+    "ref": { "path": "source/fhir.ini", "lines": "150,292,587" },
+    "summary": "fhir.ini lists AdministrableProductDefinition as an active BRR resource.",
+    "learned": "The AdministrableProductDefinition StructureDefinition and examples are current-build source, so correcting them is in scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/administrableproductdefinition/structuredefinition-AdministrableProductDefinition.xml:276",
+    "ref": { "path": "source/administrableproductdefinition/structuredefinition-AdministrableProductDefinition.xml", "line": 276 },
+    "summary": "The source now defines AdministrableProductDefinition.classification as CodeableReference [0..*] targeting AdministrableProductDefinition and maps it to PhPID.",
+    "learned": "The authoritative resource definition now matches the final Jira disposition.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/administrableproductdefinition/administrableproductdefinition-example.xml:5; source/administrableproductdefinition/invariant-tests/apd-1.f1.fail.xml:19",
+    "ref": { "paths": "source/administrableproductdefinition/administrableproductdefinition-example.xml; source/administrableproductdefinition/invariant-tests/apd-1.f1.fail.xml" },
+    "summary": "The APD example and apd-1 invariant test now put the placeholder PhPID under classification.concept instead of identifier.",
+    "learned": "The source examples no longer contradict the issue's PhPID-not-identifier guidance.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "fc82f5ce7ebbb03cf27788dbf277cb3ec50ef547",
+    "ref": { "commit": "fc82f5ce7ebbb03cf27788dbf277cb3ec50ef547" },
+    "summary": "Prior combined FHIR-43019/FHIR-42068 commit changed identifier wording/mapping but added APD.code as Coding [0..*].",
+    "learned": "The previous application was partial because it followed the earlier code proposal rather than the final classification CodeableReference resolution.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#BRR - Pharmacy model > Different usecases of AdministrableProductDefinition",
+    "url": "https://chat.fhir.org/#narrow/stream/BRR%20-%20Pharmacy%20model/topic/Different%20usecases%20of%20AdministrableProductDefinition",
+    "ref": { "stream": "BRR - Pharmacy model", "topic": "Different usecases of AdministrableProductDefinition" },
+    "summary": "Discussion identifies PhPID as not an APD identifier and converges on repeatable CodeableReference/classification semantics for parent APD references.",
+    "learned": "Community context supports changing the stale code/Coding implementation and the identifier example.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "BRR 2024-10-22 Conference Call page 281216639",
+    "url": "https://confluence.hl7.org/spaces/BRR/pages/281216639/2024-10-22+Conference+Call",
+    "ref": { "confluence_page_id": 281216639 },
+    "summary": "BRR minutes record review and vote of FHIR-42068 and related MedicinalProduct issues at 15-0-0.",
+    "learned": "The Jira resolution has formal BRR meeting support.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted XML and source verification",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; xmllint --noout source/administrableproductdefinition/structuredefinition-AdministrableProductDefinition.xml source/administrableproductdefinition/administrableproductdefinition-example.xml source/administrableproductdefinition/invariant-tests/apd-1.f1.fail.xml; rg 'AdministrableProductDefinition\\.code|phpididentifiersets' source/administrableproductdefinition --glob '!*.svg'",
+    "summary": "Whitespace check passed, edited XML parsed, and no authoritative APD source retains the stale code element or PhPID identifier-system example.",
+    "learned": "The source change is syntactically valid and covers the stale APD source locations found in this investigation.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,111 @@
+FHIR-51566: Audit Observation reference range comparators
+
+Issue request:
+FHIR-51566 was Applied with resolution Persuasive with Modification for R6 Observation.referenceRange. It requested changing Observation.referenceRange.low and .high from SimpleQuantity to Quantity, constraining low.comparator to >= or > when present and high.comparator to <= or < when present, preserving the FHIR R5-and-earlier inclusive meaning when comparators are absent, and adding explanatory text about the change.
+
+Initial application:
+There was no prior AutoFHIR reconcile commit for FHIR-51566 on the combined branch. The source change itself was already applied upstream in October 2025: commit fa4bcdc6 changed Observation.referenceRange.low/high to Quantity, added obs-13 and obs-14 comparator constraints, updated examples, and added invariant tests; commit ee556b3d added committee notes and refined the low/high comments. These changes were merged through HL7/fhir pull requests #3707 and #3723.
+
+Additional context:
+FHIR-8551 is the historical same-change-family decision that made absent Observation.referenceRange.low/high bounds inclusive and rejected an inclusive/exclusive extension. FHIR-5165 is background for the Quantity/SimpleQuantity comparator split. The 2025 Zulip thread and OO LAB minutes show the work group considered broader Range/Age questions, including FHIR-22642 and FHIR-45021, but FHIR-51566's applied scope was Observation.referenceRange.low/high only. Observation is active in source/fhir.ini, so the checked StructureDefinition, examples, and invariant tests are current build inputs.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active source already has type Quantity on Observation.referenceRange.low and .high, obs-13 and obs-14 constrain allowed comparators, comments preserve the inclusive default when comparators are absent and describe explicit inclusive/exclusive forms, and examples/invariant tests exercise both valid and invalid comparator choices.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR-core follow-up is needed for FHIR-51566's Observation.referenceRange.low/high scope; any future work on broader Range, Age, or other datatype-level exclusive-bound semantics should be handled under separate Jira decisions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-51566
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-8551: same-change-family - established the inclusive default for Observation.referenceRange.low/high when no comparator is present.
+FHIR-5165: background - introduced the Quantity/SimpleQuantity comparator distinction that underlies the later Observation reference-range changes.
+FHIR-22642: background - broader exclusive range representation discussion cited during FHIR-51566 investigation but outside this Observation-only applied scope.
+FHIR-45021: background - related Range/Age clarity issue cited in Zulip and minutes but not decided by this Observation-specific audit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-51566: Applied/Persuasive with Modification issue requiring Quantity low/high endpoints, comparator constraints, inclusive absent-comparator defaults, and explanatory text. Learned: this establishes the applied R6 target for the current source check.
+- E2 Source source/observation/structuredefinition-Observation.xml:1098-1146: low/high are Quantity, comments describe inclusive defaults and explicit comparator meanings, and obs-13/obs-14 constrain comparators. Learned: the core requested conformance change is present.
+- E3 Source source/observation/observation-example-hdl.xml:45-53, source/observation/observation-example-ldl.xml:53-61, and source/observation/invariant-tests/obs-13.f1.fail.xml:48-55/obs-14.f1.fail.xml:56-63: examples and invariant tests cover allowed and disallowed comparator directions. Learned: supporting artifacts were applied with the StructureDefinition change.
+- E4 Git fa4bcdc63c0bbd2f43471b7df164a1363c16d5fb and ee556b3d7cdb7e22b4c434f48544f5f65924b0e6: October 2025 commits applied the comparator and explanatory-note work. Learned: the current source state has explicit Jira-tagged implementation history.
+- E5 Zulip #implementers > Exclusive Observation.referenceRange: discussion evolved from extension workarounds to the Observation-specific Quantity/comparator approach and identified FHIR-8551 as related history. Learned: community evidence supports the applied scope and the inclusive-default compatibility constraint.
+- E6 Confluence 2025-10-03 OO - LAB page 391188101: minutes record the 7-0-2 motion and discussion of retaining <= high/>= low semantics when comparator is absent. Learned: meeting evidence matches the Jira disposition and source implementation.
+- E7 Source source/fhir.ini:169-209: active resources list contains observation=Observation. Learned: Observation source files checked here are in current build scope.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-51566",
+    "url": "https://jira.hl7.org/browse/FHIR-51566",
+    "snapshot_path": "contexts/FHIR-8551/jira/FHIR-51566.md",
+    "ref": { "jira_key": "FHIR-51566" },
+    "summary": "Applied/Persuasive with Modification R6 issue requiring Quantity endpoints, constrained comparators, inclusive absent-comparator defaults, and explanatory text for Observation.referenceRange.low/high.",
+    "learned": "This establishes the applied target behavior for the current source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-Observation.xml:1098-1146",
+    "ref": { "path": "source/observation/structuredefinition-Observation.xml", "lines": "1098-1146" },
+    "summary": "Current low/high elements use Quantity, describe inclusive defaults and explicit comparator meanings, and constrain comparator values through obs-13/obs-14.",
+    "learned": "The authoritative Observation definition already implements the requested change.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "Observation examples and invariant tests for obs-13/obs-14",
+    "ref": { "paths": "source/observation/observation-example-hdl.xml; source/observation/observation-example-ldl.xml; source/observation/invariant-tests/obs-13.f1.fail.xml; source/observation/invariant-tests/obs-14.f1.fail.xml" },
+    "summary": "Current examples use > on low and < on high, while invariant tests flag < on low and > on high as invalid.",
+    "learned": "Supporting artifacts align with the comparator constraints.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "fa4bcdc63c0bbd2f43471b7df164a1363c16d5fb; ee556b3d7cdb7e22b4c434f48544f5f65924b0e6",
+    "ref": { "commits": "fa4bcdc63c0bbd2f43471b7df164a1363c16d5fb, ee556b3d7cdb7e22b4c434f48544f5f65924b0e6" },
+    "summary": "October 2025 FHIR-51566 commits applied the Quantity/comparator constraints and explanatory committee notes/comments.",
+    "learned": "The current source has direct Jira-tagged implementation history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > Exclusive Observation.referenceRange",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Exclusive%20Observation.referenceRange",
+    "snapshot_path": "contexts/FHIR-8551/zulip/implementers--Exclusive-Observation-referenceRange.md",
+    "ref": { "stream": "implementers", "topic": "Exclusive Observation.referenceRange" },
+    "summary": "Discussion moved from modifier-extension workarounds to an Observation.referenceRange Quantity/comparator change and linked FHIR-51566 with FHIR-8551.",
+    "learned": "Community discussion supports the applied Observation-specific scope and inclusive-default compatibility rule.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "2025-10-03 OO - LAB page 391188101",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/391188101/2025-10-03+OO+-+LAB",
+    "snapshot_path": "contexts/FHIR-8551/confluence/391188101.md",
+    "ref": { "confluence_page_id": 391188101 },
+    "summary": "OO LAB minutes record the FHIR-51566 motion, 7-0-2 vote, and discussion that absent comparators preserve <= high and >= low meanings.",
+    "learned": "Formal meeting evidence matches the Jira disposition and current source behavior.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-209",
+    "ref": { "path": "source/fhir.ini", "lines": "169-209" },
+    "summary": "The active resource list includes observation=Observation.",
+    "learned": "Observation source checked for this audit is part of the current build.",
+    "supports": ["source_change_scope"]
+  }
+]
+</evidence-manifest>

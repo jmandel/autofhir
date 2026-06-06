@@ -1,0 +1,124 @@
+FHIR-19727: Audit externalized manufacturing operation
+
+Issue request:
+FHIR-19727 asked whether MedicinalProduct.manufacturingBusinessOperation should be externalized so that both MedicinalProduct and MedicinalProductPackaged could reference it. The issue is Applied with resolution Persuasive with Modification for R5; BR&R approved the modified approach in which manufacturing business operation became primarily a wrapper for an ActivityDefinition/RegulatedAuthorization relationship, with direct manufacturer and simple type support for lighter-weight cases.
+
+Initial application:
+The issue was applied before this reconciliation. Commit e6ec244b21 added MedicinalProductDefinition.manufacturingBusinessOperation.authorization as a RegulatedAuthorization reference, and commit e5ec514c55 completed FHIR-19727 by replacing the authorization reference-number/regulator details with an operation type choice that could reference ActivityDefinition plus an authorization reference and adjusted the example. This matches the Jira record that the build had already been changed.
+
+Additional context:
+The current build no longer has the R4-era MedicinalProduct/MedicinalProductPackaged names; fhir.ini maps them to active MedicinalProductDefinition and PackagedProductDefinition resources, both in current build scope. Later FHIR-29708 reworded and renamed manufacturingBusinessOperation to MedicinalProductDefinition.operation, renamed manufacturer to organization, and current source now expresses the operation type as CodeableReference(ActivityDefinition, PlanDefinition). Current MedicinalProductDefinition.operation.type says a RegulatedAuthorization points to the same plan or activity referenced there, while RegulatedAuthorization.subject can reference ActivityDefinition, PlanDefinition, MedicinalProductDefinition, and PackagedProductDefinition. PackagedProductDefinition still carries direct manufacturer elements for basic package manufacturer cases; adding a second direct package operation reference would go beyond FHIR-19727's modified resolution.
+
+AutoFHIR reconciliation:
+No source change was made. The current authoritative source already preserves the approved externalization pattern: operation details can live in ActivityDefinition/PlanDefinition and authorizations can point to the same activity/plan, while the product keeps simple operation type and organization data.
+
+Recommendation:
+Keep this audit commit as-is. If BR&R now wants a direct PackagedProductDefinition.operation element or a distinct reusable ManufacturingBusinessOperation resource, that would be a new modeling decision rather than unfinished application of FHIR-19727.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19727
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-29708: later-change - renamed manufacturingBusinessOperation to operation and updated wording/names that explain why the current source no longer uses the old element names.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19727: Applied/Persuasive with Modification, vote 18-0-0, requesting externalization of MedicinalProduct.manufacturingBusinessOperation with the final ActivityDefinition/RegulatedAuthorization-oriented compromise. Learned: this establishes the approved target, including the modified scope.
+- E2 Confluence BR&R 2019-11-26 Conference Call page 66933897: minutes record Hugh/Peter motion and approval of FHIR-19727 with no objections or abstentions, 18-0-0. Learned: the Jira disposition is backed by work-group minutes.
+- E3 Git e6ec244b21 and e5ec514c55: commits explicitly added and completed MedicinalProductDefinition.manufacturingBusinessOperation changes for FHIR-19727. Learned: the issue had an initial source application.
+- E4 Git 8ffc56838c: later FHIR-29708 commit renamed manufacturingBusinessOperation to operation and manufacturer to organization. Learned: current source must be evaluated under the newer names.
+- E5 Source source/fhir.ini:170-294,1028-1033,1388-1411: MedicinalProductDefinition, PackagedProductDefinition, RegulatedAuthorization, ActivityDefinition, and PlanDefinition are active current-build resources with standards/approval metadata. Learned: the checked source locations are in build scope.
+- E6 Source source/medicinalproductdefinition/structuredefinition-MedicinalProductDefinition.xml:1071-1142: current operation backbone has type CodeableReference to ActivityDefinition/PlanDefinition and organization references. Learned: the operation can be represented by a reusable plan/activity while retaining lightweight code/organization data.
+- E7 Source source/regulatedauthorization/structuredefinition-RegulatedAuthorization.xml:106-129: RegulatedAuthorization.subject can reference MedicinalProductDefinition, PackagedProductDefinition, ActivityDefinition, PlanDefinition, and related products. Learned: authorization can attach to the same external operation activity/plan or relevant product/package subject.
+- E8 Source source/packagedproductdefinition/structuredefinition-PackagedProductDefinition.xml:147-156,332-340,512-520: package definitions reference MedicinalProductDefinition and retain direct manufacturer fields. Learned: package-level manufacturer support remains without requiring an extra package operation element under the modified resolution.
+- E9 Command Zulip and Confluence searches for FHIR-19727 and manufacturingBusinessOperation terms: Confluence found only the BR&R approval minutes and no conflicting full-text hits; Zulip found no direct relevant discussion. Learned: no community evidence was found that would override the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19727",
+    "url": "https://jira.hl7.org/browse/FHIR-19727",
+    "snapshot_path": "contexts/FHIR-19727/jira/FHIR-19727.md",
+    "ref": { "jira_key": "FHIR-19727" },
+    "summary": "Applied/Persuasive with Modification issue requesting externalization of MedicinalProduct.manufacturingBusinessOperation, resolved with ActivityDefinition and RegulatedAuthorization-oriented modeling.",
+    "learned": "The approved target is the modified externalization pattern, not necessarily a new standalone resource or direct package operation element.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "BR&R 2019-11-26 Conference Call page 66933897",
+    "url": "https://confluence.hl7.org/spaces/BRR/pages/66933897/2019-11-26+Conference+Call",
+    "snapshot_path": "contexts/FHIR-19727/confluence/66933897.md",
+    "ref": { "confluence_page_id": 66933897 },
+    "summary": "BR&R minutes record approval of the FHIR-19727 resolution 18-0-0 with no objections or abstentions.",
+    "learned": "The Jira vote and resolution are supported by contemporaneous work-group minutes.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "e6ec244b21 and e5ec514c55",
+    "ref": { "commits": "e6ec244b21,e5ec514c55" },
+    "summary": "Historical commits explicitly added and completed MedicinalProductDefinition.manufacturingBusinessOperation changes for FHIR-19727.",
+    "learned": "The issue was applied in source history before this reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "8ffc56838c",
+    "ref": { "commit": "8ffc56838c" },
+    "summary": "FHIR-29708 later renamed manufacturingBusinessOperation to operation and manufacturer to organization with revised wording.",
+    "learned": "Current source should be checked under the renamed operation model rather than old R4-era element names.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-294,1028-1033,1388-1411",
+    "summary": "fhir.ini actively lists the relevant resources and status metadata for MedicinalProductDefinition, PackagedProductDefinition, RegulatedAuthorization, ActivityDefinition, and PlanDefinition.",
+    "learned": "The inspected source files are part of the current FHIR build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/medicinalproductdefinition/structuredefinition-MedicinalProductDefinition.xml:1071-1142",
+    "summary": "MedicinalProductDefinition.operation has a CodeableReference type to ActivityDefinition/PlanDefinition and organization references for the responsible manufacturer/importer/agent.",
+    "learned": "The current resource preserves the externalized operation/activity model and lightweight manufacturer/type data.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/regulatedauthorization/structuredefinition-RegulatedAuthorization.xml:106-129",
+    "summary": "RegulatedAuthorization.subject can reference MedicinalProductDefinition, PackagedProductDefinition, ActivityDefinition, PlanDefinition, and related artifacts.",
+    "learned": "Authorization can point to the same external activity/plan or product/package context, matching the final issue rationale.",
+    "supports": ["reconciliation", "additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "source",
+    "locator": "source/packagedproductdefinition/structuredefinition-PackagedProductDefinition.xml:147-156,332-340,512-520",
+    "summary": "PackagedProductDefinition links to MedicinalProductDefinition and retains direct package/package-item manufacturer references.",
+    "learned": "The package resource still supports basic manufacturer data while sharing the product/authorization operation model by reference.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Community search for FHIR-19727 and manufacturingBusinessOperation terms",
+    "command": "bun run confluence:search refs jira FHIR-19727; bun run confluence:search fts 'MedicinalProduct manufacturingBusinessOperation ActivityDefinition RegulatedAuthorization' --limit 10; bun run zulip:search fts 'MedicinalProduct manufacturingBusinessOperation ActivityDefinition RegulatedAuthorization' --limit 10",
+    "query": "FHIR-19727 MedicinalProduct manufacturingBusinessOperation ActivityDefinition RegulatedAuthorization",
+    "result_count": 1,
+    "summary": "Confluence refs found the BR&R approval minutes; targeted Confluence and Zulip full-text searches found no conflicting discussion.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

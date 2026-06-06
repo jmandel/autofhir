@@ -1,0 +1,115 @@
+FHIR-48428: Bind dataType property values
+
+Issue request:
+FHIR-48428 was Applied with a Persuasive with Modification resolution to add the dataType property to http://hl7.org/fhir/concept-properties, add that property to each defined concept property, and bind the dataType property values. The final Jira comments and TI follow-up replaced the initially proposed new value set with the existing http://hl7.org/fhir/ValueSet/concept-property-type value set.
+
+Initial application:
+Git commit 2bc7ab59c65b2fabdf8631bc3af22d997763853a added the dataType property and populated dataType concept-property values in source/codesystem/codesystem-concept-properties.xml. That application also added the codesystem-property-valueset extension, but because it was inserted on the following CodeSystem.property block it bound the existing status property to concept-property-type instead of binding the new dataType property. Later source history refined some dataType values to dateTime and added additional concepts without changing that misplaced binding.
+
+Additional context:
+source/fhir.ini actively includes concept-properties under [codesystems], so source/codesystem/codesystem-concept-properties.xml is in the current build scope. The codesystem-property-valueset extension definition is scoped to CodeSystem.property and is intended to identify the permitted values for a coded property. The existing concept-property-type value set is already in the CodeSystem.property.type binding and contains the current dataType values, so no new CoreConceptPropertyDataTypes value set is needed. FHIR-45679 is an earlier duplicate/background report about the comment property's type, and FHIR-53549 is later Triaged text discussion; neither changes this applied source fix.
+
+AutoFHIR reconciliation:
+Moved the codesystem-property-valueset extension from the status property definition onto the dataType property definition, leaving the existing dataType concept values and the existing concept-property-type value set unchanged.
+
+Recommendation:
+Keep this source commit as-is. It corrects the only remaining semantic mismatch from FHIR-48428 by making tools read the value-set restriction from dataType rather than from status; no further core change is needed unless a future work-group decision changes the concept-property-type value set or CodeSystem property datatype wording.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-48428
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-45679: same-change-family - earlier duplicate/background report that the comment concept property should be string rather than code; current source already has dataType=string for comment.
+FHIR-53549: background - later Triaged issue about CodeSystem property datatype wording; unresolved and not a final decision for this applied binding placement.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-48428: Applied/Persuasive with Modification request to add dataType to the Concept Properties CodeSystem and constrain values, with later comment using ValueSet/concept-property-type. Learned: this establishes the final WG intent for the property and binding.
+- E2 Source source/fhir.ini:1264-1267: concept-properties is an active [codesystems] entry. Learned: the edited CodeSystem source is in current build scope.
+- E3 Source source/codesystem/codesystem-concept-properties.xml:43-56: dataType now carries codesystem-property-valueset=http://hl7.org/fhir/ValueSet/concept-property-type and status no longer carries that extension. Learned: the reconciliation changes implement the requested binding on the intended property.
+- E4 Source /home/jmandel/work/fhir-extensions/input/definitions/CodeSystem/StructureDefinition-codesystem-property-valueset.xml:32-44: the extension defines permitted property values and has context CodeSystem.property. Learned: the extension belongs on the property definition whose values are constrained.
+- E5 Git 2bc7ab59c65b2fabdf8631bc3af22d997763853a: initial FHIR-48428 source application added dataType values but placed the value-set extension on the following status property block. Learned: the current fix corrects a direct application error rather than introducing a new requirement.
+- E6 Confluence page 325458270: 2025-03-13 TI minutes say Grahame found the value set already existed and TI agreed with that change. Learned: using ValueSet/concept-property-type is consistent with post-resolution WG discussion.
+- E7 Command Zulip searches for FHIR-48428 and concept-property datatype terms: no direct conflicting FHIR-48428 discussion found; general terminology hits did not alter the Jira/source conclusion. Learned: no discovered community evidence changes the reconciliation.
+- E8 Verification command/query: git diff --check and XML assertions confirmed dataType has the extension, status does not, and every concept dataType value is a member of concept-property-type. Learned: the changed source is structurally valid for the intended binding.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-48428",
+    "url": "https://jira.hl7.org/browse/FHIR-48428",
+    "snapshot_path": "contexts/FHIR-48428/jira/FHIR-48428.md",
+    "ref": { "jira_key": "FHIR-48428" },
+    "summary": "Applied/Persuasive with Modification request to add dataType to the Concept Properties CodeSystem and constrain values; later comments use the existing ValueSet/concept-property-type.",
+    "learned": "This is final WG intent and establishes that dataType, not status, should carry the concept-property-type binding.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1264-1267",
+    "summary": "concept-properties is an active [codesystems] entry pointing to codesystem/codesystem-concept-properties.xml.",
+    "learned": "The edited CodeSystem source participates in the current build.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/codesystem/codesystem-concept-properties.xml:43-56",
+    "summary": "The dataType CodeSystem.property now carries codesystem-property-valueset=ValueSet/concept-property-type while status has no such extension.",
+    "learned": "The source now applies the requested value-set binding to the intended property.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/CodeSystem/StructureDefinition-codesystem-property-valueset.xml:32-44",
+    "summary": "The extension describes permitted values for CodeSystem properties and has context CodeSystem.property.",
+    "learned": "The extension should be placed on the property definition being constrained.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "2bc7ab59c65b2fabdf8631bc3af22d997763853a",
+    "ref": { "commit": "2bc7ab59c65b2fabdf8631bc3af22d997763853a" },
+    "summary": "Initial FHIR-48428 application added dataType and concept values but inserted the value-set extension on status.",
+    "learned": "The reconciliation fixes a direct application placement error.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "2025-03-13 Terminology Infrastructure WG Call Agenda/Minutes page 325458270",
+    "url": "https://confluence.hl7.org/spaces/VOC/pages/325458270/2025-03-13+Terminology+Infrastructure+WG+Call+Agenda+Minutes",
+    "ref": { "confluence_page_id": 325458270 },
+    "summary": "Minutes record TI agreement after Grahame noted the exact change that the value set already existed.",
+    "learned": "Using the existing concept-property-type value set matches the WG follow-up.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip searches for FHIR-48428 and concept-property datatype terms",
+    "command": "bun run zulip:search fts '\"FHIR-48428\"' --limit 10; bun run zulip:search fts '\"concept properties\" dataType' --limit 10; bun run zulip:search fts '\"concept-property-type\" '\"dataType\"' --limit 10",
+    "query": "FHIR-48428; concept properties dataType; concept-property-type dataType",
+    "result_count": 6,
+    "summary": "No direct FHIR-48428 Zulip hit or conflicting discussion was found; broader terminology hits did not change the Jira/source conclusion.",
+    "learned": "There is no discovered Zulip evidence that contradicts the applied Jira and source fix.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local source validation",
+    "command": "git diff --check -- source/codesystem/codesystem-concept-properties.xml; python3 XML assertion script for extension placement and dataType values",
+    "summary": "Validation confirmed dataType has the value-set extension, status does not, and all concept dataType values are in concept-property-type.",
+    "learned": "The source change is structurally consistent with the intended binding.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

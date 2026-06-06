@@ -1,0 +1,129 @@
+FHIR-5992: Audit medication form value set
+
+Issue request:
+FHIR-5992 was a Published/Persuasive DSTU1 Pharmacy correction reporting that the expansion for http://hl7.org/fhir/vs/medication-form-codes showed administration routes rather than medication forms. The accepted resolution was to fix the Medication.product.form binding to use the medication-form-codes value set defined from SNOMED CT descendants of 421967003.
+
+Initial application:
+The Jira comments say this was fixed in svn 6615. In git history, commit c74b8e3ebb (#6219, #7262, several other duplicates) is that svn 6615 source change and updates source/medication/valueset-medication-form-codes.xml from the SNOMED route-of-administration parent 284009009 to the medication-form parent 421967003. The current build source has since been refactored from Medication.product.form to Medication.doseForm, but the active Medication source still binds that element to http://hl7.org/fhir/ValueSet/medication-form-codes.
+
+Additional context:
+Later Published Pharmacy issue FHIR-19296 deliberately changed the medication form binding from 421967003 to the newer SNOMED CT parent 736542009 (Pharmaceutical dose form). FHIR-22272 was marked duplicate of FHIR-19296 for the same 421967003 versus 736542009 correction, and FHIR-24700/FHIR-25441 document the later tooling-expansion problem for 736542009 rather than reverting the terminology scope. The combined branch already has an audit commit for FHIR-19296, so this seed should be interpreted as the original route-code error being fixed and then superseded by the later dose-form parent change.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active source/medication/valueset-medication-form-codes.xml includes SNOMED CT descendants of 736542009, which is a medication dose-form hierarchy, not the route-code hierarchy that FHIR-5992 reported. source/medication/structuredefinition-Medication.xml and source/medicationknowledge/structuredefinition-MedicationKnowledge.xml bind their doseForm elements to that ValueSet, and source/fhir.ini includes Medication and MedicationKnowledge as active current-build resources.
+
+Recommendation:
+Keep this audit commit as-is. Do not restore the older 421967003 parent from the DSTU1 resolution, because later Published issue FHIR-19296 intentionally replaced it with 736542009. No follow-up in core is needed for FHIR-5992 unless a future terminology decision changes the medication dose-form hierarchy again.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5992
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-6219: same-change-family - reported Medication form was bound to a dosage route value set and was fixed by the same svn 6615/git c74b8e3ebb application trail.
+FHIR-7265: same-change-family - May 2015 ballot comment reporting route codes instead of medication form codes, resolved with the same 421967003 application.
+FHIR-19296: later-change - later Published Pharmacy decision changed the ValueSet parent from 421967003 to 736542009 and is already represented on the combined branch.
+FHIR-22272: duplicate - duplicate of FHIR-19296 confirming that the 421967003 definition was intentionally superseded by 736542009.
+FHIR-24700: supporting-decision - no-change follow-up saying the 736542009 expansion issue was tooling and fixed under FHIR-25441.
+FHIR-25441: supporting-decision - Published tooling correction for expanding the 736542009 medication-form ValueSet.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5992: Published/Persuasive DSTU1 Pharmacy issue reported that medication-form-codes expanded to route codes and resolved to bind Medication.product.form to SNOMED CT is-a 421967003. Learned: this establishes the original accepted correction and its intended artifact.
+- E2 Source source/medication/valueset-medication-form-codes.xml:40: includes SNOMED CT with concept is-a 736542009. Learned: current source defines the ValueSet from a dose-form hierarchy, not the route hierarchy reported in the seed.
+- E3 Source source/medication/structuredefinition-Medication.xml:197: Medication.doseForm binds to http://hl7.org/fhir/ValueSet/medication-form-codes. Learned: the active Medication element still uses the corrected ValueSet.
+- E4 Source source/fhir.ini:169: Medication is listed as an active current-build resource; source/fhir.ini:1389 approves Medication. Learned: the checked source files are in current build scope.
+- E5 Git c74b8e3ebb: svn 6615 changed valueset-medication-form-codes.xml from 284009009 to 421967003. Learned: the Jira-commented original application was made in source history.
+- E6 Jira FHIR-19296 and Git 51ce8a822f: Published later decision changed the form-code parent from 421967003 to 736542009. Learned: current source's 736542009 value is intentional and should not be reverted for FHIR-5992.
+- E7 Jira FHIR-22272/FHIR-24700/FHIR-25441: later issues treat 736542009 as the correct target and address duplicate/tooling concerns. Learned: no later evidence supports restoring route codes or the older parent.
+- E8 Community search: quoted Zulip and Confluence searches for FHIR-5992 and medication-form-codes found no direct conflicting community decision. Learned: Jira, source, and git evidence control the decision.
+- E9 Verification command: rg checks found 736542009 in source/medication/valueset-medication-form-codes.xml and medication-form-codes bindings in Medication and MedicationKnowledge. Learned: the current checkout matches the no-change rationale.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5992",
+    "url": "https://jira.hl7.org/browse/FHIR-5992",
+    "snapshot_path": "contexts/FHIR-5992/jira/FHIR-5992.md",
+    "ref": { "jira_key": "FHIR-5992" },
+    "summary": "Published/Persuasive DSTU1 Pharmacy issue reporting medication-form-codes expanded to administration routes instead of medication forms.",
+    "learned": "The original approved correction was to fix the Medication.product.form binding/value set away from route codes and toward SNOMED medication form descendants.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/medication/valueset-medication-form-codes.xml:40-49",
+    "summary": "The current ValueSet compose includes SNOMED CT concept is-a 736542009.",
+    "learned": "The authoritative current source is using a medication dose-form hierarchy rather than the route hierarchy reported by FHIR-5992.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medication/structuredefinition-Medication.xml:197-213",
+    "summary": "Medication.doseForm binds to http://hl7.org/fhir/ValueSet/medication-form-codes.",
+    "learned": "The active Medication element continues to use the corrected medication form ValueSet after element refactoring.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-205; source/fhir.ini:1389-1394",
+    "summary": "Medication and MedicationKnowledge are active resources in the current build configuration and Medication is FMG approved.",
+    "learned": "The checked Medication terminology source is in current FHIR build scope.",
+    "supports": ["source_scope", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "c74b8e3ebb",
+    "ref": { "commit": "c74b8e3ebbf92ccc157a591a1571158559a655cd" },
+    "summary": "svn 6615 commit changed valueset-medication-form-codes.xml from SNOMED CT 284009009 to 421967003.",
+    "learned": "The Jira-commented DSTU1 application of the route-code fix is visible in git history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-19296",
+    "url": "https://jira.hl7.org/browse/FHIR-19296",
+    "ref": { "jira_key": "FHIR-19296", "commit": "51ce8a822f639be478cea8655beab71f95afb6ab" },
+    "summary": "Published/Persuasive Pharmacy issue changed the drug form binding to SNOMED CT 736542009; git 51ce8a822f applied that change.",
+    "learned": "The current 736542009 parent is a later approved correction, not a regression against FHIR-5992.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-22272, FHIR-24700, FHIR-25441",
+    "url": "https://jira.hl7.org/browse/FHIR-22272",
+    "summary": "Later Jira records duplicate the 736542009 correction and treat expansion failures for 736542009 as tooling issues.",
+    "learned": "Later issue history supports retaining 736542009 rather than restoring 421967003 or route-code content.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-5992 plus medication-form-codes",
+    "command": "bun run zulip:search fts '\"FHIR-5992\" \"medication form codes\"' --limit 10; bun run confluence:search refs jira FHIR-5992; bun run confluence:search fts '\"FHIR-5992\" \"medication-form-codes\"' --limit 10",
+    "query": "FHIR-5992 medication-form-codes",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence references for FHIR-5992 were found.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Current source exact checks",
+    "command": "rg -n '<value value=\"736542009\"|<valueSet value=\"http://hl7.org/fhir/ValueSet/medication-form-codes\"|<value value=\"421967003\"' source/medication/valueset-medication-form-codes.xml source/medication/structuredefinition-Medication.xml source/medicationknowledge/structuredefinition-MedicationKnowledge.xml",
+    "summary": "The current checkout has 736542009 in the ValueSet compose and medication-form-codes bindings in Medication and MedicationKnowledge.",
+    "learned": "The files that matter for the seed are already consistent with the no-change decision.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

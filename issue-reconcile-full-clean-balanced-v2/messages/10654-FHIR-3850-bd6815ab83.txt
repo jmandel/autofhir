@@ -1,0 +1,117 @@
+FHIR-3850: Audit coded binding warnings
+
+Issue request:
+FHIR-3850 was a Published/Persuasive DSTU1 FHIR-core change request noting that Provenance.reason was a CodeableConcept with no binding and that the build did not fail for that condition.
+
+Initial application:
+The Jira comment records that the build began generating warnings for this condition. Git history confirms that commit 465b04a3a62118caa464d86396fce67add7a69e4 added a ResourceValidator warning for CodeableConcept or Coding elements without a binding on 2015-03-16, and commit 6c026c5064671ebbd76e4679a2e250ea2074e89d later added the ProvenanceReason binding to Provenance.reason with the v3 PurposeOfUse value set.
+
+Additional context:
+The old Provenance.reason element is no longer present in the current resource. source/fhir.ini keeps the active Provenance resource in build scope and maps Provenance.reason to Provenance.authorization; the current StructureDefinition defines Provenance.authorization as CodeableConcept with an example ProvenanceReason binding to v3-PurposeOfUse, and Provenance.why carries the free-text reason as markdown. Later history deliberately reduced missing CodeableConcept/Coding binding diagnostics from warning to information because some unbound elements are acceptable, and the current suppressed-messages.txt still shows this diagnostic being emitted.
+
+AutoFHIR reconciliation:
+No source change was made. The current source already preserves the applied outcome for the original example and the current build tooling still surfaces unbound CodeableConcept/Coding elements as informational diagnostics.
+
+Recommendation:
+Keep this no-change audit commit. Do not reintroduce a hard build failure for unbound CodeableConcept/Coding elements under FHIR-3850; any future severity change should be a new tooling policy decision because later history explicitly allowed informational diagnostics for some cases.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3850
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-54833: later-change - confirms current R6 Provenance.authorization remains the successor concept for old Provenance.reason and should be CodeableConcept, not CodeableReference.
+FHIR-32519: background - later Provenance binding discussion adjusted separate Provenance bindings and does not require a FHIR-3850 source edit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3850: Published/Persuasive issue says Provenance.reason was CodeableConcept without a binding and the build did not fail; Jira comment says it now generates warnings. Learned: the final applied request was to surface missing coded bindings rather than leave them silent.
+- E2 Git 465b04a3a62118caa464d86396fce67add7a69e4: ResourceValidator added a warning that CodeableConcept or Coding elements must have a binding. Learned: the tooling behavior requested by the issue was applied in history.
+- E3 Git 6c026c5064671ebbd76e4679a2e250ea2074e89d: Provenance.reason gained the ProvenanceReason binding and a v3-PurposeOfUse value set entry. Learned: the specific unbound Provenance.reason example was corrected in source history.
+- E4 Source source/provenance/structuredefinition-Provenance.xml:255: current Provenance.authorization is CodeableConcept with an example ProvenanceReason binding to http://terminology.hl7.org/ValueSet/v3-PurposeOfUse. Learned: the current successor of Provenance.reason is bound.
+- E5 Source source/fhir.ini:216 and source/fhir.ini:2021: Provenance is an active build resource and old Provenance.reason maps to Provenance.authorization. Learned: the checked source is in current build scope and carries the migration context.
+- E6 Source suppressed-messages.txt:1: current build output suppressions include "An element of type CodeableConcept or Coding must have a binding" as INFORMATION. Learned: the current build still surfaces missing coded bindings, with later reduced severity.
+- E7 Command Jira/Zulip/Confluence searches for FHIR-3850 and Provenance.reason binding: no direct conflicting community records were found; later Jira FHIR-54833 confirms the current authorization/why split. Learned: no community evidence changes the no-change conclusion.
+- E8 Verification command: parsed current Provenance coded elements and confirmed authorization, activity, agent.type, agent.role, and entity.role all have bindings. Learned: there is no remaining unbound coded Provenance element requiring a source edit for this seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3850",
+    "url": "https://jira.hl7.org/browse/FHIR-3850",
+    "snapshot_path": "contexts/FHIR-3850/jira/FHIR-3850.md",
+    "ref": { "jira_key": "FHIR-3850" },
+    "summary": "Published/Persuasive DSTU1 issue reported Provenance.reason as an unbound CodeableConcept and comments say the build now generates warnings.",
+    "learned": "This establishes the accepted issue scope: missing coded bindings should be surfaced and the specific Provenance.reason case needed correction.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "465b04a3a62118caa464d86396fce67add7a69e4 ResourceValidator",
+    "ref": { "commit": "465b04a3a62118caa464d86396fce67add7a69e4" },
+    "summary": "The historical ResourceValidator added a diagnostic that CodeableConcept or Coding elements must have a binding.",
+    "learned": "The tooling side of FHIR-3850 was applied shortly after the Jira comment.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "6c026c5064671ebbd76e4679a2e250ea2074e89d Provenance spreadsheet",
+    "ref": { "commit": "6c026c5064671ebbd76e4679a2e250ea2074e89d" },
+    "summary": "The historical Provenance spreadsheet added ProvenanceReason to Provenance.reason and defined it against v3-PurposeOfUse.",
+    "learned": "The specific source defect named in FHIR-3850 was corrected in source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/provenance/structuredefinition-Provenance.xml:255",
+    "ref": { "path": "source/provenance/structuredefinition-Provenance.xml", "line": 255 },
+    "summary": "Current Provenance.authorization is CodeableConcept with an example ProvenanceReason binding to v3-PurposeOfUse.",
+    "learned": "The current successor element for the old reason concept is bound and does not need a FHIR-3850 edit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:216 and source/fhir.ini:2021",
+    "ref": { "path": "source/fhir.ini", "line": 216 },
+    "summary": "Provenance is active in the current build and old Provenance.reason maps to Provenance.authorization.",
+    "learned": "The current source check is build-scoped and includes the relevant migration mapping.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "suppressed-messages.txt:1",
+    "ref": { "path": "suppressed-messages.txt", "line": 1 },
+    "summary": "Current suppressed diagnostics include an INFORMATION message for unbound CodeableConcept or Coding elements.",
+    "learned": "The current build still surfaces this class of issue, with later reduced severity rather than a hard failure.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-3850 and Provenance.reason binding",
+    "command": "bun run jira:search fts '\"Provenance.reason\" binding' --limit 10; bun run zulip:search fts '\"FHIR-3850\" \"Provenance.reason\" binding' --limit 10; bun run confluence:search refs jira FHIR-3850; bun run confluence:search fts '\"FHIR-3850\" Provenance' --limit 10",
+    "query": "FHIR-3850 Provenance.reason binding",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence records for FHIR-3850 were found; Jira search identified later related Provenance issues without conflicting with the no-change conclusion.",
+    "learned": "No discovered community record requires changing current source for FHIR-3850.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Current Provenance coded element binding check",
+    "command": "python3 - <<'PY' ... parse source/provenance/structuredefinition-Provenance.xml for CodeableConcept/Coding/code elements and bindings ... PY",
+    "summary": "authorization, activity, agent.type, agent.role, and entity.role all have bindings.",
+    "learned": "There is no remaining unbound coded Provenance element in current source.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,118 @@
+FHIR-37567: Split ActivityDefinition PRN reason elements
+
+Issue request:
+FHIR-37567 was a Published CDS change request for R5 asking ActivityDefinition to capture PRN activities by adding asNeeded 0..1 boolean and asNeededFor 0..* CodeableConcept elements, with an example such as ibuprofen as needed for pain or fever. The Persuasive resolution agreed to add the elements and include an example.
+
+Initial application:
+PR HL7/fhir#2288 merged the original implementation. Commit 608ae761fb52456eb6fb54054ed0bccf719ba8da added an ActivityDefinition.asNeeded[x] boolean-or-CodeableConcept choice, added a parallel PlanDefinition.asNeeded[x] element and PlanDefinition overlap note, but did not add an ActivityDefinition example. The current source retained the choice element, so it could not represent asNeeded=true together with multiple PRN reasons as requested.
+
+Additional context:
+source/fhir.ini lists ActivityDefinition as an active resource with CDS ownership and FMG approval, so source/activitydefinition/structuredefinition-ActivityDefinition.xml and the examples list are in current build scope. FHIR-34325 is a supporting published PRN decision that split Dosage.asNeeded[x] into separate asNeeded and 0..* asNeededFor elements with any-condition semantics for multiple reasons, and it is already represented on the combined branch. Focused Jira searches found no separate PlanDefinition asNeededFor issue, so this reconciliation stays scoped to ActivityDefinition rather than broadening the seed to PlanDefinition or other request resources. Focused Zulip and Confluence searches found no seed-specific discussion that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+Changed ActivityDefinition.asNeeded[x] to ActivityDefinition.asNeeded boolean plus ActivityDefinition.asNeededFor 0..* CodeableConcept, added the asNeededFor/asNeeded invariant, preserved the medication-as-needed-reason example binding, added an ibuprofen-as-needed ActivityDefinition example with pain and fever reasons, registered that example in the ActivityDefinition examples list, and updated the checked-in ActivityDefinition diagram label to match the authoritative source.
+
+Recommendation:
+Keep this source fix. It completes the published ActivityDefinition request without deciding separate PRN consistency issues for PlanDefinition, DeviceRequest, or ServiceRequest; those should remain separate work if a work group wants broader alignment.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37567
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-34325: supporting-decision - published Pharmacy issue that established the split asNeeded/asNeededFor pattern and multiple-reason semantics for Dosage; already represented on the combined branch.
+FHIR-37700: same-change-family - published DeviceRequest PRN issue with similar requested fields, but it belongs to a different artifact/work group and was not needed to decide this seed.
+FHIR-56062: background - triaged DeviceRequest follow-up about asNeededFor binding; it is not a final decision and was not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37567: Published/Persuasive CDS issue requested ActivityDefinition.asNeeded 0..1, asNeededFor 0..*, and an example. Learned: establishes final WG intent and the required ActivityDefinition behavior.
+- E2 Source source/fhir.ini:273,1084,1320: ActivityDefinition is an active resource, has a TLA entry, and is FMG-approved. Learned: the ActivityDefinition structure and example sources are current build inputs.
+- E3 Git 608ae761fb52456eb6fb54054ed0bccf719ba8da and PR HL7/fhir#2288: original implementation added asNeeded[x] to ActivityDefinition and PlanDefinition but no ActivityDefinition example. Learned: the issue was partially applied, leaving the separate 0..* reason element and example missing.
+- E4 Source source/activitydefinition/structuredefinition-ActivityDefinition.xml:95-105,1025-1064: ActivityDefinition now has the asNeeded/asNeededFor invariant, separate asNeeded boolean, and 0..* asNeededFor CodeableConcept with the approved example binding. Learned: the authoritative resource definition now matches the seed request.
+- E5 Source source/activitydefinition/activitydefinition-ibuprofen-as-needed.xml and source/activitydefinition/list-ActivityDefinition-examples.xml: added and registered an ibuprofen PRN example with pain and fever reasons. Learned: the resolution's requested example is now present in active ActivityDefinition examples.
+- E6 Jira FHIR-34325 and combined commit 32357e3fba4a7fd62745854620531f3297a74f1a: later/already-reconciled PRN decision split Dosage.asNeeded/asNeededFor and clarified multiple reasons as any-condition semantics. Learned: supports using separate fields and 0..* reason semantics for this ActivityDefinition fix.
+- E7 Community search for FHIR-37567, ActivityDefinition, asNeeded, and PRN: no relevant Zulip or Confluence hits were found. Learned: no discovered community evidence conflicts with the Jira/source conclusion.
+- E8 Verification command/query: xmllint, focused rg searches, and CRLF-aware git diff whitespace checks passed for the edited ActivityDefinition files. Learned: the source XML/SVG is well formed, stale ActivityDefinition.asNeeded[x] references were removed, and the diff is syntactically safe.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37567",
+    "url": "https://jira.hl7.org/browse/FHIR-37567",
+    "snapshot_path": "contexts/FHIR-37567/jira/FHIR-37567.md",
+    "ref": { "jira_key": "FHIR-37567" },
+    "summary": "Published/Persuasive CDS issue requesting ActivityDefinition.asNeeded 0..1, asNeededFor 0..*, and an example for PRN activity definitions.",
+    "learned": "This establishes final work-group intent and the required ActivityDefinition behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:273,1084,1320",
+    "summary": "ActivityDefinition is listed as an active resource, has a TLA entry, and is FMG-approved.",
+    "learned": "The ActivityDefinition structure and example files are current build inputs.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "608ae761fb52456eb6fb54054ed0bccf719ba8da and HL7/fhir#2288",
+    "url": "https://github.com/HL7/fhir/pull/2288",
+    "ref": { "commit": "608ae761fb52456eb6fb54054ed0bccf719ba8da", "pull_request": 2288 },
+    "summary": "The original implementation added ActivityDefinition.asNeeded[x] and PlanDefinition.asNeeded[x] but no ActivityDefinition example.",
+    "learned": "The issue was partially applied, leaving the separate 0..* reason element and example missing.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/activitydefinition/structuredefinition-ActivityDefinition.xml:95-105,1025-1064",
+    "summary": "ActivityDefinition now has the asNeeded/asNeededFor invariant, a separate asNeeded boolean, and 0..* asNeededFor CodeableConcept with the example binding.",
+    "learned": "The authoritative resource definition now matches the seed request.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/activitydefinition/activitydefinition-ibuprofen-as-needed.xml; source/activitydefinition/list-ActivityDefinition-examples.xml:31-42",
+    "summary": "An ibuprofen-as-needed ActivityDefinition example with pain and fever reasons was added and registered in the examples list.",
+    "learned": "The resolution's requested usage example is now present in active ActivityDefinition examples.",
+    "supports": ["reconciliation", "verification"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-34325 and combined commit 32357e3fba4a7fd62745854620531f3297a74f1a",
+    "url": "https://jira.hl7.org/browse/FHIR-34325",
+    "snapshot_path": "contexts/FHIR-34325/jira/FHIR-34325.md",
+    "ref": { "jira_key": "FHIR-34325", "commit": "32357e3fba4a7fd62745854620531f3297a74f1a" },
+    "summary": "Published Pharmacy issue split Dosage.asNeeded/asNeededFor and clarified that multiple asNeededFor reasons mean any condition can justify PRN use.",
+    "learned": "This supports using separate fields and 0..* reason semantics for ActivityDefinition without republishing FHIR-34325.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-37567 ActivityDefinition asNeeded PRN",
+    "command": "bun run zulip:search fts '\"FHIR-37567\" ActivityDefinition asNeeded PRN' --limit 10; bun run confluence:search refs jira FHIR-37567; bun run confluence:search fts '\"FHIR-37567\" ActivityDefinition asNeeded' --limit 10",
+    "query": "FHIR-37567 ActivityDefinition asNeeded PRN",
+    "result_count": 0,
+    "summary": "No relevant Zulip or Confluence hits were found for the seed issue and PRN ActivityDefinition terms.",
+    "learned": "No discovered community evidence conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Focused ActivityDefinition validation",
+    "command": "xmllint --noout source/activitydefinition/structuredefinition-ActivityDefinition.xml source/activitydefinition/list-ActivityDefinition-examples.xml source/activitydefinition/activitydefinition-ibuprofen-as-needed.xml source/activitydefinition/activitydefinition.svg; rg -n 'ActivityDefinition\\.asNeeded_x_|asNeeded\\[x\\]' source/activitydefinition || true; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/activitydefinition",
+    "summary": "Edited XML/SVG files are well formed, no stale ActivityDefinition.asNeeded[x] references remain, and the diff has no whitespace errors.",
+    "learned": "The source edit is syntactically safe and isolated to the intended ActivityDefinition files.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

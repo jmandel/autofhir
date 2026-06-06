@@ -1,0 +1,105 @@
+FHIR-12492: Audit corrected vital signs invariant
+
+Issue request:
+FHIR-12492 was a Published/Persuasive FHIR-core change request for the DSTU2 vital signs profile. It reported that the vital signs invariant shared with US Core used the wrong logic and could reject component-based examples, such as blood pressure, by requiring a root value[x] or dataAbsentReason when there was a component but no related element.
+
+Initial application:
+No current git commit explicitly names FHIR-12492. The Jira comment says the expression error was fixed in GitHub, and the closest source-history evidence is 1b733457b2, "fix observation vitals invariant [#12596]", which reworked the legacy vital signs spreadsheet invariant into implication form using component.empty() and related.empty(). Later history kept that semantics while adapting the profile to the current model: 5bdc655967 replaced Observation.related with Observation.hasMember, and f9057f0d24 made the FHIRPath expression explicitly call exists() on dataAbsentReason and value.
+
+Additional context:
+The current build source is the active Observation resource folder listed in source/fhir.ini, and source/observation/implementationguide-Observation-vitalsigns.xml includes StructureDefinition/vitalsigns in the core vital signs IG. The current source/observation/structuredefinition-profile-vitalsigns.xml constraint vsp-2 says `(component.empty() and hasMember.empty()) implies (dataAbsentReason.exists() or value.exists())`, which is the corrected semantics for the reported problem. Searches of Zulip and Confluence found no directly relevant discussion or minutes that conflict with the Jira/source-history conclusion.
+
+AutoFHIR reconciliation:
+This is an empty no-change audit commit. No source edit is needed because the current core vital signs profile already permits observations with components or hasMember references without requiring a root value[x] or dataAbsentReason.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up is needed in the core FHIR checkout unless a separate US Core reconciliation finds a current IG-specific copy of the old invariant.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12492
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12492: Published/Persuasive issue says the vital signs invariant was catching a US Core blood pressure example and comments that the expression error was fixed in GitHub. Learned: the final request was to correct the invariant logic, not to add new current prose.
+- E2 Source source/observation/structuredefinition-profile-vitalsigns.xml:96-99: vsp-2 currently uses `(component.empty() and hasMember.empty()) implies (dataAbsentReason.exists() or value.exists())`. Learned: the active profile has the corrected conjunction semantics and explicit exists() checks.
+- E3 Source source/fhir.ini:169-208 and source/observation/implementationguide-Observation-vitalsigns.xml:24-36: Observation is an active resource folder and the vital signs IG references StructureDefinition/vitalsigns. Learned: the inspected profile is in current build scope.
+- E4 Git 1b733457b2: "fix observation vitals invariant [#12596]" reworked the legacy vital signs spreadsheet invariant around component/related/value/dataAbsentReason. Learned: source history contains an application path for the Jira comment even though the commit does not name FHIR-12492.
+- E5 Git 5bdc655967 and f9057f0d24: later commits migrated related to hasMember and changed `(dataAbsentReason or value)` to `(dataAbsentReason.exists() or value.exists())`. Learned: later refactors preserved and clarified the corrected semantics now present in current source.
+- E6 Command community search: quoted Jira/Zulip/Confluence searches for FHIR-12492, vitals invariant, us-core-2, component, related, and dataAbsentReason found only the seed Jira and no conflicting Zulip or Confluence records. Learned: no discovered community evidence changes the no-change conclusion.
+- E7 Verification command: `rg -n "vsp-2|component.empty\\(\\).*hasMember|dataAbsentReason.exists\\(\\)" source/observation/*.xml` found the current vsp-2 expression and related value/dataAbsentReason constraints. Learned: the current source surface no longer contains the reported bad root invariant.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12492",
+    "url": "https://jira.hl7.org/browse/FHIR-12492",
+    "snapshot_path": "contexts/FHIR-12492/jira/FHIR-12492.md",
+    "ref": { "jira_key": "FHIR-12492" },
+    "summary": "Published/Persuasive issue reporting that the vital signs invariant was catching a US Core blood pressure example and noting the expression error was fixed in GitHub.",
+    "learned": "This establishes the final request to correct the component/related invariant logic.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-profile-vitalsigns.xml:96-99",
+    "ref": { "path": "source/observation/structuredefinition-profile-vitalsigns.xml", "line_start": 96, "line_end": 99 },
+    "summary": "Constraint vsp-2 currently uses `(component.empty() and hasMember.empty()) implies (dataAbsentReason.exists() or value.exists())`.",
+    "learned": "The current active profile has the corrected conjunction semantics and explicit exists() checks.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-208; source/observation/implementationguide-Observation-vitalsigns.xml:24-36",
+    "ref": { "path": "source/observation/implementationguide-Observation-vitalsigns.xml", "line_start": 24, "line_end": 36 },
+    "summary": "Observation is an active resource and the vital signs implementation guide includes StructureDefinition/vitalsigns.",
+    "learned": "The inspected vitals profile is in current core build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "1b733457b23ef1115efbd8a72ea094114d279c49",
+    "ref": { "commit": "1b733457b23ef1115efbd8a72ea094114d279c49" },
+    "summary": "Commit `fix observation vitals invariant [#12596]` reworked the legacy vital signs spreadsheet invariant around component, related, value, and dataAbsentReason.",
+    "learned": "This is the closest source-history evidence for the Jira comment that the expression error was fixed in GitHub, though it does not name FHIR-12492.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "5bdc6559670c09dbdcbfcdf5f716f84455c6e600; f9057f0d24",
+    "ref": { "commit": "5bdc6559670c09dbdcbfcdf5f716f84455c6e600" },
+    "summary": "Later commits migrated Observation.related to Observation.hasMember and changed the expression to use dataAbsentReason.exists() and value.exists().",
+    "learned": "Later model and FHIRPath refactors preserved and clarified the corrected invariant semantics.",
+    "supports": ["additional_context", "current_source"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-12492 vital signs invariant",
+    "command": "bun run zulip:search fts '\"FHIR-12492\" vitals invariant' --limit 10; bun run zulip:search fts '\"us-core-2\" '\"vital signs\"' component related dataAbsentReason' --limit 10; bun run confluence:search refs jira FHIR-12492; bun run confluence:search fts '\"FHIR-12492\" vitals invariant' --limit 10",
+    "query": "FHIR-12492 vitals invariant us-core-2 vital signs component related dataAbsentReason",
+    "result_count": 0,
+    "summary": "Quoted searches found no directly relevant Zulip or Confluence hits and no references beyond the seed Jira.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source grep for vsp-2 and dataAbsentReason/value constraints",
+    "command": "rg -n 'vsp-2|component.empty\\(\\).*hasMember|dataAbsentReason.exists\\(\\)' source/observation/*.xml",
+    "summary": "The search found the current vsp-2 expression in structuredefinition-profile-vitalsigns.xml and no reappearance of the reported bad root invariant.",
+    "learned": "The current source surface matches the corrected semantics required by the issue.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

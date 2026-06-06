@@ -1,0 +1,110 @@
+FHIR-17375: Audit Medication strength reconciliation
+
+Issue request:
+FHIR-17375 was a Published/Persuasive with Modification STU3 Pharmacy change request asking whether Medication.amount needed removal or revised wording because it described an "amount of drug in package" after package concepts had been removed. The final resolution required changing Medication.ingredient.amount to Medication.ingredient.strength, changing the datatype to Ratio, and fixing related definitions.
+
+Initial application:
+The issue was applied in the historical GF 17375 commits. Commit 783b9b0cce changed the Medication spreadsheet element from Medication.ingredient.amount to Medication.ingredient.strength, changed the datatype from SimpleQuantity to Ratio, and updated medication examples from <amount> to <strength>; merge commit 7a4277462af4c3e0a9f5bb22a07ec31cbeaed149 recorded the applied Jira implementation.
+
+Additional context:
+Medication is an active current-build resource in source/fhir.ini. The current authoritative Medication StructureDefinition no longer has Medication.ingredient.amount or active Medication example <amount> content. It defines Medication.ingredient.strength[x] and its definition/comment now incorporate later final Pharmacy decisions: FHIR-19439 added codeable strength for sufficient/trace quantity, FHIR-25122 added Quantity when the denominator is implicit, FHIR-23733 clarified the ingredient item as the basis of strength, FHIR-25944 later renamed/reworked the separate package amount concept, and FHIR-36499 added current narrative and comments about ingredients, strength, and packaging. Those later decisions explain why current source has packageSize/package narrative and more than just Ratio for ingredient strength.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current active Medication source already preserves the FHIR-17375 semantic change from ingredient amount to ingredient strength, while later applied issues intentionally refined the strength datatype and packaging language. Editing current packageSize or narrative merely to remove package wording would contradict later published/applied Pharmacy decisions.
+
+Recommendation:
+Keep this no-change audit as-is. Future work on Medication packaging or ingredient strength should be handled under the later issue family, not by reopening FHIR-17375's already-applied STU3 rename.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17375
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-19439: same-change-family - added CodeableConcept support for Medication.ingredient.strength values such as sufficient quantity or trace.
+FHIR-23733: same-change-family - clarified that Medication.ingredient.item is the ingredient to which ingredient.strength relates.
+FHIR-25122: later-change - added Quantity as a Medication.ingredient.strength[x] choice when the denominator is implicit.
+FHIR-25944: later-change - intentionally reworked the separate medication package amount concept, so current packageSize wording is not stale FHIR-17375 text.
+FHIR-36499: later-change - added current Medication.ingredient narrative and comments that explain ingredients, strength, and packaging.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17375: Published/Persuasive with Modification; requested Medication.ingredient.amount be renamed to strength with Ratio datatype and definitions fixed. Learned: this establishes the seed's final target.
+- E2 Source source/fhir.ini:170-205: Medication is listed as an active resource. Learned: source/medication/structuredefinition-Medication.xml is in current build scope.
+- E3 Source source/medication/structuredefinition-Medication.xml:228-356: current source has packageSize for package amount and Medication.ingredient.strength[x] with Ratio, CodeableConcept, and Quantity choices. Learned: the active source no longer exposes the old ingredient.amount element and reflects later final datatype refinements.
+- E4 Command rg active Medication source: searching active source/medication XML for Medication.ingredient.amount, Medication.amount, and <amount> found no non-Archive hits. Learned: the old element/tag remains only in archived examples and does not require a current-build edit.
+- E5 Git 783b9b0cce / 7a427746: GF 17375 changed the spreadsheet element from Medication.ingredient.amount to Medication.ingredient.strength, changed SimpleQuantity to Ratio, and updated examples from amount to strength. Learned: the issue was historically applied in source.
+- E6 Jira/Git later issue family: FHIR-19439, FHIR-23733, FHIR-25122, FHIR-25944, and FHIR-36499 are final/applied or published Medication changes represented in current source and/or the combined branch. Learned: apparent deviations from the 2018 wording are later intended changes, not incomplete application.
+- E7 Community search: Zulip and Confluence searches for FHIR-17375 plus Medication amount/ingredient/strength/package found no direct issue discussion or conflicting minutes. Learned: no discovered community evidence changes the Jira/source/git conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17375",
+    "url": "https://jira.hl7.org/browse/FHIR-17375",
+    "snapshot_path": "contexts/FHIR-17375/jira/FHIR-17375.md",
+    "ref": { "jira_key": "FHIR-17375" },
+    "summary": "Published/Persuasive with Modification issue requesting Medication.ingredient.amount be changed to Medication.ingredient.strength with Ratio datatype and fixed definitions.",
+    "learned": "This establishes the seed issue's final approved change and the source behavior to verify.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-205",
+    "ref": { "path": "source/fhir.ini", "start_line": 170, "end_line": 205 },
+    "summary": "The [resources] list includes medication=Medication.",
+    "learned": "Medication is in current build scope, so its StructureDefinition source is authoritative for this audit.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/medication/structuredefinition-Medication.xml:228-356",
+    "ref": { "path": "source/medication/structuredefinition-Medication.xml", "start_line": 228, "end_line": 356 },
+    "summary": "Current Medication source defines packageSize and Medication.ingredient.strength[x] rather than Medication.ingredient.amount.",
+    "learned": "The active source already reflects the seed rename and includes later approved refinements to strength and packaging.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Active Medication amount-reference search",
+    "command": "rg -n 'Medication\\.ingredient\\.amount|Medication\\.amount|<amount>|</amount>' source/medication --glob '*.xml' | grep -v '/Archive/' || true",
+    "result_count": 0,
+    "summary": "No non-Archive Medication XML files contain the old Medication.ingredient.amount or <amount> usage.",
+    "learned": "Remaining old amount tags are archived examples, not active current-build source needing reconciliation.",
+    "supports": ["current_source", "absence_of_stale_source"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "783b9b0cce and 7a4277462af4c3e0a9f5bb22a07ec31cbeaed149",
+    "ref": { "commit": "783b9b0cce7e1e187dd409709bfa13c1de6c4c9b" },
+    "summary": "GF 17375 changed Medication.ingredient.amount to Medication.ingredient.strength, switched SimpleQuantity to Ratio, and updated examples; 7a427746 merged the PR.",
+    "learned": "The seed issue had a concrete historical source application.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-19439, FHIR-23733, FHIR-25122, FHIR-25944, FHIR-36499",
+    "summary": "Later final Medication issues refined ingredient strength choices, basis-of-strength text, package amount naming, and ingredient narrative.",
+    "learned": "Current source differences from the 2018 resolution text are intentional later Pharmacy decisions rather than FHIR-17375 defects.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-17375 Medication amount ingredient strength package",
+    "command": "bun run zulip:search fts '\"FHIR-17375\" Medication amount ingredient strength package' --limit 10; bun run confluence:search refs jira FHIR-17375; bun run confluence:search fts '\"FHIR-17375\" Medication amount ingredient strength package' --limit 10",
+    "query": "FHIR-17375 Medication amount ingredient strength package",
+    "result_count": 0,
+    "summary": "No direct Zulip discussion or Confluence reference/minutes for the seed issue were found.",
+    "learned": "No discovered community record conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

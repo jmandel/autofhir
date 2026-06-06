@@ -1,0 +1,118 @@
+FHIR-20582: Fix Request encounter placeholder
+
+Issue request:
+FHIR-20582 was Published/Persuasive with Modification for R5. It asked the Request and Event pattern encounter short descriptions to stop saying "Encounter created as part of" because that sounded as if the Encounter was created by the request or event, and its resolution chose "Encounter the {{title}} is tied to" plus a clearer Request encounter comment using "encounter during which the request was created".
+
+Initial application:
+Jira records Git 193d552d63 as the application commit. That commit changed Request.encounter to the resolved short description and rewrote the Request comment, but the rewritten templated sentence contained a malformed "{{title}s" placeholder. Later checked-in request mapping exception files inherited the same malformed placeholder in their pattern-side comments.
+
+Additional context:
+The Event pattern side should not be changed back to the FHIR-20582 wording now because later Published issue FHIR-28543 specifically revisited Event.encounter, decided that "tied to" was too loose for Event, and changed the short description to "Encounter the {{title}} is part of" in Git 37f00fcff9. The current request pattern and the affected request-derived resource folders are active build inputs in source/fhir.ini. No Zulip or Confluence record for FHIR-20582 was found that changes the Jira/source conclusion; Confluence minutes only confirm the later FHIR-28543 Event decision.
+
+AutoFHIR reconciliation:
+This commit fixes the malformed Request pattern placeholder from "{{title}s" to "{{title}}s" and synchronizes the request mapping exception pattern comments with concrete resource plurals for the active request-derived resources that carried the broken generated text. It intentionally leaves the later Event wording and resource-specific MedicationRequest short override unchanged because those are governed by later or resource-specific context rather than the FHIR-20582 Request pattern application defect.
+
+Recommendation:
+Keep this fix. It is a narrow correction to the applied FHIR-20582 Request comment so the current build no longer exposes a malformed placeholder. If a work group wants Product.encounter or resource-specific MedicationRequest.encounter short descriptions to follow the same phrasing policy, handle that as separate human-reviewed tracker work rather than broadening this reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20582
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-28543: later-change - Published Event-specific follow-up that superseded the FHIR-20582 "tied to" wording for Event.encounter because that phrase was considered too loose; already represented on the combined branch, so this commit does not decide it again.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20582: Published/Persuasive with Modification, applied for R5, asked to clarify Request/Event encounter short text and the Request encounter comment. Learned: establishes the final seed request and the required Request comment wording direction.
+- E2 Source source/request/request-spreadsheet.xml:1333-1336: Request.encounter already used "Encounter the {{title}} is tied to" but its updated comment contained "{{title}s". Learned: current source had an application defect in the exact sentence changed for FHIR-20582.
+- E3 Source source/*/*-request-mapping-exceptions.xml: request-derived mapping exception pattern comments contained the same malformed placeholder. Learned: the broken Request pattern text propagated into active checked-in mapping exception sources and needed synchronization.
+- E4 Source source/fhir.ini:154-162 and 178,182,186,202,207,213,256,271,275: request is an active logical pattern and the edited request-derived resources are active resource entries. Learned: edited files are current build-scope inputs rather than retired artifacts.
+- E5 Git 193d552d63: Jira-referenced application commit for FHIR-20582 changed Request.encounter but introduced the malformed templated plural. Learned: the fix is directly tied to the seed issue's application history.
+- E6 Jira/Git FHIR-28543 and 37f00fcff9: later Published Event.encounter issue changed Event short to "Encounter the {{title}} is part of" because "tied to" was too loose. Learned: Event wording should be treated as intentionally superseded, not as a remaining FHIR-20582 defect.
+- E7 Community search: Zulip issue-key searches for FHIR-20582/FHIR-28543 returned zero mentions; Confluence refs found no FHIR-20582 references and one FHIR-28543 workflow minutes page confirming Persuasive with Modification. Learned: no discovered community evidence conflicts with the Jira/source conclusion.
+- E8 Verification command/query: rg found no remaining "some {{title}s may" under source after the edit, xmllint parsed changed XML files, and CRLF-aware git diff --check passed. Learned: the textual defect was removed without XML or whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20582",
+    "url": "https://jira.hl7.org/browse/FHIR-20582",
+    "snapshot_path": "contexts/FHIR-20582/jira/FHIR-20582.md",
+    "ref": { "jira_key": "FHIR-20582" },
+    "summary": "Published/Persuasive with Modification issue requiring Request/Event encounter short descriptions to avoid 'Encounter created as part of' and requiring clearer Request encounter comment wording.",
+    "learned": "This establishes the final seed request and why the Request.encounter comment was in scope for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/request/request-spreadsheet.xml:1333-1336",
+    "ref": { "path": "source/request/request-spreadsheet.xml", "line": 1336 },
+    "summary": "Request.encounter had the resolved short text but the updated comment contained a malformed '{{title}s' placeholder.",
+    "learned": "The current authoritative Request pattern source still had an application defect from the seed change.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/*/*-request-mapping-exceptions.xml Request.encounter comments",
+    "ref": { "paths": "source/{careplan,communicationrequest,devicerequest,medicationrequest,nutritionorder,requestorchestration,servicerequest,task,visionprescription}/*-request-mapping-exceptions.xml" },
+    "summary": "Nine active request mapping exception files carried the same malformed pattern-side placeholder in Request.encounter comments.",
+    "learned": "The fix needed to synchronize the checked-in request mapping exception sources with the corrected pattern text.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:154-162,178,182,186,202,207,213,256,271,275",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "The Request logical pattern and every edited request-derived resource folder are active in the current build configuration.",
+    "learned": "The edited files are in build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "193d552d630fe22578c31b120f6db85fefd90a6d",
+    "ref": { "commit": "193d552d630fe22578c31b120f6db85fefd90a6d" },
+    "summary": "Jira-referenced commit 'Updates to the definition, request, and event patterns' included FHIR-20582 and changed Request.encounter wording.",
+    "learned": "The remaining malformed placeholder came from the original application path for the seed issue.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-28543 and Git 37f00fcff9",
+    "url": "https://jira.hl7.org/browse/FHIR-28543",
+    "snapshot_path": "contexts/FHIR-28543/jira/FHIR-28543.md",
+    "ref": { "jira_key": "FHIR-28543", "commit": "37f00fcff9e4c0248e68e64276cb076a1801520c" },
+    "summary": "Published Event-specific follow-up changed Event.encounter to 'Encounter the {{title}} is part of' because 'tied to' was too loose.",
+    "learned": "Current Event wording is an intentional later change and should not be reverted for FHIR-20582.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-20582 and FHIR-28543",
+    "command": "bun run zulip:search sql \"SELECT COUNT(*) AS mentions FROM messages WHERE content LIKE '%FHIR-20582%'\"; bun run zulip:search sql \"SELECT COUNT(*) AS mentions FROM messages WHERE content LIKE '%FHIR-28543%'\"; bun run confluence:search refs jira FHIR-20582; bun run confluence:search refs jira FHIR-28543; bun run confluence:search snapshot 97469337",
+    "query": "FHIR-20582; FHIR-28543",
+    "result_count": 1,
+    "summary": "No Zulip issue-key mentions and no Confluence FHIR-20582 refs were found; one Confluence minutes page references FHIR-28543 as Persuasive with Modification.",
+    "learned": "Community evidence did not conflict with the Jira/source conclusion and corroborated the later Event follow-up.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Post-edit validation",
+    "command": "rg 'some [{][{]title[}]s may' source; git diff --name-only -z | xargs -0 xmllint --noout; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "No remaining malformed Request placeholder was found; changed XML files parsed; CRLF-aware whitespace check passed.",
+    "learned": "The reconciliation removed the defect without introducing XML or whitespace errors.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

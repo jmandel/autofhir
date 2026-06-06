@@ -1,0 +1,116 @@
+FHIR-7941: Align ServiceRequest timing examples
+
+Issue request:
+FHIR-7941 was Published/Persuasive with Modification for DSTU1 ReferralRequest.fulfillmentTime. It asked to clarify the Period field requirements: not-before dates use Period.start, must-before dates use Period.end, and bounded windows use start and end.
+
+Initial application:
+The issue was applied in git commit a7344a39aa35eeb8f52cb6d13a8e63eabd6105b2, which updated ReferralRequest.fulfillmentTime requirements to reference Period.start and Period.end. No prior Issue-Reconcile-Key commit existed on the combined branch.
+
+Additional context:
+Later Patient Care workflow alignment renamed ReferralRequest.fulfillmentTime to ReferralRequest.occurrence[x], and FHIR-13196 merged ReferralRequest into the request resource lineage that is now ServiceRequest. source/fhir.ini lists ServiceRequest as an active current resource and records that ReferralRequest became ServiceRequest, while current ServiceRequest.occurrence[x] is dateTime|Period|Timing. ActivityDefinition and PlanDefinition are active resources, and their example lists include the edited examples, so stale fulfillmentTime references in those examples are current-build source rather than retired ReferralRequest source.
+
+AutoFHIR reconciliation:
+This commit updates current ActivityDefinition and PlanDefinition examples, matching invariant-test copies, the clinical reasoning narrative snippet, and the $apply response example to use current ServiceRequest.occurrence[x] names. It changes the interval-valued dynamic value from occurrenceDateTime to occurrencePeriod so the example preserves the original Period.start not-before semantics in the current ServiceRequest choice element.
+
+Recommendation:
+Keep this commit as a source fix. Remaining fulfillmentTime strings are legacy QUICK/CQL names or cross-version mapping metadata and should not be changed under this ReferralRequest wording issue without a separate clinical reasoning/model-definition review.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7941
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-10293: later-change - workflow alignment renamed ReferralRequest.fulfillmentTime to occurrence[x] and provides the current element-name context.
+FHIR-13196: later-change - merged ReferralRequest with ProcedureRequest/ServiceRequest lineage, making ServiceRequest the current build surface for this referral timing example.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7941: Published/Persuasive with Modification; resolution accepted the proposed clarification except using start/end instead of low/high. Learned: the final issue intent is Period.start/Period.end clarity for referral fulfillment timing.
+- E2 Git a7344a39: 2015 application commit explicitly says #7941 updated ReferralRequest.fulfillmentTime and changed requirements to Period.start/Period.end. Learned: the original ReferralRequest source was applied before this reconciliation.
+- E3 Source source/fhir.ini:213,1480,2838: ServiceRequest is active, ReferralRequest became ServiceRequest, and the historical map records ReferralRequest.fulfillmentTime to ReferralRequest.occurrence. Learned: current fixes must target ServiceRequest/current examples, not retired ReferralRequest source.
+- E4 Source source/servicerequest/structuredefinition-ServiceRequest.xml:794-812: ServiceRequest.occurrence[x] is the active dateTime|Period|Timing element. Learned: an interval-valued example should use occurrencePeriod in the current resource.
+- E5 Source source/activitydefinition/list-ActivityDefinition-examples.xml:7-17,105-115 and source/plandefinition/list-PlanDefinition-examples.xml:7-17,223-233: the edited examples are listed as current examples. Learned: stale timing paths were in build-scope example source.
+- E6 Jira FHIR-10293 and FHIR-13196 snapshots: later published workflow/merge decisions moved the field into occurrence[x] and the ServiceRequest lineage. Learned: the current source should use ServiceRequest.occurrence[x] names rather than ReferralRequest.fulfillmentTime.
+- E7 Community search: Zulip and Confluence searches for FHIR-7941 ReferralRequest fulfillmentTime found no relevant hits. Learned: no discovered community discussion changes the Jira/source conclusion.
+- E8 Verification commands: rg for stale built-example fulfillmentTime paths found no matches, git diff --check with CRLF-aware whitespace passed, and the touched XML files parsed. Learned: the edited current examples are internally consistent and syntactically valid.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7941",
+    "url": "https://jira.hl7.org/browse/FHIR-7941",
+    "snapshot_path": "contexts/FHIR-7941/jira/FHIR-7941.md",
+    "ref": { "jira_key": "FHIR-7941" },
+    "summary": "Published/Persuasive with Modification issue asking to clarify ReferralRequest.fulfillmentTime Period field use.",
+    "learned": "Final WG intent was to identify Period.start for not-before timing, Period.end for must-before timing, and start/end for bounded windows.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "a7344a39aa35eeb8f52cb6d13a8e63eabd6105b2",
+    "ref": { "commit": "a7344a39aa35eeb8f52cb6d13a8e63eabd6105b2" },
+    "summary": "2015 commit #7941 updated ReferralRequest.fulfillmentTime requirements to mention Period.start and Period.end.",
+    "learned": "The original issue was applied, so current reconciliation should preserve that semantics through later refactors.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:213,1480,2838",
+    "summary": "fhir.ini activates ServiceRequest, states ReferralRequest became ServiceRequest, and maps ReferralRequest.fulfillmentTime to occurrence.",
+    "learned": "ReferralRequest is no longer current build source; current examples should use ServiceRequest.occurrence[x].",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:794-812",
+    "summary": "Current ServiceRequest.occurrence[x] is the active dateTime|Period|Timing element for when service should occur.",
+    "learned": "The interval-valued example belongs on occurrencePeriod, not occurrenceDateTime.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/activitydefinition/list-ActivityDefinition-examples.xml and source/plandefinition/list-PlanDefinition-examples.xml",
+    "summary": "The edited ActivityDefinition and PlanDefinition examples are listed as current examples.",
+    "learned": "The stale fulfillmentTime references were in build-scope source.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-10293 and FHIR-13196",
+    "url": "https://jira.hl7.org/browse/FHIR-13196",
+    "snapshot_path": "contexts/FHIR-7941/jira/FHIR-13196.md",
+    "ref": { "jira_key": "FHIR-13196" },
+    "summary": "Later published workflow and merge decisions moved ReferralRequest timing into the occurrence[x]/ServiceRequest lineage.",
+    "learned": "These later decisions explain why the source fix updates current ServiceRequest examples rather than restoring retired ReferralRequest wording.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-7941 ReferralRequest fulfillmentTime",
+    "command": "bun run zulip:search fts '\"FHIR-7941\" ReferralRequest fulfillmentTime' --limit 10; bun run zulip:search fts 'ReferralRequest fulfillmentTime' --limit 10; bun run confluence:search refs jira FHIR-7941; bun run confluence:search fts '\"FHIR-7941\" ReferralRequest fulfillmentTime' --limit 10; bun run confluence:search fts 'ReferralRequest fulfillmentTime' --limit 10",
+    "query": "FHIR-7941 ReferralRequest fulfillmentTime",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted validation commands",
+    "command": "rg 'ServiceRequest\\.fulfillmentTime\\.start|referralRequest\\.fulfillmentTime\\.start|The fulfillmentTime element|<path value=\"occurrenceDateTime\"|&lt;path value=&quot;occurrenceDateTime&quot;' source/activitydefinition source/plandefinition source/clinicalreasoning-knowledge-artifact-representation.html; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; python3 XML parse of touched XML files",
+    "summary": "No stale built-example paths remained, CRLF-aware whitespace check passed, and touched XML files parsed.",
+    "learned": "The source change is syntactically safe and removes the targeted stale current-build references.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

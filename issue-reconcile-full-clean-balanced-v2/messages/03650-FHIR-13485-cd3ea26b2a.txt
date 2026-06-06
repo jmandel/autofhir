@@ -1,0 +1,129 @@
+FHIR-13485: Audit current addItem tiering
+
+Issue request:
+FHIR-13485 was Published/Persuasive for STU3. It asked ClaimResponse and ExplanationOfBenefit to reduce payer addItems from a two-tier structure to a single tier, add detail and subDetail sequence links so added items can identify the replaced claim detail/sub-detail, and remove addItem revenue/category because those are specified on the replaced item.
+
+Initial application:
+The request was applied in the historical spreadsheet era by 0f5969cd4d for ClaimResponse and 1666da603a for ExplanationOfBenefit. Those commits added top-level addItem detail/subdetail sequence link elements and disabled the then-existing addItem.detail subtree and addItem revenue/category rows. The current XML source was later regenerated during the 2021 source rework, and current naming maps the old sequenceLinkId/detailSequenceLinkId/subdetailSequenceLinkId family to itemSequence/detailSequence/subDetailSequence.
+
+Additional context:
+ClaimResponse and ExplanationOfBenefit are active current-build resources in source/fhir.ini. Current StructureDefinitions and the FHIR ModelInfo content already expose addItem.itemSequence, addItem.detailSequence, and addItem.subDetailSequence for both resources, and the ClaimResponse addItem example uses the current itemSequence/detailSequence elements. Current source also contains addItem.detail and addItem.detail.subDetail. That nesting should not be removed during this reconciliation because later Published FM decisions for R5, including FHIR-29689 and FHIR-37588, explicitly discuss the addItem.detail and addItem.detail.subDetail surfaces. FHIR-29689 is already represented on the combined branch, and FHIR-17929 has already corrected the ClaimResponse subDetailSequence casing on the combined branch.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The sequence-link portion of FHIR-13485 is present in the active current source, while the original STU3 request to remove nested addItem details has been overtaken by later current-build decisions that preserve and use those nested structures.
+
+Recommendation:
+Keep this audit commit as-is. Do not remove addItem.detail or addItem.detail.subDetail from current ClaimResponse/EOB without a new FM work-group decision that explicitly reverses the later R5 addItem.detail-related changes.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13485
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-29689: later-change - Published R5 tax issue explicitly covered addItem, addItem.detail, and addItem.detail.subDetail in ClaimResponse and ExplanationOfBenefit, so removing those nested structures would conflict with later scope.
+FHIR-37588: later-change - Published R5 adjudication-quantity issue explicitly listed additem.detail.adjudication and additem.detail.subdetail.adjudication, reinforcing that the nested addItem tiers are part of the later current model.
+FHIR-17929: same-change-family - corrected the ClaimResponse.addItem.subDetailSequence casing in the current source and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13485: Published/Persuasive STU3 request for ClaimResponse and EOB to add detail/subDetail sequence links and reduce addItems to one tier. Learned: this is the final seed issue request, but it must be interpreted against later current-build decisions.
+- E2 Git 0f5969cd4d and 1666da603a: historical Tracker #13485 commits added detailSequenceLinkId/subdetailSequenceLinkId and disabled addItem.detail/revenue/category in ClaimResponse/EOB spreadsheets. Learned: the original application existed and explains the intended STU3 change.
+- E3 Source source/fhir.ini:242-244 and source/fhir.ini:2691-2729: ClaimResponse/EOB are active resources and alias old sequenceLinkId names to current itemSequence/detailSequence/subDetailSequence names. Learned: the relevant current source is in build scope and carries rename context.
+- E4 Source source/claimresponse/structuredefinition-ClaimResponse.xml:1064-1096 and source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:2532-2564: both active StructureDefinitions contain addItem.itemSequence, addItem.detailSequence, and addItem.subDetailSequence. Learned: the sequence-link portion of FHIR-13485 is already present.
+- E5 Source source/claimresponse/structuredefinition-ClaimResponse.xml:1519 and source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:2966: current source retains addItem.detail, with corresponding addItem.detail.subDetail descendants. Learned: removing the nested tiers would be a current model change, not just a missing historical cleanup.
+- E6 Jira FHIR-29689 and FHIR-37588: later Published R5 FM issues explicitly refer to addItem.detail and addItem.detail.subDetail surfaces. Learned: later decisions support preserving the nested current structures despite the older STU3 request.
+- E7 Source source/library/library-fhir-model-definition-content.xml:2265-2274 and source/library/library-fhir-model-definition-content.xml:4427-4435: ModelInfo exposes the same top-level addItem sequence fields for ClaimResponse and ExplanationOfBenefit. Learned: a parallel current source surface is already aligned for the sequence fields.
+- E8 Command search: quoted Zulip/Confluence searches for FHIR-13485 and addItem detail sequence terms found no directly relevant conflicting community record. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+- E9 Verification command: CRLF-aware git diff --check and XML parsing for the inspected current source files succeeded. Learned: the audited current files are mechanically parseable and no uncommitted source change was needed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13485",
+    "url": "https://jira.hl7.org/browse/FHIR-13485",
+    "snapshot_path": "contexts/FHIR-13485/jira/FHIR-13485.md",
+    "ref": { "jira_key": "FHIR-13485" },
+    "summary": "Published/Persuasive STU3 request to add detail and subDetail sequence links to ClaimResponse/EOB addItem and reduce addItems to a single tier.",
+    "learned": "This establishes the seed issue request that must be reconciled against the current source and later FM decisions.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "0f5969cd4d89f9aff44e6172cadc1e53dcd911dc; 1666da603a3b2a9bf8055607aa2b3e898ac5c4c2",
+    "ref": { "commit": "0f5969cd4d89f9aff44e6172cadc1e53dcd911dc" },
+    "summary": "Historical Tracker #13485 commits changed the ClaimResponse and ExplanationOfBenefit spreadsheets by adding detail/subdetail sequence links and disabling nested addItem rows.",
+    "learned": "The issue had a real initial spreadsheet-era application, so the current audit should distinguish carried-forward sequence fields from later structural changes.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:242-244,2691-2729",
+    "ref": { "path": "source/fhir.ini", "line": 242 },
+    "summary": "ClaimResponse and ExplanationOfBenefit are active resources, and fhir.ini maps old sequenceLinkId names to current itemSequence/detailSequence/subDetailSequence names.",
+    "learned": "The audited StructureDefinition source is in current build scope and old naming should be interpreted through current aliases.",
+    "supports": ["source_change_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/claimresponse/structuredefinition-ClaimResponse.xml:1064-1096; source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:2532-2564",
+    "ref": { "path": "source/claimresponse/structuredefinition-ClaimResponse.xml", "line": 1064 },
+    "summary": "Both current StructureDefinitions contain addItem.itemSequence, addItem.detailSequence, and addItem.subDetailSequence.",
+    "learned": "The sequence-link part of the FHIR-13485 request is already reflected in the active current conformance source.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/claimresponse/structuredefinition-ClaimResponse.xml:1519; source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:2966",
+    "ref": { "path": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml", "line": 2966 },
+    "summary": "Current ClaimResponse and ExplanationOfBenefit source retains addItem.detail and nested addItem.detail.subDetail structures.",
+    "learned": "Removing nested addItem tiers now would be a current model change requiring later-decision review, not a safe mechanical completion of an STU3 issue.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-29689 and FHIR-37588",
+    "url": "https://jira.hl7.org/browse/FHIR-29689",
+    "ref": { "jira_key": "FHIR-29689" },
+    "summary": "Later Published R5 FM issues explicitly refer to ClaimResponse/EOB addItem.detail and addItem.detail.subDetail surfaces.",
+    "learned": "These later decisions support preserving the nested addItem structures in the current build despite the older STU3 simplification request.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:2265-2274,4427-4435",
+    "ref": { "path": "source/library/library-fhir-model-definition-content.xml", "line": 2265 },
+    "summary": "FHIR ModelInfo lists ClaimResponse.AddItem and ExplanationOfBenefit.AddItem itemSequence, detailSequence, and subDetailSequence elements.",
+    "learned": "A parallel current source surface already carries the sequence fields, so no ModelInfo follow-up edit is needed for this seed.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-13485 ClaimResponse/EOB addItem",
+    "command": "bun run zulip:search fts '\"FHIR-13485\" ClaimResponse addItem ExplanationOfBenefit' --limit 10; bun run zulip:search fts 'ClaimResponse addItem detailSequence subDetailSequence' --limit 10; bun run confluence:search refs jira FHIR-13485; bun run confluence:search fts '\"FHIR-13485\" ClaimResponse addItem' --limit 10",
+    "query": "FHIR-13485 ClaimResponse addItem ExplanationOfBenefit detailSequence subDetailSequence",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Targeted local validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; python3 XML parse for ClaimResponse/EOB StructureDefinitions, ClaimResponse addItem example, and FHIR ModelInfo content",
+    "summary": "Whitespace check reported no uncommitted errors and inspected XML files parsed successfully.",
+    "learned": "The audited source files are mechanically valid and no source edit was required for this reconciliation.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

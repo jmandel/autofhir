@@ -1,0 +1,102 @@
+FHIR-19730: Fix List refuted verificationStatus link
+
+Issue request:
+FHIR-19730 was Published/Persuasive as an auto-approved technical correction for List scope text: the example about "refuted conditions" should refer to Condition.verificationStatus rather than Condition.clinicalStatus because refuted is a verification status code, not a clinical status code.
+
+Initial application:
+Git commit 781b21db1f1fe8231fb8a701cd8ad7a99b520efe applied the issue by changing the List narrative from Condition.clinicalStatus to verificationStatus. That application left the linked code target as valueset-condition-clinical.html#refuted, so the rendered text still pointed readers at the clinical status value set for a verification status code.
+
+Additional context:
+The current Condition resource is active in source/fhir.ini and keeps clinicalStatus bound to ValueSet/condition-clinical while verificationStatus is bound to ValueSet/condition-ver-status. The current CI build still rendered the List sentence with the stale clinical value-set link, while the verification status value-set page exposes the refuted code under the condition-ver-status expansion anchor.
+
+AutoFHIR reconciliation:
+Updated source/list/list-introduction.xml, an active List resource narrative source, so the refuted hyperlink now targets the Condition Verification Status value set expansion anchor for the refuted code. No Condition structural definitions were changed.
+
+Recommendation:
+Keep this source fix. It completes the original List correction without changing Condition semantics; regenerated output should now direct implementers to the verification status value set.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19730
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-7864: same-change-family - duplicate Condition status split issue that led to clinicalStatus and verificationStatus being separate concepts.
+FHIR-7581: supporting-decision - published Patient Care resolution that split Condition status into clinicalStatus and verificationStatus.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19730: Published/Persuasive technical correction for List text to use Condition.verificationStatus instead of Condition.clinicalStatus for refuted conditions. Learned: the final issue intent is to point the List example at verification status.
+- E2 Source source/fhir.ini:198: active list=List resource entry. Learned: source/list/list-introduction.xml feeds a current build artifact.
+- E3 Source source/list/list-introduction.xml:39: List now links refuted to valueset-condition-ver-status.html#http://terminology.hl7.org/CodeSystem/condition-ver-status-refuted. Learned: the stale clinical-status link was corrected in the authoritative narrative source.
+- E4 Source source/condition/structuredefinition-Condition.xml:185:207 and source/condition/valueset-condition-ver-status.xml:46:50: verificationStatus is bound to ValueSet/condition-ver-status. Learned: refuted belongs to the verification status value-set family, not the clinical status value set.
+- E5 Git 781b21db1f1f: GF#19730 changed the element name to verificationStatus but left the valueset-condition-clinical refuted link. Learned: the prior application was incomplete in the hyperlink target.
+- E6 Published spec https://build.fhir.org/list.html and https://build.fhir.org/valueset-condition-ver-status.html: CI build showed the stale List clinical link and the verification value-set expansion anchor for refuted. Learned: this source edit fixes a rendered-page inconsistency that still exists in the current build.
+- E7 Verification command: xmllint --noout source/list/list-introduction.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check. Learned: the edited XML remains well-formed and the diff has no CRLF-aware whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19730",
+    "url": "https://jira.hl7.org/browse/FHIR-19730",
+    "snapshot_path": "contexts/FHIR-7864/jira/FHIR-19730.md",
+    "ref": { "jira_key": "FHIR-19730" },
+    "summary": "Published/Persuasive technical correction asking the List refuted-conditions example to use Condition.verificationStatus rather than Condition.clinicalStatus.",
+    "learned": "This establishes the final approved List text correction and why refuted belongs under verificationStatus.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:198",
+    "summary": "The active resources section contains list=List.",
+    "learned": "The List narrative source is in current FHIR build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/list/list-introduction.xml:39",
+    "summary": "The refuted hyperlink now targets the Condition Verification Status value-set expansion anchor.",
+    "learned": "The source no longer points a verificationStatus code at the clinical status value set.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/condition/structuredefinition-Condition.xml:185-207; source/condition/valueset-condition-ver-status.xml:46-50",
+    "summary": "Condition.verificationStatus is bound to http://hl7.org/fhir/ValueSet/condition-ver-status, whose compose includes http://terminology.hl7.org/CodeSystem/condition-ver-status.",
+    "learned": "The correct status family for refuted in this example is verification status.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "781b21db1f1fe8231fb8a701cd8ad7a99b520efe",
+    "ref": { "commit": "781b21db1f1fe8231fb8a701cd8ad7a99b520efe" },
+    "summary": "GF#19730 changed the List text from Condition.clinicalStatus to verificationStatus but kept the valueset-condition-clinical refuted link.",
+    "learned": "The prior application addressed the element name but not the linked value-set target.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "build.fhir.org List and Condition Verification Status pages",
+    "url": "https://build.fhir.org/list.html",
+    "summary": "The CI build still rendered the stale clinical value-set link, and the verification status value-set page contains the refuted expansion anchor.",
+    "learned": "The stale source link affects the rendered current spec and the replacement target is present.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Edit validation",
+    "command": "xmllint --noout source/list/list-introduction.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The edited XML is well-formed and the diff has no CRLF-aware whitespace errors.",
+    "learned": "The source edit is syntactically safe for this XML narrative file.",
+    "supports": ["confidence"]
+  }
+]
+</evidence-manifest>

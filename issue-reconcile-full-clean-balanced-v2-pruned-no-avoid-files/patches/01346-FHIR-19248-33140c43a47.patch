@@ -1,0 +1,150 @@
+diff --git a/source/toc.html b/source/toc.html
+index 63977d37a32..c76442c626c 100644
+--- a/source/toc.html
++++ b/source/toc.html
+@@ -8,12 +8,12 @@
+ <body>
+ [%file newnavbar%]
+ 
+-<h2>Full Table of Contents</h2>
++<h2>Table of Contents</h2>
+ 
+ <table class="colsi"><tbody><tr><td id="wg">Responsible Owner: <a href="http://www.hl7.org/Special/committees/fiwg/index.cfm" _target="blank">FHIR Infrastructure </a> Work Group</td><td id="ballot"><a href="versions.html#std-process">Standards Status</a>:  <!-- !ns! --><a href="versions.html#std-process">Informative</a></td></tr></tbody></table>
+ 
+ <p>
+-This Table of Contents shows, for each page, what the ballot status of the page is. Legend:
++The Summary tab shows the table of contents to the second level. The Detail tab shows every page and, for each page, what the ballot status of the page is. Legend:
+ </p>
+ <ul>
+  <li><img src="icon_page_n.gif"/>: Normative Status</li>
+@@ -24,7 +24,130 @@ This Table of Contents shows, for each page, what the ballot status of the page
+ <!-- <li><img src="icon_page_0.gif"/>: Unknown Status</li> -->
+ </ul>
+ 
++<style>
++#toc-summary {
++  display: none;
++}
++
++#toc-tabs.toc-ready #toc-summary {
++  display: block;
++}
++
++#toc-tabs.toc-ready #toc-detail {
++  display: none;
++}
++
++#toc-tabs.toc-ready.toc-show-detail #toc-summary {
++  display: none;
++}
++
++#toc-tabs.toc-ready.toc-show-detail #toc-detail {
++  display: block;
++}
++
++#toc-tabs .toc-pane {
++  margin-top: 1em;
++}
++</style>
++
++<div id="toc-tabs">
++  <ul class="nav nav-tabs" role="tablist">
++    <li role="presentation"><a id="toc-summary-tab" href="#toc-summary" role="tab" aria-controls="toc-summary" aria-selected="false" data-toc-target="toc-summary">Summary</a></li>
++    <li role="presentation" class="active"><a id="toc-detail-tab" href="#toc-detail" role="tab" aria-controls="toc-detail" aria-selected="true" data-toc-target="toc-detail">Detail</a></li>
++  </ul>
++  <div id="toc-summary" class="toc-pane" role="tabpanel" aria-labelledby="toc-summary-tab"></div>
++  <div id="toc-detail" class="toc-pane" role="tabpanel" aria-labelledby="toc-detail-tab">
+ <%toc%>
++  </div>
++</div>
++
++<script>
++(function () {
++  function tocEntryLevel(row) {
++    var link = row.querySelector('a[href]');
++    if (!link) {
++      return 0;
++    }
++
++    var match = link.textContent.trim().match(/^(\d+(?:\.\d+)*)\b/);
++    if (!match) {
++      return 1;
++    }
++
++    return match[1].split('.').length;
++  }
++
++  function showTocPane(tabs, targetId) {
++    var showDetail = targetId === 'toc-detail';
++    tabs.classList.toggle('toc-show-detail', showDetail);
++
++    var tabLinks = tabs.querySelectorAll('[data-toc-target]');
++    Array.prototype.forEach.call(tabLinks, function (tabLink) {
++      var active = tabLink.getAttribute('data-toc-target') === targetId;
++      tabLink.setAttribute('aria-selected', active ? 'true' : 'false');
++      if (tabLink.parentElement) {
++        tabLink.parentElement.classList.toggle('active', active);
++      }
++    });
++  }
++
++  function buildSummaryToc(detailTable) {
++    var summaryTable = detailTable.cloneNode(true);
++    summaryTable.id = detailTable.id ? 'summary-' + detailTable.id : 'toc-summary-table';
++
++    Array.prototype.forEach.call(summaryTable.querySelectorAll('[id]'), function (element) {
++      element.id = 'summary-' + element.id;
++    });
++
++    Array.prototype.forEach.call(summaryTable.querySelectorAll('img[onclick]'), function (image) {
++      image.removeAttribute('onclick');
++      var src = image.getAttribute('src');
++      if (src) {
++        image.setAttribute('src', src.replace('-open.', '.'));
++      }
++    });
++
++    Array.prototype.forEach.call(summaryTable.querySelectorAll('tr'), function (row) {
++      if (tocEntryLevel(row) > 2 && row.parentElement) {
++        row.parentElement.removeChild(row);
++      }
++    });
++
++    return summaryTable;
++  }
++
++  function setupTocTabs() {
++    var tabs = document.getElementById('toc-tabs');
++    var summary = document.getElementById('toc-summary');
++    var detail = document.getElementById('toc-detail');
++    var detailTable = detail ? detail.querySelector('table#toc, table') : null;
++
++    if (!tabs || !summary || !detail || !detailTable) {
++      if (window.console) {
++        window.console.warn('TOC table not found; showing the detail view only.');
++      }
++      return;
++    }
++
++    summary.appendChild(buildSummaryToc(detailTable));
++    tabs.classList.add('toc-ready');
++    showTocPane(tabs, 'toc-summary');
++
++    Array.prototype.forEach.call(tabs.querySelectorAll('[data-toc-target]'), function (tabLink) {
++      tabLink.addEventListener('click', function (event) {
++        event.preventDefault();
++        showTocPane(tabs, tabLink.getAttribute('data-toc-target'));
++      });
++    });
++  }
++
++  if (document.readyState === 'loading') {
++    document.addEventListener('DOMContentLoaded', setupTocTabs);
++  } else {
++    setupTocTabs();
++  }
++}());
++</script>
+ 
+ 
+ [%file newfooter%]

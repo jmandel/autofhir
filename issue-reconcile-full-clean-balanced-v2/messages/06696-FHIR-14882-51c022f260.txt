@@ -1,0 +1,138 @@
+FHIR-14882: Audit ValueSet expansion status clarification
+
+Issue request:
+FHIR-14882 was a Published/Persuasive with Modification vocab issue against FHIR-core ValueSet from the STU3 ballot. It asked to clarify what ValueSet.status means when a ValueSet instance is carrying only an expansion, because status is required but expansion-only responses do not have separate value set definition metadata. The recorded resolution was to create an invariant requiring status = active when only status and expansion are populated.
+
+Initial application:
+The Jira comments say the issue was applied as svn 13467. Git history shows that application as 6df7f5cfc26ca11762fb1d16dbebe9a2dbe8ad88, titled "GF#1488 - Add ValueSet invariant for status must = 'active' if expansion is present and compose is absent." That commit added the old ValueSet invariant with expression status='active' or compose.exists() or expansion.empty() to source/valueset/valueset-spreadsheet.xml.
+
+Additional context:
+Later STU3 ballot issues FHIR-18564 and FHIR-18685 revisited the same invariant and status semantics. FHIR-18564 objected that an expansion might exist for a non-active value set, and FHIR-18685 resolved to remove vsd-11, keep the ValueSet.status name, clarify that ValueSet.status applies to the value set definition/compose and associated metadata, and state that expansions are stateless. Git commit fbcbcb6ac4f574b7f9859cc6bf36e54befb5d312 applied that later decision. Current source/fhir.ini keeps ValueSet in the active build, and current ValueSet source and notes contain the later clarification while no current source match remains for the old active-only expansion invariant.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source changes. Re-adding the FHIR-14882 active-only invariant would conflict with the later Vocabulary WG decisions, and the current ValueSet.status, ValueSet.expansion, VSD notes, and $expand guidance already explain that status comes from the definition/metadata rather than the expansion itself.
+
+Recommendation:
+Keep this audit commit as-is. No current core source follow-up is needed for FHIR-14882 unless Vocabulary reopens expansion lifecycle/status modeling; any future work should start from the later FHIR-18564/FHIR-18685 decisions rather than the superseded active-only invariant.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14882
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-18564: later-change - later Published issue objected to the active-only expansion invariant introduced for FHIR-14882 and was already audited on the combined branch.
+FHIR-18685: superseded-by - later Published issue supplied the replacement semantics: remove vsd-11 and clarify that ValueSet.status applies to definition/metadata while expansions are stateless; it was already audited on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14882: Published/Persuasive with Modification issue asked to clarify ValueSet.status for expansion-only resources and resolved to add an active-only invariant. Learned: this establishes the seed request and the original WG-approved application target.
+- E2 Git 6df7f5cfc26ca11762fb1d16dbebe9a2dbe8ad88: GF#1488 / svn 13467 added the old invariant requiring status = active when expansion is present and compose is absent. Learned: the seed was historically applied exactly as the Jira comments say.
+- E3 Jira FHIR-18564 and FHIR-18685: later Published ValueSet issues resolved to remove the old invariant and replace it with status/expansion stateless clarification. Learned: these later decisions supersede the original active-only invariant.
+- E4 Git fbcbcb6ac4f574b7f9859cc6bf36e54befb5d312: GF#18685 removed the old vsd-11 invariant and updated ValueSet status and expansion definitions. Learned: source history shows the later replacement was applied.
+- E5 Source source/fhir.ini:226,943,960,1254: ValueSet is an active current build resource, conformance resource, normative since 4.0.0, and uses the vsd prefix. Learned: the inspected ValueSet sources are in current build scope.
+- E6 Source source/valueset/structuredefinition-ValueSet.xml:219-222,992-999 and source/valueset/valueset-notes.xml:283-290,513: current source says ValueSet.status applies to compose/metadata, expansions do not have a state, and $expand returns status/version from the definition when available. Learned: current source already conveys the correct post-FHIR-18685 semantics.
+- E7 Command search: rg found no current source/valueset match for the old status='active' or compose.exists() or expansion.empty() invariant. Learned: the obsolete FHIR-14882 invariant has not persisted elsewhere in the authoritative ValueSet source.
+- E8 Zulip #terminology > GF#18685 and Confluence VOC Sept 2018 Tuesday Q3 minutes: community and WG records describe removing vsd-11 and clarifying expansion statelessness. Learned: community/minutes evidence supports leaving current source unchanged.
+- E9 Command search: direct FHIR-14882 Zulip and Confluence searches found only a commit-bot notification and no conflicting human discussion or minutes. Learned: no discovered community record changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14882",
+    "url": "https://jira.hl7.org/browse/FHIR-14882",
+    "snapshot_path": "contexts/FHIR-14882/jira/FHIR-14882.md",
+    "ref": { "jira_key": "FHIR-14882" },
+    "summary": "Published/Persuasive with Modification ValueSet issue requesting clarification of ValueSet.status for expansion-only resources and resolving to add an active-only invariant.",
+    "learned": "This establishes the seed request and the original application target.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "6df7f5cfc26ca11762fb1d16dbebe9a2dbe8ad88",
+    "ref": { "commit": "6df7f5cfc26ca11762fb1d16dbebe9a2dbe8ad88" },
+    "summary": "GF#1488 / svn 13467 added the old ValueSet invariant requiring active status when expansion is present and compose is absent.",
+    "learned": "The seed was historically applied in source/valueset/valueset-spreadsheet.xml as the Jira comments record.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-18564 and FHIR-18685",
+    "url": "https://jira.hl7.org/browse/FHIR-18685",
+    "snapshot_path": "contexts/FHIR-18685/jira/FHIR-18685.md",
+    "ref": { "jira_key": "FHIR-18685" },
+    "summary": "Later Published ValueSet issues resolved to remove the old VSD 11 active-only invariant and clarify ValueSet.status/ValueSet.expansion stateless semantics.",
+    "learned": "The later approved decision supersedes the original FHIR-14882 invariant.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "fbcbcb6ac4f574b7f9859cc6bf36e54befb5d312",
+    "ref": { "commit": "fbcbcb6ac4f574b7f9859cc6bf36e54befb5d312" },
+    "summary": "GF#18685 removed the old vsd-11 invariant and added the status and expansion-stateless clarification to the ValueSet source.",
+    "learned": "Source history shows the later replacement decision was applied.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:226,943,960,1254",
+    "summary": "ValueSet is listed as an active resource, conformance resource, normative since 4.0.0, and uses the vsd prefix.",
+    "learned": "The inspected ValueSet files are in current FHIR core build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/valueset/structuredefinition-ValueSet.xml:219-222,992-999; source/valueset/valueset-notes.xml:283-290,513",
+    "summary": "Current ValueSet source says ValueSet.status applies to compose/metadata, expansions do not have a state, expansions are stateless, and $expand returns status/version from the definition when available.",
+    "learned": "Current source already conveys the correct status/expansion meaning after the later Vocabulary decisions.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source search for obsolete active-only invariant",
+    "command": "rg -n \"Status must = 'active'|status='active' or compose\\.exists\\(\\) or expansion\\.empty\\(\\)|f:status/@value='active'\" source/valueset || true",
+    "result_count": 0,
+    "summary": "No current source/valueset match remains for the obsolete status-active expansion-only invariant.",
+    "learned": "The old invariant has not persisted in another authoritative ValueSet source file.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#terminology > GF#18685",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/GF%2318685",
+    "summary": "The thread records Vocab's proposed resolution to remove vsd-11 and clarify that ValueSet.status applies to definition/metadata while expansions are stateless.",
+    "learned": "Community discussion supports the later replacement semantics and no source change for the seed.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "confluence",
+    "locator": "VOC Sept 2018 Tuesday Q3 Minutes page 31688436",
+    "url": "https://confluence.hl7.org/spaces/VOC/pages/31688436/Sept+2018+-+HL7+WGM+-+Tuesday+Q3+Minutes",
+    "snapshot_path": "contexts/FHIR-14882/confluence/31688436.md",
+    "ref": { "confluence_page_id": 31688436 },
+    "summary": "Vocabulary WG minutes record a 10-0-0 motion to remove VSD 11, keep ValueSet.status, clarify status scope, and add stateless expansion text.",
+    "learned": "Meeting minutes confirm that the current source should not restore the original FHIR-14882 invariant.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E10",
+    "kind": "command",
+    "locator": "Direct community search for FHIR-14882",
+    "command": "bun run zulip:search fts '\"FHIR-14882\" ValueSet status expansion' --limit 10; bun run confluence:search refs jira FHIR-14882; bun run confluence:search fts '\"FHIR-14882\" ValueSet status expansion' --limit 10",
+    "result_count": 1,
+    "summary": "Direct seed searches found no Confluence references and no Zulip human discussion; the only Zulip hit was a commit-bot notification for GF#1488.",
+    "learned": "No discovered seed-specific community record conflicts with the Jira and later ValueSet decisions.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

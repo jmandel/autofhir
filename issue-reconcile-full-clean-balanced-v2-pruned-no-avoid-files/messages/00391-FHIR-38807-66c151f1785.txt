@@ -1,0 +1,113 @@
+FHIR-38807 + FHIR-16148: Correct Encounter reason and diagnosis text
+
+Attribution note: surfaced while reviewing FHIR-38807, but direct Jira backing for this change is FHIR-38807 + FHIR-16148.
+
+Issue request:
+FHIR-38807 is a Published/Persuasive R5 ballot reconciliation issue for Patient Administration. It asked that outstanding Encounter trackers, including Encounter.reason and Encounter.diagnosis updates that missed the September 2022 R5 ballot publication, be applied for R5.
+
+Initial application:
+The issue appears to have been initially applied by PR #2650, merged as 3ac1ab47dd, whose merge message explicitly lists FHIR-38807. The implementation commit 084c723e14 applied the Encounter.reason and Encounter.diagnosis restructuring from FHIR-16148 and the EpisodeOfCare alignment from FHIR-35863, including new Encounter reason/diagnosis search parameter paths and new reason/diagnosis use terminology. However, the current Encounter source still retained semantically stale prose: Encounter.reason described medical reasons expected during an "episode of care", Encounter.diagnosis still said "diagnosis relevant to this encounter", and Encounter.diagnosis.condition still described a coded diagnosis/reference rather than the medical condition addressed during the encounter.
+
+Additional context:
+FHIR-16148 is the tightly related final decision that defines the Encounter.reason and Encounter.diagnosis wording, and Confluence page 51223352 records it as the master tracker for this design family. Later FHIR-38784 intentionally changed Encounter.reason.use and Encounter.diagnosis.use to repeat, so this reconciliation preserves those cardinalities. Later FHIR-48869 synced EpisodeOfCare.reason with Encounter.reason for R6 and is already represented on the combined branch; it does not require changing Encounter reference targets here. Encounter and EpisodeOfCare are active build resources in source/fhir.ini.
+
+AutoFHIR reconciliation:
+This commit updates the authoritative Encounter StructureDefinition prose so Encounter.reason is about the encounter, Encounter.diagnosis is the list of medical conditions addressed during the encounter, and Encounter.diagnosis.condition follows the approved CodeableReference wording. It also updates the matching Event mapping exception text and Encounter SVG tooltips so the checked-in diagram source does not contradict the authoritative XML. It intentionally does not change EpisodeOfCare or Encounter reason target profiles, because those are governed by later applied decisions and the current active source already reflects them.
+
+Recommendation:
+Keep this commit as a source fix for FHIR-38807. If FHIR-16148 is audited separately later, use this commit as supporting evidence that the remaining Encounter wording gap from that change family has been closed; do not re-add retired or absent Encounter.reason reference targets without a separate current work-group decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-38807
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-16148: same-change-family - final Published/Persuasive with Modification decision for the Encounter.reason and Encounter.diagnosis redesign that FHIR-38807 asked to get applied.
+FHIR-35863: same-change-family - EpisodeOfCare alignment was implemented in the same PR, but this reconciliation only needed Encounter source changes.
+FHIR-38784: later-change - later Published decision made Encounter.reason.use and Encounter.diagnosis.use repeat; this commit preserves that applied later behavior.
+FHIR-48869: later-change - later Applied R6 decision synchronized EpisodeOfCare.reason and is already represented on the combined branch, so it is context rather than a second decision here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-38807: Published/Persuasive R5 ballot issue asked to apply outstanding Encounter trackers that missed the R5 ballot publication. Learned: this seed authorizes a current-source check of the Encounter.reason and Encounter.diagnosis application.
+- E2 Jira FHIR-16148: Published/Persuasive with Modification Encounter.reason and Encounter.diagnosis decision supplied the target distinction between expected reasons and medical conditions addressed during the encounter. Learned: the current Encounter wording needed to use encounter-specific reason and addressed-diagnosis prose.
+- E3 Source source/fhir.ini:1149,1363 and source/encounter/structuredefinition-Encounter.xml:779-870: Encounter is an active, approved build resource and the edited elements are in its authoritative StructureDefinition. Learned: the edited XML is in current build scope and controls generated definitions.
+- E4 Git 3ac1ab47dd and 084c723e14: PR #2650/implementation history applied the Encounter change family and mentioned FHIR-38807, but left stale Encounter prose that this commit corrects. Learned: the issue was applied structurally but not fully reconciled textually.
+- E5 Confluence page 51223352: the PA Encounter/Condition/Procedure/Diagnosis design page lists FHIR-16148 as the master tracker and records the approved Encounter reason/diagnosis proposal. Learned: community design notes confirm the source wording target and the diagnosis/reason split.
+- E6 Zulip #implementers > Encounter reasons: PA described the planned Encounter.reason/diagnosis redesign and rationale for avoiding rank on Encounter. Learned: the informal discussion supports the FHIR-16148 design direction and does not conflict with this reconciliation.
+- E7 Verification command/query: rg stale Encounter reason/diagnosis phrases; git diff --check; Python XML parse of edited XML/SVG. Learned: stale phrases were removed from Encounter source and the edited XML remains well-formed with no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-38807",
+    "url": "https://jira.hl7.org/browse/FHIR-38807",
+    "snapshot_path": "contexts/FHIR-38807/jira/FHIR-38807.md",
+    "ref": { "jira_key": "FHIR-38807" },
+    "summary": "Published/Persuasive R5 ballot issue requested applying outstanding Encounter trackers that missed the R5 ballot publication.",
+    "learned": "This establishes the seed issue scope: verify and complete the Encounter.reason and Encounter.diagnosis application.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-16148",
+    "url": "https://jira.hl7.org/browse/FHIR-16148",
+    "snapshot_path": "contexts/FHIR-16148/jira/FHIR-16148.md",
+    "ref": { "jira_key": "FHIR-16148" },
+    "summary": "Published/Persuasive with Modification decision redesigned Encounter.reason and Encounter.diagnosis and supplied encounter-specific reason and addressed-diagnosis definitions.",
+    "learned": "This is the final related decision that identifies the stale Encounter prose as a real semantic gap.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:1149,1363; source/encounter/structuredefinition-Encounter.xml:779-870",
+    "ref": { "path": "source/encounter/structuredefinition-Encounter.xml" },
+    "summary": "Encounter is an active approved resource and its StructureDefinition now states that reasons are expected during the encounter and diagnoses are medical conditions addressed during the encounter.",
+    "learned": "The source change is in build scope and affects the authoritative Encounter definitions.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "3ac1ab47dd; 084c723e14",
+    "ref": { "commit": "3ac1ab47ddeb0af54d88da1547d572e399f3956f" },
+    "summary": "PR #2650 merged FHIR-38807 and implementation commit 084c723e14 applied the Encounter reason/diagnosis structure and search parameter changes.",
+    "learned": "The historical application was real but left stale prose that required this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "PA Encounter, Condition, Procedure, Diagnosis page 51223352",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/51223352/Encounter+Condition+Procedure+Diagnosis+",
+    "ref": { "confluence_page_id": 51223352 },
+    "summary": "Patient Administration design notes list FHIR-16148 as the master tracker and record the Encounter reason/diagnosis proposal.",
+    "learned": "The community design page corroborates the intended reason-versus-diagnosis distinction.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Encounter reasons",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Encounter.20reasons",
+    "ref": { "stream": "implementers", "topic": "Encounter reasons" },
+    "summary": "PA described the Encounter.reason/diagnosis redesign and rationale for not carrying billing rank on Encounter.",
+    "learned": "Informal discussion supports the FHIR-16148 model and does not conflict with the source fix.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local validation after source edit",
+    "command": "rg 'expected to be addressed during the episode of care|list of diagnosis relevant to this encounter|coded diagnosis or a reference to a Condition' source/encounter; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/encounter/structuredefinition-Encounter.xml source/encounter/encounter-event-mapping-exceptions.xml source/encounter/encounter.svg; python - <<'PY' ... ET.parse(edited files) ... PY",
+    "summary": "No stale target phrases remained in Encounter source, the diff had no whitespace errors, and the edited XML/SVG parsed successfully.",
+    "learned": "The reconciliation is syntactically safe and removes the identified stale wording from current Encounter source.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

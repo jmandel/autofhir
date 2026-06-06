@@ -1,0 +1,117 @@
+FHIR-7133: Clarify ServiceRequest placer/filler codes
+
+Issue request:
+FHIR-7133 was Published with resolution Persuasive with Modification. The issue asked to differentiate DiagnosticOrder.identifier values that correspond to HL7 V2 placer and filler order numbers by adding an Identifier.type note, giving the exact identifier type codes, and coordinating the related terminology work through FHIR-8186.
+
+Initial application:
+The issue was initially applied in git commit 88d679f466 (#7133), which added DiagnosticOrder notes and spreadsheet text naming PLAC for the Placer Identifier and FILL for the Filler Identifier. FHIR-8186 then created the PLAC/FILL identifier type codes, and later terminology cleanup in 935f74cd0e moved the Identifier.type value set to use v2-0203 now that those codes were defined there.
+
+Additional context:
+DiagnosticOrder and DiagnosticRequest are now removed resources, with DiagnosticOrder explicitly recorded in source/fhir.ini as subsumed into ServiceRequest; ServiceRequest is the active current-build request resource. Later FHIR-11119 work merged DiagnosticRequest and ProcedureRequest, and subsequent source refactors carried forward a ServiceRequest.identifier comment but left it pointing to a ServiceRequest notes section that no longer contains the promised identifier discussion or exact codes. A later R6 DiagnosticReport issue, FHIR-54545, concerns whether placer/filler identifiers belong on DiagnosticReport.identifier; it is not applied/published in this run's source-edit scope and does not change that ServiceRequest is the request/order location for the PLAC/FILL guidance.
+
+AutoFHIR reconciliation:
+This commit updates the authoritative ServiceRequest StructureDefinition comment and the matching Request mapping-exception source to state the current rule directly: Identifier.type can distinguish identifiers assigned by the orderer/requester from those assigned by the producer/fulfiller, and the HL7 V2 placer/filler identifier type codes are PLAC and FILL. It removes the stale pointer to nonexistent ServiceRequest notes detail without changing cardinality, bindings, examples, or unrelated DiagnosticReport guidance.
+
+Recommendation:
+Keep this source fix as-is. It restores the exact code signpost requested by FHIR-7133 on the active successor resource and keeps the mapping-exception source synchronized; handle FHIR-54545 separately if OO applies the later DiagnosticReport-specific decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7133
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-8186: supporting-decision - defined the PLAC and FILL identifier type codes that FHIR-7133 needed for exact-code guidance.
+FHIR-11119: later-change - merged DiagnosticRequest/ProcedureRequest into the current ServiceRequest path, explaining why the old DiagnosticOrder source is no longer active.
+FHIR-9239: later-change - moved Identifier.type codes to v2-0203 after the PLAC/FILL codes were defined there, explaining the current terminology system.
+FHIR-54545: later-change - later R6 DiagnosticReport-specific decision says placer/filler order numbers should not be on DiagnosticReport.identifier, but it is not applied/published and does not alter ServiceRequest order identifier guidance.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7133: Published/Persuasive with Modification issue asking to differentiate placer and filler identifiers on DiagnosticOrder.identifier and give exact identifier.type codes. Learned: the final OO decision requires source guidance that maps V2 placer/filler concepts to Identifier.type codes.
+- E2 Git 88d679f466: original #7133 application added DiagnosticOrder notes/spreadsheet text using PLAC and FILL for placer and filler identifiers. Learned: the historical implementation included both element guidance and exact code examples.
+- E3 Jira FHIR-8186 and Git 935f74cd0e: related identifier-type issue created PLAC/FILL, and later GF#9239 moved Identifier.type values to v2-0203 once those codes were defined. Learned: the current exact codes are in the v2-0203-backed Identifier Type value set.
+- E4 Source source/fhir.ini:169-214,308-340,1457: ServiceRequest is active, while DiagnosticOrder/DiagnosticRequest are removed and DiagnosticOrder is noted as subsumed into ServiceRequest. Learned: the current-build correction belongs in source/servicerequest rather than removed DiagnosticOrder artifacts.
+- E5 Source source/servicerequest/structuredefinition-ServiceRequest.xml:127-134, source/servicerequest/servicerequest-request-mapping-exceptions.xml:3-14, source/terminologies/valueset-identifier-type.xml:76-79: the corrected ServiceRequest comment and mapping exception now name PLAC/FILL, and the value set includes those codes. Learned: the active source now carries the exact code guidance without relying on a stale notes link.
+- E6 Source source/servicerequest/servicerequest-notes.xml:3-13 and Git 545372779b: ServiceRequest notes contain no identifier detail, while FHIR-11119-era history moved the old detailed identifier note away from the request resource. Learned: the previous pointer to notes below was misleading in the current source.
+- E7 Community search: Zulip searches for FHIR-7133/placer/filler/DiagnosticOrder terms and Confluence refs for FHIR-7133/FHIR-8186/FHIR-11119 found no directly relevant hits. Learned: no discovered community record changes the Jira/source/history conclusion.
+- E8 Verification: xmllint --noout on the two changed XML files and a CRLF-aware git diff --check both passed. Learned: the targeted XML source edit is syntactically valid and has no relevant whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7133",
+    "url": "https://jira.hl7.org/browse/FHIR-7133",
+    "snapshot_path": "contexts/FHIR-7133/jira/FHIR-7133.md",
+    "ref": { "jira_key": "FHIR-7133" },
+    "summary": "Published/Persuasive with Modification issue asking to differentiate placer and filler identifiers on DiagnosticOrder.identifier and provide exact identifier.type codes.",
+    "learned": "The final OO decision requires source guidance that maps HL7 V2 placer/filler concepts to Identifier.type codes.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "88d679f4668ae262c97b843bf8deb03bee831843",
+    "ref": { "commit": "88d679f4668ae262c97b843bf8deb03bee831843" },
+    "summary": "Original #7133 application added DiagnosticOrder notes and spreadsheet guidance using PLAC for placer and FILL for filler identifiers.",
+    "learned": "The historical implementation included both local identifier guidance and exact code examples.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "935f74cd0eea1f34d310215a5d78ce192122e241 and Jira FHIR-8186",
+    "url": "https://jira.hl7.org/browse/FHIR-8186",
+    "ref": { "jira_key": "FHIR-8186", "commit": "935f74cd0eea1f34d310215a5d78ce192122e241" },
+    "summary": "FHIR-8186 called for PLAC/FILL identifier type codes; later GF#9239 changed the Identifier.type value set to use v2-0203 once those codes were available there.",
+    "learned": "The current exact codes are represented through the v2-0203-backed Identifier Type value set.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-214,308-340,1457",
+    "summary": "ServiceRequest is active in the resources list; DiagnosticOrder and DiagnosticRequest are removed, and DiagnosticOrder is noted as subsumed into ServiceRequest.",
+    "learned": "The current-build correction belongs in source/servicerequest rather than removed DiagnosticOrder artifacts.",
+    "supports": ["source_change_scope", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:127-134; source/servicerequest/servicerequest-request-mapping-exceptions.xml:3-14; source/terminologies/valueset-identifier-type.xml:76-79",
+    "summary": "The corrected ServiceRequest comment and mapping exception now name PLAC/FILL, and the Identifier Type value set includes both codes.",
+    "learned": "The active source now carries the exact code guidance without relying on a stale notes link.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/servicerequest/servicerequest-notes.xml:3-13; git 545372779b",
+    "ref": { "commit": "545372779bf361b7ce767dc017b3fed8d48117a7" },
+    "summary": "ServiceRequest notes contain no identifier detail; FHIR-11119-era history moved the old detailed request identifier note to DiagnosticReport.",
+    "learned": "The previous pointer to the ServiceRequest notes section was misleading in the current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-7133 and related identifier terms",
+    "command": "bun run zulip:search fts '\"FHIR-7133\" \"placer\" \"filler\"' --limit 10; bun run zulip:search fts 'placer filler DiagnosticOrder identifier' --limit 10; bun run confluence:search refs jira FHIR-7133 --limit 10; bun run confluence:search refs jira FHIR-8186 --limit 10; bun run confluence:search refs jira FHIR-11119 --limit 10",
+    "query": "FHIR-7133 placer filler DiagnosticOrder identifier; FHIR-8186; FHIR-11119",
+    "summary": "No directly relevant Zulip or Confluence hits were found for the seed or closely related identifier issues.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted XML and whitespace verification",
+    "command": "xmllint --noout source/servicerequest/structuredefinition-ServiceRequest.xml source/servicerequest/servicerequest-request-mapping-exceptions.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/servicerequest/structuredefinition-ServiceRequest.xml source/servicerequest/servicerequest-request-mapping-exceptions.xml",
+    "summary": "The changed XML files parsed successfully and the CRLF-aware whitespace check passed.",
+    "learned": "The targeted source correction is syntactically valid and does not introduce relevant whitespace errors.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

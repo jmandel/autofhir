@@ -1,0 +1,95 @@
+FHIR-8628: Audit sliced element naming resolution
+
+Issue request:
+FHIR-8628 was a Published/Persuasive DSTU1 FHIR-core StructureDefinition issue reporting that some HSPC slice members lacked the old ElementDefinition f:name and asking whether sliced paths should require each slice member to be named. The final Jira discussion narrowed the applied action: Grahame Grieve said multiple slicing could occur in different branches, saw no broader invariant problem, and fixed the erroneous Practitioner role discriminator in svn revision 6698.
+
+Initial application:
+The Jira-tagged application is present in git as 5fb6665151 (#8628 - fix erroneous discriminator). That commit changed the retired HSPC Practitioner spreadsheet discriminator from `Practitioner.practitionerRole.managingOrganization, Practitioner.practitionerRole.role|false|open` to `Practitioner.practitionerRole.managingOrganization|false|open, Practitioner.practitionerRole.role` in guides/hspc/practitioner-hspc-profile-spreadsheet.*.
+
+Additional context:
+The old HSPC guide/profile files named by the issue are not present in the current build checkout, and exact searches for hspc-provpract, hspc-servicedeliverylocation, practitioner-hspc-profile, and the bad discriminator found no current source hits outside generated or historical refs. Current FHIR also renamed ElementDefinition.name to ElementDefinition.sliceName, documents that all elements following the first slicing repeat SHALL have a sliceName, and keeps sliceName as an optional element because unsliced/common constraint entries without sliceName remain valid.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical discriminator fix was already applied, the specific DSTU1 HSPC profiles are no longer current core build artifacts, and adding a new global invariant would be broader than the actual published resolution and inconsistent with current profiling rules that allow constraints on all slices without sliceName.
+
+Recommendation:
+Keep this audit commit as-is. No current core source edit is needed for FHIR-8628; only revisit if a work group opens a new issue to change current ElementDefinition slicing semantics or to restore/maintain the retired HSPC guide artifacts elsewhere.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8628
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8628: Published/Persuasive issue asked about slice members lacking f:name and noted HSPC discriminator typos; final comment says the discriminator was fixed in svn revision 6698. Learned: final applied scope was the discriminator correction, not a broad new invariant.
+- E2 Git 5fb6665151: #8628 - fix erroneous discriminator changed the HSPC Practitioner spreadsheet discriminator. Learned: the known source application matches Jira's final comment.
+- E3 Source source/elementdefinition.html:406-415 and source/datatypes/elementdefinition.xml:915-931: current source describes slicing and ElementDefinition.sliceName, including the rule that following repeats in a sliced element SHALL have sliceName. Learned: current source already conveys the slice naming rule using the modern element name.
+- E4 Source source/fhir.ini:2773 and source/datatypes/elementdefinition.xml:4796-4803: current configuration maps old ElementDefinition.name to ElementDefinition.sliceName and only requires sliceName when sliceIsConstraining is present. Learned: the old f:name terminology has been migrated and current optional sliceName semantics are intentional.
+- E5 Verification command: rg exact searches for hspc-provpract, hspc-servicedeliverylocation, practitioner-hspc-profile, and the bad discriminator in current source/guides found no current build source hits. Learned: the DSTU1 HSPC artifacts that motivated the issue are no longer active core source needing edits.
+- E6 Community search: quoted-key and term searches in Zulip plus Confluence refs/FTS found no relevant hits. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8628",
+    "url": "https://jira.hl7.org/browse/FHIR-8628",
+    "snapshot_path": "contexts/FHIR-8628/jira/FHIR-8628.md",
+    "ref": { "jira_key": "FHIR-8628" },
+    "summary": "Published/Persuasive DSTU1 issue about HSPC slice members missing f:name and an erroneous Practitioner role discriminator.",
+    "learned": "The final Jira comment narrowed application to fixing the discriminator in svn revision 6698, not adding a new global invariant.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "5fb6665151",
+    "ref": { "commit": "5fb6665151" },
+    "summary": "Historical #8628 commit fixed the HSPC Practitioner discriminator in guides/hspc/practitioner-hspc-profile-spreadsheet.*.",
+    "learned": "This is the git application of Jira's recorded svn revision 6698 fix.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/elementdefinition.html:406-415; source/datatypes/elementdefinition.xml:915-931",
+    "ref": { "path": "source/elementdefinition.html", "lines": "406-415" },
+    "summary": "Current ElementDefinition slicing narrative says following repeats in a sliced element SHALL have sliceName, and the spreadsheet defines ElementDefinition.sliceName as the slice name.",
+    "learned": "The current specification already states the slice-member naming rule using the modern sliceName element.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:2773; source/datatypes/elementdefinition.xml:4796-4803",
+    "ref": { "path": "source/fhir.ini", "line": 2773 },
+    "summary": "Current config maps ElementDefinition.name to ElementDefinition.sliceName, and the active ElementDefinition invariant only requires sliceName when sliceIsConstraining appears.",
+    "learned": "The f:name terminology is migrated and current optional sliceName behavior is deliberate rather than a missed FHIR-8628 fix.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current source HSPC exact-string search",
+    "command": "rg -n 'hspc-provpract|practitioner-hspc|hspc-servicedeliverylocation|servicedeliverylocation|Practitioner\\.practitionerRole\\.role\\|false\\|open' guides source",
+    "summary": "No current source hits were found for the old HSPC profiles or bad discriminator; only an unrelated current Location example uses a different ccda service-delivery extension URL.",
+    "learned": "The specific DSTU1 HSPC artifacts from the issue are not active current core source requiring edits.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Zulip and Confluence searches for FHIR-8628 and sliceName terms",
+    "command": "bun run zulip:search fts '\"FHIR-8628\"' --limit 10; bun run zulip:search fts '\"slice members\" StructureDefinition sliceName' --limit 10; bun run confluence:search refs jira FHIR-8628; bun run confluence:search fts '\"FHIR-8628\"' --limit 10",
+    "query": "FHIR-8628 slice members StructureDefinition sliceName",
+    "result_count": 0,
+    "summary": "No relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

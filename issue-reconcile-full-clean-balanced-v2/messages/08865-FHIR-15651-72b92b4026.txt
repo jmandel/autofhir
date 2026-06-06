@@ -1,0 +1,88 @@
+FHIR-15651: Audit eld-12 invariant correction
+
+Issue request:
+FHIR-15651 was a Published/Persuasive technical correction for the STU3 ElementDefinition page. It reported that ElementDefinition invariant eld-12 used valueSet.is(uri) and valueSet.as(uri) even though FHIRPath defines is/as as operators, and requested the operator form `(valueSet is uri)` / `(valueSet as uri)`.
+
+Initial application:
+The issue was applied in git-svn revision 13340, now commit 2ba76c80e44bd38eb8874c39029b36fb887628f3, which changed source/datatypes/elementdefinition.xml from valueSet.is(uri)/valueSet.as(uri) to the requested FHIRPath operator syntax. The commit subject says "fix eld-7", but the patch changes the eld-12 row and matches the Jira request.
+
+Additional context:
+ElementDefinition is active normative build-scope content in source/fhir.ini, and the current ElementDefinition spreadsheet defines ElementDefinition.binding.valueSet as canonical(ValueSet). Later history changed the invariant away from a choice-type uri test: GF#16055 made valueSet a single canonical element, GF#17431 added the exists() guard, and FHIR-34306 added the permitted local-reference # prefix. Current source therefore uses `valueSet.exists() implies (valueSet.startsWith('http:') or valueSet.startsWith('https') or valueSet.startsWith('urn:') or valueSet.startsWith('#'))`, so the reported is/as function misuse is absent. A community search found only a 2019 Zulip question about whether OperationDefinition should have a similar invariant, with no Jira or Confluence evidence that changes the ElementDefinition conclusion.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical FHIR-15651 correction was applied, and the current build-scope source has since been refactored into an expression where the original operator-vs-function issue no longer applies.
+
+Recommendation:
+Keep this audit commit as-is. Do not edit current ElementDefinition source for FHIR-15651; any future work on eld-12 should be driven by later issues about canonical/local value set references rather than by the obsolete STU3 valueSet[x] uri syntax.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15651
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-16055: later-change - changed ElementDefinition.binding.valueSet[x] to a single canonical(ValueSet), making the original uri choice-type test obsolete.
+FHIR-17431: later-change - added the valueSet.exists() guard to the canonical valueSet invariant after validation work.
+FHIR-34306: later-change - later allowed local # value set references in eld-12, explaining the current expression's extra permitted prefix.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15651: Published/Persuasive technical correction asking eld-12 to use FHIRPath is/as operator syntax instead of valueSet.is(uri)/valueSet.as(uri). Learned: establishes the final issue request and target historical fix.
+- E2 Source source/fhir.ini:1015,1146 and source/datatypes/elementdefinition.xml:2653-2658,4696-4703: ElementDefinition is active normative content, valueSet is canonical(ValueSet), and eld-12 now uses valueSet.exists() with startsWith prefixes. Learned: current build-scope source no longer contains the reported is/as function misuse.
+- E3 Git 2ba76c80e44bd38eb8874c39029b36fb887628f3: git-svn revision 13340 changed the eld-12 expression from valueSet.is(uri)/valueSet.as(uri) to `(valueSet is uri)` / `(valueSet as uri)`. Learned: the Jira request was explicitly applied despite the commit subject typo.
+- E4 Git 4cd5fe67cd712a5cf12329da39bf088a20b03275, 2f577a81d2c0833f5bbe23b020262257b89339cc, and 94d2f40b289a6e395f78f5a856f5613a5c2f2ad9: later commits converted valueSet to canonical, added exists(), and added #. Learned: later changes explain why the current expression differs from the original FHIR-15651 resolution while preserving correctness.
+- E5 Community searches: Zulip found only #conformance > OperationDefinition binding invariants? and Confluence/Jira searches found no directly conflicting records. Learned: no discovered community evidence requires a current ElementDefinition source change for FHIR-15651.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15651",
+    "url": "https://jira.hl7.org/browse/FHIR-15651",
+    "snapshot_path": "contexts/FHIR-15651/jira/FHIR-15651.md",
+    "ref": { "jira_key": "FHIR-15651" },
+    "summary": "Published/Persuasive technical correction requiring eld-12 to use FHIRPath is/as operator syntax instead of valueSet.is(uri)/valueSet.as(uri).",
+    "learned": "This establishes the final Jira request and the historical expression defect to check in source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1015,1146; source/datatypes/elementdefinition.xml:2653-2658,4696-4703",
+    "ref": { "path": "source/datatypes/elementdefinition.xml", "line": 4702 },
+    "summary": "ElementDefinition is active normative source, binding.valueSet is canonical(ValueSet), and eld-12 uses valueSet.exists() with startsWith prefixes.",
+    "learned": "The current build-scope ElementDefinition source no longer contains the is/as function misuse reported by FHIR-15651.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "2ba76c80e44bd38eb8874c39029b36fb887628f3",
+    "ref": { "commit": "2ba76c80e44bd38eb8874c39029b36fb887628f3" },
+    "summary": "Historical commit for git-svn revision 13340 replaced valueSet.is(uri)/valueSet.as(uri) with `(valueSet is uri)` / `(valueSet as uri)` in eld-12.",
+    "learned": "The Jira change was explicitly applied, even though the commit subject says eld-7.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "4cd5fe67cd712a5cf12329da39bf088a20b03275; 2f577a81d2c0833f5bbe23b020262257b89339cc; 94d2f40b289a6e395f78f5a856f5613a5c2f2ad9",
+    "ref": { "commits": "4cd5fe67cd712a5cf12329da39bf088a20b03275,2f577a81d2c0833f5bbe23b020262257b89339cc,94d2f40b289a6e395f78f5a856f5613a5c2f2ad9" },
+    "summary": "Later history converted binding.valueSet to canonical(ValueSet), added valueSet.exists(), and allowed # prefixes.",
+    "learned": "These later source changes explain why the current expression differs from the original FHIR-15651 text without reintroducing the reported defect.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Community search for FHIR-15651, eld-12, ElementDefinition valueSet",
+    "command": "bun run zulip:search fts '\"FHIR-15651\" OR \"eld-12\" ElementDefinition valueSet' --limit 10; bun run zulip:search snapshot conformance 'OperationDefinition binding invariants?'; bun run confluence:search refs jira FHIR-15651; bun run confluence:search fts '\"FHIR-15651\" OR \"eld-12\" ElementDefinition valueSet' --limit 10; bun run jira:search fts '\"OperationDefinition binding invariants\" OR \"eld-12\" \"OperationDefinition\"' --limit 20",
+    "query": "FHIR-15651 OR eld-12 ElementDefinition valueSet",
+    "result_count": 1,
+    "summary": "Zulip had one 2019 OperationDefinition question mentioning eld-12; Jira and Confluence searches found no directly conflicting records.",
+    "learned": "No discovered community evidence changes the source/history conclusion for ElementDefinition eld-12.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

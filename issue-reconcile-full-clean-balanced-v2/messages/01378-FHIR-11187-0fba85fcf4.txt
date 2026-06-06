@@ -1,0 +1,87 @@
+FHIR-11187: Audit Immunization reporting source split
+
+Issue request:
+FHIR-11187 was a Published FHIR-core Immunization change request, resolved Not Persuasive with Modification. It requested replacing the DSTU2 Immunization.reported boolean with an informationSource-style element aligned with MedicationStatement, and the PHER decision retained a direct-administration indicator while adding a separate attribute for the source of non-directly administered immunization events.
+
+Initial application:
+No current git commit explicitly mentions FHIR-11187. The relevant historical application appears in the 2016 Immunization commit baf0c978b8, which replaced top-level Immunization.reported with Immunization.primarySource and added Immunization.reportOrigin plus an ImmunizationReportOrigin value set. A later 2019 Immunization refactor in 8386871f82 renamed/expanded reportOrigin to Immunization.informationSource[x] while preserving the secondary-report source concept.
+
+Additional context:
+The active current build includes Immunization in source/fhir.ini. Current source has Immunization.primarySource for whether the record originated with the administering individual/organization, and Immunization.informationSource bound to the immunization-origin value set for the source of reported data. Later Published core issue FHIR-37722 reaffirmed that informationSource captures the source of a reported immunization event while primarySource captures the source relationship to the event, and its applied commit 0f4d89973f clarified the primarySource definition now present in source.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scoped Immunization StructureDefinition no longer has the old top-level Immunization.reported element, retains the direct/primary-source boolean concept, and provides the separate informationSource element requested by the modified resolution.
+
+Recommendation:
+Keep this audit commit as-is. Further source edits would be redundant for FHIR-11187; any future reconsideration of whether primarySource remains useful should be handled under the later primarySource issue family rather than this DSTU2 reconciliation item.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11187
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-37722: later-change - later Published core issue clarified the distinction between Immunization.primarySource and Immunization.informationSource and confirms the current interpretation of the seed resolution.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11187: Published/Not Persuasive with Modification PHER issue asked to replace Immunization.reported with informationSource but resolved to retain the direct-administration concept and add a separate source attribute. Learned: this establishes the target current-state split between a primary/direct indicator and a source-of-reported-data element.
+- E2 Source source/fhir.ini:170-204 and source/immunization/structuredefinition-Immunization.xml:504-562: Immunization is an active build resource; current source defines primarySource and informationSource with the immunization-origin binding. Learned: the authoritative current source is in scope and already represents the requested split.
+- E3 Git baf0c978b8 and 8386871f82: 2016 history replaced top-level reported with primarySource and reportOrigin; 2019 history renamed/expanded reportOrigin to informationSource[x]. Learned: the issue was applied through historical source changes even though the current element name differs from the initial application.
+- E4 Jira FHIR-37722 and Git 0f4d89973f: later Published clarification states informationSource captures the source of a reported immunization event while primarySource captures how the data was originally captured, and applied that wording to source. Learned: later final context supports the current source wording rather than reverting to the original requested replacement.
+- E5 Command community/build-scope checks: Jira search for FHIR-11187 found only the seed; Zulip and Confluence searches for FHIR-11187 found no relevant hits; current-source grep found no top-level Immunization.reported outside reaction.reported. Learned: no discovered community or source evidence conflicts with the no-change decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11187",
+    "url": "https://jira.hl7.org/browse/FHIR-11187",
+    "snapshot_path": "contexts/FHIR-11187/jira/FHIR-11187.md",
+    "ref": { "jira_key": "FHIR-11187" },
+    "summary": "Published/Not Persuasive with Modification PHER issue requested replacing Immunization.reported with informationSource but resolved to retain the direct-administration concept and add a separate source attribute.",
+    "learned": "This establishes that the correct outcome is a split between a primary/direct indicator and a source-of-reported-data element, not a simple replacement.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-204; source/immunization/structuredefinition-Immunization.xml:504-562",
+    "ref": { "path": "source/immunization/structuredefinition-Immunization.xml" },
+    "summary": "Immunization is active in fhir.ini and current source defines Immunization.primarySource plus Immunization.informationSource with the immunization-origin binding.",
+    "learned": "The build-scoped current source already satisfies the modified resolution.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "baf0c978b8; 8386871f82",
+    "ref": { "commits": "baf0c978b8,8386871f82" },
+    "summary": "The 2016 application replaced top-level reported with primarySource and reportOrigin; the 2019 refactor renamed/expanded reportOrigin to informationSource[x].",
+    "learned": "The current element name is the result of later source history, not a missing application of the seed.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-37722 and commit 0f4d89973f",
+    "url": "https://jira.hl7.org/browse/FHIR-37722",
+    "ref": { "jira_key": "FHIR-37722", "commit": "0f4d89973f" },
+    "summary": "Later Published clarification states informationSource captures the source of a reported immunization event while primarySource captures the source relationship to the event, and applied that wording to source.",
+    "learned": "Later final context supports leaving the current primarySource/informationSource split unchanged.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community and current-source searches for FHIR-11187",
+    "command": "bun run jira:search fts '\"FHIR-11187\" Immunization reported informationSource' --limit 10; bun run zulip:search fts '\"FHIR-11187\" Immunization reported informationSource' --limit 10; bun run confluence:search refs jira FHIR-11187; rg -n '<(reported|path value=\"Immunization\\.reported\"|element id=\"Immunization\\.reported\")' source/immunization",
+    "query": "FHIR-11187 Immunization reported informationSource",
+    "result_count": 1,
+    "summary": "Only the seed Jira was found for FHIR-11187; Zulip and Confluence had no relevant hits; current source has no top-level Immunization.reported outside reaction.reported.",
+    "learned": "No discovered community or source evidence conflicts with the no-change audit decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

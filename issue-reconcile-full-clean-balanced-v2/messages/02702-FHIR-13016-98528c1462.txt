@@ -1,0 +1,129 @@
+FHIR-13016: Audit Provenance agent role split
+
+Issue request:
+FHIR-13016 was Published/Persuasive with Modification for DSTU2 Provenance. The original request said Provenance.agent.role should not repeat for multiple participation functions; the Jira discussion and resolution transformed that into separating the agent's participation from authorization/security roles, with a coded 0..1 participation element and companion AuditEvent alignment.
+
+Initial application:
+No explicit source commit mentioning FHIR-13016 was found in the current git history. The post-migration source already carried the modeled split as Provenance.agent.type and AuditEvent.agent.type for the participation/function of the agent, while retaining Provenance.agent.role and AuditEvent.agent.role for repeatable role/authorization concepts. Later commits, especially f577d68ceb for FHIR-32453/FHIR-32520 and subsequent participation value set work, refined the same source locations.
+
+Additional context:
+FHIR-13011, resolved in the same DSTU2 family, records that the model had changed so Provenance.agent.type indicates how the agent participated, while Provenance.agent.role is intended for security roles such as RBAC or ABAC roles. Later Published/Applied issues FHIR-28184, FHIR-32453, FHIR-32519, FHIR-32520, and FHIR-53882 further clarified the distinction between agent.type and agent.role and their terminology bindings. source/fhir.ini actively includes both Provenance and AuditEvent, so the inspected StructureDefinition XML files are in current build scope.
+
+AutoFHIR reconciliation:
+Made no source change. The current active source already satisfies the durable FHIR-13016 requirement by representing participation as Provenance.agent.type 0..1, bound to participation-role-type, and by keeping Provenance.agent.role as 0..* for structural/security role concepts under later published decisions. Changing Provenance.agent.role to 1..1 or 0..1 now would reintroduce the participation/security conflation that later decisions explicitly resolved.
+
+Recommendation:
+Keep this audit commit as-is. Do not change Provenance.agent.role cardinality for FHIR-13016; any desire to apply the newer FHIR-53882-style wording to Provenance should be handled as a separate Security WG clarification because FHIR-53882 itself was AuditEvent-scoped.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13016
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13011: same-change-family - same DSTU2 Provenance discussion states that agent.type carries participation and agent.role carries security/RBAC/ABAC roles.
+FHIR-28184: later-change - R5 Provenance clarification keeps agent.type as the 0..1 functional/participation role and agent.role as 0..* structural role.
+FHIR-32453: later-change - R5 AuditEvent/Provenance clarification refines definitions for agent.type versus agent.role.
+FHIR-32519: later-change - companion published decision and existing combined-branch commit finalize the participation-role-type binding used by agent.type.
+FHIR-32520: later-change - companion published decision cleans the structural-role value set used by agent.role.
+FHIR-53882: later-change - later Applied AuditEvent-only clarification confirms role/type semantics but does not authorize a Provenance wording edit here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13016: Published/Persuasive with Modification, requesting that participation not be modeled as multiple Provenance.agent.role values and discussing a 0..1 participation concept. Learned: the durable requirement is to separate participation from authorization/security role concepts.
+- E2 Source source/fhir.ini:170-224: Provenance and AuditEvent are active resources in the current build. Learned: the inspected StructureDefinition XML files are authoritative current build inputs.
+- E3 Source source/provenance/structuredefinition-Provenance.xml:526-580: Provenance.agent.type is 0..1 for how the agent participated and binds to participation-role-type, while Provenance.agent.role remains 0..* and binds to security-role-type-example. Learned: current Provenance source implements the split rather than the old literal role-cardinality summary.
+- E4 Source source/auditevent/structuredefinition-AuditEvent.xml:618-682: AuditEvent has the same parallel agent.type 0..1 and agent.role 0..* shape. Learned: the AuditEvent side named in the FHIR-13016 resolution is also aligned.
+- E5 Jira FHIR-13011: Published/Persuasive with Modification, saying Provenance.agent.type indicates participation and Provenance.agent.role is intended for security roles such as RBAC or ABAC roles. Learned: this same issue family resolves the apparent conflict in FHIR-13016 comments in favor of the current model split.
+- E6 Jira FHIR-28184 and FHIR-32453: later Published decisions clarify agent.type versus agent.role, with type for functional participation and role for structural role concepts. Learned: later WG decisions preserve role repeatability instead of making Provenance.agent.role 1..1.
+- E7 Git f577d68ceb and 24aec834ee: f577 applied agent.type/agent.role clarity for FHIR-32453/FHIR-32520; 24aec834ee, already on the combined branch, completed the FHIR-32519 Provenance agent.type binding update. Learned: current source is the product of later issue-family decisions, not a missed FHIR-13016 edit.
+- E8 Community search: Zulip search for "FHIR-13016" plus Provenance agent.role found no direct hits; broader role/type searches found only later clarification discussion, and Confluence refs found later Security WG agenda/minute references for related issues but no FHIR-13016 conflict. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E9 Verification command: checked current source with rg/awk queries for role/type min/max and binding values, and checked the combined branch for an existing FHIR-13016 reconcile commit. Learned: the decision is idempotent and source state matches the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13016",
+    "url": "https://jira.hl7.org/browse/FHIR-13016",
+    "snapshot_path": "contexts/FHIR-13016/jira/FHIR-13016.md",
+    "ref": { "jira_key": "FHIR-13016" },
+    "summary": "Published/Persuasive with Modification issue requesting that Provenance agent participation not be represented by multiple role values.",
+    "learned": "The durable requirement is to separate participation from authorization/security role concepts rather than literally forcing the current role element to 1..1.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-224",
+    "summary": "The resources list actively includes provenance=Provenance and auditevent=AuditEvent.",
+    "learned": "The inspected Provenance and AuditEvent StructureDefinition XML files are in current build scope.",
+    "supports": ["source_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/provenance/structuredefinition-Provenance.xml:526-580",
+    "summary": "Provenance.agent.type is 0..1 for participation and binds to participation-role-type; Provenance.agent.role is 0..* and binds to security-role-type-example.",
+    "learned": "Current Provenance source implements the participation/role split required by the issue family.",
+    "supports": ["reconciliation", "current_source"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:618-682",
+    "summary": "AuditEvent has the parallel agent.type 0..1 and agent.role 0..* shape with the same participation and security role bindings.",
+    "learned": "The AuditEvent side named in the FHIR-13016 resolution is also aligned with the current model.",
+    "supports": ["additional_context", "current_source"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-13011",
+    "url": "https://jira.hl7.org/browse/FHIR-13011",
+    "ref": { "jira_key": "FHIR-13011" },
+    "summary": "Published/Persuasive with Modification issue says Provenance.agent.type indicates participation and Provenance.agent.role is intended for security roles such as RBAC or ABAC roles.",
+    "learned": "This same DSTU2 issue family supports the current model split and resolves the apparent conflict in the FHIR-13016 comments.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-28184; FHIR-32453",
+    "url": "https://jira.hl7.org/browse/FHIR-28184",
+    "ref": { "jira_key_1": "FHIR-28184", "jira_key_2": "FHIR-32453" },
+    "summary": "Later Published decisions clarify agent.type versus agent.role, with type for functional participation and role for structural role concepts.",
+    "learned": "Later WG decisions preserve role repeatability instead of making Provenance.agent.role 1..1.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "f577d68ceb; 24aec834ee",
+    "ref": { "commit_1": "f577d68ceb", "commit_2": "24aec834ee" },
+    "summary": "f577 applied agent.type/agent.role clarity for FHIR-32453/FHIR-32520; 24aec834ee completed the FHIR-32519 Provenance agent.type binding update on the combined branch.",
+    "learned": "Current source is the product of later issue-family decisions, not a missed FHIR-13016 edit.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community searches for FHIR-13016 and agent.role/type",
+    "command": "bun run zulip:search fts '\"FHIR-13016\" Provenance \"agent.role\"' --limit 10; bun run zulip:search fts 'Provenance \"agent.type\" \"agent.role\" structural functional role' --limit 10; bun run confluence:search refs jira FHIR-13016",
+    "query": "FHIR-13016 Provenance agent.role; Provenance agent.type agent.role structural functional role",
+    "summary": "No direct Zulip or Confluence hits for FHIR-13016 were found; broader searches found only later role/type clarification context and no conflicting seed evidence.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Current source and idempotency checks",
+    "command": "rg 'Provenance.agent.role|AuditEvent.agent.role|Provenance.agent.type|AuditEvent.agent.type' source; awk over the agent.type/role elements; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13016' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "Current source has the expected min/max and bindings, and the combined branch had no prior FHIR-13016 reconcile commit.",
+    "learned": "The no-change audit is idempotent and based on verified source state.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

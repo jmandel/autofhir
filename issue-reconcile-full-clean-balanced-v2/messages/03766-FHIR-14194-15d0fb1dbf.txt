@@ -1,0 +1,119 @@
+FHIR-14194: Audit Range invariant removal
+
+Issue request:
+FHIR-14194 was a Published/Persuasive with Modification FHIR-core datatypes issue raised in STU3. It reported that the Range rng-2 invariant used `low.empty() or high.empty() or (low <= high)` even though Range.low and Range.high are SimpleQuantity values and Quantity comparison was not then defined in FHIRPath. The approved disposition was to remove rng-2 as an executable invariant for the time being, track Quantity comparison support separately, and re-add the constraint once that support existed.
+
+Initial application:
+The seed appears to have been applied by git-svn commit b700546ea6 (`#14194 - fix range invariant`) on source/datatypes/range.xml. That commit changed the Range.low and Range.high invariant references from `2` to `!2` and changed the Invariants sheet id from `2` to `!2`, disabling rng-2 while retaining the Range datatype prose about ordered low/high quantities and boundary meaning.
+
+Additional context:
+FHIR-14308 added the FHIRPath Quantity-comparison support that FHIR-14194 requested as a prerequisite. FHIR-14309 and FHIR-14326 then asked to re-enable the Range invariant, and git-svn commit 11f97b11d7 (`GF#14309 - reenable rng-2 invraiant`, svn revision 13459) changed the invariant id back from `!2` to `2`. Later, FHIR-25736 changed rng-2 to ignore missing low.value/high.value in patterns, and FHIR-34417 refined the expression with lowBoundary/highBoundary plus comparable(). The combined branch already contains audit commits for FHIR-14309 and FHIR-25736; FHIR-14326 is audited separately by the following commit.
+
+AutoFHIR reconciliation:
+No source change was made for FHIR-14194. Range is active in source/fhir.ini, and the authoritative current source/datatypes/range.xml contains rng-2 as invariant id 2 with the current Quantity-aware expression. Removing it now would undo later final decisions, while adding redundant usage prose is unnecessary because current source already conveys the low/high Range semantics and enforces them using the later approved FHIRPath support.
+
+Recommendation:
+Keep this audit commit as-is. FHIR-14194 was correctly applied as a temporary disabling of rng-2, and the current re-enabled invariant is correct because later final issues superseded the temporary state.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14194
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-14308: supporting-decision - added FHIRPath Quantity comparison support that FHIR-14194 requested as the prerequisite to re-adding rng-2.
+FHIR-14309: same-change-family - separately requested re-adding the Range invariant once FHIRPath Quantity comparisons were available and is already audited on the combined branch.
+FHIR-14324: background - duplicate FHIRPath Quantity comparison request mentioned in the FHIR-14194 comments.
+FHIR-14326: same-change-family - directly requested re-enabling Range invariant 2 after Quantity comparison support and is audited by the next commit.
+FHIR-25736: later-change - refined rng-2 so missing low.value or high.value does not fail Range patterns and is already audited on the combined branch.
+FHIR-34417: later-change - later refined rng-2 with lowBoundary/highBoundary and comparable() semantics.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14194: Published/Persuasive with Modification; asked to remove the invalid executable rng-2 until Quantity comparisons were defined, then re-add it via follow-up requests. Learned: the seed was a temporary-disable decision, not a permanent removal.
+- E2 Source source/fhir.ini:11-29: Range is listed as an active datatype under [types]. Learned: source/datatypes/range.xml is current build-scope source.
+- E3 Source source/datatypes/range.xml:3350-3358: Range invariant id 2 is active and uses low.value.empty/high.value.empty plus lowBoundary/highBoundary/comparable checks. Learned: current source has the later approved executable invariant.
+- E4 Git b700546ea6: `#14194 - fix range invariant` changed Range invariant references/id from 2 to !2. Learned: FHIR-14194 was initially applied by disabling rng-2.
+- E5 Jira FHIR-14308/FHIR-14309/FHIR-14326: final related requests added Quantity comparison support and requested re-enabling Range invariant 2. Learned: later final decisions superseded FHIR-14194's temporary no-invariant state.
+- E6 Git 11f97b11d7: `GF#14309 - reenable rng-2 invraiant` changed invariant id !2 back to 2, matching FHIR-14309/FHIR-14326 comments about svn revision 13459. Learned: the later re-enable was applied in source.
+- E7 Jira/Git FHIR-25736 and FHIR-34417: later decisions refined rng-2 to check missing low.value/high.value and then use boundary/comparability functions. Learned: the current expression's wording differs from the historical low <= high form for valid later reasons.
+- E8 Community and minutes searches: Zulip #implementers > FHIRPath Quantity Comparisons confirms the original Quantity-comparison gap; corrected Confluence searches found no direct FHIR-14194/FHIR-14326 minutes and found no conflicting evidence. Learned: community evidence supports the Jira/source history and does not require a current source edit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14194",
+    "url": "https://jira.hl7.org/browse/FHIR-14194",
+    "snapshot_path": "contexts/FHIR-14194/jira/FHIR-14194.md",
+    "ref": { "jira_key": "FHIR-14194" },
+    "summary": "Published/Persuasive with Modification issue reported that Range rng-2 used Quantity comparison before FHIRPath defined it.",
+    "learned": "This establishes that the approved seed action was to disable rng-2 temporarily and create follow-up work for Quantity comparisons and re-addition.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:11-29",
+    "summary": "The active [types] section includes Range.",
+    "learned": "The Range spreadsheet is current build input.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/range.xml:3350-3358",
+    "summary": "Current Range invariant id 2 is active with low.value/high.value guards and lowBoundary/highBoundary comparable checks.",
+    "learned": "Current source intentionally reflects later approved re-enabling and refinements of rng-2.",
+    "supports": ["additional_context", "reconciliation", "recommendation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "b700546ea67babe268afa40c403b66dbdb7029ea",
+    "ref": { "commit": "b700546ea67babe268afa40c403b66dbdb7029ea" },
+    "summary": "Git-svn commit #14194 disabled rng-2 by changing Range invariant references/id from 2 to !2.",
+    "learned": "FHIR-14194 was initially applied in authoritative source.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-14308, FHIR-14309, and FHIR-14326",
+    "url": "https://jira.hl7.org/browse/FHIR-14326",
+    "snapshot_path": "contexts/FHIR-14326/jira/FHIR-14326.md",
+    "summary": "Related final requests added Quantity comparison support and asked to re-enable Range invariant 2 after that support existed.",
+    "learned": "These later decisions mean the current source should not preserve FHIR-14194's temporary disabled state.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "11f97b11d79b7132747af46442affd51e3ef35e5",
+    "ref": { "commit": "11f97b11d79b7132747af46442affd51e3ef35e5" },
+    "summary": "Git-svn commit GF#14309 re-enabled rng-2 by changing invariant id !2 back to 2.",
+    "learned": "The follow-up re-enable was applied in source and matches the linked Jira svn revision comments.",
+    "supports": ["additional_context", "initial_application"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "FHIR-25736 and FHIR-34417 Range rng-2 refinements",
+    "ref": { "commit": "8a6a54029fdef0c2811fe4ea4e0286f84c1de7e3" },
+    "summary": "Later final changes retained rng-2 while refining its expression for missing values, boundaries, and comparability.",
+    "learned": "The current expression is a valid later refinement, not a missed FHIR-14194 removal.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community and minutes searches for FHIR-14194/rng-2",
+    "command": "bun run zulip:search snapshot implementers 'FHIRPath Quantity Comparisons'; bun run confluence:search refs jira FHIR-14194; bun run confluence:search refs jira FHIR-14326",
+    "query": "FHIR-14194, FHIR-14326, rng-2, FHIRPath Quantity Comparisons",
+    "summary": "The linked Zulip thread confirms the Quantity-comparison gap; no direct conflicting Confluence references for FHIR-14194 or FHIR-14326 were found.",
+    "learned": "Community evidence supports the Jira/source conclusion and does not require source changes.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,120 @@
+FHIR-13682: Audit PractitionerRole reference reconciliation
+
+Issue request:
+FHIR-13682 was a Published Patient Administration change request for STU3. It asked either to add organization information back to Practitioner or to make sure work groups updated resources that only referenced Practitioner after role/organization details moved into PractitionerRole. The final resolution was Not Persuasive with Modification: during R4 closeout, work groups and resources addressed the issue by ensuring PractitionerRole references were present in all relevant resources.
+
+Initial application:
+No source commit was found that names FHIR-13682 directly. The R4-era application appears in the coordinated PractitionerRole reference sweep: PA minutes approved changing relevant Reference(Practitioner) targets to include PractitionerRole, and git history includes commits such as 710e005513, 3e01cea0, eff65f2a33, 2d9d71ed42, and 7475edc72c/cf7c8a6188 adding PractitionerRole to patient-care, pharmacy, messaging/research, and OO resources.
+
+Additional context:
+Current fhir.ini actively includes both Practitioner and PractitionerRole. The current PractitionerRole narrative explains that many resources intentionally allow either Practitioner or PractitionerRole, that PractitionerRole supplies organization context when needed, and that PractitionerRole may represent an organizational role even when a specific practitioner is not preallocated. Later FHIR-23935 made this guidance explicit and is already represented on the combined branch; FHIR-21166 was retracted with PA comments noting that the STU3 referencing-resource issues had been resolved in R4/R5. FHIR-19688 remains unresolved and concerns search/compartment behavior for indirect PractitionerRole references, not whether the reference targets should be changed.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. A current active StructureDefinition audit found the expected broad use of PractitionerRole alongside Practitioner in role/actor/performer/author/requester/participant references. The remaining Practitioner-only targets are subject/identity/workflow/authorization-style elements or PractitionerRole.practitioner itself, so they do not show a missed implementation of FHIR-13682.
+
+Recommendation:
+Keep this audit commit as-is. Do not add organization back to Practitioner and do not broaden Practitioner-only targets without a new work-group decision for a specific element; use FHIR-19688 or a future targeted issue if the remaining problem is search behavior across indirect PractitionerRole references.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13682
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-23935: later-change - published R5 clarification that PractitionerRole should be referenced when organization and role are important; already audited on the combined branch.
+FHIR-21166: supporting-decision - retracted request to collapse role data back into Practitioner, with PA comments that R4/R5 referencing-resource issues had been resolved.
+FHIR-19688: background - unresolved search/compartment concern for indirect PractitionerRole references; not a final source-edit decision for this reconciliation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13682: Published/Not Persuasive with Modification; resolution says R4 closeout ensured PractitionerRole references in all relevant resources. Learned: the issue asks for an audit of role/reference coverage rather than adding organization back to Practitioner now.
+- E2 Source source/fhir.ini:169-218: active [resources] entries include practitioner=Practitioner and practitionerrole=PractitionerRole. Learned: the inspected Practitioner and PractitionerRole source files are in current build scope.
+- E3 Source source/practitionerrole/practitionerrole-introduction.xml:35-45,65-66: current guidance says many resources choose between Practitioner and PractitionerRole, PractitionerRole supplies organizational context, and PractitionerRole can represent an unallocated organizational role. Learned: the current spec conveys the rule needed by the Jira resolution.
+- E4 Command active StructureDefinition audit: parsed active fhir.ini resources and found 159 elements referencing Practitioner or PractitionerRole, including 144 with both; the 12 Practitioner-only targets were reviewed as subject/identity/workflow/authorization or PractitionerRole.practitioner. Learned: no current build-scope role/organization reference gap was found.
+- E5 Git 7475edc72c/cf7c8a6188 and related R4-era commits: added PractitionerRole where missing, including OO resources, with broader 2018 commits for PA/FHIR-I, patient-care, pharmacy, MessageHeader, ResearchStudy, Account, and Flag. Learned: this matches the Jira resolution's statement that R4 resources were updated.
+- E6 Confluence PA minutes 2018-11-21 page 35720538: PractitionerRole reference type review approved changing relevant Reference(Practitioner) targets to Reference(Practitioner|PractitionerRole) and recorded motion passed 3-0-0. Learned: work-group minutes support the coordinated R4 QA application path.
+- E7 Jira FHIR-23935 and FHIR-21166: later Published clarification and retracted split-PractitionerRole request. Learned: later decisions support retaining separate PractitionerRole guidance rather than moving organization back onto Practitioner.
+- E8 Community search for FHIR-13682: quoted Zulip and Confluence searches found no direct issue-key discussion beyond the PA minutes discovered by broader PractitionerRole searches. Learned: no conflicting community evidence was found.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13682",
+    "url": "https://jira.hl7.org/browse/FHIR-13682",
+    "snapshot_path": "contexts/FHIR-13682/jira/FHIR-13682.md",
+    "ref": { "jira_key": "FHIR-13682" },
+    "summary": "Published/Not Persuasive with Modification issue asking either to add organization information back to Practitioner or ensure resources use PractitionerRole where needed.",
+    "learned": "The final decision was not to restore organization on Practitioner, but to rely on R4 work-group updates adding PractitionerRole references to relevant resources.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-218",
+    "ref": { "path": "source/fhir.ini", "lines": "169-218" },
+    "summary": "The active resources list includes practitioner=Practitioner and practitionerrole=PractitionerRole.",
+    "learned": "The inspected Practitioner and PractitionerRole source files are current build inputs.",
+    "supports": ["build_scope", "source_check"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/practitionerrole/practitionerrole-introduction.xml:35-45,65-66",
+    "ref": { "path": "source/practitionerrole/practitionerrole-introduction.xml", "lines": "35-45,65-66" },
+    "summary": "Current narrative explains Practitioner-vs-PractitionerRole references, organizational context, and use of PractitionerRole without a named practitioner.",
+    "learned": "The current spec gives implementers the intended rule for references where role and organization matter.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Active StructureDefinition Practitioner/PractitionerRole audit",
+    "command": "python3 script parsing source/fhir.ini active resources and source/*/structuredefinition-*.xml targetProfile values",
+    "summary": "The audit found 159 active elements referencing Practitioner or PractitionerRole: 144 included both, 12 were Practitioner-only, and 3 were PractitionerRole-only; Practitioner-only elements were reviewed as non-role contextual targets or PractitionerRole.practitioner.",
+    "learned": "No current role/organization reference target gap requiring a source change was found.",
+    "supports": ["source_check", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "7475edc72c/cf7c8a6188 and R4 PractitionerRole reference sweep",
+    "ref": { "commit": "7475edc72c62cd4d5f8c3bddf30d5166d5bdb881" },
+    "summary": "R4-era commits added PractitionerRole to missing references across OO, PA/FHIR-I, patient-care, pharmacy, messaging/research, Account, and Flag resources.",
+    "learned": "Git history corroborates the Jira resolution's statement that the relevant resource references were updated during R4 closeout.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "PA 2018-11-21 Conference Call Minutes page 35720538",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/35720538/2018-11-21+Conference+Call+Minutes+FHIR",
+    "ref": { "confluence_page_id": 35720538 },
+    "summary": "PA minutes record a PractitionerRole reference type review changing relevant Reference(Practitioner) targets to Reference(Practitioner|PractitionerRole), with a 3-0-0 motion.",
+    "learned": "The work group documented the coordinated R4 QA path that implements FHIR-13682's resolution.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-23935 and FHIR-21166",
+    "url": "https://jira.hl7.org/browse/FHIR-23935",
+    "ref": { "jira_key": "FHIR-23935" },
+    "summary": "FHIR-23935 added current PractitionerRole usage guidance; FHIR-21166 was retracted after PA noted R4/R5 referencing-resource issues were resolved.",
+    "learned": "Later decisions support the no-change conclusion for FHIR-13682 rather than moving organization details back into Practitioner.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative direct community search for FHIR-13682",
+    "command": "bun run zulip:search fts '\"FHIR-13682\" PractitionerRole Practitioner Organization' --limit 10; bun run confluence:search fts '\"FHIR-13682\" PractitionerRole' --limit 10",
+    "query": "\"FHIR-13682\" PractitionerRole",
+    "result_count": 0,
+    "summary": "No direct issue-key Zulip or Confluence discussion was found; broader PractitionerRole searches found the PA minutes cited separately.",
+    "learned": "No discovered community record conflicts with the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,95 @@
+FHIR-11907: Audit document class code reconciliation
+
+Issue request:
+FHIR-11907 was Published/Persuasive with Modification for DSTU2 and asked to stop using the invalid CLD list of LOINC Part codes for Composition.class, bind Composition.class to the same document class value set used by DocumentReference.class, rename c80-doc-classcodes to document-classcodes, and remove the HITSP C80 reproduction text.
+
+Initial application:
+The Jira comment cites svn 14517, represented in git as 68a11fd7f788b9d67f05aca68d9ecd08236580ca. That commit changed Composition's spreadsheet binding from valueset-doc-categorycodes to http://hl7.org/fhir/ValueSet/document-classcodes, changed DocumentReference's spreadsheet reference from valueset-c80-doc-classcodes to valueset-document-classcodes, renamed the value set source file, and removed the HITSP C80 reproduction wording.
+
+Additional context:
+The old R3 element names are mapped forward in source/fhir.ini as Composition.class=Composition.category and DocumentReference.class=DocumentReference.category. Current source binds both Composition.category and DocumentReference.category to http://hl7.org/fhir/ValueSet/referenced-item-category. That later value set name is explained by FHIR-32577, a Published/Persuasive with Modification R5 issue that renamed document-classcodes because DocumentReference can reference non-document items. The remaining source/composition/valueset-doc-categorycodes.xml file still contains LOINC Part codes, but current source searches find no active references to doc-categorycodes or document-classcodes outside historical/generated-looking artifacts, while the authoritative current bindings point to referenced-item-category.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active Composition and DocumentReference category bindings are consistent with the applied FHIR-11907 decision as evolved by the later FHIR-32577 rename, and editing the unreferenced legacy valueset-doc-categorycodes.xml file would not improve the current build behavior.
+
+Recommendation:
+Keep this audit commit as-is for FHIR-11907. If a future worker reviews FHIR-32577 independently, it can assess any remaining wording details for the referenced-item-category rename; no FHIR-11907 source fix is needed in the current FHIR checkout.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11907
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32577: later-change - renamed document-classcodes to referenced-item-category, explaining why the current correct binding no longer uses the FHIR-11907-era value set URL.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11907: Published/Persuasive with Modification asked to replace the LP-code Composition.class list with the DocumentReference document class value set, rename c80-doc-classcodes to document-classcodes, and remove HITSP C80 reproduction text. Learned: this is the final seed issue request.
+- E2 Git 68a11fd7f788b9d67f05aca68d9ecd08236580ca: GF#11907 changed Composition's binding to document-classcodes, renamed the DocumentReference value set source, and removed the HITSP C80 text. Learned: the seed was explicitly applied in source history.
+- E3 Source source/fhir.ini:2637 and :2643 plus source/composition/structuredefinition-Composition.xml:323-340 and source/documentreference/structuredefinition-DocumentReference.xml:394-413. Learned: old Composition.class/DocumentReference.class map to current category elements, and both current authoritative elements share referenced-item-category.
+- E4 Source source/documentreference/valueset-referenced-item-category.xml:28-40. Learned: the current category value set is active, broad, and uses a LOINC filter for DOC-scale codes rather than enumerating the old LP class codes as expansion members.
+- E5 Jira FHIR-32577 and Git 1e542148c2d27a0394c2798fa8a1a78014db1b4d/314c3b3a9f56c4480808c133aec77d1078f3bf6f. Learned: later published R5 work intentionally renamed document-classcodes to referenced-item-category and updated DocumentReference and Composition bindings.
+- E6 Command rg doc-categorycodes/document-classcodes plus Zulip/Confluence searches. Learned: the remaining LP-code valueset-doc-categorycodes.xml source has no active current references found, and no community evidence was found that conflicts with the Jira/source-history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11907",
+    "url": "https://jira.hl7.org/browse/FHIR-11907",
+    "snapshot_path": "contexts/FHIR-11907/jira/FHIR-11907.md",
+    "ref": { "jira_key": "FHIR-11907" },
+    "summary": "Published/Persuasive with Modification issue requiring Composition.class to use the DocumentReference document class value set, renaming c80-doc-classcodes to document-classcodes, and removing HITSP C80 reproduction text.",
+    "learned": "This establishes the final seed issue request and expected historical source change.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "68a11fd7f788b9d67f05aca68d9ecd08236580ca",
+    "ref": { "commit": "68a11fd7f788b9d67f05aca68d9ecd08236580ca" },
+    "summary": "GF#11907 changed Composition's spreadsheet binding to document-classcodes, renamed valueset-c80-doc-classcodes.xml to valueset-document-classcodes.xml, and removed the HITSP C80 reproduction sentence.",
+    "learned": "The issue was explicitly applied in source history rather than missed.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/composition/structuredefinition-Composition.xml:323-340; source/documentreference/structuredefinition-DocumentReference.xml:394-413; source/fhir.ini:2637,2643",
+    "summary": "Current source maps old class elements to category and binds both Composition.category and DocumentReference.category to http://hl7.org/fhir/ValueSet/referenced-item-category.",
+    "learned": "The current authoritative elements still share the same category value set after element renames.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/documentreference/valueset-referenced-item-category.xml:28-40",
+    "summary": "The current referenced-item-category value set includes media-category and a LOINC SCALE_TYP filter for DOC-scale codes.",
+    "learned": "The current value set avoids enumerating the old LP class codes as expansion members while preserving a document category example binding.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-32577",
+    "url": "https://jira.hl7.org/browse/FHIR-32577",
+    "snapshot_path": "contexts/FHIR-32577/jira/FHIR-32577.md",
+    "ref": { "jira_key": "FHIR-32577" },
+    "summary": "Published/Persuasive with Modification R5 issue explaining that document-classcodes was too narrow and should be renamed to referenced-item-category.",
+    "learned": "This later final decision explains the current value set URL and prevents treating the absence of document-classcodes as a regression of FHIR-11907.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Source and community searches for FHIR-11907 document class codes",
+    "command": "rg -n 'doc-categorycodes|document-classcodes|c80-doc-classcodes|referenced-item-category' source; bun run zulip:search fts '\"FHIR-11907\" \"document class\"' --limit 10; bun run confluence:search refs jira FHIR-11907",
+    "query": "FHIR-11907 document classcodes document-classcodes referenced-item-category",
+    "summary": "Current source references only referenced-item-category for the active Composition and DocumentReference bindings; Zulip and Confluence searches found no conflicting discussion for FHIR-11907.",
+    "learned": "No discovered current source or community evidence requires a FHIR-11907 source edit.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

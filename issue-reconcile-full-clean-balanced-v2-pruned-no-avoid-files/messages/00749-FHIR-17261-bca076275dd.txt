@@ -1,0 +1,103 @@
+FHIR-17261: Move eligibility preauth reference under insurance
+
+Issue request:
+FHIR-17261 was Published/Persuasive for STU3. It asked that, because EligibilityResponse may include multiple coverages for the same or downstream payors, PreAuthRef and Authorization information move from the response root to the insurance level alongside Coverage.
+
+Initial application:
+The Jira-tagged tracker commit 10ac2496c7 applied the multi-coverage restructuring in the old EligibilityResponse spreadsheet: inforce moved under insurance and authorization details moved under insurance detail, but preAuthRef was only reordered and remained EligibilityResponse.preAuthRef. FHIR-16936 later renamed the resource through b165b5fdd3, carrying the same root preAuthRef forward as CoverageEligibilityResponse.preAuthRef. FHIR-17473 then renamed insurance.detail to insurance.item, leaving the authorization detail elements correctly under insurance.item.
+
+Additional context:
+The current build actively includes CoverageEligibilityResponse, while the old EligibilityResponse spreadsheet is out of build scope. Current source already has repeatable CoverageEligibilityResponse.insurance entries and per-item authorization details, but the single root CoverageEligibilityResponse.preAuthRef was still ambiguous when more than one coverage is returned. Jira, Zulip, and Confluence searches found no later decision reversing the per-coverage placement; the only related Zulip context confirmed preAuthRef as a string used in preauthorization workflows rather than a resource Reference.
+
+AutoFHIR reconciliation:
+Moved preAuthRef into CoverageEligibilityResponse.insurance as CoverageEligibilityResponse.insurance.preAuthRef, preserving its 0..1 cardinality and mappings while making it specific to the coverage/insurance entry. Updated the CoverageEligibilityResponse diagram and the checked-in FHIR model definition so the build-visible supporting artifacts match the authoritative StructureDefinition source.
+
+Recommendation:
+Keep this commit as-is. It completes the published tracker intent without changing the already-correct authorizationRequired, authorizationSupporting, and authorizationUrl placement under insurance.item.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17261
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-16936: same-change-family - renamed EligibilityRequest/Response to CoverageEligibilityRequest/Response and carried the FHIR-17261 element placement into the current resource name.
+FHIR-17473: later-change - renamed CoverageEligibilityResponse.insurance.detail to insurance.item, explaining the current location of the authorization detail elements.
+FHIR-17260: background - applied in the same historical tracker commit but concerned adding patient context rather than preAuthRef placement.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17261: Published/Persuasive, vote 5-0-0, requested multiple coverages and moving PreAuthRef and Authorization details from root to insurance alongside Coverage. Learned: this is final WG intent for the source correction.
+- E2 Source source/fhir.ini:250 and source/fhir.ini:1128: CoverageEligibilityResponse is an active current resource; source/fhir.ini:1082 comments out old EligibilityResponse. Learned: edits belong in the current CoverageEligibilityResponse source, not the retired old spreadsheet.
+- E3 Source source/coverageeligibilityresponse/structuredefinition-CoverageEligibilityResponse.xml:417 and :742: preAuthRef is now under insurance, while authorization details remain under insurance.item. Learned: the reconciled structure matches the issue while preserving later item-level authorization details.
+- E4 Git 10ac2496c7: Jira-tagged tracker batch for 17261 moved inforce and authorization details in the old spreadsheet but left EligibilityResponse.preAuthRef at the root. Learned: the original application was incomplete for preAuthRef.
+- E5 Git b165b5fdd3 and 5fc36d59f7: FHIR-16936 renamed EligibilityResponse to CoverageEligibilityResponse, and FHIR-17473 renamed insurance.detail to insurance.item. Learned: current source should be interpreted using CoverageEligibilityResponse.insurance.item for authorization details.
+- E6 Command Zulip/Confluence/Jira searches for FHIR-17261, preAuthRef, EligibilityResponse, CoverageEligibilityResponse, insurance, and coverage. Learned: no later reversal or conflicting community/minutes evidence was found.
+- E7 Command focused validation: XML parsing of the edited StructureDefinition, SVG, and model definition succeeded; stale CoverageEligibilityResponse.preAuthRef searches found no current CoverageEligibilityResponse root references. Learned: the changed source is structurally valid and internally consistent for the touched artifacts.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17261",
+    "url": "https://jira.hl7.org/browse/FHIR-17261",
+    "snapshot_path": "contexts/FHIR-17261/jira/FHIR-17261.md",
+    "ref": { "jira_key": "FHIR-17261" },
+    "summary": "Published/Persuasive STU3 issue requiring multiple coverages and moving PreAuthRef and Authorization information from the response root to insurance alongside Coverage.",
+    "learned": "This establishes final WG intent and the target element placement for reconciliation.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:250, source/fhir.ini:1082, source/fhir.ini:1128",
+    "summary": "CoverageEligibilityResponse is active in the current build, and the old EligibilityResponse code entry is commented out.",
+    "learned": "The current fix belongs in source/coverageeligibilityresponse, not the retired source/eligibilityresponse spreadsheet.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/coverageeligibilityresponse/structuredefinition-CoverageEligibilityResponse.xml:417,742",
+    "summary": "preAuthRef is now CoverageEligibilityResponse.insurance.preAuthRef, and authorizationRequired/Supporting/Url remain under CoverageEligibilityResponse.insurance.item.",
+    "learned": "The authoritative StructureDefinition now matches the published per-coverage placement while preserving later authorization detail placement.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "10ac2496c7fa29fe458c13a1ef3f7edb89485acc",
+    "summary": "Historical tracker batch named FHIR-17261 and moved inforce and authorization detail rows under insurance, but left EligibilityResponse.preAuthRef at the root.",
+    "learned": "The initial application was incomplete for the preauthorization reference element.",
+    "supports": ["initial_application", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "b165b5fdd3ce35681359e96682ece8e7cd377591; 5fc36d59f734c222ea1e44538ace4f977a2fc4b9",
+    "summary": "FHIR-16936 renamed EligibilityResponse to CoverageEligibilityResponse, and FHIR-17473 renamed insurance.detail to insurance.item.",
+    "learned": "Later history explains the current resource name and item-level authorization detail paths without superseding FHIR-17261.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community and Jira searches for FHIR-17261/preAuthRef/EligibilityResponse/CoverageEligibilityResponse",
+    "command": "bun run jira:search fts 'EligibilityResponse preAuthRef insurance coverage' --limit 20; bun run zulip:search fts '\"FHIR-17261\" preAuthRef EligibilityResponse' --limit 10; bun run zulip:search fts 'EligibilityResponse preAuthRef insurance coverage' --limit 10; bun run confluence:search refs jira FHIR-17261; bun run confluence:search fts 'EligibilityResponse preAuthRef insurance coverage' --limit 10",
+    "query": "FHIR-17261 preAuthRef EligibilityResponse CoverageEligibilityResponse insurance coverage",
+    "summary": "Jira search returned FHIR-17261; Zulip had no FHIR-17261 hit and only background preauthorization workflow discussion; Confluence had no references or relevant hits.",
+    "learned": "No discovered later decision or community evidence reverses the Jira/source conclusion.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Focused validation after source edit",
+    "command": "python3 XML parse of source/coverageeligibilityresponse/structuredefinition-CoverageEligibilityResponse.xml, source/coverageeligibilityresponse/coverageeligibilityresponse.svg, and source/library/library-fhir-model-definition-content.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg -n 'CoverageEligibilityResponse\\.preAuthRef' source/coverageeligibilityresponse source/library/library-fhir-model-definition-content.xml",
+    "summary": "Edited XML/SVG files parsed successfully, CRLF-aware whitespace check passed, and no stale CoverageEligibilityResponse.preAuthRef root references remained in the touched current artifacts.",
+    "learned": "The reconciliation is syntactically valid and internally consistent for the changed files.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

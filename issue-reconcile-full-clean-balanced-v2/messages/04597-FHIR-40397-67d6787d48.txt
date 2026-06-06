@@ -1,0 +1,132 @@
+FHIR-40397: Audit product code search alignment
+
+Issue request:
+FHIR-40397 was an Applied/Persuasive OO change request for R6 to align product code search parameters: rename BiologicallyDerivedProduct product-code to code, make Device's product-code search available as code, have Device code/type search account for Device.type and DeviceDefinition.classification.type, and remove the duplicate CodeableReference concept on Device.definition.
+
+Initial application:
+The issue was partially pre-applied in commit 31564391acbf120de82ad6b2720eb87e3270659a, which changed BiologicallyDerivedProduct product-code to code and changed the Device token search parameter code from definition to code. Later FHIR-40397a commits c76ef436f261283b0cc61135e79524a58f6fe506, 115748e7f52b3a98f20d0a3460219cb81e4415e7, and 98dfcfe61357133aa44d5e46a3296d4680c96f16 changed Device.definition back away from CodeableReference, added Device.type/DeviceDefinition.classification.type search behavior, and added Device narrative/element guidance. The Jira comment's 934d958cebb69995500fac61b7f24e33d896b217 link is a feature-branch merge and was not the substantive Device/BDP delta in this checkout.
+
+Additional context:
+Device, DeviceDefinition, and BiologicallyDerivedProduct are active current-build resources in source/fhir.ini. Later FHIR-51500 intentionally removed the Device.definition.resolve().classification.type clause from the Device-type search parameter for performance and has already been represented on the combined branch by 8b5ae712cb72f13692aab81eebd6d3718407e21e. Later DeviceDefinition canonical-resource work in FHIR-39389/FHIR-42900 changed Device.definition from Reference(DeviceDefinition) to canonical(DeviceDefinition), so the current Device code expression uses Device.definition.resolve().classification.type rather than the older reference path. FHIR-40305 was also resolved no-change because Device.definition is no longer a Codeable element.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source has BiologicallyDerivedProduct-code with code code and expression BiologicallyDerivedProduct.productCode; Device-code renders in the current build with expression Device.type | Device.definition.resolve().classification.type; Device-type is now correctly limited to Device.type by the later FHIR-51500 decision; and Device/DeviceDefinition retain matching device-type bindings and narrative guidance.
+
+Recommendation:
+Keep this audit commit as-is. Do not re-add the Device.definition-derived clause to Device-type unless the work group reverses FHIR-51500. If future tooling wants the source id/url metadata for the Device code search parameter normalized, handle that as build-source cleanup only, because the current rendered search parameter is already Device-code.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-40397
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-51500: later-change - Applied/Persuasive follow-up removed Device.definition.resolve().classification.type from Device-type and is already audited on the combined branch.
+FHIR-39389: later-change - DeviceDefinition canonical-resource work changed references to DeviceDefinition toward canonical references, explaining the current Device.definition canonical datatype.
+FHIR-42900: later-change - Related CanonicalResource decision for DeviceDefinition supports the canonical(DeviceDefinition) context now present in source.
+FHIR-40305: supporting-decision - Resolved No Change because Device.definition is no longer a Codeable element, supporting not restoring a CodeableReference concept branch.
+FHIR-47417: background - No-change ballot issue clarified that Device.definition classification types and Device.type are equivalent concepts without requiring extra FHIR-40397 source edits.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-40397: Applied/Persuasive OO request to align Device and BiologicallyDerivedProduct product code search parameters. Learned: this establishes the seed's intended search-parameter alignment.
+- E2 Source source/fhir.ini:185,295,297: Device, BiologicallyDerivedProduct, and DeviceDefinition are active resources. Learned: the inspected search parameter and StructureDefinition sources are in current build scope.
+- E3 Source source/biologicallyderivedproduct/bundle-BiologicallyDerivedProduct-search-params.xml:88-100: BiologicallyDerivedProduct has code code and expression BiologicallyDerivedProduct.productCode. Learned: the BDP product-code rename is present in current source.
+- E4 Source source/device/bundle-Device-search-params.xml:8-19 and 356-367: Device's code search includes Device.type plus Device.definition.resolve().classification.type, while Device-type is limited to Device.type. Learned: the Device code portion is present and the type difference is the later FHIR-51500 outcome.
+- E5 Source source/device/structuredefinition-Device.xml:179-188,842-862 and source/devicedefinition/structuredefinition-DeviceDefinition.xml:860-876: Device.definition is canonical(DeviceDefinition), and Device.type/DeviceDefinition.classification.type share the device-type value set. Learned: current datatype and binding context explain the adapted expression and support the issue's relationship guidance.
+- E6 Git 31564391, c76ef436, 98dfcfe, d304eb5, e3ef4ee: history shows initial FHIR-40397 application, later FHIR-40397a updates, FHIR-51500 type narrowing, and DeviceDefinition canonical work. Learned: current differences from the original resolution text are later source history, not missed seed work.
+- E7 Jira FHIR-51500/FHIR-40305/FHIR-39389/FHIR-42900: later decisions removed Device-type resolve(), declined a Device.definition codeable binding, and moved DeviceDefinition toward canonical references. Learned: these decisions constrain FHIR-40397 reconciliation now.
+- E8 Published build command: curl https://build.fhir.org/device-search.html shows SearchParameter Device-code with expression Device.type | Device.definition.resolve().classification.type, Device-definition as reference, and Device-type with expression Device.type. Learned: the current rendered build presents the aligned code parameter and the later type narrowing.
+- E9 Community search: Confluence WGM/HCP minutes list FHIR-40397 discussion and vote, while focused Zulip searches for FHIR-40397 and Device-code/Device.type/DeviceDefinition.classification found no conflicting thread. Learned: no community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-40397",
+    "url": "https://jira.hl7.org/browse/FHIR-40397",
+    "snapshot_path": "contexts/FHIR-40397/jira/FHIR-40397.md",
+    "ref": { "jira_key": "FHIR-40397" },
+    "summary": "Applied/Persuasive OO request to align product code search parameters for Device and BiologicallyDerivedProduct.",
+    "learned": "This establishes the seed's intended current-build search parameter alignment.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:185, source/fhir.ini:295, source/fhir.ini:297",
+    "ref": { "path": "source/fhir.ini", "line": 185 },
+    "summary": "Device, BiologicallyDerivedProduct, and DeviceDefinition are active resources in the current build configuration.",
+    "learned": "The inspected search parameter and StructureDefinition source files are in build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/biologicallyderivedproduct/bundle-BiologicallyDerivedProduct-search-params.xml:88-100",
+    "ref": { "path": "source/biologicallyderivedproduct/bundle-BiologicallyDerivedProduct-search-params.xml", "line": 88 },
+    "summary": "BiologicallyDerivedProduct has SearchParameter BiologicallyDerivedProduct-code with code code and expression BiologicallyDerivedProduct.productCode.",
+    "learned": "The BDP product-code rename requested by FHIR-40397 is present in current source.",
+    "supports": ["reconciliation", "no_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/device/bundle-Device-search-params.xml:8-19 and 356-367",
+    "ref": { "path": "source/device/bundle-Device-search-params.xml", "line": 8 },
+    "summary": "Device code searches Device.type plus Device.definition.resolve().classification.type, while Device-type currently searches Device.type only.",
+    "learned": "The Device code portion is applied, and the Device-type difference is explained by the later FHIR-51500 decision.",
+    "supports": ["reconciliation", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:179-188 and 842-862; source/devicedefinition/structuredefinition-DeviceDefinition.xml:860-876",
+    "ref": { "path": "source/device/structuredefinition-Device.xml", "line": 179 },
+    "summary": "Device.definition is canonical(DeviceDefinition); Device.type and DeviceDefinition.classification.type both bind to the device-type value set.",
+    "learned": "Current source preserves the issue's relationship guidance while reflecting later canonical-reference work.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "31564391, c76ef436, 98dfcfe, d304eb5, e3ef4ee",
+    "ref": { "commit": "31564391acbf120de82ad6b2720eb87e3270659a" },
+    "summary": "Git history shows initial FHIR-40397 application, later FHIR-40397a Device updates, FHIR-51500's Device-type narrowing, and DeviceDefinition canonical work.",
+    "learned": "Current differences from the original resolution text are later history rather than missed seed work.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-51500, FHIR-40305, FHIR-39389, FHIR-42900",
+    "url": "https://jira.hl7.org/browse/FHIR-51500",
+    "ref": { "jira_key": "FHIR-51500" },
+    "summary": "Later Jira context removed the resolve clause from Device-type, declined a Device.definition Codeable binding, and moved DeviceDefinition toward canonical references.",
+    "learned": "These related decisions constrain FHIR-40397 reconciliation and support leaving current source unchanged.",
+    "supports": ["additional_context", "no_change"]
+  },
+  {
+    "id": "E8",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/device-search.html",
+    "url": "https://build.fhir.org/device-search.html",
+    "command": "curl -fsSL https://build.fhir.org/device-search.html | grep -nE 'Device-code|Device-definition|Device-type'",
+    "summary": "The current build renders Device-code with Device.type | Device.definition.resolve().classification.type, Device-definition as reference, and Device-type with Device.type.",
+    "learned": "The implementer-facing search parameter page matches the reconciled source interpretation.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Confluence/Zulip searches for FHIR-40397 and Device code/type terms",
+    "command": "bun run confluence:search refs jira FHIR-40397; bun run confluence:search snapshot 161078076; bun run confluence:search snapshot 161060310; bun run zulip:search fts '\"FHIR-40397\"' --limit 10; bun run zulip:search fts '\"Device-code\" \"Device.type\" \"DeviceDefinition.classification\"' --limit 10",
+    "query": "FHIR-40397 Device-code Device.type DeviceDefinition.classification",
+    "result_count": 0,
+    "summary": "Confluence minutes record FHIR-40397 discussion and vote; focused Zulip searches found no conflicting thread.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

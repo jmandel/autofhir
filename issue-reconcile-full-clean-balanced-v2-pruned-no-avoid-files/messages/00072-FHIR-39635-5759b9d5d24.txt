@@ -1,0 +1,116 @@
+FHIR-39635: Restore SubscriptionTopic message definition events
+
+Issue request:
+FHIR-39635 is Applied/Persuasive with Modification for R6. It asked to allow SubscriptionTopic as a FHIR message event, with the final resolution to update MessageHeader.event[x] and MessageDefinition.event[x] to Coding | uri | canonical(EventDefinition, SubscriptionTopic) so subscription notifications can identify a SubscriptionTopic as the triggering event.
+
+Initial application:
+Commit b06ee38f43 ("FHIR-39635 and FHIR-32750") added EventDefinition and SubscriptionTopic canonical targetProfiles to MessageHeader.event[x] and to a MessageDefinition StructureDefinition copy, and updated MessageDefinition.event[x] wording. Current MessageHeader source still reflects that application. Current MessageDefinition source did not: a later merge/cleanup path left two MessageDefinition StructureDefinition copies and f94ad6ff73 removed the duplicate copy that contained the FHIR-39635 MessageDefinition event changes, leaving the older active copy with only Coding and uri.
+
+Additional context:
+MessageHeader and MessageDefinition are active InM resources in source/fhir.ini. INM minutes from 2023-11-07 record the approved harmonization as Coding|uri|canonical(EventDefinition|SubscriptionTopic). The originating Zulip thread shows the request came from subscription notification use cases. FHIR-32750 was implemented in the same historical commit but concerns MessageDefinition.parent and is not decided here.
+
+AutoFHIR reconciliation:
+Restored the FHIR-39635 MessageDefinition.event[x] change in the active source by adding canonical targetProfiles for EventDefinition and SubscriptionTopic and updating the short/definition text. Also updated the active MessageDefinition-event search parameter expression to include canonical values, matching the already-current MessageHeader-event search parameter behavior so canonical message events are searchable rather than silently ignored.
+
+Recommendation:
+Keep this source fix. It restores the approved R6 harmonization for MessageDefinition and keeps the search surface consistent with the new event type; no further core source change was identified for FHIR-39635.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-39635
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-32750: background - implemented in the same historical commit but concerned removal of MessageDefinition.parent, not SubscriptionTopic event support.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-39635: Applied/Persuasive with Modification issue for MessageHeader and MessageDefinition event[x] to allow canonical(EventDefinition,SubscriptionTopic). Learned: establishes final WG intent for the source change.
+- E2 Source source/fhir.ini:206,279,581,582: MessageHeader and MessageDefinition are active InM resources. Learned: the edited resource source is in current build scope.
+- E3 Source source/messageheader/structuredefinition-MessageHeader.xml:104-122 and source/messageheader/bundle-MessageHeader-search-params.xml:46-58: MessageHeader already has Coding, uri, and canonical(EventDefinition,SubscriptionTopic), with event search over Coding and canonical. Learned: one half of the approved harmonization is already current and provides the local consistency target.
+- E4 Source source/messagedefinition/structuredefinition-MessageDefinition.xml:530-545 and source/messagedefinition/bundle-MessageDefinition-search-params.xml:170-182: before reconciliation MessageDefinition had only Coding and uri; this commit restores canonical(EventDefinition,SubscriptionTopic) and includes canonical in the event search expression. Learned: this was the remaining semantic gap.
+- E5 Git b06ee38f43 and f94ad6ff73: b06ee38f43 applied FHIR-39635 to MessageDefinition, while later cleanup f94ad6ff73 removed the duplicate copy containing that application. Learned: the current omission is an application loss, not a later WG reversal.
+- E6 Confluence 2023-11-07 InM WG Agenda/Minutes page 200149319: records FHIR-39635 persuasive with modification, harmonizing MessageHeader.event with MessageDefinition.event as Coding|uri|canonical(EventDefinition|SubscriptionTopic), vote 3-0-2. Learned: confirms the final approved type list.
+- E7 Zulip #implementers > Relationship between eventUri and eventCoding: Rene Spronk raised SubscriptionTopic as a message trigger and linked the created Jira. Learned: supports the subscription notification rationale and reveals no narrower scope.
+- E8 Verification command: git diff --check and XML parser over edited XML files succeeded. Learned: the source edit is well-formed and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-39635",
+    "url": "https://jira.hl7.org/browse/FHIR-39635",
+    "snapshot_path": "contexts/FHIR-39635/jira/FHIR-39635.md",
+    "ref": { "jira_key": "FHIR-39635" },
+    "summary": "Applied/Persuasive with Modification issue requiring MessageHeader.event[x] and MessageDefinition.event[x] to allow SubscriptionTopic as a canonical message event alongside EventDefinition.",
+    "learned": "This is final WG intent for the reconciliation and establishes the required event[x] type list.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:206,279,581,582",
+    "ref": { "file": "source/fhir.ini" },
+    "summary": "MessageHeader and MessageDefinition are active resources assigned to InM in the current build configuration.",
+    "learned": "The edited MessageDefinition files are in build scope.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/messageheader/structuredefinition-MessageHeader.xml:104-122; source/messageheader/bundle-MessageHeader-search-params.xml:46-58",
+    "ref": { "file": "source/messageheader/structuredefinition-MessageHeader.xml" },
+    "summary": "MessageHeader.event[x] already permits Coding, uri, and canonical(EventDefinition,SubscriptionTopic), and its event search expression includes Coding and canonical.",
+    "learned": "The MessageHeader half of FHIR-39635 is already current and shows the intended harmonized behavior.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/messagedefinition/structuredefinition-MessageDefinition.xml:530-545; source/messagedefinition/bundle-MessageDefinition-search-params.xml:170-182",
+    "ref": { "file": "source/messagedefinition/structuredefinition-MessageDefinition.xml" },
+    "summary": "This commit restores canonical(EventDefinition,SubscriptionTopic) to MessageDefinition.event[x] and includes canonical values in the active MessageDefinition-event search expression.",
+    "learned": "The remaining semantic gap is fixed in the authoritative source.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "b06ee38f43; f94ad6ff73",
+    "ref": { "commit": "b06ee38f43" },
+    "summary": "b06ee38f43 applied FHIR-39635 to MessageDefinition, but f94ad6ff73 later removed the duplicate StructureDefinition copy that carried the change.",
+    "learned": "The current MessageDefinition omission is a lost application rather than an intentional later reversal.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "2023-11-07 InM WG Agenda/Minutes page 200149319",
+    "url": "https://confluence.hl7.org/spaces/INM/pages/200149319/2023-11-07+InM+WG+Agenda+Minutes",
+    "ref": { "confluence_page_id": 200149319 },
+    "summary": "Minutes record FHIR-39635 as persuasive with modification to harmonize MessageHeader.event and MessageDefinition.event as Coding|uri|canonical(EventDefinition|SubscriptionTopic), vote 3-0-2.",
+    "learned": "This confirms the approved final type list and that MessageDefinition was in scope.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > Relationship between eventUri and eventCoding",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Relationship%20between%20eventUri%20and%20eventCoding",
+    "ref": { "stream": "implementers", "topic": "Relationship between eventUri and eventCoding" },
+    "summary": "The thread records the SubscriptionTopic-as-message-trigger use case and links the creation of FHIR-39635.",
+    "learned": "The community rationale supports adding SubscriptionTopic as a message event trigger and does not narrow the approved Jira scope.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local validation commands",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; xmllint --noout source/messagedefinition/structuredefinition-MessageDefinition.xml source/messagedefinition/bundle-MessageDefinition-search-params.xml",
+    "summary": "Whitespace and XML well-formedness checks succeeded for the edited files.",
+    "learned": "The reconciliation edit is syntactically safe for the changed XML sources.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

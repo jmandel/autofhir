@@ -1,0 +1,108 @@
+FHIR-5898: Audit profile binding subset validation
+
+Issue request:
+FHIR-5898 is a Published/Persuasive FHIR-core DSTU1 issue asking that the validator catch a profile binding that is not a proper constraint of an extension's binding; the Jira example was the DAF patient profile declaring a distinct binding from the us-core-race extension without the validator reporting the mismatch.
+
+Initial application:
+Jira records "svn revision 4557" as the application. Git history contains that SVN import as commit 7996f50897b97db120319141c23e9a1070d853b4, whose message includes "#5898 - check required binding isn't being violated in profile" and whose source change was in the legacy Java ProfileUtilities/publisher tooling under tools/java.
+
+Additional context:
+The current build includes source/profiling.html through publish.ini and source/hierarchy.xml, and that page states that profile value sets can replace base bindings only within the base constraints: required base bindings can only be narrowed to codes in the base value set, additionalBinding follows the same rules, and a constraining profile cannot make codes valid that are invalid in the base profile. The historical tools/java validator tree is absent from this checkout after the 2019 old-code removal, while the current Gradle build consumes external kindling/validator artifacts. Current org.hl7.fhir.core ProfileUtilities contains the corresponding binding-strength and required-binding subset checks, and a 2024 Zulip validator thread shows the current validator emitting "Binding ... is not a subset of binding ..." errors. The adjacent binding-strength tooling issue FHIR-7802 is already represented on the combined branch and is cited only as context.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change because the active core profiling source already states the correct binding-subset rule and the historical in-repository validator code that FHIR-5898 changed is no longer part of this checkout.
+
+Recommendation:
+Keep this audit commit as-is. If a future validator release fails to enforce binding subset alignment, handle that in the current validator/kindling codebase rather than by changing FHIR core spec source; no current core source edit is indicated by this reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5898
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-7802: same-change-family - Adjacent Published tooling issue for required-binding-strength alignment; already represented on the combined branch and not duplicated here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5898: Published/Persuasive issue asking tooling to flag a DAF/us-core-race profile binding that was not a proper constraint. Learned: this establishes the final request and expected validation behavior.
+- E2 Git 7996f50897b97db120319141c23e9a1070d853b4: SVN r4557 import explicitly included "#5898 - check required binding isn't being violated in profile" and changed legacy tools/java ProfileUtilities/publisher code. Learned: the issue was historically applied as a tooling change.
+- E3 Source source/profiling.html:1073 and source/profiling.html:1082-1112 plus publish.ini:353-354 and source/hierarchy.xml:200-202: the active profiling page says derived bindings must stay within base binding constraints and cannot make base-invalid codes valid. Learned: current core source already conveys the substantive rule.
+- E4 Source build.gradle.kts:20-34 and repository search for ProfileUtilities.java: the current build depends on external kindling/validator artifacts and the old tools/java ProfileUtilities file is absent. Learned: there is no current in-checkout validator source hunk to restore for this legacy tooling issue.
+- E5 Web hapifhir/org.hl7.fhir.core ProfileUtilities.java:2944-2984: current external validator code checks illegal weakening of required binding strength and errors when a derived required value set is not a subset of the base binding. Learned: the current validator code path aligns with the requested behavior outside this checkout.
+- E6 Zulip #implementers > Binding  is not a subset of binding: 2024 validator users and maintainer discussed current validator errors saying a binding is not a subset of the parent binding. Learned: current community evidence confirms the check exists and does not indicate a core source change.
+- E7 Community search for FHIR-5898 plus binding-alignment terms: no direct Zulip or Confluence references to FHIR-5898 and no conflicting community decision were found. Learned: no discovered community record supersedes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5898",
+    "url": "https://jira.hl7.org/browse/FHIR-5898",
+    "snapshot_path": "contexts/FHIR-5898/jira/FHIR-5898.md",
+    "ref": { "jira_key": "FHIR-5898" },
+    "summary": "Published/Persuasive FHIR-core DSTU1 issue asking the validator to catch a profile binding that was not a proper constraint of an extension binding.",
+    "learned": "This establishes the final request and expected validator behavior for profile binding alignment.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "7996f50897b97db120319141c23e9a1070d853b4",
+    "ref": { "commit": "7996f50897b97db120319141c23e9a1070d853b4", "svn_revision": 4557 },
+    "summary": "SVN r4557 import message includes '#5898 - check required binding isn't being violated in profile' and changed legacy tools/java ProfileUtilities/publisher files.",
+    "learned": "The issue was historically applied as a validator/profile-tooling change in code that is no longer part of the current checkout.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/profiling.html:1073,1082-1112; publish.ini:353-354; source/hierarchy.xml:200-202",
+    "ref": { "paths": "source/profiling.html,publish.ini,source/hierarchy.xml" },
+    "summary": "The active profiling page says derived bindings and additionalBindings follow base binding constraints and cannot make codes valid that are invalid in the base profile.",
+    "learned": "The current core specification source already states the substantive binding-subset rule.",
+    "supports": ["additional_context", "no_source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current checkout validator-source search",
+    "command": "find tools -maxdepth 3 -type d; rg 'org.hl7.fhir.core|validator_cli|ProfileUtilities.java' build.gradle.kts tools source",
+    "summary": "No current ProfileUtilities.java or tools/java validator source exists in this checkout; build.gradle.kts uses external kindling/validator-related artifacts.",
+    "learned": "There is no active in-repository validator source file to edit for this legacy tooling request.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "web",
+    "locator": "hapifhir/org.hl7.fhir.core org.hl7.fhir.r5 ProfileUtilities.java",
+    "url": "https://github.com/hapifhir/org.hl7.fhir.core/blob/c08f4da08fde0e69a2e386fe70a88373507a2c1a/org.hl7.fhir.r5/src/main/java/org/hl7/fhir/r5/conformance/profile/ProfileUtilities.java",
+    "summary": "Current external ProfileUtilities checks required binding strength and reports errors when a derived required value set is not a subset of the base binding.",
+    "learned": "The current validator implementation corresponding to the historical request now lives outside this FHIR source checkout and aligns with the requested behavior.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Binding  is not a subset of binding",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Binding%20%20is%20not%20a%20subset%20of%20binding",
+    "snapshot_path": "contexts/FHIR-5898/zulip/implementers--Binding-is-not-a-subset-of-binding.md",
+    "ref": { "stream": "implementers", "topic": "Binding  is not a subset of binding" },
+    "summary": "A 2024 validator thread shows current validator errors reporting that derived bindings are not subsets of parent bindings.",
+    "learned": "Community evidence confirms the relevant validator behavior exists and does not point to a core source change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative direct community search for FHIR-5898",
+    "command": "bun run zulip:search fts '\"FHIR-5898\"' --limit 10; bun run confluence:search refs jira FHIR-5898; bun run confluence:search fts '\"FHIR-5898\" \"required binding\"' --limit 10",
+    "query": "FHIR-5898 required binding value set alignment profiles validator",
+    "result_count": 0,
+    "summary": "No direct Zulip or Confluence references to FHIR-5898 and no conflicting community decision were found.",
+    "learned": "No discovered community record supersedes the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

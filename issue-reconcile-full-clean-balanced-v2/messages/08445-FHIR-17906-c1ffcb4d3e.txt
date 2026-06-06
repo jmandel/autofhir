@@ -1,0 +1,110 @@
+FHIR-17906: Audit conditional update behavior
+
+Issue request:
+FHIR-17906 was a Published FHIR-I change request for the core HTTP conditional update section, resolved Persuasive with Modification for STU3. It asked to replace the single no-match rule that always referenced optional Update as Create with separate no-id and id-provided behavior, and to clarify the one-match cases where a provided resource id matches or conflicts with the found resource.
+
+Initial application:
+The issue was explicitly applied by d69dfafe26d9ad9151c011ef743568a3ab2158fc, "GF#17906 = update notes about conditional create", which changed source/http.html from generic No matches/One Match bullets to the requested no-match/no-id, no-match/id, one-match/matching-id, one-match/mismatching-id, and multiple-match outcomes.
+
+Additional context:
+The current build-scope HTTP narrative is source/http.html, listed in publish.ini as http.html. Later finalized same-section decisions refined but did not reverse FHIR-17906: FHIR-20390 clarified that "id provided" means Resource.id and is already represented on the combined branch, FHIR-26688 removed the contradictory sentence saying a supplied id is ignored, FHIR-36859 split the no-match/Resource.id case when that id already exists, and FHIR-26358 added response Location guidance. The original Zulip thread records the same distinction between server-assigned creation when no id is supplied and Update as Create when an id is supplied. A later 2025 Zulip discussion questions response wording in the one-match row, but no finalized Jira decision was found for that separate response-code concern.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active HTTP source already says no-match/no Resource.id creates the resource, no-match/Resource.id with no existing id uses Update as Create or rejects if unsupported, no-match/Resource.id with an existing id returns 409 Conflict, one match updates when no Resource.id is supplied or when it matches the found resource, and one-match/mismatching Resource.id returns 400 Bad Request. That preserves FHIR-17906 while incorporating later applied clarifications.
+
+Recommendation:
+Keep this no-change audit commit as-is. No core source follow-up is needed for FHIR-17906 itself; any future cleanup of the one-match response-status wording should be handled under a separate finalized tracker because it comes from later Location-header guidance rather than the FHIR-17906 behavior decision.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17906
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-20390: later-change - clarified that the conditional update table's "id provided" means Resource.id and is already represented on the combined branch.
+FHIR-26688: later-change - removed the contradictory conditional-update sentence saying a supplied id is ignored and is already represented on the combined branch.
+FHIR-36859: later-change - split the no-match/Resource.id-provided case into non-existing-id Update as Create and existing-id 409 Conflict outcomes and is already represented on the combined branch.
+FHIR-26358: later-change - added successful conditional create/update Location-header response guidance that affects the one-match row text and is already represented on the combined branch.
+FHIR-13989: background - earlier issue allowed id in conditional update but its ignore-id wording was narrowed by FHIR-17906 and later removed by FHIR-26688.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17906: Published/Persuasive with Modification issue requiring separate conditional-update no-match/no-id, no-match/id, one-match matching-id, and one-match mismatching-id outcomes. Learned: establishes the final seed request and approved behavior.
+- E2 Source source/http.html:850-886 and publish.ini:295: the active HTTP page contains the current conditional update decision list and allows a Resource.id to be absent. Learned: the current build-scope source already includes the seed behavior with later Resource.id wording.
+- E3 Git d69dfafe26d9ad9151c011ef743568a3ab2158fc: GF#17906 changed source/http.html from generic conditional-update bullets to the requested split behavior. Learned: documents the initial source application of the seed issue.
+- E4 Zulip #implementers > Transaction conditional create OR update: September 2018 discussion led to GF#17906 and records the same no-id create, id-provided Update as Create, and one-match mismatch rejection model. Learned: community evidence supports the Jira/source interpretation.
+- E5 Related finalized decisions FHIR-20390, FHIR-26688, FHIR-36859, and FHIR-26358 plus their combined-branch audit commits. Learned: later changes explain current wording and prevent treating refinements as a remaining FHIR-17906 defect.
+- E6 Community and formal search: Confluence refs found no FHIR-17906 page; later Zulip "Conditional update case #4" has no matching finalized Jira hit. Learned: no discovered final community/work-group decision requires changing the seed behavior now.
+- E7 Verification command: combined-branch idempotency found no prior FHIR-17906 audit; current source and git history checks confirmed the active wording and explicit application commit. Learned: a no-change audit commit is the correct reconciliation artifact.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17906",
+    "url": "https://jira.hl7.org/browse/FHIR-17906",
+    "snapshot_path": "contexts/FHIR-17906/jira/FHIR-17906.md",
+    "ref": { "jira_key": "FHIR-17906" },
+    "summary": "Published/Persuasive with Modification FHIR-I issue requiring conditional update no-match and one-match behavior to distinguish absent Resource.id, provided Resource.id, and mismatching Resource.id cases.",
+    "learned": "This establishes the final seed request and the behavior that current source must preserve.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/http.html:850-886; publish.ini:295",
+    "ref": { "path": "source/http.html", "start_line": 850, "end_line": 886 },
+    "summary": "The active HTTP page contains the conditional update table with no-match/no Resource.id create, no-match/Resource.id Update as Create or 409 cases, one-match update, and one-match mismatching Resource.id 400 behavior.",
+    "learned": "The current build-scope source already conveys FHIR-17906 after later wording refinements.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "d69dfafe26d9ad9151c011ef743568a3ab2158fc",
+    "ref": { "commit": "d69dfafe26d9ad9151c011ef743568a3ab2158fc" },
+    "summary": "Commit GF#17906 replaced the generic conditional-update No matches/One Match bullets in source/http.html with the split behavior requested by the issue.",
+    "learned": "FHIR-17906 was explicitly applied in source history.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "zulip",
+    "locator": "#implementers > Transaction conditional create OR update",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Transaction%20conditional%20create%20OR%20update",
+    "ref": { "stream": "implementers", "topic": "Transaction conditional create OR update" },
+    "summary": "The September 2018 thread led to GF#17906 and converged on no-id create, id-provided Update as Create, and one-match mismatch rejection semantics.",
+    "learned": "The community discussion matches the Jira resolution and current source behavior.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Related Jira and combined-branch checks for conditional update family",
+    "command": "bun run jira:search snapshot FHIR-20390 FHIR-26688 FHIR-36859 FHIR-26358; git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-20390' --grep='Issue-Reconcile-Key: FHIR-26688' --grep='Issue-Reconcile-Key: FHIR-36859' --grep='Issue-Reconcile-Key: FHIR-26358' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "Related finalized same-section issues are already represented on the combined branch and explain current Resource.id, ignore-id deletion, existing-id 409, and Location-header wording.",
+    "learned": "Current wording should be judged with these later decisions included, and no duplicate related commits are needed for this seed.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community searches for FHIR-17906 and later one-match response concern",
+    "command": "bun run confluence:search refs jira FHIR-17906; bun run zulip:search fts '\"FHIR-17906\" \"conditional update\"' --limit 10; bun run zulip:search snapshot implementers 'Conditional update case #4'; bun run jira:search fts '\"Conditional update case #4\"' --limit 10",
+    "query": "FHIR-17906 conditional update; Conditional update case #4",
+    "summary": "No Confluence references or exact Zulip key hits were found for FHIR-17906; the 2025 case #4 Zulip discussion has no matching finalized Jira issue in the local index.",
+    "learned": "No discovered final community/work-group record changes the no-change seed conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Idempotency, source, and history verification",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-17906' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n 'cond-update|No matches|One Match|Resource.id' source/http.html; git show d69dfafe26 -- source/http.html",
+    "summary": "No prior FHIR-17906 combined-branch commit existed; source/http.html contains the expected active wording; git history has the explicit GF#17906 application commit.",
+    "learned": "The seed can be safely reconciled with an empty no-change audit commit.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

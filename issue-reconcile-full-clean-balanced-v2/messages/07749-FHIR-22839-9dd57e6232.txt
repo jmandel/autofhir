@@ -1,0 +1,120 @@
+FHIR-22839: Audit ValueSet include expansion issue
+
+Issue request:
+FHIR-22839 was a Published/Persuasive FHIR-core change request from STU3, applied for R5, reporting that the Care Plan Activity Status Reason value set expansion showed 0 concepts when the value set included other value sets.
+
+Initial application:
+No source commit tagged FHIR-22839 was found. The underlying value set had just been introduced by FHIR-22729 in commit aeca750524 as an example binding composed from the Procedure, Immunization, and MedicationRequest status-reason value sets; the FHIR-22839 Zulip discussion identifies the 0-concept expansion as a tooling error rather than a faulty compose definition.
+
+Additional context:
+FHIR-39101 later removed CarePlan.activity.plannedActivityDetail, which was the only active CarePlan element that referenced http://hl7.org/fhir/ValueSet/care-plan-activity-status-reason. In the current parsed StructureDefinition there are no active statusReason elements or active references to that value set, and source/fhir.ini has no active [valuesets] entry for care-plan-activity-status-reason, so the leftover XML file is not a current build-scope defect to edit.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current authoritative source no longer builds the affected binding/page, and the remaining source value set still has the intended compose.include.valueSet references for the historical FHIR-22729 context.
+
+Recommendation:
+Keep this no-change audit. Do not add a manual expansion or edit the stale value set solely for FHIR-22839; if a future CarePlan change restores the value set to build scope, rely on the publisher/terminology expansion path rather than checking in a hand-maintained expansion.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22839
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-22729: same-change-family - introduced the CarePlan.activity.detail/statusReason example binding and composed value set that FHIR-22839 later reported as rendering with a 0-concept expansion.
+FHIR-39101: later-change - removed CarePlan.activity.plannedActivityDetail, eliminating the active binding reference to this value set from the current build.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22839: Published/Persuasive issue says the Care Plan Activity Status Reason expansion showed 0 concepts when the value set included other value sets. Learned: the seed was a final tracker about the rendered expansion behavior, not a request to change the compose members.
+- E2 Zulip #committers > ValueSet Expansion: Michelle Miller asked why the composed value set was not expanding and Grahame Grieve replied that it was a tooling error before Michelle logged GF#22839. Learned: the contemporaneous implementation evidence points to publisher/tooling behavior rather than a malformed source ValueSet.
+- E3 Jira FHIR-22729: Published/Persuasive resolution requested an example binding to a value set including Procedure, Immunization, and MedicationRequest status-reason value sets. Learned: the composed ValueSet source shape was intentional.
+- E4 Source source/careplan/valueset-care-plan-activity-status-reason.xml:30: compose includes procedure-not-performed-reason, immunization-status-reason, and medicationrequest-status-reason by valueSet reference. Learned: the historical compose definition is still present and matches the requested family of value sets.
+- E5 Source/build-scope check: source/careplan/structuredefinition-CarePlan.xml:719 comments out plannedActivityDetail and source/fhir.ini:1284 has no active care-plan-activity-status-reason [valuesets] entry. Learned: the only binding that referenced the value set is out of the parsed current CarePlan StructureDefinition.
+- E6 Git 0222d171b0466cb633dce3342278e3da94cfd815: J#39101 remove CarePlan.activity.plannedActivityDetail commented the plannedActivityDetail subtree and removed its use from CarePlan activity wording. Learned: a later published CarePlan decision took the affected binding out of current build scope.
+- E7 Command searches: Confluence refs for FHIR-22839 and phrase searches for care-plan-activity-status-reason/ValueSet expansion found no relevant work-group record. Learned: no discovered Confluence evidence changes the Jira/Zulip/source conclusion.
+- E8 Verification command/query: XML parsing found zero active CarePlan statusReason elements, zero active references to the CarePlan activity status reason value set, no fhir.ini valuesets entry, and three retained compose valueSet references in the source file. Learned: no source edit is needed for the current build.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22839",
+    "url": "https://jira.hl7.org/browse/FHIR-22839",
+    "snapshot_path": "contexts/FHIR-22839/jira/FHIR-22839.md",
+    "ref": { "jira_key": "FHIR-22839" },
+    "summary": "Published/Persuasive FHIR-core issue reporting that the Care Plan Activity Status Reason value set expansion showed 0 concepts when it included other value sets.",
+    "learned": "The seed is final and concerns expansion/rendering behavior for a composed value set.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#committers > ValueSet Expansion",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/ValueSet%20Expansion",
+    "snapshot_path": "contexts/FHIR-22839/zulip/committers--ValueSet-Expansion.md",
+    "ref": { "stream": "committers", "topic": "ValueSet Expansion" },
+    "summary": "Michelle Miller asked why the composed value set was not expanding; Grahame Grieve replied that it was a tooling error and Michelle then logged GF#22839.",
+    "learned": "The contemporaneous evidence classifies the problem as publisher/tooling behavior, not incorrect source compose content.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-22729",
+    "url": "https://jira.hl7.org/browse/FHIR-22729",
+    "snapshot_path": "contexts/FHIR-22839/jira/FHIR-22729.md",
+    "ref": { "jira_key": "FHIR-22729" },
+    "summary": "Published/Persuasive issue requesting an example CarePlan.activity.detail.statusReason binding to a value set composed from Procedure, Immunization, and MedicationRequest status-reason value sets.",
+    "learned": "The include-other-value-sets compose structure was intentional and came from the immediately preceding binding issue.",
+    "supports": ["initial_application", "related_jiras"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/careplan/valueset-care-plan-activity-status-reason.xml:30",
+    "ref": { "path": "source/careplan/valueset-care-plan-activity-status-reason.xml", "line": 30 },
+    "summary": "The source ValueSet compose contains one include with three valueSet references: procedure-not-performed-reason, immunization-status-reason, and medicationrequest-status-reason.",
+    "learned": "The historical source still preserves the intended composed ValueSet definition rather than a checked-in zero-concept expansion.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/careplan/structuredefinition-CarePlan.xml:719 and source/fhir.ini:1284",
+    "ref": { "path": "source/careplan/structuredefinition-CarePlan.xml", "line": 719 },
+    "summary": "CarePlan.activity.plannedActivityDetail, including its statusReason binding, is inside an XML comment and the value set has no active [valuesets] entry in source/fhir.ini.",
+    "learned": "The affected binding/value-set page is not active current build scope, so editing the stale XML would not fix current spec behavior.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "0222d171b0466cb633dce3342278e3da94cfd815",
+    "ref": { "commit": "0222d171b0466cb633dce3342278e3da94cfd815" },
+    "summary": "Commit J#39101 remove CarePlan.activity.plannedActivityDetail commented the plannedActivityDetail subtree and updated CarePlan activity wording.",
+    "learned": "A later published CarePlan decision removed the active element that had referenced the FHIR-22839 value set.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative Confluence search for FHIR-22839 and care-plan-activity-status-reason",
+    "command": "bun run confluence:search refs jira FHIR-22839; bun run confluence:search fts '\"care-plan-activity-status-reason\" \"ValueSet expansion\"' --limit 10; bun run confluence:search fts '\"FHIR-22729\" \"FHIR-22839\"' --limit 10",
+    "result_count": 0,
+    "summary": "No directly relevant Confluence references or phrase hits were found.",
+    "learned": "No discovered work-group minutes conflict with the Jira/Zulip/source interpretation.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML/source-scope verification for CarePlan status reason value set",
+    "command": "python3 XML parse of source/careplan/structuredefinition-CarePlan.xml, source/careplan/valueset-care-plan-activity-status-reason.xml, and source/fhir.ini",
+    "summary": "The parsed current source has zero active CarePlan statusReason elements, zero active references to the CarePlan activity status reason value set, no fhir.ini valuesets entry, and three retained compose valueSet references.",
+    "learned": "The seed issue does not require a current source edit.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

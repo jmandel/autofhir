@@ -1,0 +1,120 @@
+FHIR-36788: Audit Transport status reconciliation
+
+Issue request:
+FHIR-36788 was Published/Persuasive with Modification for FHIR-core Transport in R5. It asked to update Transport.status to a required value set containing in-progress, completed, abandoned, cancelled, planned, and entered-in-error, and to add an example statusReason value set/code system with declined/refused/not-available/wrong-data/accident/not-acknowledged reasons.
+
+Initial application:
+The issue was applied in 2022 through the Jira-linked Transport source updates, including commit 88a67482e7, which updated Transport.status, added transport-status-reason source, and bound Transport.statusReason to the new example value set. Follow-up QA commits normalized the checked-in CodeSystem/ValueSet source but preserved the statusReason concepts.
+
+Additional context:
+Transport is active build scope as an OO resource in source/fhir.ini. Later final R6 decisions intentionally changed the status interpretation: FHIR-39512 aligned Transport with Event semantics, FHIR-40491 was Applied/Persuasive and replaced the old mixed request/event Transport.status list with preparation | in-progress | not-done | suspended | stopped | on-hold | completed | entered-in-error | unknown, and FHIR-50642 was Resolved - No Change for adding a pending/planned request status because Transport is an Event resource and request state belongs on the related Request. FHIR-40749 separately corrected the statusReason CodeSystem name.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. The current source already carries the FHIR-36788 statusReason binding and concepts, and the mismatch between the current Transport.status codes and the original FHIR-36788 status list is explained by later final Transport/Event decisions that should not be reverted.
+
+Recommendation:
+Keep this no-change audit. Do not reinstate the R5 planned/cancelled/abandoned status list without new OO work-group direction; current Transport.status should remain governed by the later Event-oriented Transport decisions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-36788
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-39512: same-change-family - removed request-pattern semantics from Transport and set up the later status-code alignment.
+FHIR-40491: later-change - Applied R6 issue that intentionally replaced the FHIR-36788-era mixed Transport.status code list with Event-oriented statuses.
+FHIR-50642: supporting-decision - later no-change decision declining a pending/planned Transport.status because request state belongs on the related Request.
+FHIR-40749: same-change-family - later statusReason metadata correction confirming the separate TransportStatusReason CodeSystem name.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-36788: Published/Persuasive with Modification, OO, applied for R5, requesting updated Transport.status codes and an example statusReason code system/value set. Learned: this is the seed issue request and original R5 target.
+- E2 Source source/fhir.ini:637 and source/transport/structuredefinition-Transport.xml:194-240: Transport is an active OO resource; Transport.status has a required transport-status binding and Transport.statusReason has an example transport-status-reason binding. Learned: the relevant authoritative source is in the current build.
+- E3 Source source/transport/codesystem-transport-status-reason.xml:44-76 and source/transport/valueset-transport-status-reason.xml:41-44: the statusReason concepts requested by FHIR-36788 are present in the example value set/code system. Learned: the statusReason portion remains applied.
+- E4 Git 88a67482e7 and cb9bc8aef4: the Jira-linked 2022 Transport commits applied the status/statusReason updates for FHIR-36788. Learned: the seed was initially implemented before later Transport refactoring.
+- E5 Jira/Git FHIR-40491, c15815354f, b2f79751ae, and reconcile commit 80a16edb44: later Applied R6 work changed Transport.status to Event-oriented codes and corrected the not-done definition. Learned: current status codes differ from FHIR-36788 by later final decision, not by missed application.
+- E6 Jira FHIR-50642: Resolved - No Change request to add a pending/planned status because Transport is an Event resource and request state belongs in the related Request. Learned: planned/pending should not be restored to Transport.status.
+- E7 Confluence 94662710 and 101351903: 2022 OO Specimen minutes record the FHIR-36788 status/statusReason discussion and acceptance, including the mixed resource/business-status concern. Learned: the seed rationale is documented and later Event-alignment decisions legitimately supersede the status-list portion.
+- E8 Command community/source searches: Zulip key searches found no directly relevant FHIR-36788 or FHIR-40491 discussion; Confluence refs found the cited OO minutes; source searches found the current status and statusReason bindings/codes. Learned: no conflicting community evidence was found.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-36788",
+    "url": "https://jira.hl7.org/browse/FHIR-36788",
+    "snapshot_path": "contexts/FHIR-36788/jira/FHIR-36788.md",
+    "ref": { "jira_key": "FHIR-36788" },
+    "summary": "Published/Persuasive with Modification issue requesting Transport.status code updates and an example Transport.statusReason value set/code system.",
+    "learned": "This establishes the seed request and the R5-era target for checking current source.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:637; source/transport/structuredefinition-Transport.xml:194-240",
+    "summary": "transport is an active OO resource; Transport.status and Transport.statusReason are bound to transport-status and transport-status-reason respectively.",
+    "learned": "The inspected Transport source is authoritative current-build source for the seed issue.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/transport/codesystem-transport-status-reason.xml:44-76; source/transport/valueset-transport-status-reason.xml:41-44",
+    "summary": "The statusReason CodeSystem contains declined-by-patient, refused-by-recipient, patient-not-available, specimen-not-available, wrong-request-data, in-route-accident, and request-not-acknowledged, and the ValueSet includes that CodeSystem.",
+    "learned": "The FHIR-36788 statusReason portion remains applied in current source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "88a67482e7596f96cefed27600a0848cb76dc323; cb9bc8aef40c92e11603a8d82105575701c2236a",
+    "ref": { "commit": "88a67482e7596f96cefed27600a0848cb76dc323" },
+    "summary": "The 2022 Transport commits updated Transport.status and added Transport.statusReason terminology for FHIR-36788.",
+    "learned": "The seed issue had an initial source application path before later R6 Transport decisions.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-40491 and reconcile commit 80a16edb44",
+    "url": "https://jira.hl7.org/browse/FHIR-40491",
+    "ref": { "jira_key": "FHIR-40491", "commit": "80a16edb443d0476aeb10e03302ec4878c067174" },
+    "summary": "Applied/Persuasive R6 issue replacing Transport.status with Event-oriented codes; an existing reconcile commit corrected the not-done definition.",
+    "learned": "The current Transport.status list intentionally supersedes the FHIR-36788 R5 status list.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-50642",
+    "url": "https://jira.hl7.org/browse/FHIR-50642",
+    "ref": { "jira_key": "FHIR-50642" },
+    "summary": "Resolved - No Change request to add a pending/planned Transport.status because Transport is an Event resource and request state belongs in the related Request.",
+    "learned": "Later WG reasoning confirms that planned/pending should not be restored to Transport.status.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "OO Specimen minutes 2022-04-18 page 94662710; 2022-04-25 page 101351903",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/101351903/2022-04-25+Specimen",
+    "ref": { "confluence_page_id": 101351903 },
+    "summary": "OO minutes record the FHIR-36788 Transport.status/statusReason discussion, acceptance vote, and concern about mixing resource and business statuses.",
+    "learned": "The minutes support both the original application and why later Event-alignment decisions are relevant.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community/source searches for FHIR-36788 Transport status",
+    "command": "bun run zulip:search fts '\"FHIR-36788\" Transport status statusReason' --limit 10; bun run zulip:search fts '\"FHIR-40491\" Transport status' --limit 10; bun run confluence:search refs jira FHIR-36788; rg -n 'Transport.status|transport-status-reason|declined-by-patient|not-done' source/transport source/fhir.ini",
+    "query": "FHIR-36788 Transport status statusReason; FHIR-40491 Transport status",
+    "result_count": 0,
+    "summary": "Zulip key searches found no relevant messages, Confluence refs found OO minutes, and source search found the current status/statusReason bindings and concepts.",
+    "learned": "No discovered community evidence conflicts with the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

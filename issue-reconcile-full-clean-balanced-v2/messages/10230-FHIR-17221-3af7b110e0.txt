@@ -1,0 +1,119 @@
+FHIR-17221: Audit Observation performer validator fix
+
+Issue request:
+FHIR-17221 was a Published/Persuasive STU3 FHIR-core change request reporting that the Java RI validator treated Observation.performer as single-valued, calling getNamedChild and failing when an Observation carried multiple performers even though Observation.performer is 0..*.
+
+Initial application:
+The current HL7/fhir history has no commit message mentioning FHIR-17221 or GF17221. The Jira issue was auto-approved and Grahame Grieve commented that it was already fixed; the contemporaneous Zulip thread identifies the behavior as Java RI/HAPI validator implementation behavior rather than a requested StructureDefinition change.
+
+Additional context:
+The current build includes Observation as an active resource, and the authoritative Observation StructureDefinition still defines Observation.performer with min 0 and max *. The published STU3 profile also has min 0 and max *, confirming that the specification surface already allowed multiple performers when the issue was raised. The old Java RI InstanceValidator/Element.java implementation referenced from the issue is not present in this checkout, and a related documentation request, FHIR-17147, was later resolved No Change for documenting validator best-practice warnings.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current FHIR source and the relevant published STU3 profile already express the correct repeating cardinality, and the reported defect was an implementation validator bug that Jira records as already fixed outside any current HL7/fhir source file.
+
+Recommendation:
+Keep this audit commit as-is. Do not add redundant Observation prose or alter the StructureDefinition for FHIR-17221; if the multiple-performer validation behavior ever regresses, it should be investigated in the current external validator/HAPI implementation codebase rather than in the core specification source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17221
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17147: background - same Zulip discussion raised undocumented Java RI validator best-practice warnings; it was later Resolved - No Change and does not require a FHIR-17221 source edit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17221: Published/Persuasive STU3 issue reports the Java RI validator failing on multiple Observation.performer values and includes a later comment that it was already fixed. Learned: the final Jira decision is implementation-focused and records no unresolved StructureDefinition change.
+- E2 Source source/fhir.ini:169-208: Observation is listed as an active resource in the current build. Learned: source/observation/structuredefinition-Observation.xml is in build scope for checking this issue.
+- E3 Source source/observation/structuredefinition-Observation.xml:672-682: Observation.performer has min 0 and max *. Learned: the current authoritative source allows multiple performers.
+- E4 Published spec https://hl7.org/fhir/STU3/observation.profile.json: Observation.performer has min 0 and max *. Learned: the STU3 publication surface already matched the repeating cardinality the reporter cited.
+- E5 Zulip #implementers > Observation constraints: the 2018 thread identifies the Java RI/HAPI validator warnings and single-value read as implementation behavior; Grahame says the bug should be fixed and Patrick links a HAPI GF17221 fix. Learned: community context supports treating this as an already-fixed validator implementation issue, not a core spec wording defect.
+- E6 Jira FHIR-17147: related best-practice warning documentation issue was Resolved - No Change. Learned: the adjacent request does not justify adding Observation SHOULD prose during this reconciliation.
+- E7 Git/source checks: git log --grep for FHIR-17221/GF17221 found no current HL7/fhir commit, and current file searches found no Java InstanceValidator/Element.java or hardcoded Observation warning text. Learned: there is no current in-repo validator source hunk to repair or replay.
+- E8 Community search: Confluence refs/FTS searches for FHIR-17221 and Observation.performer found no relevant records. Learned: no discovered WG minutes conflict with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17221",
+    "url": "https://jira.hl7.org/browse/FHIR-17221",
+    "snapshot_path": "contexts/FHIR-17221/jira/FHIR-17221.md",
+    "ref": { "jira_key": "FHIR-17221" },
+    "summary": "Published/Persuasive STU3 issue reporting that the Java RI validator read Observation.performer as a single child and failed for multiple performers.",
+    "learned": "The final Jira record says the issue was auto-approved and already fixed, with no unresolved request to change the Observation StructureDefinition.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-208",
+    "ref": { "path": "source/fhir.ini", "start_line": 169, "end_line": 208 },
+    "summary": "The resources list includes observation=Observation as an active resource.",
+    "learned": "The Observation StructureDefinition source is in current build scope for this reconciliation.",
+    "supports": ["additional_context", "source_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-Observation.xml:672-682",
+    "ref": { "path": "source/observation/structuredefinition-Observation.xml", "start_line": 672, "end_line": 682 },
+    "summary": "Observation.performer is defined with min 0 and max * in the current source.",
+    "learned": "The current authoritative source already permits multiple performers.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "https://hl7.org/fhir/STU3/observation.profile.json Observation.performer",
+    "url": "https://hl7.org/fhir/STU3/observation.profile.json",
+    "command": "curl -fsSL https://hl7.org/fhir/STU3/observation.profile.json | jq -r '.snapshot.element[] | select(.id==\"Observation.performer\") | \"min=\\(.min) max=\\(.max) definition=\\(.definition)\"'",
+    "summary": "The STU3 published profile reports Observation.performer as min=0 max=*.",
+    "learned": "The publication version named by the Jira already had the repeating cardinality expected by the reporter.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > Observation constraints",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Observation%20constraints",
+    "command": "bun run zulip:search snapshot implementers 'Observation constraints'",
+    "summary": "The May 2018 discussion identifies hardcoded Java RI/HAPI Observation validation warnings and the getNamedChild failure on multiple performers; Grahame says the bug should be fixed and Patrick links a HAPI GF17221 fix.",
+    "learned": "The issue concerns validator implementation behavior rather than a needed change to Observation.performer cardinality.",
+    "supports": ["issue_request", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-17147",
+    "url": "https://jira.hl7.org/browse/FHIR-17147",
+    "ref": { "jira_key": "FHIR-17147" },
+    "summary": "Related request to document Java RI validator best-practice warnings was Resolved - No Change.",
+    "learned": "The adjacent documentation issue does not justify adding new Observation SHOULD guidance while auditing FHIR-17221.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Git/source checks for current validator implementation",
+    "command": "git log --all --regexp-ignore-case --grep='GF17221\\|FHIR-17221\\|Observation constraints'; glob '**/*InstanceValidator*'; glob '**/Element.java'; rg 'All observations should have a performer|All observations should have an effective|getNamedChild|Attempt to read a single element'",
+    "summary": "No current HL7/fhir commit mentions the issue aliases, and no current Java InstanceValidator/Element.java or hardcoded Observation warning text is present in this checkout.",
+    "learned": "There is no current in-repo validator source location requiring a reconciliation edit.",
+    "supports": ["initial_application", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative Confluence search for FHIR-17221 and Observation.performer",
+    "command": "bun run confluence:search refs jira FHIR-17221; bun run confluence:search fts '\"FHIR-17221\" \"Observation.performer\"' --limit 10",
+    "query": "FHIR-17221 Observation.performer",
+    "result_count": 0,
+    "summary": "No directly relevant Confluence references or full-text hits were found.",
+    "learned": "No discovered WG minutes alter the Jira, source, and Zulip conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

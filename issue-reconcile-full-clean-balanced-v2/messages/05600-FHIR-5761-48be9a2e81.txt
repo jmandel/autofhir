@@ -1,0 +1,114 @@
+FHIR-5761: Audit MedicationStatement precondition guidance
+
+Issue request:
+FHIR-5761 was Published/Persuasive with Modification for DSTU1 Pharmacy. It asked whether C-CDA medication preconditions should be represented on relevant FHIR pharmacy resources, and the final disposition was to clarify the existing as-needed CodeableConcept comments and binding text for MedicationOrder/MedicationPrescription, MedicationDispense, and MedicationStatement rather than add a new element.
+
+Initial application:
+The issue was explicitly applied by git commit b5078c273e9d98521d581ade1ccba94c469cadae, which changed the dosageInstruction.asNeeded wording for MedicationOrder, MedicationDispense, and MedicationStatement and updated the MedicationAsNeededReason binding text to describe a precondition that should be met or evaluated before a dose.
+
+Additional context:
+MedicationOrder became MedicationRequest, and later refactors moved the shared medication dosage semantics into the active Dosage/DosageDetails datatypes used by MedicationRequest, MedicationDispense, and MedicationStatement. Later Pharmacy decisions FHIR-34325 and FHIR-41267 split the old asNeeded[x] choice into Dosage.asNeeded plus 0..* Dosage.asNeededFor and clarified the false/PRN comments; those later issue-reconcile commits are already present on the combined branch.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. In current build-scope source, MedicationStatement.dosage is active and typed as DosageDetails; DosageDetails contains Dosage components; Dosage.asNeededFor is a CodeableConcept bound to MedicationAsNeededReason and says it represents one or more preconditions for taking the medication. The binding text still describes the precondition that should be met or evaluated before consuming or administering a medication dose.
+
+Recommendation:
+Keep this no-change audit commit. The current source preserves the FHIR-5761 semantics after later datatype refactors, and adding resource-local duplicate text would risk drift from the shared Dosage definition.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5761
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-34325: later-change - Published Pharmacy issue that split asNeeded into asNeeded plus multi-valued asNeededFor for multiple PRN reasons; already represented on the combined branch.
+FHIR-41267: later-change - Applied Pharmacy issue that clarified the asNeeded/asNeededFor comments and false invariant guidance; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5761: Published/Persuasive with Modification; requested clarification that as-needed CodeableConcepts can represent medication preconditions. Learned: final WG intent was clarification of existing dosage as-needed/precondition semantics.
+- E2 Git b5078c273e9d98521d581ade1ccba94c469cadae: historical commit explicitly applied #5761 to MedicationOrder, MedicationDispense, MedicationStatement, and MedicationAsNeededReason binding text. Learned: the seed was applied in source history.
+- E3 Source source/fhir.ini:99-102 and source/fhir.ini:200-203: Dosage, DosageDetails, MedicationRequest, MedicationDispense, and MedicationStatement are active build-scope entries. Learned: the inspected shared dosage and medication resource files feed the current build.
+- E4 Source source/medicationstatement/structuredefinition-MedicationStatement.xml:470-482: MedicationStatement.dosage is active and typed as DosageDetails. Learned: MedicationStatement still reaches the shared dosage model rather than needing a resource-specific element.
+- E5 Source source/datatypes/dosagedetails.xml:904-918 and :1035-1048: DosageDetails.simple and step.component are typed as Dosage. Learned: current DosageDetails carries Dosage elements where as-needed/precondition information is represented.
+- E6 Source source/datatypes/dosage.xml:1044-1083 and :5877-5881: Dosage.asNeededFor is CodeableConcept, bound to MedicationAsNeededReason, and defines one or more preconditions for taking the medication; the binding text describes preconditions before consuming or administering a dose. Learned: current source preserves the requested precondition semantics.
+- E7 Jira FHIR-34325 and FHIR-41267 plus combined-branch idempotency checks: later final Pharmacy decisions refined the same as-needed/precondition model and are already represented on the combined branch. Learned: no duplicate related issue commits should be published from this seed.
+- E8 Community search: Zulip and Confluence searches for FHIR-5761 and MedicationStatement precondition/asNeeded found no relevant hits. Learned: no discovered community evidence conflicts with the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5761",
+    "url": "https://jira.hl7.org/browse/FHIR-5761",
+    "snapshot_path": "contexts/FHIR-5761/jira/FHIR-5761.md",
+    "ref": { "jira_key": "FHIR-5761" },
+    "summary": "Published/Persuasive with Modification issue asking to clarify medication preconditions on MedicationPrescription/MedicationStatement using existing as-needed dosage semantics.",
+    "learned": "The final WG intent was clarification of existing dosage as-needed CodeableConcept text and binding, not a new resource-specific element.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "b5078c273e9d98521d581ade1ccba94c469cadae",
+    "ref": { "commit": "b5078c273e9d98521d581ade1ccba94c469cadae" },
+    "summary": "Historical commit '#5761 - changed description of dosageInstruction.asNeeded for MedicationOrder, MedicationDispense and MedicationStatement and binding text for same'.",
+    "learned": "FHIR-5761 was explicitly applied in source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:99-102; source/fhir.ini:200-203",
+    "summary": "The fhir.ini build configuration actively lists dosage, dosagedetails, dosagecondition, MedicationRequest, MedicationDispense, and MedicationStatement.",
+    "learned": "The inspected shared dosage datatype and medication resource files are current build-scope source.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationstatement/structuredefinition-MedicationStatement.xml:470-482",
+    "summary": "MedicationStatement.dosage is defined as DosageDetails in active source.",
+    "learned": "MedicationStatement reaches the shared dosage model where as-needed preconditions are defined.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/datatypes/dosagedetails.xml:904-918; source/datatypes/dosagedetails.xml:1035-1048",
+    "summary": "DosageDetails.simple and DosageDetails.step.component are typed as Dosage.",
+    "learned": "The newer DosageDetails wrapper still carries Dosage components containing as-needed/precondition data.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/datatypes/dosage.xml:1044-1083; source/datatypes/dosage.xml:5877-5881",
+    "summary": "Dosage.asNeededFor is a CodeableConcept bound to MedicationAsNeededReason and defines one or more preconditions for taking the medication; the binding text describes preconditions before consuming or administering a dose.",
+    "learned": "Current source preserves the FHIR-5761 precondition semantics through the shared Dosage definition.",
+    "supports": ["reconciliation", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-34325; FHIR-41267",
+    "url": "https://jira.hl7.org/browse/FHIR-34325",
+    "ref": { "jira_key": "FHIR-34325" },
+    "summary": "FHIR-34325 split asNeeded into boolean asNeeded plus multi-valued CodeableConcept asNeededFor; FHIR-41267 clarified the related comments.",
+    "learned": "Later final Pharmacy decisions refined but did not reverse the seed semantics; both are already represented on the combined branch.",
+    "supports": ["additional_context", "avoid_duplicate_related_commits"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-5761 and MedicationStatement precondition/asNeeded",
+    "command": "bun run zulip:search fts '\"FHIR-5761\" MedicationStatement precondition asNeeded' --limit 10; bun run zulip:search fts 'MedicationStatement precondition asNeeded' --limit 10; bun run confluence:search refs jira FHIR-5761; bun run confluence:search fts '\"FHIR-5761\" MedicationStatement precondition' --limit 10",
+    "query": "FHIR-5761 MedicationStatement precondition asNeeded",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

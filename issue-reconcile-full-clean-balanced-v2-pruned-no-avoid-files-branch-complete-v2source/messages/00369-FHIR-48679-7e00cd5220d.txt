@@ -1,0 +1,115 @@
+FHIR-48679: Remove short-form Signature MIME allowance
+
+Issue request:
+FHIR-48679 was an Applied/Persuasive FHIR-core correction for invalid MIME type bindings. It requested consistent handling of the short-form `xml`, `json`, and `ttl` codes and resolved to create a new Supplemented MIME Types value set for `CapabilityStatement.format` while not allowing those short-form codes everywhere MIME types are used.
+
+Initial application:
+The issue was applied in git commit 41d77c5f67ad438536eeb1701cfefffe3688d7d4, which added `source/terminologies/valueset-supplemented-mimetypes.xml`, added `source/terminologies/codesystem-simple-format-codes.xml`, registered them in `source/fhir.ini`, and changed `CapabilityStatement.format` from the plain MIME Types binding to the new supplemented value set. Commit bc59d0544649eb13759bcabaafe1b644cda880d8 later populated OIDs/identifiers for those new terminology artifacts.
+
+Additional context:
+FHIR-20617 is the earlier Published issue that made `CapabilityStatement.format` accept `xml`, `json`, and `ttl`; FHIR-48679 revisits that family because those short-form codes are not valid BCP-13 MIME codes. Current source correctly keeps `CapabilityStatement.format` on `ValueSet/supplemented-mimetypes`, whose active value set includes BCP-13 plus the active `simple-format-codes` CodeSystem. However, the active normative Signature datatype spreadsheet still carried the copied comment on `Signature.targetFormat` saying `xml`, `json`, and `ttl` are allowed even though that row remains bound to the plain `MimeType` binding. FHIR-I minutes and the post-implementation Zulip discussion both support keeping the short forms scoped rather than adding them globally to all MIME type uses.
+
+AutoFHIR reconciliation:
+Removed the stale `Signature.targetFormat` comment that allowed the short-form codes. `source/datatypes/signature.xml` is in build scope because `source/fhir.ini` marks `Signature` as an active normative datatype, and the hunk is necessary because the prior comment contradicted FHIR-48679's final instruction not to allow these codes at other MIME-typed elements.
+
+Recommendation:
+Keep this source fix. It preserves the applied `CapabilityStatement.format` supplemented binding and removes the remaining misleading Signature guidance; no broader MIME binding changes are recommended.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-48679
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-20617: background - earlier CapabilityStatement.format issue introduced the short-form format-code handling that FHIR-48679 corrected and scoped.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-48679: Applied/Persuasive; resolution creates Supplemented MIME Types for CapabilityStatement.format and says short-form codes should not be allowed at other MIME type uses. Learned: this is the final scope and requires removing contradictory non-CapabilityStatement guidance.
+- E2 Source source/fhir.ini:993,1283,1308; source/terminologies/valueset-supplemented-mimetypes.xml:19-26; source/terminologies/codesystem-simple-format-codes.xml:17-31; source/capabilitystatement/structuredefinition-CapabilityStatement.xml:664-689. Learned: the main new terminology artifacts and CapabilityStatement.format binding are active and already correct.
+- E3 Source source/datatypes/signature.xml:683-698 before this commit and source/fhir.ini:993. Learned: Signature is an active normative datatype and had a stale targetFormat comment allowing xml/json/ttl despite the plain MimeType binding.
+- E4 Git 41d77c5f67 and bc59d05446: implementation added supplemented-mimetypes/simple-format-codes and later populated OIDs, but did not remove the Signature comment. Learned: prior application was mostly complete with one missed source location.
+- E5 Jira FHIR-20617: Published/Persuasive with Modification issue for CapabilityStatement.format's invalid binding. Learned: this is background for why CapabilityStatement.format intentionally remains special.
+- E6 Confluence FHIR Infrastructure Minutes WGM 202501 page 281219681: minutes record FHIR-48679 as Persuasive with a 13-0-0 vote and discuss simplified code sets for the binding. Learned: work-group minutes support the Jira disposition.
+- E7 Zulip #tooling > mandatory validator upgrade: implementers discussed FHIR-48679 and the risk of adding xml/json/ttl globally; Grahame confirmed that adding them to the plain MIME Types value set was not what was being done. Learned: community discussion supports limiting the short forms instead of allowing them on Signature.
+- E8 Verification command: xmllint parsed the edited Signature and terminology XML; grep found no short-form allowance comment in Signature and only the intended CapabilityStatement.format comment remains; git diff --check passed. Learned: the fix is syntactically safe and removes only the stale non-CapabilityStatement allowance.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-48679",
+    "url": "https://jira.hl7.org/browse/FHIR-48679",
+    "snapshot_path": "contexts/FHIR-48679/jira/FHIR-48679.md",
+    "ref": { "jira_key": "FHIR-48679" },
+    "summary": "Applied/Persuasive correction requesting a supplemented MIME value set for CapabilityStatement.format and explicitly not allowing short-form xml/json/ttl codes at other MIME type uses.",
+    "learned": "This establishes both the required CapabilityStatement.format binding and the need to remove contradictory Signature guidance.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:993,1283,1308; source/terminologies/valueset-supplemented-mimetypes.xml:19-26; source/terminologies/codesystem-simple-format-codes.xml:17-31; source/capabilitystatement/structuredefinition-CapabilityStatement.xml:664-689",
+    "summary": "Signature is active/normative, simple-format-codes and supplemented-mimetypes are active source entries, supplemented-mimetypes includes BCP-13 plus simple-format-codes, and CapabilityStatement.format binds to ValueSet/supplemented-mimetypes.",
+    "learned": "The main FHIR-48679 terminology change is in current build scope and already applied correctly.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/signature.xml:683-698",
+    "summary": "Before this commit, Signature.targetFormat was bound as MimeType but still had a comment saying xml, json, and ttl are allowed.",
+    "learned": "This was a remaining current-source contradiction with FHIR-48679's scoped allowance.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "41d77c5f67ad438536eeb1701cfefffe3688d7d4; bc59d0544649eb13759bcabaafe1b644cda880d8",
+    "ref": { "commit": "41d77c5f67ad438536eeb1701cfefffe3688d7d4" },
+    "summary": "FHIR-48679 implementation added the supplemented MIME terminology and changed CapabilityStatement.format; a later OID-population commit assigned identifiers to the new artifacts.",
+    "learned": "The issue was mostly applied before reconciliation, but the Signature datatype source was missed.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-20617",
+    "url": "https://jira.hl7.org/browse/FHIR-20617",
+    "ref": { "jira_key": "FHIR-20617" },
+    "summary": "Published/Persuasive with Modification issue that changed CapabilityStatement.format binding behavior to accommodate xml, json, and ttl.",
+    "learned": "This explains why CapabilityStatement.format is the special case that FHIR-48679 preserves and scopes.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes WGM 202501 - Virtual, page 281219681",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/281219681/FHIR+Infrastructure+Minutes+WGM+202501+-+Virtual",
+    "ref": { "confluence_page_id": 281219681 },
+    "summary": "Minutes list FHIR-48679 as Persuasive with a 13-0-0 vote and note a simplified-code-set binding solution.",
+    "learned": "The work-group record supports the Jira resolution and does not broaden the scope to every MIME binding.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#tooling > mandatory validator upgrade",
+    "url": "https://chat.fhir.org/#narrow/stream/tooling/topic/mandatory%20validator%20upgrade",
+    "ref": { "stream": "tooling", "topic": "mandatory validator upgrade" },
+    "summary": "The post-implementation discussion says FHIR-48679 exposed validator behavior around xml/json/ttl and confirms that adding those codes to the plain MIME Types value set was not the chosen approach.",
+    "learned": "Community discussion supports keeping the short-form allowance scoped to CapabilityStatement.format.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Post-edit verification",
+    "command": "xmllint --noout source/datatypes/signature.xml source/terminologies/valueset-supplemented-mimetypes.xml source/terminologies/codesystem-simple-format-codes.xml source/capabilitystatement/structuredefinition-CapabilityStatement.xml; git grep for the short-form allowance in Signature; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "XML parsing and whitespace checks passed; the short-form allowance comment no longer appears in Signature, while the intended CapabilityStatement.format comment remains.",
+    "learned": "The targeted edit removed the stale guidance without malformed XML or whitespace errors.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

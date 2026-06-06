@@ -1,0 +1,105 @@
+FHIR-22765: Add Encounter length duration invariant
+
+Issue request:
+FHIR-22765 was Published/Not Persuasive with Modification for R5. It requested removal of Encounter.length because recalculated duration could be stale, but the approved resolution kept Encounter.length as the actual duration and required clearer wording, a PV2-11 mapping, an estimated-duration approach outside this element, and an invariant ensuring length does not exceed the period when computable.
+
+Initial application:
+The historical application commit 7ac7c3010e5c7c604804b1a8831b7df36add8a03 changed source/encounter/structuredefinition-Encounter.xml so Encounter.length is explicitly actual, added the missing-value and low-precision clarification, and updated the v2 mapping to include PV2-11. That commit did not add the requested invariant. Later reconciliation commit 55b6972198ad1e12d56bfb6615d9df709a4f152b aligned the FHIR-22765 length comment from the old Encounter.period name to Encounter.actualPeriod after FHIR-32351.
+
+Additional context:
+Encounter is an active resource in source/fhir.ini, so source/encounter/structuredefinition-Encounter.xml feeds the current build. FHIR-32351 later renamed Encounter.period to Encounter.actualPeriod and separated planned dates, so the FHIR-22765 period comparison now needs to use actualPeriod. Targeted Jira searches found no later Encounter.length issue reversing the Published FHIR-22765 decision. Zulip and Confluence evidence shows the original removal concern and PA scheduling/deferral context but no conflicting final decision.
+
+AutoFHIR reconciliation:
+This commit adds root invariant enc-4 to Encounter. The invariant passes when length or the actualPeriod bounds are absent, passes when the period comparison cannot be computed, and otherwise requires actualPeriod.start plus length to be less than or equal to actualPeriod.end. This completes the remaining conformance part of the published resolution without changing generated SVG output.
+
+Recommendation:
+Keep this source fix as-is. It is a narrow completion of the published FHIR-22765 resolution; future work should only revisit it if PA wants a different computability rule for partial dateTime precision or non-comparable duration units.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22765
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-32351: later-change - Renamed Encounter.period to Encounter.actualPeriod, so the FHIR-22765 invariant has to target actualPeriod in the current source.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22765: Published/Not Persuasive with Modification issue retaining Encounter.length but requiring actual-duration wording, PV2-11 mapping, and an invariant that length is less than the period if computable. Learned: establishes the final required source behavior and the remaining invariant gap.
+- E2 Source source/fhir.ini:170-191 and source/encounter/structuredefinition-Encounter.xml:77-89,758-774: Encounter is active in the build and current source contains the Encounter.length wording/mapping plus the new enc-4 invariant. Learned: the edited source is in build scope and now carries the missing conformance rule.
+- E3 Git 7ac7c3010e5c7c604804b1a8831b7df36add8a03 and 55b6972198ad1e12d56bfb6615d9df709a4f152b: the original FHIR-22765 application changed prose/mapping but omitted the invariant; later FHIR-32351 reconciliation updated period wording to actualPeriod. Learned: the source needed only the missing invariant, using the current element name.
+- E4 Zulip #patient administration WG > Encounter remodelling: the 2019 discussion included the proposal to remove encounter.length and described duration/absence modelling concerns. Learned: community context explains the request but does not supersede the later Published Jira resolution.
+- E5 Confluence PA 2020 Feb and Sept WGM minutes: PA minutes reference FHIR-22765 and show it was deferred/scheduled among Encounter trackers. Learned: discovered meeting evidence does not conflict with the Jira resolution.
+- E6 Web FHIRPath v2.0 Date/Time Arithmetic: FHIRPath supports adding a time-valued Quantity to a DateTime and returns empty for non-computable operands/comparisons. Learned: the invariant can safely express the computable actualPeriod bound using actualPeriod.start + length <= actualPeriod.end.
+- E7 Validation command: xmllint --noout source/encounter/structuredefinition-Encounter.xml; git diff --check. Learned: the edited XML parses and the change has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22765",
+    "url": "https://jira.hl7.org/browse/FHIR-22765",
+    "snapshot_path": "contexts/FHIR-22765/jira/FHIR-22765.md",
+    "ref": { "jira_key": "FHIR-22765" },
+    "summary": "Published/Not Persuasive with Modification issue retaining Encounter.length while requiring actual-duration wording, PV2-11 mapping, and a computable period-length invariant.",
+    "learned": "This establishes the final PA decision and shows that the invariant was part of the approved source change.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-191; source/encounter/structuredefinition-Encounter.xml:77-89,758-774",
+    "summary": "Encounter is an active resource, and the current Encounter source contains the length prose/mapping plus the added enc-4 invariant.",
+    "learned": "The edited StructureDefinition is in current build scope and now carries the remaining conformance rule.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "7ac7c3010e5c7c604804b1a8831b7df36add8a03; 55b6972198ad1e12d56bfb6615d9df709a4f152b",
+    "summary": "The original FHIR-22765 commit applied prose and mapping changes but omitted the invariant; later FHIR-32351 reconciliation aligned Encounter.period wording to Encounter.actualPeriod.",
+    "learned": "The remaining fix is bounded to adding the missing invariant against the current actualPeriod element.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "zulip",
+    "locator": "#patient administration WG > Encounter remodelling",
+    "url": "https://chat.fhir.org/#narrow/stream/patient%20administration%20WG/topic/Encounter%20remodelling",
+    "snapshot_path": "contexts/FHIR-22765/zulip/patient-administration-WG--Encounter-remodelling.md",
+    "summary": "The 2019 discussion included a proposal to remove encounter.length while discussing Encounter duration and absence modelling.",
+    "learned": "This explains the source of the removal request but does not change the later Published Jira disposition to retain and constrain the element.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "PA 2020 Feb and Sept WGM Minutes pages 76153672 and 91990692",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/76153672/2020+Feb+WGM+Minutes",
+    "snapshot_path": "contexts/FHIR-22765/confluence/76153672.md",
+    "ref": { "confluence_page_id": 76153672 },
+    "summary": "PA minutes reference FHIR-22765 among Encounter trackers and show the item was deferred/scheduled for later review.",
+    "learned": "The discovered minutes provide meeting context and no conflicting final decision beyond the Jira resolution.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E6",
+    "kind": "web",
+    "locator": "FHIRPath v2.0 Date/Time Arithmetic and comparison semantics",
+    "url": "https://hl7.org/fhirpath/N1/#datetime-arithmetic",
+    "summary": "FHIRPath supports adding time-valued quantities to DateTime values and propagates empty results for non-computable operands/comparisons.",
+    "learned": "The invariant can express the computable-bound rule as actualPeriod.start + length <= actualPeriod.end while passing empty/non-computable cases.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "xmllint --noout source/encounter/structuredefinition-Encounter.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The edited Encounter StructureDefinition parses as XML and the diff has no whitespace errors.",
+    "learned": "The source edit is syntactically safe for the checked file.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

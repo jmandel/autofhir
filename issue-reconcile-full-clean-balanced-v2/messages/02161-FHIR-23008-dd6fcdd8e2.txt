@@ -1,0 +1,132 @@
+FHIR-23008: Audit superseded Condition and AllergyIntolerance invariants
+
+Issue request:
+FHIR-23008 was Published/Persuasive for a Patient Care technical correction. It reported that AllergyIntolerance ait-1/ait-2 and Condition con-3 still treated verificationStatus as a primitive code after verificationStatus became CodeableConcept, and asked that the invariants be rewritten to preserve their intent.
+
+Initial application:
+The issue was applied by commit a233ae44884fd822d0d3500d76d39b9c9ed93bc2 on the R4B line, which changed the AllergyIntolerance ait-1/ait-2 and Condition con-3 FHIRPath/XPath expressions to inspect CodeableConcept.coding system/code values instead of primitive code values. The Jira discussion also records that the seed duplicated GForge tracker items 22985 and 22986.
+
+Additional context:
+Later applied Patient Care decisions changed the relevant conformance surface. FHIR-25514 removed AllergyIntolerance ait-1 and replaced it with non-invariant guidance for negated allergy records. FHIR-28458 added refuted-status guidance and removed/refined invariants that made clinicalStatus inappropriate for refuted records. FHIR-29409 then made Condition.clinicalStatus 1..1, removed the old verificationStatus/category-dependent Condition con-3, and loosened Condition.category. The current active AllergyIntolerance and Condition source is in build scope via source/fhir.ini.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Current AllergyIntolerance has no ait-1 or ait-2 constraints; clinicalStatus has the later guidance comment and verificationStatus remains a CodeableConcept. Current Condition has no verificationStatus-dependent con-3 and no expression that compares verificationStatus as a primitive code; clinicalStatus is 1..1, and the current constraints concern abatement, bodyStructure/bodySite, and stage. A targeted source search found none of the old broken invariant patterns.
+
+Recommendation:
+Keep this no-change audit as-is. The current specification no longer contains the broken invariants FHIR-23008 targeted, and the remaining wording reflects later published decisions; no core follow-up is needed for the seed issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-23008
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-22973: same-change-family - addressed overlapping Condition invariant text and was later described as mostly superseded by FHIR-29409.
+FHIR-25514: later-change - removed AllergyIntolerance ait-1 and replaced it with guidance, making part of the original FHIR-23008 AllergyIntolerance fix obsolete.
+FHIR-28458: later-change - removed/refined refuted-status clinicalStatus constraints and added Condition/AllergyIntolerance guidance after FHIR-23008.
+FHIR-29409: later-change - made Condition.clinicalStatus 1..1 and removed the old verificationStatus/category-dependent con-3.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-23008: Published/Persuasive technical correction for broken Condition and AllergyIntolerance invariants after verificationStatus became CodeableConcept. Learned: this establishes the original requested invariant rewrite.
+- E2 Zulip #implementers > AllergyIntolerance.verificationStatus is failing Rule ait-2: implementers reported R4 validation failure and Lloyd McKenzie identified the CodeableConcept invariant bug. Learned: community evidence matches the Jira problem statement and urgency.
+- E3 Git a233ae44884fd822d0d3500d76d39b9c9ed93bc2: fixed ait-1, ait-2, and con-3 FHIRPath/XPath to use verificationStatus.coding system/code checks. Learned: the original FHIR-23008 source application exists in history.
+- E4 Jira FHIR-25514 and FHIR-28458: later Published decisions removed AllergyIntolerance ait-1 and added refuted-status guidance/removal of related invariants. Learned: the AllergyIntolerance side of FHIR-23008 is now intentionally non-invariant guidance.
+- E5 Jira FHIR-29409: later Published decision required Condition.clinicalStatus 1..1 and removed the old con-3 dependency on problem-list-item category. Learned: the Condition side of FHIR-23008 was superseded by a later design.
+- E6 Source source/allergyintolerance/structuredefinition-AllergyIntolerance.xml:120-160: current clinicalStatus guidance and verificationStatus CodeableConcept definition are present with no ait-1/ait-2 constraints. Learned: the active source no longer contains the broken AllergyIntolerance invariants.
+- E7 Source source/condition/structuredefinition-Condition.xml:91-199: current Condition constraints and clinicalStatus/verificationStatus definitions contain no verificationStatus primitive-code invariant; clinicalStatus is 1..1. Learned: the active source no longer contains the broken Condition con-3 targeted by FHIR-23008.
+- E8 Command contexts/FHIR-23008/commands/current-invariant-check.txt: targeted search for old ait/con verificationStatus invariant patterns returned no matches and listed only current constraints. Learned: this verifies the absence of the obsolete patterns in the current build-scope source.
+- E9 Source source/fhir.ini:176,181: AllergyIntolerance and Condition are active resource entries. Learned: the inspected StructureDefinitions are in current build scope.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-23008",
+    "url": "https://jira.hl7.org/browse/FHIR-23008",
+    "snapshot_path": "contexts/FHIR-23008/jira/FHIR-23008.md",
+    "ref": { "jira_key": "FHIR-23008" },
+    "summary": "Published/Persuasive technical correction saying Condition and AllergyIntolerance invariants treated verificationStatus as a primitive code after it became CodeableConcept.",
+    "learned": "This establishes the original requested rewrite for ait-1, ait-2, and con-3.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > AllergyIntolerance.verificationStatus is failing Rule ait-2",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/AllergyIntolerance.verificationStatus%20is%20failing%20Rule%20ait-2",
+    "snapshot_path": "contexts/FHIR-23008/zulip/implementers--AllergyIntolerance.verificationStatus-is-failing-Rule-ait-2.md",
+    "ref": { "stream": "implementers", "topic": "AllergyIntolerance.verificationStatus is failing Rule ait-2" },
+    "summary": "Implementers reported the R4 ait-2 failure and Lloyd McKenzie identified that Condition and AllergyIntolerance invariants were broken by the CodeableConcept change.",
+    "learned": "The community thread independently confirms the seed problem and the creation of GF#23008.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "a233ae44884fd822d0d3500d76d39b9c9ed93bc2",
+    "ref": { "commit": "a233ae44884fd822d0d3500d76d39b9c9ed93bc2" },
+    "summary": "Commit message says it fixed FHIR-23008 ait-1, ait-2, and con-3 FHIRPath and XPath expressions.",
+    "learned": "The original FHIR-23008 fix was applied in source history before later superseding changes.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-25514 and FHIR-28458",
+    "url": "https://jira.hl7.org/browse/FHIR-28458",
+    "snapshot_path": "contexts/FHIR-23008/jira/FHIR-28458.md",
+    "ref": { "jira_key": "FHIR-28458" },
+    "summary": "Later Published decisions removed AllergyIntolerance ait-1 and related refuted-status constraints, and added guidance for clinicalStatus when verificationStatus is refuted.",
+    "learned": "These decisions make the AllergyIntolerance invariant rewrite requested by FHIR-23008 no longer applicable in the current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-29409",
+    "url": "https://jira.hl7.org/browse/FHIR-29409",
+    "snapshot_path": "contexts/FHIR-23008/jira/FHIR-29409.md",
+    "ref": { "jira_key": "FHIR-29409" },
+    "summary": "Published/Persuasive with Modification decision requiring Condition.clinicalStatus 1..1 and removing the old con-3 dependency on problem-list-item category.",
+    "learned": "The original Condition con-3 targeted by FHIR-23008 was superseded by a later final design.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/allergyintolerance/structuredefinition-AllergyIntolerance.xml:120-160",
+    "summary": "Current AllergyIntolerance clinicalStatus has guidance rather than ait-1/ait-2 constraints, and verificationStatus is a CodeableConcept with updated definition text.",
+    "learned": "The broken AllergyIntolerance invariant expressions no longer exist in the active source.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "source/condition/structuredefinition-Condition.xml:91-199",
+    "summary": "Current Condition constraints do not include a verificationStatus/category con-3; clinicalStatus is 1..1 and verificationStatus is CodeableConcept.",
+    "learned": "The broken Condition invariant targeted by FHIR-23008 no longer exists in the active source.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "current invariant pattern search",
+    "command": "rg -n \"verificationStatus(=|'entered-in-error'|\\.coding\\.where)|f:verificationStatus|ait-[12]|clinicalStatus SHALL (NOT )?be present if verificationStatus|category\\.select\\(\\$this='problem-list-item'\\)\" source/allergyintolerance/structuredefinition-AllergyIntolerance.xml source/condition/structuredefinition-Condition.xml source/allergyintolerance/allergyintolerance-notes.xml source/condition/condition-notes.xml || true",
+    "snapshot_path": "contexts/FHIR-23008/commands/current-invariant-check.txt",
+    "result_count": 0,
+    "summary": "No current-source matches were found for the obsolete verificationStatus primitive-code invariant patterns.",
+    "learned": "This verifies that the FHIR-23008 bug is not present in the current build-scope source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "source",
+    "locator": "source/fhir.ini:176,181",
+    "summary": "fhir.ini lists AllergyIntolerance and Condition as active resources.",
+    "learned": "The inspected source files are in build scope for the current specification.",
+    "supports": ["source_scope", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,96 @@
+FHIR-13984: Align ExplanationOfBenefit Event performer mappings
+
+Issue request:
+FHIR-13984 was Published/Persuasive for STU3 and asked to make the Event.performer pattern complex again, adding a 0..1 function CodeableConcept and a required performer reference child, plus guidance that resources can collapse the performer when they do not need to distinguish functions.
+
+Initial application:
+The Jira comment points to SVN#12390. Git commit a964d42061fe3af2f0be7eec4382bfb5b91be697 has message SVN#13984 and git-svn build@12390; it made Event.performer a backbone, added Event.performer.function, added the required reference child as Event.performer.actor, and added EventPerformerFunction. The current Event pattern source retains that shape and the collapse note.
+
+Additional context:
+The Jira resolution used the draft child name agent, but the applied and current Event pattern uses actor for the reference child and current resource mappings overwhelmingly point to Event.performer.actor. ExplanationOfBenefit is an active resource in source/fhir.ini, and two of its workflow mappings still pointed at the non-current Event.performer.agent path while no current Event pattern element by that name exists.
+
+AutoFHIR reconciliation:
+Changed ExplanationOfBenefit.enterer and ExplanationOfBenefit.insurer workflow mappings from Event.performer.agent to Event.performer.actor. No Event pattern source change was needed because the pattern already has Event.performer.function 0..1 CodeableConcept, Event.performer.actor 1..1 Reference with the prior performer reference targets, and the requested collapse guidance.
+
+Recommendation:
+Keep this source fix. Do not rename the Event pattern child to agent without a new work-group decision because actor is the applied/current pattern path used by current resource mappings.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13984
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13984: Published/Persuasive issue requested a complex Event.performer with function and required performer reference child. Learned: this establishes final WG intent for the Event performer pattern.
+- E2 Source source/event/event-spreadsheet.xml:1307:1370: current Event.performer is complex, includes function and required actor, and has the collapse guidance. Learned: the core pattern already carries the requested semantics.
+- E3 Git a964d42061fe3af2f0be7eec4382bfb5b91be697: SVN#13984 / git-svn build@12390 introduced Event.performer.function, Event.performer.actor, and EventPerformerFunction. Learned: the Jira was initially applied using actor as the reference-child name.
+- E4 Source source/fhir.ini:243 and source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:324,345: ExplanationOfBenefit is active and had workflow mappings to Event.performer.agent. Learned: the remaining current-source inconsistency was in an active resource mapping.
+- E5 Command rg Event.performer.agent source after the edit: no current source XML matches remained; actor mappings are present. Learned: the stale current mappings were eliminated without changing historical release snapshots.
+- E6 Community search: quoted Zulip and Confluence searches for FHIR-13984/Event performer found no relevant hits or references. Learned: no discovered community record changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13984",
+    "url": "https://jira.hl7.org/browse/FHIR-13984",
+    "snapshot_path": "contexts/FHIR-13984/jira/FHIR-13984.md",
+    "ref": { "jira_key": "FHIR-13984" },
+    "summary": "Published/Persuasive issue requesting Event.performer be made complex again with a function child and required performer reference child.",
+    "learned": "This is the final WG intent and defines the target Event performer structure.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/event/event-spreadsheet.xml:1307-1370",
+    "ref": { "path": "source/event/event-spreadsheet.xml", "start_line": 1307, "end_line": 1370 },
+    "summary": "Current Event pattern source defines Event.performer as complex with Event.performer.function and Event.performer.actor.",
+    "learned": "The Event pattern itself already satisfies the requested structure, with actor carrying the required performer reference semantics.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "a964d42061fe3af2f0be7eec4382bfb5b91be697",
+    "ref": { "commit": "a964d42061fe3af2f0be7eec4382bfb5b91be697" },
+    "summary": "SVN#13984 / git-svn build@12390 commit added Event.performer.function, Event.performer.actor, and EventPerformerFunction.",
+    "learned": "The historical application used actor as the reference child even though Jira resolution prose said agent.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:243; source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml:324,345",
+    "ref": { "path": "source/explanationofbenefit/structuredefinition-ExplanationOfBenefit.xml", "lines": "324,345" },
+    "summary": "ExplanationOfBenefit is an active resource and had two workflow mappings using Event.performer.agent.",
+    "learned": "Those active mappings pointed at a non-current Event pattern path and needed alignment to Event.performer.actor.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Post-edit Event.performer.agent search",
+    "command": "rg -n 'Event\\.performer\\.agent' source --glob '*.xml'",
+    "result_count": 0,
+    "summary": "No current source XML mappings to Event.performer.agent remain after the edit.",
+    "learned": "The stale current-source inconsistency was removed while historical release snapshots were left untouched.",
+    "supports": ["verification", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-13984 Event performer",
+    "command": "bun run zulip:search fts '\"FHIR-13984\" Event performer' --limit 10; bun run zulip:search fts '\"Event.performer\" function agent actor' --limit 10; bun run confluence:search refs jira FHIR-13984; bun run confluence:search fts '\"FHIR-13984\" Event performer' --limit 10",
+    "query": "FHIR-13984 Event performer; Event.performer function agent actor",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits or Jira references were found.",
+    "learned": "No discovered community evidence conflicts with the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

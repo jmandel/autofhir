@@ -1,0 +1,148 @@
+FHIR-21280: Audit Specimen container location
+
+Issue request:
+FHIR-21280 was a Published/Persuasive Orders and Observations change request raised against STU3 and applied for R5. It asked to add Specimen.container.location as a Reference(Location) so biobanks, oncology scenarios, and similar use cases could record where a specimen container currently resides, such as a freezer, room, or building.
+
+Initial application:
+The request was initially applied in source/specimen/structuredefinition-Specimen.xml by ceb670a418e300180a910f0b7242a033e61c7fe4, and Jira specifically cites follow-up commit 296d94523ee40ea9843fcc4e605e54fcd587c0d3 adjusting the element short description. That direct element was later removed from the active Specimen StructureDefinition by the FHIR-40559 implementation when the work group settled on representing container location through the referenced container Device.
+
+Additional context:
+Specimen, Device, and Location are active current-build resources in source/fhir.ini. Later final work in the same Specimen container family changed the model: FHIR-22823 kept Specimen.container but added a required container Device reference and points container/holder nesting through Device.parent, while FHIR-40559 explicitly removed Specimen.container.location because Specimen.container.device.location has the location information. FHIR-51580 later removed the trial-use container-location search parameter because it required resolve() and the group decided not to keep that parameter. Current source/specimen/structuredefinition-Specimen.xml has Specimen.container.device[x] and no Specimen.container.location, current source/specimen/specimen-introduction.xml points readers to Device.parent and Device.location, and source/device/structuredefinition-Device.xml defines Device.location as Reference(Location).
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Re-adding Specimen.container.location would conflict with the later applied/published Device-based container model and would duplicate the current Device.location path that the Specimen narrative already documents.
+
+Recommendation:
+Keep this no-change audit for FHIR-21280. Do not restore a direct Specimen.container.location element unless OO opens and resolves a new tracker that reverses the FHIR-22823/FHIR-40559 Device-based approach.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-21280
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-22823: later-change - Published issue moved Specimen container/holder nesting to a referenced Device and is already represented on the combined branch.
+FHIR-40559: later-change - Applied issue removed Specimen.container.location because Specimen.container.device.location carries the location information; it is already represented on the combined branch.
+FHIR-51580: later-change - Applied issue removed the container-location search parameter after concluding the resolve()-based parameter should not remain.
+FHIR-54598: background - Triaged R6 wording issue also discusses explaining Device.parent/Device.location for nested containers but is not final Applied/Published work for this seed.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-21280: Published/Persuasive issue requested adding Specimen.container.location as Reference(Location). Learned: this establishes the seed request and final R5 application target.
+- E2 Git ceb670a418e3 and 296d94523ee: source history added Specimen.container.location and then adjusted its short description. Learned: the seed was initially applied before later container-model changes.
+- E3 Source source/fhir.ini:169-224,1239,1434: Specimen, Device, and Location are active current-build core resources and Specimen has FMG approval. Learned: the checked Specimen and Device source files are in build scope.
+- E4 Source source/specimen/structuredefinition-Specimen.xml:792-824 and source/specimen/specimen-introduction.xml:29-33: current Specimen has Specimen.container.device[x], no Specimen.container.location, and narrative says Device.parent/Device.location express holder hierarchy and location. Learned: current active source represents container location through Device rather than a direct Specimen element.
+- E5 Source source/device/structuredefinition-Device.xml:1441-1454: Device.location is Reference(Location) with requirements text saying it can track device location. Learned: the replacement path can carry the Location reference requested by the seed.
+- E6 Jira FHIR-22823 and combined commit c4df63e217ce5b7cc346cc45b2462735fc48f894: later Published issue kept Specimen.container but modeled holders through Device.parent, and the combined branch already fixed stale container nesting text. Learned: this later final decision changed how the seed should be interpreted now.
+- E7 Jira FHIR-40559, git 7d6b4fc7ac1ccdf6af9c46de330cbbec640a98fc, and combined commit 3ad33f1b5ddaa1c4fb78d7d6de3cffcf35dc4354: later Applied issue explicitly removed Specimen.container.location because Specimen.container.device.location has location info. Learned: the direct element should remain absent from current source.
+- E8 Jira FHIR-51580 and git 1f6e0118e7bceea84e7b9f208311b2ee401c025f: later Applied issue removed container-location and related resolve()-based Specimen search parameters. Learned: no remaining container-location search parameter needs to be restored for this seed.
+- E9 Zulip #Orders and Observation WG > Specimen Containers and holders and Confluence OO minutes 2019-07-09, 2023-03-06, 2025-09-08: community and meeting evidence record the original location request, later concern about having both Specimen.container.location and Device.location, and later removal of container-location search. Learned: community evidence supports the later Device-based reconciliation rather than restoring the old direct element.
+- E10 Verification command: rg checked current source for Specimen.container.location/container-location and for Specimen.container.device[x]/Device.location. Learned: current source lacks the removed direct/search elements and contains the Device-based replacement path.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-21280",
+    "url": "https://jira.hl7.org/browse/FHIR-21280",
+    "snapshot_path": "contexts/FHIR-21280/jira/FHIR-21280.md",
+    "ref": { "jira_key": "FHIR-21280" },
+    "summary": "Published/Persuasive OO issue requesting Specimen.container.location as Reference(Location) for tracking where a specimen container resides.",
+    "learned": "This establishes the seed request and final workflow status.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "ceb670a418e300180a910f0b7242a033e61c7fe4; 296d94523ee40ea9843fcc4e605e54fcd587c0d3",
+    "ref": { "commit": "296d94523ee40ea9843fcc4e605e54fcd587c0d3" },
+    "summary": "Specimen.container.location was added to the Specimen StructureDefinition and then its short description was adjusted by the Jira-cited commit.",
+    "learned": "The seed had an initial source application before later Specimen container modeling changed.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-224; source/fhir.ini:1239; source/fhir.ini:1434",
+    "summary": "Specimen, Device, and Location are active resources in the current build configuration, and Specimen has FMG approval.",
+    "learned": "The checked Specimen and Device source files are authoritative current-build core source.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/specimen/structuredefinition-Specimen.xml:792-824; source/specimen/specimen-introduction.xml:29-33",
+    "summary": "Current Specimen has Specimen.container.device[x] and narrative pointing to Device.parent and Device.location, with no direct Specimen.container.location element.",
+    "learned": "The current source expresses container location through the referenced Device rather than the old direct Specimen element.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:1441-1454",
+    "summary": "Device.location is defined as Reference(Location) and can be used to track device location.",
+    "learned": "The Device-based replacement path can represent the location reference requested by FHIR-21280.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-22823 and combined commit c4df63e217ce5b7cc346cc45b2462735fc48f894",
+    "url": "https://jira.hl7.org/browse/FHIR-22823",
+    "ref": { "jira_key": "FHIR-22823", "commit": "c4df63e217ce5b7cc346cc45b2462735fc48f894" },
+    "summary": "Later Published issue kept Specimen.container while using a referenced Device and Device.parent for container/holder nesting.",
+    "learned": "This later final decision changes the right current interpretation of the earlier direct-location request.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-40559 and git 7d6b4fc7ac1ccdf6af9c46de330cbbec640a98fc",
+    "url": "https://jira.hl7.org/browse/FHIR-40559",
+    "ref": { "jira_key": "FHIR-40559", "commit": "7d6b4fc7ac1ccdf6af9c46de330cbbec640a98fc" },
+    "summary": "Later Applied issue removed Specimen.container.location because Specimen.container.device.location has location information.",
+    "learned": "The direct element should remain absent and no seed source fix is needed.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-51580 and git 1f6e0118e7bceea84e7b9f208311b2ee401c025f",
+    "url": "https://jira.hl7.org/browse/FHIR-51580",
+    "ref": { "jira_key": "FHIR-51580", "commit": "1f6e0118e7bceea84e7b9f208311b2ee401c025f" },
+    "summary": "Later Applied issue removed container-location and related resolve()-based Specimen search parameters.",
+    "learned": "The current absence of a Specimen container-location search parameter is intentional later work, not an omission from FHIR-21280.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "zulip",
+    "locator": "#Orders and Observation WG > Specimen Containers and holders",
+    "url": "https://chat.fhir.org/#narrow/stream/Orders%20and%20Observation%20WG/topic/Specimen%20Containers%20and%20holders",
+    "ref": { "stream": "Orders and Observation WG", "topic": "Specimen Containers and holders" },
+    "summary": "Discussion notes FHIR-21280, FHIR-22823, and the concern that both Specimen.container.location and Specimen.container.device.location should not coexist.",
+    "learned": "Community discussion supports the later Device-based model as the reason no direct Specimen location element should be restored.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E10",
+    "kind": "confluence",
+    "locator": "OO minutes 2019-07-09 page 55938853; 2023-03-06 page 161054779; 2025-09-08 page 358273295",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/55938853/Specimen+Call+Notes+July+9+2019",
+    "ref": { "confluence_page_id": 55938853 },
+    "summary": "Minutes record the original vote to add Specimen.container.location, the later FHIR-40559 decision to use container Device location, and the FHIR-51580 removal of container-location search.",
+    "learned": "Meeting evidence confirms the transition from the original direct element to the current Device-based approach.",
+    "supports": ["issue_request", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E11",
+    "kind": "command",
+    "locator": "Current source grep for Specimen container location and Device replacement path",
+    "command": "rg -n 'Specimen\\.container\\.location|Specimen-container-location|container-location' source/specimen source/fhir.ini || true; rg -n 'Specimen\\.container\\.device\\[x\\]|Device\\.location|<element id=\"Device\\.location\"' source/specimen/structuredefinition-Specimen.xml source/specimen/specimen-introduction.xml source/device/structuredefinition-Device.xml",
+    "summary": "The only remaining Specimen.container.location hit is the R5-to-R6 delta note in fhir.ini; active Specimen and Device source contain the Device-based location path.",
+    "learned": "The source state matches the no-change reconciliation decision.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

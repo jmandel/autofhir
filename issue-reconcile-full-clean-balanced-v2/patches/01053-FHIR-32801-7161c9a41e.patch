@@ -1,0 +1,120 @@
+diff --git a/source/medicationknowledge/bundle-MedicationKnowledge-search-params.xml b/source/medicationknowledge/bundle-MedicationKnowledge-search-params.xml
+index 224b7e9355..e60e4889f9 100644
+--- a/source/medicationknowledge/bundle-MedicationKnowledge-search-params.xml
++++ b/source/medicationknowledge/bundle-MedicationKnowledge-search-params.xml
+@@ -89,7 +89,7 @@
+           <valueString value="MedicationKnowledge.identifier"/>
+         </extension>
+         <url value="http://hl7.org/fhir/build/SearchParameter/MedicationKnowledge-identifier"/>
+-        <description value="Business identifier for this medication"/>
++        <description value="External identifier for the medication knowledge"/>
+         <code value="identifier"/>
+         <type value="token"/>
+         <expression value="MedicationKnowledge.identifier"/>
+@@ -298,7 +298,7 @@
+           <valueString value="MedicationKnowledge.status"/>
+         </extension>
+         <url value="http://hl7.org/fhir/build/SearchParameter/MedicationKnowledge-status"/>
+-        <description value="active | inactive | entered-in-error"/>
++        <description value="The current status of the medication knowledge"/>
+         <code value="status"/>
+         <type value="token"/>
+         <expression value="MedicationKnowledge.status"/>
+diff --git a/source/medicationknowledge/medicationknowledge-example.xml b/source/medicationknowledge/medicationknowledge-example.xml
+index 38d578fcd6..c6b9f70710 100644
+--- a/source/medicationknowledge/medicationknowledge-example.xml
++++ b/source/medicationknowledge/medicationknowledge-example.xml
+@@ -11,7 +11,7 @@
+     <text value="Vancomycin Hydrochloride (VANCOMYCIN HYDROCHLORIDE)"/>
+   </code>
+   <status value="active"/>
+-  <name value="Vancomycin Hydrochloride (VANCOMYCIN HYDROCHLORIDE)"/>
++  <name value="VancomycinKnowledge"/>
+   <definitional>
+     <doseForm>
+       <coding>
+diff --git a/source/medicationknowledge/structuredefinition-MedicationKnowledge.xml b/source/medicationknowledge/structuredefinition-MedicationKnowledge.xml
+index 31a56df4ed..5fdc6a40a1 100644
+--- a/source/medicationknowledge/structuredefinition-MedicationKnowledge.xml
++++ b/source/medicationknowledge/structuredefinition-MedicationKnowledge.xml
+@@ -21,7 +21,7 @@
+     <valueCode value="phx"/>
+   </extension>
+   <extension url="http://hl7.org/fhir/build/StructureDefinition/entered-in-error-status">
+-    <valueCode value=".status = entered-in-error"/>
++    <valueCode value=".status = retired"/>
+   </extension>
+ 	<extension url="http://hl7.org/fhir/build/StructureDefinition/template">
+ 		<valueString value="MetadataResource"/>
+@@ -90,9 +90,8 @@
+     </element>
+     <element id="MedicationKnowledge.identifier">
+       <path value="MedicationKnowledge.identifier"/>
+-      <short value="Business identifier for this medication"/>
+-      <definition value="Business identifier for this medication."/>
+-      <comment value="This is a business identifier, not a resource identifier (see discussion)."/>
++      <short value="Additional identifier for the medication knowledge"/>
++      <definition value="A formal identifier that is used to identify this medication knowledge when it is represented in other formats, or referenced in a specification, model, design or instance."/>
+       <min value="0"/>
+       <max value="*"/>
+       <type>
+@@ -139,22 +138,25 @@
+     <element id="MedicationKnowledge.status">
+       <path value="MedicationKnowledge.status"/>
+       <short value="draft | active | retired | unknown"/>
+-      <definition value="A code to indicate if the medication referred to by this MedicationKnowledge is in active use within the drug database or inventory system. The status refers to the validity about the information of the medication and not to its medicinal properties."/>
+-      <comment value="This status is intended to identify if the medication in a local system is in active use within a drug database or inventory.  For example, a pharmacy system may create a new drug file record for a compounded product &quot;ABC Hospital Special Cream&quot; with an active status.  At some point in the future, it may be determined that the drug record was created with an error and the status is changed to &quot;entered in error&quot;.   This status is not intended to specify if a medication is part of a particular formulary.  It is possible that the drug record may be referenced by multiple formularies or catalogues and each of those entries would have a separate status."/>
++      <definition value="The status of this medication knowledge. Enables tracking the life-cycle of the content."/>
++      <comment value="Allows filtering of medication knowledge records that are appropriate for use versus not.&#xa;&#xa;See guidance around (not) making local changes to elements [here](canonicalresource.html#localization)."/>
+       <min value="0"/>
+       <max value="1"/>
+       <type>
+         <code value="code"/>
+       </type>
+       <isModifier value="true"/>
+-      <isModifierReason value="This element changes the interpretation of all descriptive attributes."/>
++      <isModifierReason value="This is labeled as &quot;Is Modifier&quot; because applications should not use retired MedicationKnowledge without due consideration"/>
+       <isSummary value="true"/>
+       <binding>
+         <extension url="http://hl7.org/fhir/StructureDefinition/elementdefinition-bindingName">
+-          <valueString value="MedicationKnowledgeStatus"/>
++          <valueString value="PublicationStatus"/>
++        </extension>
++        <extension url="http://hl7.org/fhir/StructureDefinition/elementdefinition-isCommonBinding">
++          <valueBoolean value="true"/>
+         </extension>
+         <strength value="required"/>
+-        <description value="A coded concept defining if the medication knowledge record is in active use."/>
++        <description value="The lifecycle status of an artifact."/>
+         <valueSet value="http://hl7.org/fhir/ValueSet/publication-status"/>
+       </binding>
+       <mapping>
+@@ -164,8 +166,8 @@
+     </element>
+     <element id="MedicationKnowledge.author">
+       <path value="MedicationKnowledge.author"/>
+-      <short value="Creator or owner of the knowledge or information about the medication"/>
+-      <definition value="The creator or owner of the knowledge or information about the medication."/>
++      <short value="Who authored the medication knowledge"/>
++      <definition value="An individual or organization primarily involved in the creation and maintenance of the medication knowledge."/>
+       <min value="0"/>
+       <max value="1"/>
+ 			<type>
+@@ -193,13 +195,15 @@
+     </element>
+     <element id="MedicationKnowledge.name">
+       <path value="MedicationKnowledge.name"/>
+-      <short value="A name associated with the medication being described"/>
+-      <definition value="All of the names for a medication, for example, the name(s) given to a medication in different countries.  For example, acetaminophen and paracetamol or salbutamol and albuterol."/>
++      <short value="Name for this medication knowledge (computer friendly)"/>
++      <definition value="A natural language name identifying the medication knowledge. This name should be usable as an identifier for the resource by machine processing applications such as code generation."/>
++      <comment value="The name is not expected to be globally unique. The name should be a simple alphanumeric type no-whitespace name to ensure that it is machine-processing friendly."/>
+       <min value="0"/>
+       <max value="1"/>
+       <type>
+         <code value="string"/>
+       </type>
++      <condition value="cnl-0"/>
+       <isSummary value="true"/>
+     </element>
+     <element id="MedicationKnowledge.relatedMedicationKnowledge">

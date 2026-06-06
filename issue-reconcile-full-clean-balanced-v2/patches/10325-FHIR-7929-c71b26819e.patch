@@ -1,0 +1,82 @@
+diff --git a/source/http.html b/source/http.html
+index 7e26201f5e..bc7594eb46 100644
+--- a/source/http.html
++++ b/source/http.html
+@@ -741,8 +741,9 @@ provide an <a href="operationoutcome.html">OperationOutcome</a> identifying the
+ If the request body includes a <a href="resource.html#meta"><code>meta</code></a>, the server SHALL
+ ignore the provided <code>versionId</code> and <code>lastUpdated</code> values.
+ 
+-If the server supports versions, it SHALL populate the <code>meta.versionId</code> and <code>meta.lastUpdated</code>
+-with the new correct values. Servers are allowed to review and alter the other metadata values, but SHOULD refrain
++The server SHALL populate the <code>meta.lastUpdated</code> with the new correct value.
++If the server supports versions, it SHALL also populate the <code>meta.versionId</code>
++with the new correct value. Servers are allowed to review and alter the other metadata values, but SHOULD refrain
+ from doing so (see <a href="resource.html#meta">metadata description</a> for further information). Note that
+ there is no support for updating past versions - see notes on the <a href="#history">history</a> interaction.
+ </p>
+@@ -758,14 +759,14 @@ updates, see <a href="#patch"><code>patch</code></a> below.
+ If the interaction is successful and the resource was updated, the server SHALL return a <code>200 OK</code> HTTP status code.
+ If the interaction is successful and the resource was created (including when a previously deleted resource is brought back to life), the server SHALL return a <code>201 Created</code> HTTP status code.
+ The server SHALL also return a <code>Location</code> header which
+-contains the new <a href="resource.html#metadata">Logical Id</a> and <a href="resource.html#metadata">Version Id</a> of
+-the created resource version:
++contains the new <a href="resource.html#metadata">Logical Id</a> and, if the server supports versioning, the <a href="resource.html#metadata">Version Id</a> of
++the resource:
+ </p>
+ <pre class="http">
+   Location: [base]/[type]/[id]/_history/[vid]
+ </pre>
+ <p>
+-where <code>[id]</code> and <code>[vid]</code> are the existing or newly created id and version id for the resource version.
++where <code>[id]</code> is the existing or newly created id and <code>[vid]</code> is the version id when the server includes a version-specific Location.
+ The Location header should be as specific as possible - if the server understands versioning, the version is
+ included. If a server does not track versions, the Location header will just contain [base]/[type]/[id]. The
+ Location MAY be an absolute or relative URL.
+@@ -871,7 +872,7 @@ on how many matches are found:
+  <li><b>No matches, no Resource.id provided</b>: The server creates the resource.</li>
+  <li><b>No matches, Resource.id provided and no resource already exists with that id</b>: The server treats the interaction as an <a href="#upsert">Update as Create</a> interaction (or rejects it, if it does not support Update as Create)</li>
+  <li><b>No matches, Resource.id provided and a resource already exists with that id</b>: The server rejects the update with a <code>409 Conflict</code> error</li>
+- <li><b>One Match, no Resource.id provided OR (Resource.id provided and it matches the found resource)</b>: The server performs the update against the matching resource as above where, if the resource was updated, the server SHALL return a <code>200 OK</code>; if the resource was created, the server SHALL return a <code>201 Created</code>; and, the server SHALL also return a <code>Location</code> header which contains the new <a href="resource.html#metadata">Logical Id</a> and <a href="resource.html#metadata">Version Id</a> of the created resource version</li>
++ <li><b>One Match, no Resource.id provided OR (Resource.id provided and it matches the found resource)</b>: The server performs the update against the matching resource as above where, if the resource was updated, the server SHALL return a <code>200 OK</code>; if the resource was created, the server SHALL return a <code>201 Created</code>; and, the server SHALL also return a <code>Location</code> header which contains the new <a href="resource.html#metadata">Logical Id</a> and, if the server supports versioning, the <a href="resource.html#metadata">Version Id</a> of the resource</li>
+  <li><b>One Match, Resource.id provided but does not match resource found</b>: The server returns a <code>400 Bad Request</code> error indicating the client id specification was a problem preferably with an OperationOutcome</li>
+  <li><b>Multiple matches</b>: The server returns a <code>412 Precondition Failed</code> error indicating the client's criteria were not selective enough preferably with an OperationOutcome</li>
+ </ul>
+@@ -1260,8 +1261,9 @@ The request body SHALL be a FHIR Resource of the named type. The resource does n
+ one of the few cases where a resource exists without an <code>id</code> element). If an <code>id</code> is provided, the
+ server SHALL ignore it. If the request body includes a <a href="resource.html#meta">meta</a>, the server SHALL
+ ignore the existing <code>versionId</code> and <code>lastUpdated</code> values.
+-The server SHALL populate the <code>id</code>, <code>meta.versionId</code> and <code>meta.lastUpdated</code>
+-with the new correct values. Servers are allowed to review and alter the other metadata values, but SHOULD
++The server SHALL populate the <code>id</code> and <code>meta.lastUpdated</code>
++with the new correct values. If the server supports versions, it SHALL also populate
++the <code>meta.versionId</code> with the new correct value. Servers are allowed to review and alter the other metadata values, but SHOULD
+ refrain from doing so (see <a href="resource.html#meta">metadata description</a> for further information).
+ </p>
+ <p>
+@@ -1271,14 +1273,14 @@ the note on <a href="#transactional-integrity">transactional integrity</a> (and
+ </p>
+ <p>
+ If the <code>create</code> request creates a new resource, the server returns a <code>201 Created</code> HTTP status code, and SHALL also return a <code>Location</code> header which
+-contains the new <a href="resource.html#metadata">Logical Id</a> and <a href="resource.html#metadata">Version Id</a> of
+-the created resource version:
++contains the new <a href="resource.html#metadata">Logical Id</a> and, if the server supports versioning, the <a href="resource.html#metadata">Version Id</a> of
++the created resource:
+ </p>
+ <pre class="http">
+   Location: [base]/[type]/[id]/_history/[vid]
+ </pre>
+ <p>
+-where <code>[id]</code> and <code>[vid]</code> are the newly created id and version id of the created resource.
++where <code>[id]</code> is the newly created id and <code>[vid]</code> is the version id when the server includes a version-specific Location.
+ The Location header should be as specific as possible - if the server understands versioning, the version is
+ included. If a server does not track versions, the Location header will just contain [base]/[type]/[id]. The
+ Location MAY be an absolute or relative URL.
+@@ -1354,7 +1356,7 @@ When the server processes this create, it performs a search as specified using i
+ on how many matches are found:
+ </p>
+ <ul>
+- <li><b>No matches</b>: The server processes the create as above where, if the resource is created, the server returns a <code>201 Created</code> HTTP status code, and SHALL also return a <code>Location</code> header which contains the new <a href="resource.html#metadata">Logical Id</a> and <a href="resource.html#metadata">Version Id</a> of the created resource version</li>
++ <li><b>No matches</b>: The server processes the create as above where, if the resource is created, the server returns a <code>201 Created</code> HTTP status code, and SHALL also return a <code>Location</code> header which contains the new <a href="resource.html#metadata">Logical Id</a> and, if the server supports versioning, the <a href="resource.html#metadata">Version Id</a> of the created resource</li>
+  <li><b>One Match</b>: The server ignores the post and returns <code>200 OK</code>, with headers and body populated
+  as they would have been if a create had actually occurred. (i.e., the body is set as per the prefer header, location and etag headers set, etc.)</li>
+  <li><b>Multiple matches</b>: The server returns a <code>412 Precondition Failed</code> error indicating the client's criteria were not selective enough</li>

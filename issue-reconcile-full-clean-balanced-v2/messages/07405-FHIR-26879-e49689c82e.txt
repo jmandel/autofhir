@@ -1,0 +1,120 @@
+FHIR-26879: Audit Binary patient compartment treatment
+
+Issue request:
+FHIR-26879 was Published/Persuasive for R5 and asked that Binary not be excluded from the Patient compartment, specifically noting Binary.securityContext references to a patient.
+
+Initial application:
+No commit explicitly tagged FHIR-26879 was found. The contemporaneous Zulip discussion identified the old exclusion as a tooling artifact, and the Jira issue was later annotated "see 22269".
+
+Additional context:
+FHIR-22269 later revisited the same Binary/compartment question and changed the application path: rather than making Binary formally computable as a Patient compartment member through Binary.securityContext, the work group removed the old "never in this compartment" style exclusion and clarified that resources outside formal compartments can still be relevant for access control. FHIR-51725 subsequently clarified that listed resources without .param elements are outside the formal compartment, while still permitting non-compartment resources to be returned by _include or local convention.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active CompartmentDefinition source and compartment page template no longer exclude Binary as "never" in the Patient compartment; they state that resources outside a compartment may still be subject to access restrictions and explicitly use Binary as the example of a non-listed resource that may still be relevant for access-control compartment uses.
+
+Recommendation:
+Keep this audit commit as-is. Do not add Binary.securityContext as a Patient compartment search parameter without a new work-group decision, because the later FHIR-22269 and FHIR-51725 decisions intentionally distinguish formal computable compartment membership from access-control treatment of Binary.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26879
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-22269: same-change-family - Later Published/Persuasive with Modification issue that supplied the applied source strategy for the same Binary/compartment concern.
+FHIR-51725: later-change - Later Applied clarification that resources listed without .param elements are outside the formal compartment but may still be returned or handled by local convention.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26879: Published/Persuasive issue asking not to exclude Binary from the Patient compartment when Binary.securityContext points to the patient. Learned: this is the seed request and final workflow status.
+- E2 Zulip implementers/Binary excluded from patient compartment: Josh Mandel raised the Binary exclusion, Lloyd McKenzie attributed it to tooling, Grahame Grieve agreed it was a problem, and Josh created FHIR-26879. Learned: the seed targeted the old exclusion wording rather than a later explicit decision to make Binary formally computable in the compartment.
+- E3 Jira FHIR-22269: Published/Persuasive with Modification issue resolved to drop the "never" list and add access-control caveats instead of adding Binary to every compartment. Learned: this later decision supersedes a literal Binary-as-member reading of FHIR-26879.
+- E4 Source source/compartmentdefinition/compartmentdefinition-introduction.xml:15: Current source says compartment definitions may not be sufficient for access control and resources outside the compartment may still be subject to restrictions. Learned: the seed concern is addressed in active CompartmentDefinition narrative.
+- E5 Source tools/templates/template-compartment.html:33: Current compartment page template says non-listed resources may still be relevant for certain compartment uses such as access control, e.g. Binary. Learned: generated compartment pages no longer characterize Binary as never usable for compartment-related access-control purposes.
+- E6 Git c2ddea7415: Historical commit "22269 - clarify compartments" changed CompartmentDefinition narrative and the compartment template. Learned: the applied source history matches the later Jira resolution cited from FHIR-26879.
+- E7 Jira/Git FHIR-51725 and 1437864b65: Later Applied issue clarified that listed resources with .param elements are part of a compartment and listed resources without .param elements are outside it. Learned: current source intentionally keeps Binary outside formal compartment membership unless represented by computable params.
+- E8 Verification command/query: git log found no existing Issue-Reconcile-Key for FHIR-26879 on the combined branch; git grep confirmed the active source/template access-control and Binary caveat text. Learned: publishing this audit commit is idempotent and no source hunk is required.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26879",
+    "url": "https://jira.hl7.org/browse/FHIR-26879",
+    "snapshot_path": "contexts/FHIR-26879/jira/FHIR-26879.md",
+    "ref": { "jira_key": "FHIR-26879" },
+    "summary": "Published/Persuasive R5 issue asking that Binary not be excluded from the Patient compartment when Binary.securityContext points to the patient.",
+    "learned": "This establishes the seed request and final workflow state.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Binary excluded from patient compartment",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Binary%20excluded%20from%20patient%20compartment",
+    "command": "bun run zulip:search snapshot implementers 'Binary excluded from patient compartment'",
+    "summary": "Josh Mandel raised the Binary exclusion; Lloyd McKenzie identified it as a tooling issue; Grahame Grieve agreed it was a problem; Josh then created FHIR-26879.",
+    "learned": "The seed was about removing an unintended exclusion, not necessarily defining a computable Binary.securityContext compartment rule.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-22269",
+    "url": "https://jira.hl7.org/browse/FHIR-22269",
+    "command": "bun run jira:search snapshot FHIR-22269",
+    "ref": { "jira_key": "FHIR-22269" },
+    "summary": "Published/Persuasive with Modification issue resolved to remove the old never-list and add access-control caveats, with Binary as an example.",
+    "learned": "This later same-family decision defines the correct current application of FHIR-26879.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/compartmentdefinition/compartmentdefinition-introduction.xml:15-18",
+    "ref": { "path": "source/compartmentdefinition/compartmentdefinition-introduction.xml", "line": 15 },
+    "summary": "The active CompartmentDefinition narrative says compartments may not be sufficient for access control and resources outside the compartment might still be subject to restrictions.",
+    "learned": "The current source addresses the seed access-control concern without making Binary a formal Patient compartment member.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "tools/templates/template-compartment.html:33-38",
+    "ref": { "path": "tools/templates/template-compartment.html", "line": 33 },
+    "summary": "The active compartment page template says non-listed resources may still be relevant for compartment uses such as access control, e.g. Binary.",
+    "learned": "Generated compartment pages no longer make the old exclusion that prompted FHIR-26879.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "c2ddea7415c6952f2988e332315c5e1becdf9bd0",
+    "ref": { "commit": "c2ddea7415c6952f2988e332315c5e1becdf9bd0" },
+    "summary": "Commit '22269 - clarify compartments' changed CompartmentDefinition narrative and the compartment template.",
+    "learned": "The applied history matches FHIR-22269's later resolution and explains why no FHIR-26879-specific edit remains.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-51725 / commit 1437864b65",
+    "url": "https://jira.hl7.org/browse/FHIR-51725",
+    "command": "bun run jira:search snapshot FHIR-51725; git show 1437864b65 -- source/compartmentdefinition/compartmentdefinition-introduction.xml",
+    "ref": { "jira_key": "FHIR-51725", "commit": "1437864b65b76f69b8a3c6088a68f2e6704e50db" },
+    "summary": "Applied later clarification says listed resources with .param elements are part of a compartment and listed resources without .param elements are outside it.",
+    "learned": "Current source intentionally leaves Binary outside formal computable membership while preserving access-control discretion.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Idempotency and source verification for FHIR-26879",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-26879' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git grep -n 'Some non-listed resources may still be relevant|Resources outside the compartment might' HEAD -- source/compartmentdefinition/compartmentdefinition-introduction.xml tools/templates/template-compartment.html",
+    "summary": "No existing reconcile commit was found for FHIR-26879, and active source/template text already contains the needed access-control caveats.",
+    "learned": "An empty audit commit is the appropriate reconciliation action.",
+    "supports": ["idempotency", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,117 @@
+FHIR-25172: Allow token search mapping for uri
+
+Issue request:
+FHIR-25172 was Published/Persuasive with Modification for FHIR-core MessageHeader. The revised decision was to update the search summary table so that primitive type uri maps to search parameter type token, with notes that no token system/pipe is used.
+
+Initial application:
+The issue was discussed and reopened in FHIR-I minutes and Jira comments after an earlier resolution mentioned urn:ietf:rfc:3986. The explicit Jira-tagged source commit 69e9b87769 changed only the canonical search-rule mapping to include token, which helped current MessageHeader.event[x] and MessageDefinition.event[x] after their URI choice became canonical, but it did not make primitive uri map to token in the summary-table source.
+
+Additional context:
+Current search.html already contains the summary-table macro cell <%xcm uri:token%>, and the token section already states that token searches on uri elements do not use the pipe form. However, the current CI build still renders N for the primitive uri/token summary cell because source/fhir.ini [search-rules] listed uri=uri,reference. Zulip and Confluence evidence confirms the revised 2021 decision was to show uri as supporting token while leaving the token-system blank/not used.
+
+AutoFHIR reconciliation:
+Updated source/fhir.ini so the active [search-rules] entry for uri is uri,reference,token. This is the build-scope source that drives the existing search.html summary-table macro, so the generated summary table can now render the uri/token cell as supported without duplicating narrative text.
+
+Recommendation:
+Keep this commit. No further core source change is needed for MessageHeader-event or MessageDefinition-event because both current search parameter expressions select Coding or canonical, and canonical already maps to token; this commit completes the broader primitive-uri summary-table decision recorded by FHIR-25172.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25172
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25172: Published/Persuasive with Modification; revised resolution says primitive uri should map to token with a blank system. Learned: this is the final decision to reconcile.
+- E2 Source source/fhir.ini:1502-1518: [search-rules] drives search summary table mappings and previously listed uri=uri,reference. Learned: the authoritative mapping source omitted token for uri.
+- E3 Source source/search.html:6600-6750 and 3508-3613: the summary table already has a uri/token macro cell and the token section lists uri with no URI/system column. Learned: fhir.ini, not missing HTML structure, was the stale source location.
+- E4 Git 69e9b87769: Jira-tagged historical commit added token only to canonical=reference,uri,token. Learned: prior application covered canonical but not primitive uri.
+- E5 Confluence FHIR-I 2021-06-14 page 113676795: minutes record reopening FHIR-25172 and approving “Update the summary table using token for uri” 11-0-0. Learned: confirms the revised work-group decision.
+- E6 Zulip #committers > How do I update search summary table.: Yunwei Wang asked where <%xcm uri:token%> is controlled; Grahame said it is calculated from source materials. Learned: confirms fhir.ini-style source material is the correct edit target.
+- E7 Published-spec https://build.fhir.org/search.html: current CI build renders the primitive uri/token summary-table cell as N while canonical/token is Y. Learned: verifies the observable mismatch before this reconciliation.
+- E8 Verification command: git diff --check and targeted source inspection after edit completed without whitespace errors and showed uri=uri,reference,token. Learned: confirms the intended source change is isolated and syntactically clean.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25172",
+    "url": "https://jira.hl7.org/browse/FHIR-25172",
+    "snapshot_path": "contexts/FHIR-25172/jira/FHIR-25172.md",
+    "ref": { "jira_key": "FHIR-25172" },
+    "summary": "Published/Persuasive with Modification issue requiring the search summary table to map primitive uri to token with no token system.",
+    "learned": "This establishes the final FHIR-I decision and the target behavior for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1502-1518",
+    "ref": { "path": "source/fhir.ini", "line_start": 1502, "line_end": 1518 },
+    "summary": "The [search-rules] section drives search type mappings and previously listed uri=uri,reference.",
+    "learned": "The active build-scope mapping source omitted token for primitive uri.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/search.html:3508-3613 and source/search.html:6600-6750",
+    "ref": { "path": "source/search.html", "line_start": 3508, "line_end": 6750 },
+    "summary": "The token narrative lists uri as a token datatype without a system column, and the summary table already contains the <%xcm uri:token%> macro cell.",
+    "learned": "No HTML/source table structure change is needed; the stale source is the fhir.ini mapping that feeds the macro.",
+    "supports": ["source_change_scope", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "69e9b87769fd6faf3894ced0d440e7ceae18db1e",
+    "ref": { "commit": "69e9b87769fd6faf3894ced0d440e7ceae18db1e" },
+    "summary": "The Jira-tagged historical commit changed canonical=reference,uri to canonical=reference,uri,token in source/fhir.ini.",
+    "learned": "Prior application covered canonical after the event choices changed, but did not implement the primitive uri summary-table mapping requested by the revised resolution.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20210614 page 113676795",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/113676795/FHIR+Infrastructure+Minutes+CC+20210614",
+    "snapshot_path": "contexts/FHIR-25172/confluence/113676795.md",
+    "ref": { "confluence_page_id": 113676795 },
+    "summary": "FHIR-I minutes record reopening FHIR-25172 and approving 'Update the summary table using token for uri' 11-0-0.",
+    "learned": "This confirms the revised decision superseded the earlier urn:ietf:rfc:3986 wording.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#committers > How do I update search summary table.",
+    "url": "https://chat.fhir.org/#narrow/stream/committers/topic/How%20do%20I%20update%20search%20summary%20table.",
+    "snapshot_path": "contexts/FHIR-25172/zulip/committers--How-do-I-update-search-summary-table.md",
+    "ref": { "stream": "committers", "topic": "How do I update search summary table.", "message_id": 240779461 },
+    "summary": "Yunwei Wang identified the <%xcm uri:token%> cell and asked where the mapping is controlled; Grahame Grieve replied that it is calculated from source materials.",
+    "learned": "This supports editing the source mapping rather than the existing search.html macro cell.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/search.html#table",
+    "url": "https://build.fhir.org/search.html#table",
+    "summary": "The current CI build renders the primitive uri/token summary-table cell as N while canonical/token is Y.",
+    "learned": "This verifies that the current build output remains inconsistent with the FHIR-25172 decision before the source fix.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted post-edit checks",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; sed -n '1502,1519p' source/fhir.ini",
+    "summary": "The whitespace check passed and the active uri mapping now reads uri=uri,reference,token.",
+    "learned": "The source fix is isolated and clean.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

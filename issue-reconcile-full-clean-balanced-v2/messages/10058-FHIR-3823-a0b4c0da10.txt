@@ -1,0 +1,97 @@
+FHIR-3823: Audit Element content-required validation
+
+Issue request:
+FHIR-3823 was Published/Persuasive for FHIR-core formats after an example contained an element represented only as an XML id attribute (`<vaccineType id="396427003"/>`). The issue asked that validation require element content other than id, because that example should be invalid.
+
+Initial application:
+No source commit explicitly mentioning FHIR-3823 was found, and Jira comments say the problem was "fixed already" in February 2015. The same rule is visible in the later FHIR-8247 source-history trail: commit 3b6ebf56c2 (svn r5558) added the Element/global invariant that all FHIR elements must have a value or children and made Element constraints appear on the Element page.
+
+Additional context:
+The current build keeps Element as an active infrastructure type in source/fhir.ini, with Element normative and assigned the `ele` TLA. The active datatype source now defines ele-1 as "All FHIR elements must have a @value or children or both, unless they are an empty Parameters resource" with FHIRPath `hasValue() or (children().count() > id.count()) or $this is Parameters`, so an element with only id is rejected while preserving the later FHIR-26565 empty-Parameters exception already represented on the combined branch. The specific ImmunizationRecommendation example fragment from the issue is no longer present in current source.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change because the current Element invariant already encodes the required validation behavior for ordinary elements, including the original id-only example shape.
+
+Recommendation:
+Keep this audit as-is. No FHIR-core source follow-up is needed for FHIR-3823 unless a future work group decision changes ele-1 or the empty Parameters exception.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3823
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-8247: same-change-family - the source-history commit for this issue made the Element/global invariant visible and is the clearest historical application trail for the current rule.
+FHIR-26565: later-change - later allowed empty Parameters resources through ele-1; this narrows but does not undo the id-only element validation requested by FHIR-3823.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3823: Published/Persuasive issue reporting `<vaccineType id="396427003"/>` as invalid and saying validation did not catch it; later comment says "fixed already". Learned: establishes the final request to reject elements whose only content is id.
+- E2 Source source/datatypes/element.xml:3091-3097: active ele-1 invariant says content is required and uses `hasValue() or (children().count() > id.count()) or $this is Parameters`. Learned: current source rejects id-only elements while preserving a later Parameters exception.
+- E3 Source source/types.html:110-118 and source/fhir.ini:63-68,964-967,1145: the Element constraints are included on the current types page, and Element is an active normative infrastructure type. Learned: the invariant is in current build scope and visible through the Element page machinery.
+- E4 Git 3b6ebf56c2: FHIR-8247/#8247 commit added the Element invariant and Element constraints page include. Learned: historical source application supports that the validation rule was applied after the Jira "fixed already" note.
+- E5 Git 6bf6d264f8: combined-branch FHIR-26565 reconciliation added the empty Parameters exception to ele-1. Learned: the current exception is an intentional later decision, not a gap in FHIR-3823.
+- E6 Command searches: Zulip and Confluence searches for FHIR-3823/content-other-than-id found no relevant conflicting community records; source search found no remaining `<vaccineType id=` or `396427003` example. Learned: no discovered context requires changing the current source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3823",
+    "url": "https://jira.hl7.org/browse/FHIR-3823",
+    "snapshot_path": "contexts/FHIR-3823/jira/FHIR-3823.md",
+    "ref": { "jira_key": "FHIR-3823" },
+    "summary": "Published/Persuasive issue reporting an invalid id-only vaccineType example and noting that validation was not catching it.",
+    "learned": "This establishes the final request to require content other than id for ordinary elements.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/element.xml:3091-3097",
+    "ref": { "file": "source/datatypes/element.xml", "line_start": 3091, "line_end": 3097 },
+    "summary": "The current ele-1 invariant requires a value or non-id children, with a later empty Parameters exception.",
+    "learned": "The active source already rejects elements whose only content is id.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/types.html:110-118; source/fhir.ini:63-68,964-967,1145",
+    "ref": { "file": "source/types.html", "line_start": 110, "line_end": 118 },
+    "summary": "The types page includes Element constraints and explains why empty elements are omitted; fhir.ini lists Element as active normative infrastructure.",
+    "learned": "The invariant is in current build scope and exposed on the Element page.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "3b6ebf56c2ceda4f81286ff9bdb4a5f29bbed025",
+    "ref": { "commit": "3b6ebf56c2ceda4f81286ff9bdb4a5f29bbed025" },
+    "summary": "The FHIR-8247/#8247 commit added the Element invariant and Element constraints include.",
+    "learned": "This provides the historical source trail for the current validation rule.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "6bf6d264f8b1d1ef33091c8e8752a9d7628a5ebc",
+    "ref": { "commit": "6bf6d264f8b1d1ef33091c8e8752a9d7628a5ebc", "jira_key": "FHIR-26565" },
+    "summary": "The combined branch already has the FHIR-26565 reconciliation that added the empty Parameters exception to ele-1.",
+    "learned": "The current exception is an intentional later decision and does not require reverting for FHIR-3823.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community/source searches for FHIR-3823",
+    "command": "bun run zulip:search fts '\"FHIR-3823\"'; bun run zulip:search fts '\"content other than id\"'; bun run confluence:search refs jira FHIR-3823; rg -n '<vaccineType\\s+id=|vaccineType id=|396427003' source",
+    "query": "FHIR-3823 content other than id vaccineType 396427003",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits and no current source occurrence of the original id-only example were found.",
+    "learned": "No discovered community or source evidence changes the no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

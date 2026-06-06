@@ -1,0 +1,92 @@
+FHIR-12427: Audit Java generator pct handling
+
+Issue request:
+FHIR-12427 was a Published/Persuasive DSTU2 FHIR-core change request asking the Java code generator to replace '%' with 'pct' when deriving Java enum/constant identifiers from binding code values, after observation-statistics codes such as '%20' and '%80' produced illegal Java identifiers.
+
+Initial application:
+The issue was applied in historical commit fd70583337b3caf1e62b58e43978f5535c33a724, whose message cites #12427 and svn build@10496. That commit added handling in JavaBaseGenerator.makeConst so a literal '%' became 'pct' and remaining percent characters were replaced with 'pct', matching the Jira resolution.
+
+Additional context:
+The relevant Java generator source is no longer present in the current FHIR specification checkout. Later history removed the old reference implementation/generator tree, and the current Gradle build runs the publisher from the external org.hl7.fhir:kindling dependency. The current observation-statistics code system in core also no longer has the leading percent codes that originally exposed the Java identifier problem; it uses 20-percent and 80-percent instead, and Observation remains an active resource with the stats operation listed.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical source change was applied, and the current core checkout has no JavaBaseGenerator/makeConst source to edit; any remaining generator behavior would need to be checked in the external kindling/tooling repository rather than patched in HL7/fhir.
+
+Recommendation:
+Keep this audit commit as-is for core reconciliation. If implementers still see illegal Java enum identifiers from percent-containing codes in current generated artifacts, open a focused follow-up against the current generator owner, likely HL7/kindling, using the old fd705833 fix as implementation history.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12427
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12427: Published/Persuasive issue requested replacing '%' with 'pct' in Java generator binding-code identifiers. Learned: this is final WG/editor intent and defines the target behavior.
+- E2 Git fd70583337b3caf1e62b58e43978f5535c33a724: historical #12427/svn@10496 commit added '%' and pct handling to JavaBaseGenerator.makeConst. Learned: the requested change was applied in the then-current core generator.
+- E3 Git 46097440225f9e4e8b72005d467978bac7725135 and current source build.gradle.kts:47,137-138: old Java generator/reference implementation code was later removed, while current build uses org.hl7.fhir:kindling and the Publisher main class from that dependency. Learned: the relevant generator implementation is no longer editable in this checkout.
+- E4 Source source/observation/codesystem-observation-statistics.xml:88,93 and source/observation/list-Observation-operations.xml:9: current observation-statistics codes are 20-percent and 80-percent, and the Observation stats operation is still in the active Observation source set. Learned: the original percent-leading codes no longer remain as a core-source defect.
+- E5 Command current-tree searches: no .java files and no JavaBaseGenerator, makeConst, ObservationStatistics, or replace("%", "pct") occurrences are present in the current checkout. Learned: no current core source hunk can implement the old generator change.
+- E6 Command Zulip/Confluence searches for FHIR-12427 and ObservationStatistics/pct/Java Generator: no relevant community or meeting records were found. Learned: no discovered community evidence changes the Jira/git/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12427",
+    "url": "https://jira.hl7.org/browse/FHIR-12427",
+    "snapshot_path": "contexts/FHIR-12427/jira/FHIR-12427.md",
+    "ref": { "jira_key": "FHIR-12427" },
+    "summary": "Published/Persuasive DSTU2 issue requested replacing '%' with 'pct' in Java generator binding-code identifiers for observation-statistics values such as '%20' and '%80'.",
+    "learned": "The final issue disposition establishes the intended generator behavior and the original failing artifact.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "fd70583337b3caf1e62b58e43978f5535c33a724",
+    "ref": { "commit": "fd70583337b3caf1e62b58e43978f5535c33a724" },
+    "summary": "Historical #12427/svn@10496 commit added '%' special handling and cc.replace(\"%\", \"pct\") in JavaBaseGenerator.makeConst.",
+    "learned": "The requested source change was applied to the generator that existed in core at the time.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "build.gradle.kts:47,137-138 and gradle.properties:2",
+    "summary": "The current Gradle build depends on org.hl7.fhir:kindling 1.25.5-SNAPSHOT and runs org.hl7.fhir.tools.publisher.Publisher from that classpath.",
+    "learned": "Current generator/publisher implementation is supplied by an external dependency rather than Java generator source in this checkout.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/observation/codesystem-observation-statistics.xml:88,93; source/observation/list-Observation-operations.xml:9",
+    "summary": "The current observation-statistics code system uses 20-percent and 80-percent, and Observation-stats remains listed as an Observation operation.",
+    "learned": "The current core source no longer contains the original percent-leading observation-statistics codes that exposed the Java identifier failure.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current checkout generator absence search",
+    "command": "find . -name '*.java'; grep -RIl --exclude-dir=.git -E 'JavaBaseGenerator|makeConst|ObservationStatistics|replace\\(\\\"%\\\", \\\"pct\\\"\\)' .",
+    "summary": "No Java files or current matches for JavaBaseGenerator, makeConst, ObservationStatistics, or the old pct replacement were found.",
+    "learned": "There is no current HL7/fhir source file where the historical generator fix can be re-applied.",
+    "supports": ["reconciliation", "external_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-12427 and ObservationStatistics pct Java Generator",
+    "command": "bun run zulip:search fts '\"FHIR-12427\"' --limit 10; bun run zulip:search fts 'ObservationStatistics pct Java Generator' --limit 10; bun run confluence:search refs jira FHIR-12427; bun run confluence:search fts '\"FHIR-12427\"' --limit 10; bun run confluence:search fts 'ObservationStatistics pct Java Generator' --limit 10",
+    "result_count": 0,
+    "summary": "No relevant Zulip or Confluence hits were found for the Jira key or key generator terms.",
+    "learned": "No discovered community record conflicts with the Jira/git/source-based audit conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

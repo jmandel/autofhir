@@ -1,0 +1,104 @@
+FHIR-17936: Add ClaimResponse payment constraint
+
+Issue request:
+FHIR-17936 was Published/Persuasive for STU3 by Financial Management. It asked that ClaimResponse.payment only be present when ClaimResponse.use is 'claim' and ClaimResponse.outcome is not 'error'.
+
+Initial application:
+Historical commit afb5ec66f6 listed FHIR-17936 among a batch of ClaimResponse spreadsheet updates, but the current active source no longer contains the old spreadsheet and the generated StructureDefinition had only the existing ClaimResponse.error comment, not a conformance constraint covering both use and outcome.
+
+Additional context:
+ClaimResponse is active in source/fhir.ini. Related FHIR-13030 clarified that actual payment is associated with traditional claim responses, and later FHIR-36101 left Claim/ClaimResponse covering claims, preauthorizations, and predeterminations. A Zulip thread about ClaimResponse.error confirmed the existing error comment's SHOULD wording was not mandatory; the new invariant is therefore limited to the Jira-requested payment condition and does not prohibit error elements with non-error outcomes.
+
+AutoFHIR reconciliation:
+Added root invariant clr-2 to source/claimresponse/structuredefinition-ClaimResponse.xml requiring payment.empty() or use = 'claim' with outcome != 'error'. Existing ClaimResponse examples satisfy the rule.
+
+Recommendation:
+Keep this source change. It implements the published Jira decision in the active StructureDefinition without adding redundant narrative or changing related resources.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17936
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-13030: supporting-decision - clarified that actual payment is tied to traditional claim responses and supports constraining ClaimResponse.payment by use.
+FHIR-36101: later-change - later no-change decision kept Claim/ClaimResponse covering claim, preauthorization, and predetermination use cases, so the constraint must key off ClaimResponse.use rather than a split resource model.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17936: Published/Persuasive FM issue requesting ClaimResponse.payment only when use='claim' and outcome!='error'. Learned: this is the final issue request being reconciled.
+- E2 Source source/fhir.ini:242: active claimresponse=ClaimResponse resource entry. Learned: the edited StructureDefinition is in current build scope.
+- E3 Source source/claimresponse/structuredefinition-ClaimResponse.xml:82: added clr-2 root invariant with FHIRPath payment.empty() or ((use = 'claim') and (outcome != 'error')). Learned: the active conformance source now enforces the requested rule.
+- E4 Git afb5ec66f6: historical batch commit listed 17936 and changed the retired ClaimResponse spreadsheet/examples. Learned: the issue was attempted historically but the current active XML lacked the invariant.
+- E5 Jira FHIR-13030 and FHIR-36101: payment/preauthorization context and later no-change decision on resource scope. Learned: no later decision reverses the need for a use/outcome-specific payment constraint.
+- E6 Zulip #implementers > ClaimResponse.error and ClaimResponse.item: discussion says the existing error comment's should wording is advisory and that non-stopping issues belong in processNote. Learned: the new invariant should focus on payment with outcome='error', not broadly forbid all error elements with adjudication.
+- E7 Verification command: XML parse, whitespace diff check, and example scan found zero ClaimResponse example violations. Learned: the source edit is well-formed and does not break checked ClaimResponse examples.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17936",
+    "url": "https://jira.hl7.org/browse/FHIR-17936",
+    "snapshot_path": "contexts/FHIR-17936/jira/FHIR-17936.md",
+    "ref": { "jira_key": "FHIR-17936" },
+    "summary": "Published/Persuasive FM issue asking that ClaimResponse.payment only be present when use='claim' and outcome!='error'.",
+    "learned": "This establishes the final WG request for the reconciliation.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:242",
+    "summary": "The active resources list contains claimresponse=ClaimResponse.",
+    "learned": "ClaimResponse source files are in current build scope.",
+    "supports": ["build_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/claimresponse/structuredefinition-ClaimResponse.xml:82",
+    "summary": "Added root invariant clr-2 with expression payment.empty() or ((use = 'claim') and (outcome != 'error')).",
+    "learned": "The active StructureDefinition now carries the Jira-requested conformance rule.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "afb5ec66f6",
+    "ref": { "commit": "afb5ec66f68641293bb7950b6e0eeb118fa1444a" },
+    "summary": "Historical batch commit listed FHIR-17936 among ClaimResponse spreadsheet and example changes.",
+    "learned": "The issue was historically applied against retired spreadsheet-era source, but the current XML lacked the invariant.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-13030; FHIR-36101",
+    "url": "https://jira.hl7.org/browse/FHIR-13030",
+    "ref": { "jira_key": "FHIR-13030" },
+    "summary": "FHIR-13030 clarified actual payment for traditional claim responses; FHIR-36101 later kept Claim/ClaimResponse scope unchanged for preauthorization and predetermination.",
+    "learned": "Related decisions support constraining payment by ClaimResponse.use and do not supersede FHIR-17936.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > ClaimResponse.error and ClaimResponse.item",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/%E2%9C%94%20ClaimResponse.error%20and%20ClaimResponse.item",
+    "summary": "Thread clarified that the existing ClaimResponse.error comment uses advisory SHOULD language and does not strictly forbid adjudication content when outcome is not error.",
+    "learned": "This supports a narrow invariant on payment/use/outcome rather than over-broad restrictions on all error elements.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local XML and example validation",
+    "command": "python3 XML parse and ClaimResponse example scan; git diff --check",
+    "summary": "The edited StructureDefinition parsed as XML, diff whitespace passed, and no ClaimResponse example with payment violated use='claim' and outcome!='error'.",
+    "learned": "The edit is syntactically valid and compatible with checked ClaimResponse examples.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

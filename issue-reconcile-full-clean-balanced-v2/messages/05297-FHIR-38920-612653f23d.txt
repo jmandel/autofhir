@@ -1,0 +1,108 @@
+FHIR-38920: Align eventNumber notification guidance
+
+Issue request:
+FHIR-38920 was Published as Persuasive with Modification for R5. The ballot request asked for SubscriptionStatus.notificationEvent.eventNumber to be optional when reliable sequencing was not required, and the accepted resolution replaced the single global-sequence meaning with either a subscription-sequence number or a notification-relative number, plus related notification-type guidance.
+
+Initial application:
+The issue was initially applied in ac3fb31772962a2b851ae9874dc2600985c7819d, which removed the older sst-1 constraint, changed the eventNumber definition/comment, and added Event Numbering narrative. That commit also left several notification-type table rows saying eventNumber was optional for guaranteed delivery, while the same Event Numbering section and the StructureDefinition cardinality continued to require a value.
+
+Additional context:
+source/fhir.ini actively lists subscriptionstatus as a current resource, work group artifact, and abbreviation, so source/subscriptionstatus/subscriptionstatus-notes.xml feeds the current build. Later FHIR-39038 restored only self-contained SubscriptionStatus constraints and did not make eventNumber conditional on Subscription/channel data. A 2024 Zulip discussion about FHIR-48808 includes Gino Canessa clarifying that FHIR-38920 resolved the optionality request by allowing a notification-local eventNumber meaning, not by making the element optional. FHIR-50625 later identified the same contradiction but remains Triaged and is not decided by this commit.
+
+AutoFHIR reconciliation:
+This commit updates the SubscriptionStatus notification-type narrative so event notifications and query-event notifications mark eventNumber as required, and handshake/heartbeat rows say eventNumber is required when a notificationEvent is included. It also clarifies that guaranteed delivery removes the need for globally tracked event numbers, not the need for an eventNumber value.
+
+Recommendation:
+Keep this source fix. It aligns the active narrative with the published FHIR-38920 resolution, current StructureDefinition cardinality, and later assignee clarification without deciding the still-open FHIR-50625 wording question beyond the inconsistency needed for FHIR-38920.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-38920
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-39038: supporting-decision - later Published issue restored only self-contained SubscriptionStatus constraints and supports avoiding cross-resource/channel invariants.
+FHIR-48808: background - backport IG ticket and linked Zulip thread document the assignee clarification that R5/R6 eventNumber remains required but may be notification-relative.
+FHIR-50625: background - unresolved R6 ballot issue notices the same event-numbering/table conflict, but remains Triaged and is not independently decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-38920: Published/Persuasive with Modification request for SubscriptionStatus.notificationEvent.eventNumber optionality and revised eventNumber semantics. Learned: establishes the final issue scope and accepted R5 change family.
+- E2 Source source/fhir.ini:235,633,1244 and source/subscriptionstatus/structuredefinition-SubscriptionStatus.xml:170-176: SubscriptionStatus is active in the current build and eventNumber remains 1..1 with relative-number semantics. Learned: the source fix must align narrative, not change out-of-scope generated artifacts.
+- E3 Source source/subscriptionstatus/subscriptionstatus-notes.xml:50-100,147-150,234-238,331-335,470-473: Event Numbering required a value, but notification-type rows still implied guaranteed-delivery eventNumber optionality before this reconciliation. Learned: this was the remaining semantic inconsistency.
+- E4 Git ac3fb31772962a2b851ae9874dc2600985c7819d: initial FHIR-38920 application changed definitions and narrative but introduced mixed required/optional guidance. Learned: the current edit is a surgical completion of the original application.
+- E5 Zulip #fhir/infrastructure-wg > eventNumber in Subscriptions R5 Backport: Gino Canessa clarified on 2024-11-11 that FHIR-38920 allowed a different local meaning instead of optionality. Learned: keeping eventNumber required is intentional.
+- E6 Jira FHIR-50625 and FHIR-48808 searches/snapshots: FHIR-50625 is Triaged and flags the current conflict; FHIR-48808 is backport scope. Learned: these are relevant background but not separate final core decisions for this worker.
+- E7 Verification command: xmllint --noout source/subscriptionstatus/subscriptionstatus-notes.xml source/subscriptionstatus/structuredefinition-SubscriptionStatus.xml; git diff --check. Learned: edited XML is well-formed and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-38920",
+    "url": "https://jira.hl7.org/browse/FHIR-38920",
+    "snapshot_path": "contexts/FHIR-38920/jira/FHIR-38920.md",
+    "ref": { "jira_key": "FHIR-38920" },
+    "summary": "Published/Persuasive with Modification R5 issue requesting SubscriptionStatus.notificationEvent.eventNumber optionality and revised event-number guidance.",
+    "learned": "The final resolution changed eventNumber semantics and notification guidance for FHIR core SubscriptionStatus.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:235,633,1244; source/subscriptionstatus/structuredefinition-SubscriptionStatus.xml:170-176",
+    "ref": { "path": "source/subscriptionstatus/structuredefinition-SubscriptionStatus.xml" },
+    "summary": "SubscriptionStatus is an active current-build resource and eventNumber remains defined as 1..1 with subscription-sequence or notification-relative semantics.",
+    "learned": "The authoritative conformance source requires eventNumber whenever notificationEvent is present, so the remaining fix belongs in the narrative rows.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/subscriptionstatus/subscriptionstatus-notes.xml:50-100,147-150,234-238,331-335,470-473",
+    "ref": { "path": "source/subscriptionstatus/subscriptionstatus-notes.xml" },
+    "summary": "The active SubscriptionStatus notes had event-numbering text requiring eventNumber but notification-type rows that still said it was optional for guaranteed delivery.",
+    "learned": "This contradiction could lead implementers to omit a structurally required element, so a source fix is necessary.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "ac3fb31772962a2b851ae9874dc2600985c7819d",
+    "ref": { "commit": "ac3fb31772962a2b851ae9874dc2600985c7819d" },
+    "summary": "Initial FHIR-38920 commit changed eventNumber definitions and added event-numbering guidance, but left mixed required/optional table language.",
+    "learned": "The reconciliation completes the original application rather than reversing later final work.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#fhir/infrastructure-wg > eventNumber in Subscriptions R5 Backport",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir%2Finfrastructure-wg/topic/eventNumber%20in%20Subscriptions%20R5%20Backport",
+    "ref": { "stream": "fhir/infrastructure-wg", "topic": "eventNumber in Subscriptions R5 Backport" },
+    "summary": "Gino Canessa clarified that FHIR-38920 resolved the optionality request by allowing notification-local event numbers, while eventNumber remained required.",
+    "learned": "This resolves the apparent conflict between the Jira title and the current 1..1 cardinality.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-50625; FHIR-48808",
+    "url": "https://jira.hl7.org/browse/FHIR-50625",
+    "ref": { "jira_key": "FHIR-50625" },
+    "summary": "FHIR-50625 is a Triaged R6 issue flagging conflicting Event Numbering/examples guidance; FHIR-48808 is a backport IG issue linked to the same clarification.",
+    "learned": "They provide background but are not final core decisions to publish separately in this default applied/published run.",
+    "supports": ["additional_context", "related_not_decided"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "xmllint --noout source/subscriptionstatus/subscriptionstatus-notes.xml source/subscriptionstatus/structuredefinition-SubscriptionStatus.xml; git diff --check",
+    "summary": "The edited XML parses successfully and the patch has no whitespace errors.",
+    "learned": "The source edit is syntactically safe for the current XML inputs.",
+    "supports": ["confidence"]
+  }
+]
+</evidence-manifest>

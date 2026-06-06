@@ -1,0 +1,120 @@
+FHIR-13702: Correct Encounter status subjectStatus reference
+
+Attribution note: surfaced while reviewing FHIR-22726, but direct Jira backing for this change is FHIR-13702.
+
+Issue request:
+FHIR-22726 was Published/Persuasive for R5. It asked for clearer Encounter guidance around Encounter period start/end timing where billing or documentation close-out can differ from clinical arrival, discharge, or completion, and its resolution specifically added a discharged Encounter.status code plus Status Management guidance relating discharged/completed to subjectStatus and administrative processing.
+
+Initial application:
+The issue was initially applied in d80fcb1ea0598fcaa22158a24d8db793657ccda7, which added the discharged code and definition to the Encounter status CodeSystem, added discharged to Encounter.status, and added Status Management text for post-care administrative completion. Commit 5524e4a36dc7976d2dae9ca4806ec1ee9030d2b0 carried the same status-code list into the then-current statusHistory source. The current source retains the discharged CodeSystem concept, the required Encounter.status binding through ValueSet/encounter-status, and the Status Management discussion.
+
+Additional context:
+Encounter is active in source/fhir.ini, so source/encounter/structuredefinition-Encounter.xml, source/encounter/codesystem-encounter-status.xml, source/encounter/valueset-encounter-status.xml, source/encounter/encounter-introduction.xml, and source/encounter/encounter-event-mapping-exceptions.xml are build-scope source. Later Encounter work renamed Encounter.period to Encounter.actualPeriod and added plannedStartDate/plannedEndDate, while FHIR-13702/FHIR-32343 introduced and refined Encounter.subjectStatus. Those later changes support keeping the FHIR-22726 timing/status guidance but revealed one current-source defect: Encounter.status said the patient-specific state was subjectState, which is not an Encounter element, instead of subjectStatus.
+
+AutoFHIR reconciliation:
+This commit fixes the build-scope Encounter.status definition and the matching Event mapping exception to refer to Encounter.subjectStatus. No other source changes were needed because the discharged status, its definition, the required value-set include, and the Status Management guidance already express the FHIR-22726 decision. The generated-looking encounter.svg still contains the old text and is intentionally left alone because authoritative XML source should drive regenerated diagrams.
+
+Recommendation:
+Keep this source fix as-is. It removes a wrong element-name reference in the exact status/subjectStatus guidance area covered by the issue without re-litigating later R6 Encounter status-management work; handle any broader FHIR-54098/FHIR-54491 narrative rewrites separately if that Resolved - change required scope is included.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22726
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-13702: same-change-family - introduced Encounter.subjectStatus as the patient-specific companion to Encounter.status and later source created the subjectState typo fixed here.
+FHIR-32343: same-change-family - refined Encounter.subjectStatus definitions and status-management guidance; it confirms subjectStatus is the correct element name.
+FHIR-32351: later-change - renamed Encounter.period to Encounter.actualPeriod and added plannedStartDate/plannedEndDate, affecting how the original period wording is interpreted now.
+FHIR-54098: later-change - Resolved - change required R6 typo correction in the same Status Management section; outside this default Applied/Published seed scope.
+FHIR-54491: later-change - Resolved - change required R6 proposal to rewrite Encounter status-management guidance; outside this default Applied/Published seed scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22726: Published/Persuasive issue requesting Encounter period/status guidance and a discharged status. Learned: establishes the final R5 issue request and the expected status-management semantics.
+- E2 Source source/fhir.ini:170-191 and source/encounter/*: Encounter is active, ValueSet/encounter-status includes CodeSystem/encounter-status, and the discharged code plus Status Management text are present. Learned: the main FHIR-22726 application is in current build-scope source.
+- E3 Source source/encounter/structuredefinition-Encounter.xml:130-149 and source/encounter/encounter-event-mapping-exceptions.xml:72-80: Encounter.status described the patient-specific state as subjectState before this commit. Learned: the current source had a wrong element-name reference in the status/subjectStatus guidance path.
+- E4 Git d80fcb1ea0598fcaa22158a24d8db793657ccda7 and 5524e4a36dc7976d2dae9ca4806ec1ee9030d2b0: FHIR-22726-tagged commits added discharged and propagated the status-code list. Learned: initial application was real and mostly complete.
+- E5 Git dc223befbe35bc659d657b3124bc6a70d697583d: later FHIR-13702 QA commit changed Encounter.status to say subjectState. Learned: the remaining defect is a later typo in tightly related status/subjectStatus text, not a reversal of FHIR-22726.
+- E6 Confluence PA 2020 Feb WGM Minutes page 76153672: minutes record FHIR-22726 discussion, proposed resolution, and 19-0-0 persuasive vote. Learned: meeting evidence corroborates the Jira disposition and scope.
+- E7 Command community/Jira searches: direct Jira search found only FHIR-22726 for the exact timing/status terms; Zulip searches found no conflicting discussion; Confluence refs found the PA WGM minutes. Learned: no discovered related final decision changes this reconciliation.
+- E8 Verification command: rg subjectState source/encounter; xmllint edited XML files; git diff --check. Learned: edited XML/whitespace checks pass and the remaining subjectState occurrence is only generated-looking encounter.svg.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22726",
+    "url": "https://jira.hl7.org/browse/FHIR-22726",
+    "snapshot_path": "contexts/FHIR-22726/jira/FHIR-22726.md",
+    "ref": { "jira_key": "FHIR-22726" },
+    "summary": "Published/Persuasive issue requesting clearer Encounter period/status guidance and adding a discharged Encounter.status code.",
+    "learned": "This establishes the final R5 decision and the target status-management semantics for reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-191; source/encounter/codesystem-encounter-status.xml:63-67; source/encounter/encounter-introduction.xml:47-77; source/encounter/valueset-encounter-status.xml:43-47",
+    "summary": "Encounter is an active resource; the discharged status and Status Management guidance are present; the value set includes the Encounter status CodeSystem.",
+    "learned": "The main FHIR-22726 application is already present in build-scope source.",
+    "supports": ["initial_application", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/encounter/structuredefinition-Encounter.xml:130-149; source/encounter/encounter-event-mapping-exceptions.xml:72-80",
+    "summary": "Before this commit, Encounter.status referred to the patient-specific state as subjectState, which is not an Encounter element.",
+    "learned": "A narrow build-scope source correction was necessary so the status/subjectStatus distinction names the correct element.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "d80fcb1ea0598fcaa22158a24d8db793657ccda7; 5524e4a36dc7976d2dae9ca4806ec1ee9030d2b0",
+    "ref": { "commits": "d80fcb1ea0598fcaa22158a24d8db793657ccda7,5524e4a36dc7976d2dae9ca4806ec1ee9030d2b0" },
+    "summary": "FHIR-22726-tagged commits added the discharged status and propagated the status-code list in Encounter source.",
+    "learned": "Git history confirms the issue was initially applied and explains the current source baseline.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "dc223befbe35bc659d657b3124bc6a70d697583d",
+    "ref": { "commit": "dc223befbe35bc659d657b3124bc6a70d697583d" },
+    "summary": "A later FHIR-13702 QA commit changed Encounter.status to describe the companion patient state as subjectState.",
+    "learned": "The current defect was introduced by a later tightly related status/subjectStatus edit rather than by the original FHIR-22726 application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "PA 2020 Feb WGM Minutes page 76153672",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/76153672/2020+Feb+WGM+Minutes",
+    "ref": { "confluence_page_id": 76153672 },
+    "summary": "Minutes record FHIR-22726 discussion, a proposed resolution, and a later 19-0-0 persuasive vote.",
+    "learned": "Work-group minutes support the Jira disposition and confirm the status/period clarification scope.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and related-decision searches for FHIR-22726 Encounter timing/status terms",
+    "command": "bun run jira:search fts '\"Encounter.period\" discharged completed subjectStatus billing' --limit 20; bun run confluence:search refs jira FHIR-22726 --limit 10; bun run zulip:search fts 'Encounter discharged subjectStatus period completed billing' --limit 10",
+    "query": "FHIR-22726 Encounter.period discharged completed subjectStatus billing",
+    "summary": "Jira search returned only FHIR-22726 for the exact issue terms; Confluence found PA WGM references; Zulip found no conflicting discussion for the searched terms.",
+    "learned": "No discovered community or related final issue evidence changes the source/history conclusion.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Post-edit XML and whitespace checks",
+    "command": "rg -n 'subjectState' source/encounter; xmllint --noout source/encounter/structuredefinition-Encounter.xml source/encounter/encounter-event-mapping-exceptions.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Edited XML and whitespace checks passed; the only remaining Encounter subjectState hit is in generated-looking encounter.svg.",
+    "learned": "The authoritative source correction is syntactically clean and intentionally avoids direct diagram editing.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

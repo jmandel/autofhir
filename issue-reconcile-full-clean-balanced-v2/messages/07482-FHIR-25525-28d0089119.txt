@@ -1,0 +1,96 @@
+FHIR-25525: Audit Bundle bdl-8 fullUrl invariant
+
+Issue request:
+FHIR-25525 was a Published/Persuasive FHIR-core technical correction for Bundle. It reported that Bundle.entry bdl-8 used a bare fullUrl.contains('/_history/').not() FHIRPath expression, so entries with no fullUrl could evaluate to an empty collection/false even though transaction and batch entries can omit fullUrl.
+
+Initial application:
+The Jira comment points to HL7/fhir PR #1138. Its implementation commit 235cb1af4119d6a1da874a29b82889e183b71860, "Fix FHIR-25525", changed source/bundle/structuredefinition-Bundle.xml from the bare contains expression to fullUrl.exists() implies fullUrl.contains('/_history/').not() on the R4B history path. The current source path later received the same expression through FHIR-36006 commit 79442526caf5645dc6e1b867d66befaa67fb87d5.
+
+Additional context:
+FHIR-I minutes for 2020-01-20 recorded the work group response to FHIR-25525 as "Sounds correct" and asked whether to propagate the fix back to R4. The originating Zulip thread confirmed that empty collections are false in FHIRPath and that the original bdl-8 expression was in error. FHIR-36006 rediscovered the same Bundle invariant issue in 2022, was Published/Persuasive, and is already represented on the combined branch by commit 4a1235c58d0508ad4bc4fc50b93787bff76c73f9, so it is not decided again here.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. source/fhir.ini lists Bundle as an active infrastructure resource with code bdl, and current source/bundle/structuredefinition-Bundle.xml already contains the guarded bdl-8 expression requested by FHIR-25525. A current source search found no remaining active bare fullUrl.contains('/_history/').not() XML invariant.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up core FHIR source work is needed for FHIR-25525 unless a future work group decision changes the Bundle.entry fullUrl invariant semantics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25525
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-36006: same-change-family - a later Published/Persuasive issue rediscovered the same Bundle bdl-8 missing-fullUrl problem and applied the current master expression; it already has a separate combined-branch audit commit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25525: Published/Persuasive technical correction asking bdl-8 to guard the fullUrl history check when fullUrl is absent. Learned: establishes the final requested behavior for the seed issue.
+- E2 Source source/bundle/structuredefinition-Bundle.xml:377-382 and source/fhir.ini:245,929-935,1103: Bundle is active/in-build and current bdl-8 is fullUrl.exists() implies fullUrl.contains('/_history/').not(). Learned: the authoritative current source already implements the requested invariant.
+- E3 Git 235cb1af4119d6a1da874a29b82889e183b71860: PR #1138 implementation for FHIR-25525 changed the Bundle source to the guarded expression on the R4B history path. Learned: the Jira-linked application made exactly the requested semantic change.
+- E4 Confluence FHIR-I Minutes 2020-01-20 page 66942228: the work group said the issue sounded correct and discussed propagating back to R4. Learned: meeting evidence supports the Jira disposition and intended correction.
+- E5 Zulip #fhirpath > FHIRPath constraints: Aaron Nash reported the empty-fullUrl bdl-8 problem and Grahame Grieve said empty collection is false and the expression was in error. Learned: community discussion confirms the FHIRPath semantics behind the issue.
+- E6 Jira/Zulip/Git FHIR-36006 and command checks: FHIR-36006 later made the same current-master correction, combined already contains its audit, no exact FHIR-25525 audit existed, and grep found only the corrected active source expression. Learned: no duplicate seed commit exists, and no source fix remains for this seed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25525",
+    "url": "https://jira.hl7.org/browse/FHIR-25525",
+    "snapshot_path": "contexts/FHIR-25525/jira/FHIR-25525.md",
+    "ref": { "jira_key": "FHIR-25525" },
+    "summary": "Published/Persuasive technical correction reporting that Bundle.entry bdl-8 failed entries without fullUrl because it used a bare fullUrl.contains('/_history/').not() expression.",
+    "learned": "This establishes the seed issue's final requested behavior: guard the history check when fullUrl is absent.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/bundle/structuredefinition-Bundle.xml:377-382; source/fhir.ini:245,929-935,1103",
+    "ref": { "path": "source/bundle/structuredefinition-Bundle.xml", "line": 381 },
+    "summary": "Bundle is active in fhir.ini, and current bdl-8 is fullUrl.exists() implies fullUrl.contains('/_history/').not().",
+    "learned": "The authoritative current build source already contains the requested guarded invariant.",
+    "supports": ["current_source", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "235cb1af4119d6a1da874a29b82889e183b71860",
+    "ref": { "commit": "235cb1af4119d6a1da874a29b82889e183b71860", "pull_request": 1138 },
+    "summary": "The Jira-linked FHIR-25525 implementation changed Bundle bdl-8 from the bare contains expression to the guarded implies expression.",
+    "learned": "The original application made exactly the semantic correction requested by the issue.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20200120 page 66942228",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/66942228/FHIR+Infrastructure+Minutes+CC+20200120",
+    "ref": { "confluence_page_id": 66942228 },
+    "summary": "Minutes record FHIR-25525 as sounding correct and ask whether the fix should be propagated back to R4.",
+    "learned": "Formal meeting evidence supports the Jira disposition and intended correction scope.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#fhirpath > FHIRPath constraints",
+    "url": "https://chat.fhir.org/#narrow/stream/fhirpath/topic/FHIRPath%20constraints",
+    "summary": "The originating thread identifies the missing-fullUrl bdl-8 problem; Grahame Grieve says empty collection is false and the expression is in error.",
+    "learned": "This confirms the FHIRPath semantics and rationale behind the requested guard.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Duplicate and current-source verification for FHIR-25525",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-25525' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git grep -n \"fullUrl.exists() implies fullUrl.contains('/_history/').not()\" robo-spec-combined-issue-reconcile-full-clean-balanced-v2 -- source/bundle/structuredefinition-Bundle.xml; rg -n \"fullUrl\\.contains\\('/_history/'\\)\\.not\\(\\)\" source --glob '*.xml'",
+    "query": "FHIR-25525 Bundle bdl-8 fullUrl _history",
+    "summary": "No exact FHIR-25525 audit commit was present on the combined branch, and active XML source contains only the corrected guarded bdl-8 expression.",
+    "learned": "A seed-specific audit commit is required, but no source edit remains necessary.",
+    "supports": ["absence_of_duplicate", "reconciliation"]
+  }
+]
+</evidence-manifest>

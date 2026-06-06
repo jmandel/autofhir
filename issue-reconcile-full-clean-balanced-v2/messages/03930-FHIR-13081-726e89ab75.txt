@@ -1,0 +1,122 @@
+FHIR-13081: Audit MedicationStatement unknown status history
+
+Issue request:
+FHIR-13081 was a Published/Persuasive Pharmacy change request raised for DSTU2. It asked to add unknown to the MedicationStatement.status value set so a MedicationStatement derived from a MedicationRequest with unknown status could also report status unknown.
+
+Initial application:
+The Jira comment identifies historical commit 4b21106775caa782aa07057cdc51cb67b83f467f as the original application. That commit added an unknown row to the then-active MedicationStatement status spreadsheet, updated the MedicationStatement.status short display to include unknown, and updated notes explaining the unknown/taken scenario.
+
+Additional context:
+Later Pharmacy decisions deliberately changed the same status family. FHIR-19468/FHIR-19470 moved taking/not-taking semantics into an adherence element. FHIR-28593 made MedicationUsage.status a record-status element rather than a clinical medication-use status. FHIR-32060 then explicitly removed unknown from that status value set, renamed completed to recorded, and added draft because unknown did not make sense for record status. FHIR-39271, after the MedicationUsage name was reverted to MedicationStatement, confirmed that MedicationStatement.status reflects the recording status of the statement and MedicationStatement.adherence carries taking/not-taking semantics. Those later related issues are already represented on the combined branch and should not be duplicated here.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. In the current build, source/fhir.ini actively includes MedicationStatement, MedicationStatement.status is recorded | entered-in-error | draft with text limiting it to recording status, and the status CodeSystem contains only recorded, entered-in-error, and draft. The current adherence CodeSystem includes unknown for whether the medication is being taken. Re-adding unknown to the required MedicationStatement.status value set would contradict the later published status/adherence redesign.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR-core source follow-up is needed for FHIR-13081 unless Pharmacy reopens the current MedicationStatement status/adherence model; any future reconsideration should start from FHIR-32060, FHIR-32858, and FHIR-39271 rather than the superseded DSTU2 status-code model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13081
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-19468: later-change - removed not-taken from MedicationStatement/MedicationUsage status and added adherence for taking/not-taking semantics.
+FHIR-19470: later-change - added MedicationUsage.adherence with an unknown value for unable-to-obtain medication taking/adherence information.
+FHIR-28593: later-change - narrowed status to record-status semantics rather than medication-use clinical status.
+FHIR-32060: later-change - explicitly removed unknown from record status, renamed completed to recorded, and added draft.
+FHIR-32858: supporting-decision - confirmed medication-use scenarios are represented with effective[x], adherence.code, and adherence.reason instead of restoring old status codes.
+FHIR-39271: later-change - confirmed after the rename back to MedicationStatement that status is statement record status and adherence carries taking/not-taking meaning.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13081: Published/Persuasive; requested adding unknown to MedicationStatement.status for DSTU2-derived MedicationStatements from unknown MedicationRequests. Learned: this establishes the seed request and original status-code target.
+- E2 Git 4b21106775caa782aa07057cdc51cb67b83f467f: historical application added unknown to the old MedicationStatement status spreadsheet and notes. Learned: the seed was applied in the then-current source before later redesigns.
+- E3 Source source/fhir.ini:204 and source/medicationstatement/structuredefinition-MedicationStatement.xml:144-166: MedicationStatement is active and status is recorded | entered-in-error | draft with text saying it concerns recording the statement and directs adherence semantics to MedicationStatement.adherence. Learned: the current build no longer uses status for the DSTU2 medication-use meaning.
+- E4 Source source/medicationstatement/codesystem-medication-statement-status.xml:24-38 and source/medicationstatement/valueset-medication-statement-status.xml:28-31: the status CodeSystem/ValueSet surface contains recorded, entered-in-error, and draft, with no unknown status code. Learned: unknown is intentionally absent from required status terminology.
+- E5 Source source/medicationstatement/codesystem-medication-statement-adherence.xml:76-80 and source/medicationstatement/structuredefinition-MedicationStatement.xml:504-520: adherence.code is bound to the adherence value set, whose code system includes unknown for whether the medication is being taken. Learned: the current model has a place for medication-taking uncertainty outside status.
+- E6 Jira FHIR-28593/FHIR-32060/FHIR-32858/FHIR-39271: later Published Pharmacy decisions made status record-oriented, removed unknown from status, and retained adherence/effective[x] for medication-use state. Learned: these later decisions supersede the original FHIR-13081 status-value request in the current build.
+- E7 Community Zulip #Medication > MedicationUsage.status and Confluence PHAR September 2020 WGM minutes page 86978002: community and minutes evidence align with the Jira chronology from record-status narrowing through FHIR-32060. Learned: no discovered community evidence supports re-adding unknown to current status.
+- E8 Verification commands: combined-branch Issue-Reconcile-Key checks found related audits already published and no FHIR-13081 audit; XML syntax checks passed; combined-branch source inspection found recorded/entered-in-error/draft and no unknown in the status CodeSystem. Learned: an empty, non-duplicative no-change audit is sufficient.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13081",
+    "url": "https://jira.hl7.org/browse/FHIR-13081",
+    "snapshot_path": "contexts/FHIR-13081/jira/FHIR-13081.md",
+    "ref": { "jira_key": "FHIR-13081" },
+    "summary": "Published/Persuasive DSTU2 issue requesting that unknown be added to MedicationStatement.status for MedicationStatements derived from unknown MedicationRequests.",
+    "learned": "This establishes the seed request and the original status-code target.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "4b21106775caa782aa07057cdc51cb67b83f467f",
+    "ref": { "commit": "4b21106775caa782aa07057cdc51cb67b83f467f" },
+    "summary": "Historical commit added unknown to the old MedicationStatement status spreadsheet and updated MedicationStatement notes.",
+    "learned": "The seed had a substantive historical source application before later status redesigns.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:204; source/medicationstatement/structuredefinition-MedicationStatement.xml:144-166",
+    "ref": { "path": "source/medicationstatement/structuredefinition-MedicationStatement.xml", "line": 144 },
+    "summary": "MedicationStatement is active, and MedicationStatement.status is recorded | entered-in-error | draft with text limiting status to recording the statement and pointing medication-use semantics to adherence.",
+    "learned": "The current build-scope StructureDefinition intentionally no longer uses status for the DSTU2 medication-use meaning.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationstatement/codesystem-medication-statement-status.xml:24-38; source/medicationstatement/valueset-medication-statement-status.xml:28-31",
+    "ref": { "path": "source/medicationstatement/codesystem-medication-statement-status.xml", "line": 24 },
+    "summary": "The active MedicationStatement status CodeSystem contains recorded, entered-in-error, and draft, and the ValueSet includes that CodeSystem.",
+    "learned": "Unknown is intentionally absent from the current required status terminology.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/medicationstatement/codesystem-medication-statement-adherence.xml:76-80; source/medicationstatement/structuredefinition-MedicationStatement.xml:504-520",
+    "ref": { "path": "source/medicationstatement/codesystem-medication-statement-adherence.xml", "line": 76 },
+    "summary": "MedicationStatement.adherence.code is bound to the adherence value set, whose code system includes unknown for whether the medication is being taken.",
+    "learned": "The current model carries medication-taking uncertainty through adherence rather than status.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-28593; FHIR-32060; FHIR-32858; FHIR-39271",
+    "url": "https://jira.hl7.org/browse/FHIR-32060",
+    "ref": { "jira_key": "FHIR-32060" },
+    "summary": "Later Published Pharmacy decisions narrowed status to record status, removed unknown from status, added draft, and assigned medication taking/not-taking semantics to adherence/effective[x].",
+    "learned": "These later decisions supersede the original FHIR-13081 status-value request for the current build.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#Medication > MedicationUsage.status; PHAR September 2020 WGM minutes page 86978002",
+    "url": "https://chat.fhir.org/#narrow/stream/Medication/topic/MedicationUsage.status",
+    "ref": { "confluence_page_id": 86978002 },
+    "summary": "The Zulip thread and Pharmacy WGM minutes align with the Jira chronology from record-status narrowing through FHIR-32060.",
+    "learned": "No discovered community evidence supports re-adding unknown to the current MedicationStatement.status value set.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Final source and duplicate checks for FHIR-13081",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13081' robo-spec-combined-issue-reconcile-full-clean-balanced-v2; xmllint --noout source/medicationstatement/structuredefinition-MedicationStatement.xml source/medicationstatement/codesystem-medication-statement-status.xml source/medicationstatement/valueset-medication-statement-status.xml source/medicationstatement/codesystem-medication-statement-adherence.xml source/medicationstatement/valueset-medication-statement-adherence.xml; git -C /home/jmandel/work/fhir show robo-spec-combined-issue-reconcile-full-clean-balanced-v2:source/medicationstatement/codesystem-medication-statement-status.xml | rg -n '<code value=\"unknown\"|<code value=\"recorded\"|<code value=\"draft\"|<code value=\"entered-in-error\"'",
+    "query": "FHIR-13081 MedicationStatement.status unknown current combined source",
+    "summary": "No prior FHIR-13081 reconcile commit was on the combined branch; XML syntax checks passed; current combined source shows recorded, entered-in-error, and draft with no unknown status code.",
+    "learned": "The no-change audit is non-duplicative and matches the current source state.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

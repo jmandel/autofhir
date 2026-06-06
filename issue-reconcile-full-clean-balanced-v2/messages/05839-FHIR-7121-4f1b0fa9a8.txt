@@ -1,0 +1,86 @@
+FHIR-7121: Audit Procedure progress status handling
+
+Issue request:
+FHIR-7121 was a Published/Persuasive with Modification Patient Care change request against Procedure.status. It said the base status codes were too coarse for detailed surgical workflow states such as in OR, prepped, anesthesia induced, opened, closed, and recovery. The accepted resolution kept Procedure as a high-level resource, created a common extension for detailed procedure progress statuses, and noted that any detailed progress profile would be scheduled outside DSTU2.
+
+Initial application:
+No current git commit explicitly mentioning FHIR-7121 was found. The historical application is visible through adjacent source history: daa5d326d1 added source/procedure/valueset-procedure-progress-status-codes.xml in 2015, 33b409a4b6 reworked the source and added source/procedure/structuredefinition-extension-procedure-progressStatus.xml with the Procedure context and value-set binding, and FHIR-12706/25942dbc17 later cleaned up the procedure progress status code system. The core extension files were then removed from the R5 source by dd468d4f17 as part of moving extension definitions out of core.
+
+Additional context:
+The current core build still includes Procedure through source/fhir.ini, and Procedure.status remains a required high-level event status rather than a detailed surgical workflow element. The detailed progress artifacts now live in the FHIR Extension Pack, whose ig.ini points to input/extensions-ig.xml and includes input/definitions/* as resource input. That Extension Pack source contains StructureDefinition/procedure-progressStatus with context Procedure, the matching value set, and the code system with in-operating-room, prepared, anesthesia-induced, open-incision, closed-incision, and in-recovery-room codes. Direct Zulip and Confluence searches for FHIR-7121 found no conflicting community decision.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Reintroducing the extension into core or adding redundant Procedure prose would be inappropriate because the current core Procedure source remains consistent with the issue's 80% high-level-status rationale and the detailed-status extension is already maintained in the Extension Pack.
+
+Recommendation:
+Keep this audit commit as-is. Future changes to procedure-progressStatus or its terminology should be made in the FHIR Extension Pack; a dedicated detailed surgical progress profile should only be added if Patient Care creates and scopes that profile as a current build artifact.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-7121
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12706: same-change-family - later Published QA cleanup changed the procedure progress status codes/displays/definitions and is reflected in the current Extension Pack terminology; it was not separately decided here because the seed only required auditing FHIR-7121's extension outcome.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-7121: Published/Persuasive with Modification Procedure issue requiring detailed procedure progress to be represented by a common extension rather than by expanding the base Procedure.status element. Learned: the accepted current-state target is high-level core Procedure.status plus an extension for detailed progress.
+- E2 Source source/fhir.ini:169,212 and source/procedure/structuredefinition-Procedure.xml:195-220: Procedure is an active core resource and Procedure.status is required, bound to event-status, and still described as generally in-progress or completed. Learned: the authoritative core source preserves the high-level status model that the resolution intended.
+- E3 Source /home/jmandel/work/fhir-extensions/input/definitions/Procedure/StructureDefinition-procedure-progressStatus.xml:14,41-44,64-80 plus ValueSet-procedure-progress-status-codes.xml and CodeSystem-procedure-progress-status-code.xml: the Extension Pack defines the Procedure-scoped progress status extension, its value set, and the detailed status codes. Learned: the common extension requested by the issue exists outside current core source.
+- E4 Git daa5d326d1, 33b409a4b6, 25942dbc17, dd468d4f17: history added the procedure progress value set, added the extension source, cleaned the codes under FHIR-12706, then removed extension definitions from core R5 source. Learned: absence of the extension files from current core is a source-organization move, not a missing FHIR-7121 application.
+- E5 Command community/source checks: direct Zulip and Confluence searches for FHIR-7121 returned no hits, and exact core/Extension Pack searches showed only OID registry remnants in core plus the active Extension Pack definitions. Learned: no discovered community record contradicts the source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-7121",
+    "url": "https://jira.hl7.org/browse/FHIR-7121",
+    "snapshot_path": "contexts/FHIR-7121/jira/FHIR-7121.md",
+    "ref": { "jira_key": "FHIR-7121" },
+    "summary": "Published/Persuasive with Modification issue saying Procedure.status was too coarse for detailed surgical progress states.",
+    "learned": "The approved resolution kept core Procedure.status high-level and requested a common extension for detailed procedure progress statuses.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,212; source/procedure/structuredefinition-Procedure.xml:195-220",
+    "ref": { "path": "source/procedure/structuredefinition-Procedure.xml", "start_line": 195, "end_line": 220 },
+    "summary": "Procedure is an active core resource and Procedure.status remains a required event-status code described as generally in-progress or completed.",
+    "learned": "The current core source still models Procedure.status at the high level anticipated by the resolution.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/Procedure/StructureDefinition-procedure-progressStatus.xml and related terminology XML",
+    "ref": { "path": "/home/jmandel/work/fhir-extensions/input/definitions/Procedure/StructureDefinition-procedure-progressStatus.xml" },
+    "summary": "The Extension Pack defines StructureDefinition/procedure-progressStatus for Procedure and binds it to procedure-progress-status-codes, with a code system covering operating room, prepared, anesthesia, incision, and recovery states.",
+    "learned": "The detailed-status extension requested by FHIR-7121 exists in the current Extension Pack source rather than in core.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "daa5d326d1; 33b409a4b6; 25942dbc17; dd468d4f17",
+    "ref": { "commits": "daa5d326d1,33b409a4b6,25942dbc17,dd468d4f17" },
+    "summary": "History added the procedure progress value set, added the extension source, cleaned the codes under FHIR-12706, and later removed extension definitions from core R5 source.",
+    "learned": "Current core absence of the extension files reflects the extension-source move, not an unapplied seed issue.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Direct community and exact source searches for FHIR-7121/procedure progress status",
+    "command": "bun run zulip:search fts '\"FHIR-7121\"' --limit 10; bun run confluence:search fts '\"FHIR-7121\"' --limit 10; rg -n 'procedure-progressStatus|procedure-progress-status-codes|procedure-progress-status-code' source/procedure source/oids.ini source/fhir.ini /home/jmandel/work/fhir-extensions/input/definitions/Procedure",
+    "query": "FHIR-7121; procedure-progressStatus; procedure-progress-status-codes",
+    "result_count": 0,
+    "summary": "Direct FHIR-7121 community searches found no hits; exact source searches found only OID remnants in core and the active Extension Pack definitions.",
+    "learned": "No discovered community evidence changes the conclusion that no current core source edit is needed.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

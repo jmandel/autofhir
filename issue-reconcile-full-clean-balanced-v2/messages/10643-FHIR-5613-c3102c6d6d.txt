@@ -1,0 +1,104 @@
+FHIR-5613: Audit example reference target validation
+
+Issue request:
+FHIR-5613 was a Published/Persuasive FHIR-core tooling change request from DSTU1 asking the build tooling to detect example references whose resource type is not allowed by the element target type, using a CarePlan2.activity example that referenced Procedure/12345 as the motivating defect.
+
+Initial application:
+No commit message on the current git history explicitly mentions FHIR-5613. Jira records Grahame Grieve's comment that it was "done around svn 4000"; the closest imported git evidence is the 2015-02-09 legacy tooling commit f5a4865af0, titled "several large changes - increased validation...", which added InstanceValidator reference checking that resolves a Reference target type and emits "Invalid Resource target type. Found ..., but expected one of (...)."
+
+Additional context:
+FHIR-5671 subsequently merged/retired CarePlan2, and current source/fhir.ini lists CarePlan2 only under [removed-resources] while active CarePlan is built as CarePlan. Current CarePlan.activity.plannedActivityReference has explicit request-resource target profiles and does not include Procedure. The current repository no longer carries the legacy Java validator source; build.gradle.kts runs org.hl7.fhir.tools.publisher.Publisher from the external kindling dependency, and current kindling ExampleInspector prepares an InstanceValidator for examples with ReferenceValidationPolicy.CHECK_TYPE_IF_EXISTS, escalating known conformance references to CHECK_EXISTS_AND_TYPE.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The historical tooling behavior requested by the issue is represented in the current publisher/validator path, and the original CarePlan2 example is outside the current build scope.
+
+Recommendation:
+Keep this audit commit as-is. Any future defect in example reference-target validation should be fixed in the kindling/validator tooling dependency rather than by changing FHIR core source for this already-applied DSTU1 issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5613
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-5671: later-change - merged/retired CarePlan2 and confirms the motivating CarePlan2 page is no longer a current build artifact.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5613: Published/Persuasive FHIR-core issue asks the build tool to detect invalid example reference target types and records "done around svn 4000." Learned: this is a final applied tooling request, not a current resource-definition change.
+- E2 Git f5a4865af0: 2015-02-09 legacy tooling commit titled "several large changes - increased validation..." added InstanceValidator checkReference logic for target resource type mismatches. Learned: the requested validation behavior appears to have been applied in the legacy build/validator code shortly after the Jira comment.
+- E3 Source build.gradle.kts:132 and gradle.properties:2: current build runs org.hl7.fhir.tools.publisher.Publisher from kindling 1.25.5-SNAPSHOT. Learned: current example validation is driven by the external publisher dependency, not by editable legacy validator source in this checkout.
+- E4 Source /home/jmandel/work/kindling/src/main/java/org/hl7/fhir/tools/publisher/ExampleInspector.java:209-220,621-632: current ExampleInspector creates an InstanceValidator and uses CHECK_TYPE_IF_EXISTS/CHECK_EXISTS_AND_TYPE reference policies. Learned: current tooling still checks reference target types when validating examples.
+- E5 Source source/fhir.ini:178,308,326 and source/careplan/structuredefinition-CarePlan.xml:685-706: CarePlan is active, CarePlan2 is removed, and current plannedActivityReference target profiles are request resources. Learned: the motivating CarePlan2/Procedure example is obsolete and not a current build-scope source defect.
+- E6 Jira FHIR-5671: Published/Persuasive with Modification issue merged CarePlan and CarePlan2. Learned: later applied context explains why CarePlan2 should not be edited for this reconciliation.
+- E7 Command community search: Jira/Zulip/Confluence searches for FHIR-5613, CarePlan2, and invalid reference terms found no conflicting Zulip or Confluence evidence. Learned: no discovered community record changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5613",
+    "url": "https://jira.hl7.org/browse/FHIR-5613",
+    "snapshot_path": "contexts/FHIR-5613/jira/FHIR-5613.md",
+    "ref": { "jira_key": "FHIR-5613" },
+    "summary": "Published/Persuasive FHIR-core tooling request to have the build detect invalid reference target types in examples, with a CarePlan2 Procedure reference as the example.",
+    "learned": "This establishes the final applied request and the Jira comment that the work was done around svn 4000.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "f5a4865af0",
+    "ref": { "commit": "f5a4865af0" },
+    "summary": "2015-02-09 legacy tooling commit titled 'several large changes - increased validation...' added InstanceValidator logic that resolves Reference target types and reports invalid target resource types.",
+    "learned": "This is the imported git evidence matching the Jira comment's applied tooling behavior.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "build.gradle.kts:132-139; gradle.properties:2",
+    "summary": "The current FHIR build runs org.hl7.fhir.tools.publisher.Publisher from the kindling dependency version 1.25.5-SNAPSHOT.",
+    "learned": "Current publisher behavior is supplied by kindling rather than editable legacy validator source in this checkout.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "/home/jmandel/work/kindling/src/main/java/org/hl7/fhir/tools/publisher/ExampleInspector.java:209-220,621-632",
+    "summary": "Current kindling ExampleInspector constructs an InstanceValidator for examples and uses CHECK_TYPE_IF_EXISTS or CHECK_EXISTS_AND_TYPE reference validation policies.",
+    "learned": "The current publisher/validator path still checks reference target types for examples when the target can be determined.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:178,308,326; source/careplan/structuredefinition-CarePlan.xml:685-706",
+    "summary": "CarePlan is active, CarePlan2 is listed only as removed, and current plannedActivityReference target profiles are request resources rather than Procedure.",
+    "learned": "The motivating CarePlan2 page is outside current build scope and does not call for a source edit.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-5671",
+    "url": "https://jira.hl7.org/browse/FHIR-5671",
+    "snapshot_path": "contexts/FHIR-5671/jira/FHIR-5671.md",
+    "ref": { "jira_key": "FHIR-5671" },
+    "summary": "Published/Persuasive with Modification issue merged CarePlan and CarePlan2 and fixed activity details to refer to request resources.",
+    "learned": "This later applied issue explains why the original CarePlan2 artifact is no longer current source to edit.",
+    "supports": ["additional_context", "related_jiras"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence search for FHIR-5613 and CarePlan2 invalid references",
+    "command": "bun run jira:search fts '\"FHIR-5613\" OR \"invalid reference targets\" OR \"CarePlan2\"' --limit 20; bun run zulip:search fts '\"FHIR-5613\" \"CarePlan2\" \"invalid reference\"' --limit 10; bun run confluence:search refs jira FHIR-5613",
+    "query": "FHIR-5613 CarePlan2 invalid reference targets",
+    "summary": "Search found the seed issue and CarePlan2 merge context but no conflicting Zulip or Confluence evidence.",
+    "learned": "No discovered community record changes the no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

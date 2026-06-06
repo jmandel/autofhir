@@ -1,0 +1,85 @@
+FHIR-39529: Audit primitive integer min values
+
+Issue request:
+FHIR-39529 was a Published/Persuasive FHIR-core datatypes change request for R5 asking that the unsignedInt and positiveInt StructureDefinitions override the inherited integer.value minimum, with unsignedInt.value constrained to a minimum of 0 and positiveInt.value constrained to a minimum of 1. The issue also noted a tooling concern that some snapshot generators inherited integer.value's -2147483648 minimum unless the derived primitive profiles carried their own minValue.
+
+Initial application:
+No explicit FHIR-39529-tagged commit was found in this checkout. The current R5 definitions available in this repository, and the published R5/current build conformance JSON, already include the requested differential constraints as typed ElementDefinition.minValue[x] values: minValueUnsignedInt=0 for unsignedInt.value and minValuePositiveInt=1 for positiveInt.value.
+
+Additional context:
+The active primitive datatype source defines unsignedInt and positiveInt as integer-derived primitive types and their regular expressions already exclude the invalid ranges. The generated snapshots still do not repeat the minValue[x] entries, which is consistent with the Jira note about Java snapshot behavior; the important source/published differential now carries the constraining minValue[x] entries so downstream snapshot generation should not inherit integer.value's -2147483648 minimum. Jira full-text search found no neighboring issue in the same change family, Zulip search found no relevant discussion, and Confluence references only confirmed the WGM vote trail.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current specification surface already contains the requested unsignedInt.value and positiveInt.value differential minValue[x] constraints, and adding redundant prose or editing generated/history artifacts would not improve the current build source.
+
+Recommendation:
+Keep this no-change audit commit as-is. If a downstream tool still expects minValueInteger rather than the correctly typed minValueUnsignedInt/minValuePositiveInt entries on these primitive profiles, handle that as a tooling interpretation issue rather than a FHIR core source correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-39529
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-39529: Published/Persuasive R5 datatypes issue requesting unsignedInt.value and positiveInt.value minValue overrides. Learned: this establishes final WG intent to carry derived primitive min values of 0 and 1.
+- E2 Source source/datatypes/primitives.xml:311: unsignedInt and positiveInt remain active integer-derived primitive datatype rows with regexes for non-negative and positive integers. Learned: the primitive source already defines the intended value domains.
+- E3 Source tools/history/release5/profiles-types.xml:3236 and :3803: the R5 profile differentials include minValuePositiveInt=1 and minValueUnsignedInt=0 on positiveInt.value and unsignedInt.value. Learned: the checked-in R5 conformance representation already carries the requested constraints.
+- E4 Published spec query: build.fhir.org and hl7.org/fhir/R5 primitive profile JSON report differential minValueUnsignedInt=0 and minValuePositiveInt=1. Learned: both the current CI build and published R5 conformance surfaces already match the issue request.
+- E5 Command searches: git log --grep=FHIR-39529 found no explicit local implementation commit; Jira FTS returned only FHIR-39529; Zulip search found no relevant discussion; Confluence refs found only the FHIR-I WGM vote reference. Learned: no later or related decision was found that changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-39529",
+    "url": "https://jira.hl7.org/browse/FHIR-39529",
+    "snapshot_path": "contexts/FHIR-39529/jira/FHIR-39529.md",
+    "ref": { "jira_key": "FHIR-39529" },
+    "summary": "Published/Persuasive R5 datatypes issue asking for unsignedInt.value minValue 0 and positiveInt.value minValue 1 so derived primitive profiles do not inherit integer.value's -2147483648 minimum.",
+    "learned": "This establishes final WG intent and the exact primitive-profile constraints to check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:311-325",
+    "ref": { "path": "source/datatypes/primitives.xml", "start_line": 311, "end_line": 325 },
+    "summary": "The active primitive datatype rows define unsignedInt and positiveInt as integer-derived primitives with regexes for non-negative and positive integer lexical spaces.",
+    "learned": "The authoritative primitive source already describes the intended value domains before generated profile differential constraints are considered.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "tools/history/release5/profiles-types.xml:3236-3254 and :3803-3821",
+    "ref": { "path": "tools/history/release5/profiles-types.xml", "positive_start_line": 3236, "unsigned_start_line": 3803 },
+    "summary": "The R5 profile differentials contain minValuePositiveInt value 1 on positiveInt.value and minValueUnsignedInt value 0 on unsignedInt.value.",
+    "learned": "The repository's R5 conformance representation already carries the requested minValue[x] overrides.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "build.fhir.org and hl7.org/fhir/R5 primitive profile JSON",
+    "url": "https://build.fhir.org/unsignedint.profile.json",
+    "command": "curl -fsSL https://build.fhir.org/unsignedint.profile.json | jq '.differential.element[] | select(.id==\"unsignedInt.value\")'; curl -fsSL https://build.fhir.org/positiveint.profile.json | jq '.differential.element[] | select(.id==\"positiveInt.value\")'; curl -fsSL https://hl7.org/fhir/R5/unsignedint.profile.json | jq '.differential.element[] | select(.id==\"unsignedInt.value\")'; curl -fsSL https://hl7.org/fhir/R5/positiveint.profile.json | jq '.differential.element[] | select(.id==\"positiveInt.value\")'",
+    "summary": "Current CI-build and published R5 JSON differentials expose minValueUnsignedInt=0 and minValuePositiveInt=1 for the relevant primitive value elements.",
+    "learned": "The published conformance surface already matches the issue request, so a source edit is unnecessary.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative history, Jira-neighborhood, Zulip, and Confluence searches",
+    "command": "git log --all --grep='FHIR-39529'; bun run jira:search fts 'unsignedInt positiveInt minValue integer' --limit 10; bun run zulip:search fts '\"FHIR-39529\" unsignedInt positiveInt minValue integer' --limit 10; bun run confluence:search refs jira FHIR-39529",
+    "query": "FHIR-39529 unsignedInt positiveInt minValue integer",
+    "summary": "No explicit local FHIR-39529 commit, no additional Jira neighbor, and no relevant Zulip discussion were found; Confluence only found the WGM vote reference.",
+    "learned": "No discovered later or related decision changes the conclusion that current source/published output is already correct.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

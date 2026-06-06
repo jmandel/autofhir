@@ -1,0 +1,86 @@
+FHIR-13802: Audit current build diff links
+
+Issue request:
+FHIR-13802 was a Published/Persuasive STU3 change request reporting that Build page Compare links, such as Observation's "Compare to DSTU3", generated an htmldiff URL whose new document pointed at http://hl7-fhir.github.io//observation.html and returned 404.
+
+Initial application:
+The Jira comment says "sorted." Git history shows commit 8dd23fc9b4dd1101de72c7d8bafb76ad12771b24, "#13802 - fix broken paths," changed build.sh to publish the CI build with http://build.fhir.org/ rather than http://hl7-fhir.github.io/ and updated adjacent stale references. That directly addresses the failed new-document host in the issue report.
+
+Additional context:
+The current build no longer has a DSTU3 compare link in tools/templates/newfooter.html. Its compare links use https://www.fhir.org/perl/htmldiff.pl with current release targets and <%baseURL%><%rellink%> for the new document. build.sh still passes -url http://build.fhir.org/. A live check of https://build.fhir.org/observation.html produced compare links whose newfile parameter is http%3A%2F%2Fbuild.fhir.org%2Fobservation.html, not the obsolete GitHub Pages URL. Zulip and Confluence searches found no direct FHIR-13802 discussion or conflicting work-group evidence; later Zulip htmldiff discussion only explains the modern move away from the W3C service.
+
+AutoFHIR reconciliation:
+No source change was made. The current source and rendered build behavior already avoid the broken URL that FHIR-13802 reported, and the remaining old hl7-fhir.github.io strings found outside generated publish output are historical/terminology data rather than the active build-page diff-link mechanism.
+
+Recommendation:
+Keep this no-change audit commit as-is. No follow-up source edit is needed for FHIR-13802 unless a separate issue asks to update unrelated historical URLs or further revise the current comparison service.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13802
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-34058: later-change - Later commit 98f60cf87e adjusted comparison targets after the same footer template moved on from STU3/R4-era links, showing normal version-maintenance rather than an unresolved FHIR-13802 defect.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13802: Published/Persuasive issue reported Build page compare links resolving the new document to http://hl7-fhir.github.io//observation.html and receiving 404. Learned: the accepted request was to fix the build-page comparison URL generation.
+- E2 Git 8dd23fc9b4dd1101de72c7d8bafb76ad12771b24: "#13802 - fix broken paths" changed build.sh from -url http://hl7-fhir.github.io/ to -url http://build.fhir.org/. Learned: the reported bad new-document host was directly corrected in source history.
+- E3 Source build.sh:8 and tools/templates/newfooter.html:22-24: the CI build still publishes with http://build.fhir.org/ and current compare links use https://www.fhir.org/perl/htmldiff.pl with <%baseURL%><%rellink%>. Learned: active source no longer encodes the obsolete hl7-fhir.github.io compare target.
+- E4 Published spec https://build.fhir.org/observation.html: compare links contain newfile=http%3A%2F%2Fbuild.fhir.org%2Fobservation.html. Learned: the current rendered page for the original example resource does not reproduce the 404 URL.
+- E5 Community search: Jira FHIR-13802 snapshot plus Zulip/Confluence searches for FHIR-13802, "Diff service fails", and htmldiff found no direct conflicting discussion or minutes. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13802",
+    "url": "https://jira.hl7.org/browse/FHIR-13802",
+    "snapshot_path": "contexts/FHIR-13802/jira/FHIR-13802.md",
+    "ref": { "jira_key": "FHIR-13802" },
+    "summary": "Published/Persuasive issue reported that Build page Compare links generated a new-document URL under http://hl7-fhir.github.io// and returned 404.",
+    "learned": "This establishes the accepted request as fixing CI build comparison URL generation rather than changing resource content.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "8dd23fc9b4dd1101de72c7d8bafb76ad12771b24",
+    "ref": { "commit": "8dd23fc9b4dd1101de72c7d8bafb76ad12771b24" },
+    "summary": "Commit '#13802 - fix broken paths' changed build.sh from -url http://hl7-fhir.github.io/ to -url http://build.fhir.org/ and updated adjacent stale references.",
+    "learned": "The failed host in the Jira report was directly corrected in source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "build.sh:8; tools/templates/newfooter.html:22-24",
+    "ref": { "path": "build.sh" },
+    "summary": "Current build.sh passes -url http://build.fhir.org/, and the footer template builds compare links through https://www.fhir.org/perl/htmldiff.pl with <%baseURL%><%rellink%> as the new file.",
+    "learned": "The active source no longer generates the obsolete hl7-fhir.github.io compare target.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/observation.html",
+    "url": "https://build.fhir.org/observation.html",
+    "command": "curl -fsSL https://build.fhir.org/observation.html | tr '\\n' ' ' | grep -o 'https://www\\.fhir\\.org/perl/htmldiff\\.pl[^\" ]*' | head -5",
+    "summary": "The live Observation page compare links use newfile=http%3A%2F%2Fbuild.fhir.org%2Fobservation.html.",
+    "learned": "The original example page no longer reproduces the broken GitHub Pages URL.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Community search for FHIR-13802 and htmldiff",
+    "command": "bun run zulip:search fts '\"FHIR-13802\"' --limit 10; bun run zulip:search fts '\"Diff service fails\" OR htmldiff' --limit 10; bun run confluence:search refs jira FHIR-13802; bun run confluence:search fts '\"Diff service fails\" htmldiff' --limit 10",
+    "query": "FHIR-13802; Diff service fails; htmldiff",
+    "summary": "No direct Zulip or Confluence references to FHIR-13802 were found; htmldiff hits concerned later service-hosting discussions and did not conflict with the current source conclusion.",
+    "learned": "No discovered community record indicates that FHIR-13802 remains unresolved.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

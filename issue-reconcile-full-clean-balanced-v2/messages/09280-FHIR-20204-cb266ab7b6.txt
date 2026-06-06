@@ -1,0 +1,104 @@
+FHIR-20204: Audit PZN validator issue outside core spec
+
+Issue request:
+FHIR-20204 was a Published/Persuasive technical correction asking that the Java JAR validator stop reporting an invalid-code error for code systems such as http://fhir.de/CodeSystem/ifa/pzn whose CodeSystem resource intentionally has no explicit concept list.
+
+Initial application:
+No source commit in this HL7/fhir checkout explicitly references FHIR-20204, and current source contains no Java validator implementation to change. The Jira trail shows the issue was assigned for investigation and later published, with a final comment directing remaining validator problems to https://github.com/hapifhir/org.hl7.fhir.core.
+
+Additional context:
+The current core build includes CodeSystem as an active resource and already defines CodeSystem.content plus the not-present content mode, including the rule that none of the code system concepts are included in that resource. Zulip discussion confirms the original PZN report was a validator/terminology-server behavior problem, and a later HAPI/core-validator thread treats the remaining work as validator implementation/message handling rather than FHIR specification source.
+
+AutoFHIR reconciliation:
+This empty audit commit intentionally makes no source change. The requested fix belongs to the Java validator implementation outside this FHIR specification checkout, not to the authoritative core spec files in this repository.
+
+Recommendation:
+Keep this audit commit as an external-repo decision. If PZN or other not-present code systems still produce incorrect validator errors, track and fix that in hapifhir/org.hl7.fhir.core or the relevant validator/plugin implementation, while preserving the current core CodeSystem.content semantics.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20204
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20204: Published/Persuasive issue about Java JAR validator errors for PZN and other code systems without explicit code lists. Learned: the request targets validator behavior, not a missing CodeSystem definition in core source.
+- E2 Source source/fhir.ini:269 and source/codesystem/structuredefinition-CodeSystem.xml:682: CodeSystem is an active resource and CodeSystem.content defines how much code-system content is represented. Learned: the relevant spec artifact is in build scope and already exposes content-mode semantics.
+- E3 Source source/codesystem/codesystem-codesystem-content-mode.xml:47: not-present is defined as including none of the concepts in the CodeSystem resource. Learned: current source already represents the semantic needed by validators for no-content code systems.
+- E4 Command find/git grep scope check: this checkout has 0 Java files, only narrative/example validation paths, no FHIR-20204/ifa-pzn source hits, and no direct FHIR-20204 commit. Learned: there is no in-repo validator implementation or prior spec-source application to patch.
+- E5 Zulip #german (d-a-ch) > Basisprofil Medication - PZN Validierungsfehler and #hapi > Medication.ingredient.item not found by the hapi validator. Learned: community discussion frames PZN failures as Java/core-validator behavior, with later wording expected in the validator release.
+- E6 Confluence FHIR-I Minutes 2020-01-27 page 75170111. Learned: FHIR-I classified the issue as a technical correction and assigned investigation, without recording a spec wording change.
+- E7 External GitHub hapifhir/org.hl7.fhir.core Messages.properties and validator source searches. Learned: the Java validator implementation and messages for no-content code systems live in the external org.hl7.fhir.core repository.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20204",
+    "url": "https://jira.hl7.org/browse/FHIR-20204",
+    "snapshot_path": "contexts/FHIR-20204/jira/FHIR-20204.md",
+    "ref": { "jira_key": "FHIR-20204" },
+    "summary": "Published/Persuasive technical correction reporting Java JAR validator errors for PZN and similar code systems without explicit code lists.",
+    "learned": "The accepted issue is about validator behavior for not-present code systems rather than a missing normative source definition.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:269; source/codesystem/structuredefinition-CodeSystem.xml:682-700",
+    "ref": { "path": "source/codesystem/structuredefinition-CodeSystem.xml", "line": 682 },
+    "summary": "CodeSystem is active in fhir.ini and CodeSystem.content is a required element bound to CodeSystemContentMode.",
+    "learned": "The current core build already contains the authoritative content-mode structure needed for this issue family.",
+    "supports": ["build_scope", "current_source"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/codesystem/codesystem-codesystem-content-mode.xml:47-51",
+    "ref": { "path": "source/codesystem/codesystem-codesystem-content-mode.xml", "line": 47 },
+    "summary": "The not-present content mode is defined as no concepts from the code system being included in the CodeSystem resource.",
+    "learned": "The spec semantics for no-content CodeSystem resources are already present in current source.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Repository validator implementation scope check",
+    "command": "find . -name '*.java' | wc -l; find . \\( -iname '*validator*' -o -ipath '*validation*' \\) | wc -l; git grep -n 'FHIR-20204\\|ifa/pzn\\|fhir.de/CodeSystem/ifa/pzn' -- .; git log --all --fixed-strings --grep='FHIR-20204'",
+    "summary": "The checkout has zero Java files, only four validation-named source/example paths, no source hits for FHIR-20204 or ifa/pzn, and no direct FHIR-20204 commit.",
+    "learned": "The requested validator correction is not implementable as a source edit in this HL7/fhir spec checkout.",
+    "supports": ["external_repo", "absence_of_core_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#german (d-a-ch) > Basisprofil Medication - PZN Validierungsfehler; #hapi > Medication.ingredient.item not found by the hapi validator",
+    "url": "https://chat.fhir.org/#narrow/stream/german%20(d-a-ch)/topic/Basisprofil%20Medication%20-%20PZN%20Validierungsfehler",
+    "summary": "The original discussion reported the Java JAR validator PZN failure, and later HAPI/core-validator discussion describes the remaining not-present CodeSystem behavior as a core validator issue.",
+    "learned": "Community evidence supports treating this as validator implementation behavior, not a core spec wording defect.",
+    "supports": ["additional_context", "external_repo"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20200127 page 75170111",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/75170111/FHIR+Infrastructure+Minutes+CC+20200127",
+    "ref": { "confluence_page_id": 75170111 },
+    "summary": "Minutes say to change FHIR-20204 to technical correction and assign it to Grahame to investigate.",
+    "learned": "The minutes record triage/investigation rather than a concrete source wording change for the current spec.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "web",
+    "locator": "hapifhir/org.hl7.fhir.core validator messages and CodeSystemValidator.java",
+    "url": "https://github.com/hapifhir/org.hl7.fhir.core",
+    "summary": "GitHub code search locates Java validator source and no-content CodeSystem validation messages in the external org.hl7.fhir.core repository.",
+    "learned": "Any remaining implementation fix belongs in the external validator repository rather than in HL7/fhir spec source.",
+    "supports": ["external_repo", "recommendation"]
+  }
+]
+</evidence-manifest>

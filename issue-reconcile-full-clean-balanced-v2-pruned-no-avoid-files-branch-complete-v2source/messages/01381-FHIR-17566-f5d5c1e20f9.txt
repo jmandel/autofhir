@@ -1,0 +1,106 @@
+FHIR-17566: Remove invalid AdministrativeGender v3 mapping
+
+Issue request:
+FHIR-17566 is Published/Persuasive and reports that cm-administrative-gender-v3 maps FHIR AdministrativeGender unknown to target code UNK even though UNK is not in the target v3 AdministrativeGender value set. The Jira comments clarify that after the tooling validation concern, the map itself still needed correction by removing the unknown mapping or moving it to an unmapped entry with a comment.
+
+Initial application:
+No git commit was found that explicitly mentions FHIR-17566, and the current source still preserved the original spreadsheet mapping of unknown to AdministrativeGender.UNK. The AdministrativeGender mapping row originated in the long-standing bindings spreadsheet history and later terminology cleanups/reworks preserved the invalid target rather than applying this issue.
+
+Additional context:
+The current build-scope terminology input is source/terminologies/bindings.xml, whose AdministrativeGender binding row declares the v3 target value set and whose administrative-gender worksheet generates the cm-administrative-gender-v3 ConceptMap. The current CI build still renders unknown as equivalent to UNK in that map, while the current THO v3 AdministrativeGender CodeSystem contains only F, M, and UN. FHIR-16189 and FHIR-24899 discuss nearby AdministrativeGender concept-map rendering/relationship issues, but neither supersedes the specific invalid UNK target correction.
+
+AutoFHIR reconciliation:
+Removed the v3 target cell for the FHIR AdministrativeGender unknown row in source/terminologies/bindings.xml. This keeps the valid male, female, and other mappings unchanged and prevents the generated v3 ConceptMap from asserting a target code that is outside http://terminology.hl7.org/CodeSystem/v3-AdministrativeGender.
+
+Recommendation:
+Keep this commit as-is. If the work group wants a future explicit unmapped/comment entry for unknown rather than omitting the mapping, that can be added with human-reviewed generator syntax, but the current source must not publish unknown -> UNK as a valid v3 AdministrativeGender mapping.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17566
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-16189: background - earlier Published issue discussed duplicate AdministrativeGender v2/v3 mappings and proposed SNOMED CT mapping; it does not validate or supersede the invalid v3 UNK target.
+FHIR-24899: background - later no-change issue discussed AdministrativeGender v2/v3 ConceptMap relationship labels for other/UN; it did not address the unknown/UNK target-code validity problem.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17566: Published/Persuasive issue says cm-administrative-gender-v3 maps unknown to UNK, but UNK is not in the target v3 AdministrativeGender value set; Jira comments say the map still needs correction by removing or unmapped-commenting unknown. Learned: this is final WG intent to remove the invalid target assertion.
+- E2 Source source/terminologies/bindings.xml:632-642 and 1657-1710: the bindings spreadsheet declares the v3 AdministrativeGender target value set and previously mapped unknown to AdministrativeGender.UNK; this commit blanks that v3 target cell. Learned: this is the source input that controls the generated AdministrativeGender v3 concept map.
+- E3 Published spec build.fhir.org/cm-administrative-gender-v3.json: current CI output before this fix maps unknown as equivalent to target UNK. Learned: the source defect reaches the current built specification.
+- E4 Web THO CodeSystem-v3-AdministrativeGender.json and ValueSet-v3-AdministrativeGender.json: the target code system/value set include v3 AdministrativeGender codes F, M, and UN, with no UNK concept. Learned: UNK is not a valid target code for this ConceptMap group.
+- E5 Git history: git log --grep FHIR-17566 found no explicit application commit; pickaxe history shows AdministrativeGender.UNK came from the original 2014 gender mapping work and survived later spreadsheet cleanups. Learned: the Jira correction had not been applied in current source.
+- E6 Command community searches: Zulip and Confluence searches for FHIR-17566/AdministrativeGender/UNK found no directly relevant or conflicting community record. Learned: no discovered community discussion changes the Jira/source conclusion.
+- E7 Verification command: python3 parsed source/terminologies/bindings.xml and extracted the AdministrativeGender unknown v3 cell as blank; git diff --check reported no whitespace errors. Learned: the SpreadsheetML remains well-formed and the intended source cell is empty.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17566",
+    "url": "https://jira.hl7.org/browse/FHIR-17566",
+    "snapshot_path": "contexts/FHIR-17566/jira/FHIR-17566.md",
+    "ref": { "jira_key": "FHIR-17566" },
+    "summary": "Published/Persuasive issue reports that cm-administrative-gender-v3 maps unknown to UNK even though UNK is not in the target v3 AdministrativeGender value set.",
+    "learned": "The final issue disposition and comments establish that the map itself needs correction by removing or unmapped-commenting the unknown mapping.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/terminologies/bindings.xml:632-642; source/terminologies/bindings.xml:1657-1710",
+    "summary": "The bindings spreadsheet declares the v3 AdministrativeGender target value set and its administrative-gender worksheet previously mapped unknown to AdministrativeGender.UNK; this commit blanks that cell.",
+    "learned": "This is the authoritative source input for the generated AdministrativeGender v3 ConceptMap, so editing it fixes the current build source rather than generated output.",
+    "supports": ["source_change", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/cm-administrative-gender-v3.json",
+    "url": "https://build.fhir.org/cm-administrative-gender-v3.json",
+    "summary": "The current CI ConceptMap output before this fix maps source code unknown to target code UNK with relationship equivalent.",
+    "learned": "The source defect is visible in the current built specification and is not only stale local source.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "web",
+    "locator": "THO CodeSystem-v3-AdministrativeGender.json and ValueSet-v3-AdministrativeGender.json",
+    "url": "https://terminology.hl7.org/CodeSystem-v3-AdministrativeGender.json",
+    "summary": "The current THO v3 AdministrativeGender code system lists F, M, and UN, and the value set includes that code system without UNK.",
+    "learned": "UNK is not a valid v3 AdministrativeGender target code, confirming the Jira-reported semantic error remains real.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "git log --grep FHIR-17566; 80380ae9d2f27c97e636d2871b98cf5cea93945b",
+    "ref": { "commit": "80380ae9d2f27c97e636d2871b98cf5cea93945b" },
+    "summary": "No explicit FHIR-17566 application commit was found; pickaxe history shows the AdministrativeGender.UNK mapping originated in the 2014 gender mapping commit and survived later terminology cleanups.",
+    "learned": "The current invalid mapping is pre-existing source that was not corrected by the Published issue's intended application.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community searches for FHIR-17566 AdministrativeGender UNK",
+    "command": "bun run zulip:search fts '\"FHIR-17566\" AdministrativeGender UNK' --limit 10; bun run zulip:search fts 'AdministrativeGender UNK ConceptMap' --limit 10; bun run confluence:search refs jira FHIR-17566; bun run confluence:search fts '\"FHIR-17566\" AdministrativeGender UNK' --limit 10",
+    "query": "FHIR-17566 AdministrativeGender UNK ConceptMap",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira, source, and terminology conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "SpreadsheetML parse and whitespace check",
+    "command": "python3 XML parse/extract of source/terminologies/bindings.xml; git diff --check",
+    "summary": "bindings.xml parses, the AdministrativeGender unknown v3 cell extracts as blank, and git diff --check reports no whitespace errors.",
+    "learned": "The edited spreadsheet XML is well-formed and the intended target mapping was removed cleanly.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

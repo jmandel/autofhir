@@ -1,0 +1,131 @@
+FHIR-31023: Fix Specimen collection procedure example
+
+Issue request:
+FHIR-31023 was a Published/Persuasive OO R4-to-R5 change request asking for a way to link a lab Specimen to the surgery or other Procedure during which it was collected. The approved motion added Specimen.collection.procedure as a 0..1 Reference(Procedure) and renamed Specimen.processing.procedure to Specimen.processing.method.
+
+Initial application:
+The issue was applied before this reconciliation. Commit aefdd75200eeedf8617971a57efa2e67003bf1d9 added Specimen.collection.procedure to source/specimen/structuredefinition-Specimen.xml as Reference(Procedure), renamed Specimen.processing.procedure to Specimen.processing.method, updated the processing value set name, and updated an example using the renamed processing element.
+
+Additional context:
+Specimen is an active current-build resource in source/fhir.ini, and source/specimen/list-Specimen-examples.xml includes specimen-example-liver-biopsy as an active example. Later issue FHIR-37870 added a procedure search parameter for Specimen.collection.procedure, and later issue FHIR-45505 added the spm-1 invariant that Specimen.collection.collector and Specimen.collection.procedure are not both present. Both of those related issues are already represented on the combined branch. The liver biopsy Specimen example was added later by FHIR-48715-related source history and used Specimen.collection.procedure as coded content while also carrying collection.collector, which contradicted the FHIR-31023 Reference(Procedure) model and the later FHIR-45505 invariant.
+
+AutoFHIR reconciliation:
+This commit fixes the active liver biopsy Specimen example. It turns collection.procedure into a Reference to a contained Procedure resource that carries the liver biopsy code, subject, occurrence, and performer, and removes collection.collector so the example complies with spm-1 while still showing the requested Procedure link.
+
+Recommendation:
+Keep this source fix. It preserves the approved FHIR-31023 model, avoids changing the authoritative Specimen element definitions, and only corrects an active example that had drifted from the Reference(Procedure) semantics. No further core follow-up is needed for FHIR-31023 unless OO later changes the collector/procedure invariant or chooses to add a standalone liver biopsy Procedure example.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-31023
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-33393: duplicate - later request for information about the Procedure in which a Specimen was collected; Jira comment says it is similar to FHIR-31023.
+FHIR-37870: same-change-family - added the Specimen procedure search parameter for the Specimen.collection.procedure element introduced by FHIR-31023; already represented on the combined branch.
+FHIR-45505: later-change - added the spm-1 invariant making Specimen.collection.collector and Specimen.collection.procedure mutually exclusive; already represented on the combined branch and respected by this example fix.
+FHIR-48715: background - later source history introduced the liver biopsy example while working on Specimen.condition binding; that issue is not final Applied/Published in this run and is not decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-31023: Published/Persuasive OO issue requested Specimen.collection.procedure 0..1 Reference(Procedure) and renaming Specimen.processing.procedure to Specimen.processing.method. Learned: this establishes the final approved model for the seed issue.
+- E2 Confluence OO 2021-03-08 Specimen minutes page 104573934: minutes record the same motion and 6-0-0 vote. Learned: work-group minutes confirm the Jira resolution details and scope.
+- E3 Source source/fhir.ini:169-224 and source/specimen/structuredefinition-Specimen.xml:576-585,684-699: Specimen is active, collection.procedure is Reference(Procedure), and processing.method is present. Learned: the authoritative current source implements the main FHIR-31023 definition changes.
+- E4 Git aefdd75200eeedf8617971a57efa2e67003bf1d9: added the Reference(Procedure) element and renamed processing.procedure to processing.method for FHIR-31023. Learned: the initial source application matches the approved issue.
+- E5 Source source/specimen/list-Specimen-examples.xml:67-78 and source/specimen/specimen-example-liver-biopsy.xml:4-85: the active liver biopsy example now references a contained Procedure from Specimen.collection.procedure and no longer also carries collection.collector. Learned: the changed example is in build scope and now matches FHIR-31023 plus the later invariant.
+- E6 Jira/Git FHIR-45505 and cb5d7e9998673ef06823f4105dc17d5957f92228: added spm-1 so collection.collector and collection.procedure are mutually exclusive. Learned: this later decision explains why the example fix moves the practitioner to Procedure.performer instead of keeping collection.collector.
+- E7 Jira/Git FHIR-37870 and 145de9d74a7271bb0a60cce426781894af6b7710: added the Specimen-procedure search parameter on Specimen.collection.procedure. Learned: related search behavior already follows the FHIR-31023 element and does not require a new commit here.
+- E8 Zulip #Orders and Observation WG > Recording specimen collection setting: participants recommended using Specimen.collection.procedure and Procedure.location for collection setting. Learned: discovered community discussion supports the Procedure-reference pattern and does not conflict with the fix.
+- E9 Verification command: xmllint --noout, Python XML/semantic assertions, and git diff --check passed for source/specimen/specimen-example-liver-biopsy.xml. Learned: the edited XML is well-formed, collection.procedure is a Reference, collection.collector is absent, and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-31023",
+    "url": "https://jira.hl7.org/browse/FHIR-31023",
+    "snapshot_path": "contexts/FHIR-31023/jira/FHIR-31023.md",
+    "ref": { "jira_key": "FHIR-31023" },
+    "summary": "Published/Persuasive OO issue requesting Specimen.collection.procedure as a 0..1 Reference(Procedure) and renaming Specimen.processing.procedure to Specimen.processing.method.",
+    "learned": "This establishes the final approved model for reconciling the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "OO 2021-03-08 Specimen minutes page 104573934",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/104573934/2021-03-08+Specimen",
+    "ref": { "confluence_page_id": 104573934 },
+    "summary": "OO minutes record the motion to add Specimen.collection.procedure as Reference(Procedure), rename processing.procedure to processing.method, and pass 6-0-0.",
+    "learned": "This confirms the Jira resolution details and approved scope.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-224; source/specimen/structuredefinition-Specimen.xml:576-585,684-699",
+    "ref": { "path": "source/specimen/structuredefinition-Specimen.xml", "line": 576 },
+    "summary": "Specimen is active in fhir.ini; collection.procedure is a 0..1 Reference(Procedure), and processing.method is present.",
+    "learned": "The authoritative current build source implements the main FHIR-31023 definition changes.",
+    "supports": ["build_scope", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "aefdd75200eeedf8617971a57efa2e67003bf1d9",
+    "ref": { "commit": "aefdd75200eeedf8617971a57efa2e67003bf1d9" },
+    "summary": "Commit 'Added reference to Procedure in Specimen.collection and updated examples for FHIR-31023' added collection.procedure and renamed processing.procedure to processing.method.",
+    "learned": "The historical application matches the approved issue request.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/specimen/list-Specimen-examples.xml:67-78; source/specimen/specimen-example-liver-biopsy.xml:4-85",
+    "ref": { "path": "source/specimen/specimen-example-liver-biopsy.xml", "line": 4 },
+    "summary": "The active liver biopsy Specimen example now has a contained Procedure and a collection.procedure reference to it, with no collection.collector alongside it.",
+    "learned": "The changed build-scope example now follows the FHIR-31023 Reference(Procedure) model and the later spm-1 invariant.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-45505 and cb5d7e9998673ef06823f4105dc17d5957f92228",
+    "url": "https://jira.hl7.org/browse/FHIR-45505",
+    "ref": { "jira_key": "FHIR-45505", "commit": "cb5d7e9998673ef06823f4105dc17d5957f92228" },
+    "summary": "Applied/Persuasive later issue added spm-1 so Specimen.collection.collector and Specimen.collection.procedure are mutually exclusive.",
+    "learned": "This later decision requires the example to avoid carrying both collector and procedure; the performer belongs on the Procedure in this example.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-37870 and 145de9d74a7271bb0a60cce426781894af6b7710",
+    "url": "https://jira.hl7.org/browse/FHIR-37870",
+    "ref": { "jira_key": "FHIR-37870", "commit": "145de9d74a7271bb0a60cce426781894af6b7710" },
+    "summary": "Published/Persuasive related issue added SearchParameter/Specimen-procedure on Specimen.collection.procedure.",
+    "learned": "The related search parameter already tracks the FHIR-31023 element and does not need another reconciliation commit.",
+    "supports": ["additional_context", "related_decision"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#Orders and Observation WG > Recording specimen collection setting",
+    "url": "https://chat.fhir.org/#narrow/stream/Orders%20and%20Observation%20WG/topic/%E2%9C%94%20Recording%20specimen%20collection%20setting",
+    "ref": { "stream": "Orders and Observation WG", "topic": "Recording specimen collection setting" },
+    "summary": "Participants recommended using Specimen.collection.procedure and Procedure.location for specimen collection setting.",
+    "learned": "Community evidence supports modeling collection context through a Procedure reference and does not conflict with the fix.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Validation of source/specimen/specimen-example-liver-biopsy.xml",
+    "command": "xmllint --noout source/specimen/specimen-example-liver-biopsy.xml; python3 XML assertions for collection.procedure Reference and absent collector; git diff --check",
+    "summary": "The edited XML is well-formed, collection.procedure has a reference instead of coding, collection.collector is absent, and whitespace checks pass.",
+    "learned": "The focused source change satisfies the reconciled model without introducing XML or whitespace errors.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

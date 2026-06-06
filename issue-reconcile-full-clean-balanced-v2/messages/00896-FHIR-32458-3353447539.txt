@@ -1,0 +1,108 @@
+FHIR-32458: Audit applied AuditEvent network cardinality
+
+Issue request:
+FHIR-32458 was a Published/Persuasive Security WG change request for R5 asking why AuditEvent.agent.network.address was optional when AuditEvent.agent.network.type could be present. The accepted resolution was to make both .agent.network.type and .agent.network.address 1..1, leaving optionality only on the containing .network element.
+
+Initial application:
+Commit e84eb2b6ce8d1a2516c0f0a21e19f78cb7fce143 applied FHIR-32458 directly by changing both AuditEvent.agent.network.address and AuditEvent.agent.network.type from min=0 to min=1 in source/auditevent/structuredefinition-AuditEvent.xml. That source file is in build scope because source/fhir.ini lists auditevent=AuditEvent as an active resource.
+
+Additional context:
+The same Security block-vote family later applied FHIR-32459 in commit 3d204189e23e03f0b4f11d03d491bc1d868e399b, replacing the AuditEvent.agent.network backbone and its address/type children with AuditEvent.agent.network[x] of type Reference(Endpoint), uri, or string. The current conversion map records AuditEvent.agent.network.address and AuditEvent.agent.network.type as mapping to network[x], and FHIR-32459 is already represented on the combined branch by 3361713448ae61edd34a85a1f02c541eea4278b5. FHIR-32450 supplied the surrounding agent-specific network definition/comment context.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current authoritative AuditEvent source has no separate network.type element that could appear without an address; when network information is present, it is a single 0..1 network[x] endpoint/address value. Current examples use networkString/networkUri, and the old child elements are preserved only as R4/R5 conversion mappings.
+
+Recommendation:
+Keep this audit commit as-is. Do not reintroduce the old network backbone merely to express the FHIR-32458 cardinality wording; the later FHIR-32459 network[x] model supersedes the old type/address child design while preserving the implementer-facing concern that a partial network child is not valid.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32458
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32459: same-change-family - replaced AuditEvent.agent.network address/type children with network[x], which is why the current source no longer needs the FHIR-32458 child-cardinality shape.
+FHIR-32450: supporting-decision - clarified that agent.network describes the agent-specific network endpoints and points to the FHIR-32459 network redesign.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32458: Published/Persuasive; resolution made AuditEvent.agent.network.type and .address 1..1 under optional .network. Learned: establishes the seed request and final WG decision.
+- E2 Git e84eb2b6ce8d1a2516c0f0a21e19f78cb7fce143: changed both old AuditEvent.agent.network child mins from 0 to 1. Learned: the seed was explicitly applied before later refactoring.
+- E3 Jira FHIR-32459 and Git 3d204189e23e03f0b4f11d03d491bc1d868e399b: replaced the old network backbone with network[x] Reference(Endpoint)|uri|string. Learned: the current source intentionally supersedes the old address/type child representation.
+- E4 Source source/auditevent/structuredefinition-AuditEvent.xml:841: current AuditEvent.agent.network[x] is 0..1 and typed as Reference(Endpoint), uri, or string. Learned: there is no current type-without-address state to fix.
+- E5 Source source/fhir.ini:224 and source/fhir.ini:1584: active auditevent resource and R4/R5 conversion mappings from AuditEvent.agent.network.address/type to network[x]. Learned: the checked source is in build scope and the old elements are intentionally mapped to the new element.
+- E6 Community Zulip/Confluence: Security block-vote thread and 2021-09-13 minutes list FHIR-32458 and FHIR-32459 in the approved block vote; 2021-07-12 minutes noted FHIR-32458 was okay for block vote. Learned: community evidence supports the Jira/source history and shows no contrary decision.
+- E7 Verification command/query: rg over source/auditevent found current examples using networkString/networkUri and no remaining AuditEvent.agent.network.address/type elements in the authoritative StructureDefinition. Learned: no source hunk is needed for the current build.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32458",
+    "url": "https://jira.hl7.org/browse/FHIR-32458",
+    "snapshot_path": "contexts/FHIR-32458/jira/FHIR-32458.md",
+    "ref": { "jira_key": "FHIR-32458" },
+    "summary": "Published/Persuasive Security issue requiring AuditEvent.agent.network.type and .address to be mandatory when the network element is present.",
+    "learned": "This establishes the final seed request and the target behavior for the historical R5 model.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "e84eb2b6ce8d1a2516c0f0a21e19f78cb7fce143",
+    "ref": { "commit": "e84eb2b6ce8d1a2516c0f0a21e19f78cb7fce143" },
+    "summary": "Applied FHIR-32458 by changing both old AuditEvent.agent.network child mins from 0 to 1.",
+    "learned": "The seed was explicitly implemented before the later network refactor.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-32459",
+    "url": "https://jira.hl7.org/browse/FHIR-32459",
+    "ref": { "jira_key": "FHIR-32459" },
+    "summary": "Published/Not Persuasive with Modification issue changing AuditEvent.agent.network to network[x] with Reference(Endpoint), uri, or string choices.",
+    "learned": "This later same-field decision explains why the old address/type child cardinalities no longer appear in current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/auditevent/structuredefinition-AuditEvent.xml:841",
+    "ref": { "path": "source/auditevent/structuredefinition-AuditEvent.xml", "line": 841 },
+    "summary": "Current AuditEvent.agent.network[x] is 0..1 and supports Reference(Endpoint), uri, and string.",
+    "learned": "The current model has no separate network.type child that could exist without an address.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:224, source/fhir.ini:1584",
+    "ref": { "path": "source/fhir.ini", "line": 224 },
+    "summary": "fhir.ini lists auditevent=AuditEvent as active and maps old AuditEvent.agent.network.address/type to network[x].",
+    "learned": "The inspected source is current build scope, and the old elements intentionally migrate to the new network[x] element.",
+    "supports": ["source_scope", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip and Confluence Security block-vote checks for FHIR-32458",
+    "command": "bun run zulip:search fts '\"FHIR-32458\" AuditEvent network address' --limit 10; bun run confluence:search refs jira FHIR-32458; bun run confluence:search snapshot 79497364; bun run confluence:search snapshot 116465607",
+    "query": "FHIR-32458 AuditEvent network address",
+    "result_count": 4,
+    "summary": "The Security block-vote thread and minutes list FHIR-32458 in the approved block vote and show no contrary community decision.",
+    "learned": "Community evidence supports the Jira/source conclusion and does not require a source change.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source search for old and new AuditEvent network elements",
+    "command": "rg -n 'network\\[x\\]|network\\.address|network\\.type|networkString|networkUri|networkReference' source/auditevent source/fhir.ini",
+    "summary": "Search found the current network[x] StructureDefinition, networkString/networkUri examples, and only conversion mappings for old network.address/type.",
+    "learned": "No authoritative source location still needs the original child-cardinality edit.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

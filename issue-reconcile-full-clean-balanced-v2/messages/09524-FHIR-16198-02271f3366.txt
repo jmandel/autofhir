@@ -1,0 +1,117 @@
+FHIR-16198: Complete purge operation definitions
+
+Issue request:
+FHIR-16198 was Applied as Persuasive with Modification for FHIR-core REST. The final request was to define DELETE [base]/[type]/[id]/_history, DELETE [base]/[type]/[id]/_history/[vid], corresponding delete-history and delete-history-version CapabilityStatement interaction codes, and Patient/Group $purge operations suitable for asynchronous behavior, with links from the HTTP delete section.
+
+Initial application:
+The issue was partially applied by 582318c880c and c1b29d509424, then 79f7e6eb3ee added the Patient $purge OperationDefinition and a Delete-section link, and c2724e8a568 added the delete-history HTTP sections/table rows. FHIR-42728 and b4ae65a387 completed the RESTful interaction code and CapabilityStatement code surfaces. Later, 992dff4a2fa split the $purge operation into Patient and Group files to fix a build issue, but left the Patient definition scoped to both Patient and Group, left the Group definition with id/url metadata that did not match OperationDefinition/Group-purge, omitted the Group resource scope, and left both purge operations marked as not affecting state.
+
+Additional context:
+FHIR-I minutes and Zulip discussion confirm the intended split: DELETE handles historical versions of a single resource while $purge handles broader Patient-compartment deletion, including POST /Patient/[id]/$purge and POST /Group/[id]/$purge for all Patient compartments of Group members. The later FHIR-42728 decision is a supporting same-change-family issue for the interaction codes, but it is not decided here because the current code system and value set already contain delete-history and delete-history-version.
+
+AutoFHIR reconciliation:
+This commit updates the current build-scope REST source and OperationDefinition sources. The HTTP delete section now links both Patient $purge and Group $purge and states that delete-history-version is an error for the current version, matching the Jira resolution. The Patient $purge OperationDefinition now applies only to Patient and correctly marks the operation as state-changing. The Group $purge OperationDefinition now has the Group-purge id/canonical metadata expected by the active Group operations list, declares Group as its resource scope, describes Patient compartments of Group members, includes standard OperationDefinition publication metadata, and marks the operation as state-changing.
+
+Recommendation:
+Keep this commit. It completes the applied FHIR-16198 semantics in the authoritative current source without expanding into future policy details; any additional questions about SMART scopes, exact purge side effects, or 404-vs-410 behavior should remain separate work-group decisions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-16198
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-42728: supporting-decision - added the delete-history and delete-history-version RESTful interaction codes that FHIR-16198 introduced; current source already contains those codes, so it is not independently decided here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-16198: Applied/Persuasive with Modification issue requesting delete-history interactions, RESTful interaction codes, and Patient/Group $purge operations. Learned: this establishes the final WG-approved target behavior.
+- E2 Source source/http.html:1091: the active REST page describes delete semantics and now links both Patient $purge and Group $purge and states delete-history-version cannot remove the current version. Learned: the HTTP delete section now reflects the requested operations.
+- E3 Source source/patient/operationdefinition-Patient-purge.xml:62 and source/group/operationdefinition-Group-purge.xml:4: the active Patient/Group resource folders define the $purge OperationDefinitions. Learned: the conformance operation metadata now has correct resource scope, state-changing semantics, and Group-purge identity.
+- E4 Git 79f7e6eb3ee, c2724e8a568, 992dff4a2fa: earlier commits added FHIR-16198 content and later split Patient and Group purge files. Learned: the current inconsistency came from an incomplete split rather than a new policy decision.
+- E5 Jira FHIR-42728: Applied/Persuasive with Modification same-family decision added delete-history and delete-history-version RESTful interaction codes. Learned: the code-system part of FHIR-16198 is covered by a related applied issue and is already present.
+- E6 Zulip #implementers > Removing the history of a resource and Purge and Delete History Operations (FHIR-16198): community and editor discussion distinguished delete-history from Patient/Group $purge and confirmed policy details remain implementation-specific. Learned: the source fix should stay scoped to advertised operations and approved semantics.
+- E7 Confluence FHIR-I minutes 2023-04-17, 2023-11-06, 2023-11-13: minutes record the WG discussion, follow-up Zulip thread, and FHIR-42728 block vote. Learned: there is no later WG decision reversing the FHIR-16198 application.
+- E8 Verification command: Python XML parse/scope assertions plus CRLF-aware git diff --check passed. Learned: the edited XML is parseable and the targeted invariants match the reconciliation decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-16198",
+    "url": "https://jira.hl7.org/browse/FHIR-16198",
+    "snapshot_path": "contexts/FHIR-16198/jira/FHIR-16198.md",
+    "ref": { "jira_key": "FHIR-16198" },
+    "summary": "Applied/Persuasive with Modification issue requesting delete-history interactions, RESTful interaction codes, and Patient/Group $purge operations.",
+    "learned": "This establishes the final WG-approved behavior to reconcile in current REST and OperationDefinition source.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/http.html:1091",
+    "ref": { "path": "source/http.html", "line": 1091 },
+    "summary": "The active REST page delete section describes delete-history and now links both Patient $purge and Group $purge.",
+    "learned": "The HTTP page now contains the links and current-version delete-history-version rule requested by the issue.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/patient/operationdefinition-Patient-purge.xml and source/group/operationdefinition-Group-purge.xml",
+    "ref": { "path": "source/group/operationdefinition-Group-purge.xml", "line": 4 },
+    "summary": "The active Patient and Group resource folders define Patient-purge and Group-purge OperationDefinitions.",
+    "learned": "The operation definitions now advertise the correct resource scopes and state-changing behavior.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "79f7e6eb3ee, c2724e8a568, 992dff4a2fa",
+    "ref": { "commits": "79f7e6eb3ee,c2724e8a568,992dff4a2fa" },
+    "summary": "Earlier commits added FHIR-16198 REST/purge content and later split purge into Patient and Group versions.",
+    "learned": "The remaining defects were application/split inconsistencies, not a new unresolved policy question.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-42728",
+    "url": "https://jira.hl7.org/browse/FHIR-42728",
+    "ref": { "jira_key": "FHIR-42728" },
+    "summary": "Applied/Persuasive with Modification issue adding conditional interaction codes and the delete-history/delete-history-version codes introduced by FHIR-16198.",
+    "learned": "The RESTful interaction code-system surface is a related supporting decision and is already correct in current source.",
+    "supports": ["additional_context", "related_decision"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Removing the history of a resource; #implementers > Purge and Delete History Operations (FHIR-16198)",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Purge%20and%20Delete%20History%20Operations%20(FHIR-16198)",
+    "ref": { "stream": "implementers", "topic": "Purge and Delete History Operations (FHIR-16198)" },
+    "summary": "Discussion distinguished delete-history from Patient/Group $purge and kept detailed purge policy behavior implementation-specific.",
+    "learned": "The reconciliation should fix operation advertisement and approved scope without inventing extra purge policy parameters.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "FHIR-I minutes 2023-04-17, 2023-11-06, 2023-11-13",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/161066557/FHIR+Infrastructure+Minutes+CC+2023-04-17",
+    "ref": { "confluence_page_id": 161066557 },
+    "summary": "FHIR-I minutes record the DELETE/PURGE discussion, later follow-up on the Zulip thread, and the FHIR-42728 block vote.",
+    "learned": "No discovered later WG record reverses the applied FHIR-16198 direction.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted XML/scope verification and whitespace check",
+    "command": "python3 XML parse/scope assertions for Patient-purge and Group-purge; rg targeted source checks; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The edited OperationDefinition XML parsed, expected id/resource/affectsState assertions passed, targeted source strings were found, and diff --check reported no whitespace errors.",
+    "learned": "The source change is mechanically consistent for the reconciled files.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

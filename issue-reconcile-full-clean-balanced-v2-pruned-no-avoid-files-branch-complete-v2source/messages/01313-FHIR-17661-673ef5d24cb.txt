@@ -1,0 +1,103 @@
+FHIR-17661: Correct Observation encounter privacy guidance
+
+Issue request:
+FHIR-17661 was a Published/Persuasive STU3 OO change request to change Observation.context back to Observation.encounter, narrow the element from Reference(Encounter|EpisodeOfCare) to Reference(Encounter), update the Observation search parameter, and provide an event/workflow episode-of-care extension for 0..* EpisodeOfCare linkage.
+
+Initial application:
+The change was pre-applied in commit 096d9cd98c16d6b06712455ca04ece365fb5bddc, which renamed historical Observation source/example references from context to encounter. Current Observation source keeps Observation.encounter as 0..1 Reference(Encounter), and the Observation encounter search parameter uses code encounter with expression Observation.encounter.
+
+Additional context:
+The original Zulip discussion confirms the intended model: a single Encounter reference belongs on Observation, while one or more EpisodeOfCare references are handled by an extension. The former event-episodeOfCare extension now appears in the FHIR Extension Pack as workflow-episodeOfCare, with Observation in both the extension context list and workflow-EpisodeOfCare search parameter bases. Later FHIR-33166, already represented on the combined branch, reaffirmed this approach by adding explicit workflow-episodeOfCare guidance to Observation.encounter rather than reverting Observation back to context. FHIR-17662, also already represented on the combined branch, is the same change family for other OO resources.
+
+AutoFHIR reconciliation:
+This commit fixes the only current-source miss found for the seed: the active Security and Privacy module still described Observation.context as a reference to Encounter or EpisodeOfCare. The narrative now points to Observation.encounter, the workflow-episodeOfCare extension, and Observation.performer, matching the authoritative Observation definition and extension-pack ownership. The Security and Privacy module is in build scope through source/hierarchy.xml and multiple current module links.
+
+Recommendation:
+Keep this source fix. No further core source change is needed for Observation.encounter, the encounter search parameter, or the episode-of-care extension unless a future work-group decision reverses the current Observation/FHIR-33166 model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17661
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-17662: same-change-family - companion Published/Persuasive OO issue that applied the same context-to-encounter split to other OO event/request resources and is already audited on the combined branch.
+FHIR-33166: later-change - later Applied OO issue asking to revisit Observation.encounter/context; final resolution kept Observation.encounter and added workflow-episodeOfCare guidance, already audited on the combined branch.
+FHIR-42762: later-change - later workflow-EpisodeOfCare search-parameter decision represented in the Extension Pack and already audited on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17661: Published/Persuasive STU3 issue requested Observation.context -> Observation.encounter, Reference(Encounter), updated search parameter, and EpisodeOfCare extension support. Learned: this is the final seed decision and sets the expected current semantics.
+- E2 Git 096d9cd98c16d6b06712455ca04ece365fb5bddc: pre-applied GF#17661 by changing historical Observation source/examples from context to encounter. Learned: the issue was implemented before this reconciliation rather than wholly missing.
+- E3 Source source/observation/structuredefinition-Observation.xml:551-566 and source/observation/bundle-Observation-search-params.xml:485-496. Learned: current authoritative Observation source and search parameter already match the requested encounter name/type/expression.
+- E4 Source /home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-workflow-episodeOfCare.xml:207-214,297-303 and SearchParameter-workflow-EpisodeOfCare.xml:28-78. Learned: EpisodeOfCare support now belongs to the Extension Pack and includes Observation context/search coverage.
+- E5 Zulip #implementers > Observation - split episode context from encounter context. Learned: the community discussion behind GF#17661 supports Encounter on Observation plus a repeatable EpisodeOfCare extension and search-parameter split.
+- E6 Source source/secpriv-module.html:413-414 and source/hierarchy.xml:215. Learned: an active Security and Privacy narrative still used the obsolete Observation.context/EpisodeOfCare wording; this commit corrects that in-scope source defect.
+- E7 Jira/community/source checks for FHIR-33166, FHIR-17662, and current source. Learned: later related decisions do not reverse the model and already have combined-branch audits, so this commit should only fix FHIR-17661's remaining stale narrative.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17661",
+    "url": "https://jira.hl7.org/browse/FHIR-17661",
+    "snapshot_path": "contexts/FHIR-17661/jira/FHIR-17661.md",
+    "ref": { "jira_key": "FHIR-17661" },
+    "summary": "Published/Persuasive STU3 OO issue to rename Observation.context to Observation.encounter, narrow it to Reference(Encounter), update search, and add EpisodeOfCare extension support.",
+    "learned": "This establishes the final seed request and expected current Observation semantics.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "096d9cd98c16d6b06712455ca04ece365fb5bddc",
+    "ref": { "commit": "096d9cd98c16d6b06712455ca04ece365fb5bddc" },
+    "summary": "The pre-application commit changed historical Observation source and examples from context to encounter for GF#17661.",
+    "learned": "FHIR-17661 had been applied in the main Observation source lineage before this reconciliation.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/observation/structuredefinition-Observation.xml:551-566; source/observation/bundle-Observation-search-params.xml:485-496",
+    "summary": "Current Observation defines Observation.encounter as 0..1 Reference(Encounter), and the encounter search parameter uses expression Observation.encounter.",
+    "learned": "The authoritative resource and search-parameter sources already satisfy the core requested rename/type/search changes.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/multiple/StructureDefinition-workflow-episodeOfCare.xml:207-214,297-303; /home/jmandel/work/fhir-extensions/input/definitions/multiple/SearchParameter-workflow-EpisodeOfCare.xml:28-78",
+    "summary": "The FHIR Extension Pack defines workflow-episodeOfCare with Observation context and a workflow-EpisodeOfCare search parameter whose bases include Observation.",
+    "learned": "EpisodeOfCare linkage/search support is present outside the core checkout rather than missing from current core source.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > Observation - split episode context from encounter context",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Observation%20-%20split%20episode%20context%20from%20encounter%20context",
+    "summary": "The 2018 discussion records agreement to rename Observation.context to Observation.encounter and handle multiple EpisodeOfCare links through an extension, with search parameters split accordingly.",
+    "learned": "Community evidence supports the Jira/source interpretation and does not point to a different current core fix.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/secpriv-module.html:413-414; source/hierarchy.xml:215",
+    "summary": "The active Security and Privacy module still referred to Observation.context as Encounter or EpisodeOfCare before this commit.",
+    "learned": "This was an in-scope stale narrative source location that could mislead implementers and required correction.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Related issue, community, and source checks",
+    "command": "bun run jira:search snapshot FHIR-33166; bun run jira:search snapshot FHIR-17662; bun run zulip:search snapshot implementers 'Observation - split episode context from encounter context'; rg 'Observation\\.context|event-episodeOfCare|workflow-episodeOfCare' source /home/jmandel/work/fhir-extensions; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-17661' robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "summary": "Related final decisions keep the encounter-plus-extension model, combined already has audits for FHIR-17662/FHIR-33166/FHIR-42762, and no prior FHIR-17661 reconcile commit existed.",
+    "learned": "Publishing one FHIR-17661 source-fix commit is non-duplicative and bounded to the remaining stale narrative.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,93 @@
+FHIR-8311: Audit primitive StructureDefinition profiles
+
+Issue request:
+FHIR-8311 was a Published/Persuasive DSTU1 correction for FHIR-core StructureDefinitions. It reported that primitive StructureDefinition snapshots such as integer were missing inherited Element content, then just id, and that primitive value elements used an unqualified path value instead of the rooted path such as integer.value.
+
+Initial application:
+The Jira comment records svn revision 5495. The imported git history includes aa96a27941fb80451355fa2a0ccceaea9ab9f8bd, "#8311 - fix errors in primitive type profiles", which changed the historical ProfileGenerator to add the primitive id snapshot element and to set both differential and snapshot value paths to type.getCode()+".value" instead of "value".
+
+Additional context:
+The historical generator path no longer exists in the current checkout, and the datatype hierarchy has since been refactored so primitive datatypes now specialize PrimitiveType or derived primitives rather than Element directly. The active build configuration still includes the primitive/datatype infrastructure and routes PrimitiveType to the current types page. Current generated release history and the live build profiles show primitive snapshots with rooted id and value paths, for example integer.id with base Element.id and integer.value with path integer.value. No Zulip or Confluence evidence was found that changes or reopens this old correction.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change because the current specification already preserves the semantic correction requested by FHIR-8311: primitive snapshots include the inherited id element and their value elements are rooted under the primitive type name.
+
+Recommendation:
+Keep this no-change audit commit as-is. No core source follow-up is needed unless a future generator or package validation run shows a regression in primitive StructureDefinition snapshot generation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8311
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8311: Published/Persuasive correction for primitive StructureDefinitions, applied for DSTU1, with a comment noting svn revision 5495. Learned: this is a final workflow decision requiring primitive snapshots to include inherited id and rooted value paths.
+- E2 Git aa96a27941fb80451355fa2a0ccceaea9ab9f8bd: historical "#8311" commit changed ProfileGenerator to add the primitive id snapshot element and use type.getCode()+".value" paths. Learned: the requested fix was explicitly implemented in source history.
+- E3 Source source/fhir.ini:63-71,112 and source/datatypes/primitives.xml:97-118: PrimitiveType is active infrastructure and primitive datatype source rows remain in the current build inputs. Learned: the checked source locations governing primitive datatypes are in build scope.
+- E4 Source tools/history/release5/profiles-types.xml:2369,2394-2450: the R5 generated integer StructureDefinition specializes PrimitiveType and contains integer.id plus integer.value in the snapshot. Learned: checked generated release history reflects the FHIR-8311 correction after later datatype refactoring.
+- E5 Command curl/jq current build primitive profile verification: build.fhir.org primitive profiles all reported rooted id and value paths, including integer.id and integer.value. Learned: the current published build surface still satisfies the requested correction.
+- E6 Command Zulip and Confluence search for FHIR-8311 plus primitive StructureDefinition terms: no relevant hits or references found. Learned: no discovered community record conflicts with the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8311",
+    "url": "https://jira.hl7.org/browse/FHIR-8311",
+    "snapshot_path": "contexts/FHIR-8311/jira/FHIR-8311.md",
+    "ref": { "jira_key": "FHIR-8311" },
+    "summary": "Published/Persuasive DSTU1 correction saying primitive StructureDefinition snapshots were missing inherited Element id and used an unqualified value path.",
+    "learned": "This establishes the final issue request and target semantics for primitive StructureDefinition snapshots.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "aa96a27941fb80451355fa2a0ccceaea9ab9f8bd",
+    "ref": { "commit": "aa96a27941fb80451355fa2a0ccceaea9ab9f8bd" },
+    "summary": "Historical #8311 commit changed ProfileGenerator to add primitive id to snapshots and use type.getCode()+\".value\" paths.",
+    "learned": "The Jira request was explicitly applied in source history rather than left only as a Jira note.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:63-71,112; source/datatypes/primitives.xml:97-118",
+    "summary": "Current build configuration includes PrimitiveType as active infrastructure and current primitive rows such as boolean and integer remain in the datatype source spreadsheet.",
+    "learned": "The primitive datatype definitions checked for this audit are active current-build inputs.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "tools/history/release5/profiles-types.xml:2369,2394-2450",
+    "summary": "R5 generated integer StructureDefinition has baseDefinition PrimitiveType and snapshot elements integer.id and integer.value.",
+    "learned": "Later generated core profiles preserve the requested inherited id and rooted value-path correction.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current build primitive profile verification",
+    "command": "curl -fsSL https://build.fhir.org/<primitive>.profile.json | jq primitive snapshot id/value paths",
+    "summary": "Current build profiles for boolean, integer, integer64, decimal, base64Binary, instant, string, uri, url, canonical, date, dateTime, time, code, oid, id, markdown, unsignedInt, positiveInt, and uuid all reported rooted <type>.id and <type>.value paths.",
+    "learned": "The current build surface still satisfies FHIR-8311 across primitive types.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-8311 primitive StructureDefinition terms",
+    "command": "bun run zulip:search fts '\"FHIR-8311\" primitive StructureDefinition integer value' --limit 10; bun run confluence:search refs jira FHIR-8311",
+    "query": "FHIR-8311 primitive StructureDefinition integer value",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip hits or Confluence Jira references were found.",
+    "learned": "No discovered community evidence changes the Jira, git, and source/build conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,104 @@
+FHIR-15582: Remove stale Group exclude modifier wording
+
+Issue request:
+FHIR-15582 was a Published/Persuasive FHIR-I change request from the STU3 cycle asking for an IsModifierReason on Group.characteristic.exclude after the Patient-related modifier-reason work was split out.
+
+Initial application:
+The Jira application comment records svn 14467 as adjusting Group.characteristic.exclude so it was not a modifier because the definitions were unclear. The corresponding git-svn commit efaa2e373a removed the modifier marker from the old Group spreadsheet and adjusted the characteristic wording. The current StructureDefinition source preserved the non-modifier state, but a later source migration/cleanup left a stale comment saying the element was labeled as Is Modifier.
+
+Additional context:
+Group is an active resource in source/fhir.ini, and source/group/structuredefinition-Group.xml is the current built StructureDefinition source. The current Group narrative explains exclude as a required include/exclude flag without saying it is a modifier, while neighboring true modifier elements such as Group.characteristic.offset have explicit isModifierReason entries. FHIR-16613 and FHIR-16614 are the Patient.deceased and Patient.link split-out issues referenced by the seed comments and are already represented on the combined branch. Zulip and Confluence searches found no directly relevant contrary work-group discussion.
+
+AutoFHIR reconciliation:
+This commit keeps Group.characteristic.exclude as a non-modifier and removes only the stale "This is labeled as Is Modifier" wording from its comment, preserving the warning that excluded members must not be interpreted as included.
+
+Recommendation:
+Keep this source fix as-is. It matches the published application decision, avoids adding an unnecessary IsModifierReason to a non-modifier element, and removes a misleading contradiction from the current built source.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15582
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-16613: same-change-family - Patient.deceased modifier-reason work was split out from the seed comments and is already represented on the combined branch.
+FHIR-16614: same-change-family - Patient.link modifier-reason work was split out from the seed comments and is already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15582: Published/Persuasive issue requesting Group.characteristic.exclude IsModifierReason; application comment says svn 14467 made the element not a modifier. Learned: the final application was to resolve the modifier-reason request by removing modifier status for this element.
+- E2 Source source/fhir.ini:193: active resource entry group=Group. Learned: the edited Group StructureDefinition is in current build scope.
+- E3 Source source/group/structuredefinition-Group.xml:623:634: Group.characteristic.exclude is mandatory boolean source with no isModifier flag, now with comment text that no longer claims modifier status. Learned: the current authoritative source should not carry an IsModifierReason for this element.
+- E4 Git efaa2e373a: GF#15582 / svn 14467 removed the old spreadsheet modifier marker for Group.characteristic.exclude. Learned: this is the explicit historical application of the Jira decision.
+- E5 Source source/group/group-notes.xml:110:123: narrative explains exclude criteria without modifier language and separately identifies offset as a modifier. Learned: the local narrative context supports fixing only the stale StructureDefinition comment.
+- E6 Command Zulip/Confluence search for FHIR-15582 and Group.characteristic.exclude modifier: no directly relevant conflicting community evidence found. Learned: no discovered community record changes the Jira/source conclusion.
+- E7 Verification command: xmllint --noout source/group/structuredefinition-Group.xml; git diff --check -- source/group/structuredefinition-Group.xml. Learned: the edited XML remains well-formed and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15582",
+    "url": "https://jira.hl7.org/browse/FHIR-15582",
+    "snapshot_path": "contexts/FHIR-15582/jira/FHIR-15582.md",
+    "ref": { "jira_key": "FHIR-15582" },
+    "summary": "Published/Persuasive issue requested an IsModifierReason for Group.characteristic.exclude, with the application comment saying svn 14467 made the element not a modifier.",
+    "learned": "The final application resolved the missing-reason request by removing modifier status for Group.characteristic.exclude rather than by adding an IsModifierReason.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:193",
+    "summary": "The active resources list contains group=Group.",
+    "learned": "Group source files are in current build scope for this reconciliation.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/group/structuredefinition-Group.xml:623-634",
+    "summary": "Group.characteristic.exclude is a mandatory boolean element without an isModifier flag, and this commit removes the stale comment claim that it is labeled Is Modifier.",
+    "learned": "The current authoritative source should keep the element non-modifying and avoid an IsModifierReason-only fix.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "efaa2e373a",
+    "ref": { "commit": "efaa2e373a95697f44e1235b43d475831cfa6e3b" },
+    "summary": "GF#15582 / svn 14467 removed the modifier marker from the old Group spreadsheet for Group.characteristic.exclude.",
+    "learned": "This explicit Jira-tagged history confirms that Group.characteristic.exclude was intended not to be a modifier.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/group/group-notes.xml:110-123",
+    "summary": "Group narrative explains the exclude flag and separately calls Group.characteristic.offset a modifier.",
+    "learned": "Only the stale StructureDefinition comment needed correction; surrounding narrative already matches the non-modifier interpretation for exclude.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-15582 and Group.characteristic.exclude modifier",
+    "command": "bun run zulip:search fts '\"FHIR-15582\" \"Group.characteristic.exclude\"' --limit 10; bun run zulip:search fts '\"Group.characteristic.exclude\" modifier' --limit 10; bun run confluence:search refs jira FHIR-15582; bun run confluence:search fts '\"Group.characteristic.exclude\" modifier' --limit 10",
+    "query": "FHIR-15582 Group.characteristic.exclude modifier",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits contradicted the Jira and source-history conclusion.",
+    "learned": "No discovered community evidence changes the reconciliation decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "xmllint --noout source/group/structuredefinition-Group.xml; git diff --check -- source/group/structuredefinition-Group.xml",
+    "summary": "The edited XML parsed successfully and the patch had no whitespace errors.",
+    "learned": "The source edit is syntactically safe for the current checkout.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

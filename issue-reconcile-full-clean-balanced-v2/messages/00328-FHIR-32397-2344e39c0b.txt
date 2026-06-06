@@ -1,0 +1,127 @@
+FHIR-32397: Align Immunization program eligibility model metadata
+
+Issue request:
+FHIR-32397 was a Published/Persuasive PHER change request for R5. It said Immunization.programEligibility was under-specified as a repeating eligibility code because each eligibility value must identify the program it applies to, and resolved to make programEligibility a repeating backbone element with required program and eligibility-value children.
+
+Initial application:
+The Immunization StructureDefinition and examples were first changed in commit 0a5b857fb1dc6c8a2e9caa12e4703e9c4d989c9f, then that broader immunization update was reverted by f324cb65de83c63433db9028c335384f66fd0290 and reapplied by 2ab10d9e161c5da869c6447c9401dd8de85956ab. The current active Immunization source has programEligibility as 0..* BackboneElement with required CodeableConcept children program and programStatus, and examples use the same structure. The active FHIR model-definition Library still exposed programEligibility as List<CodeableConcept>, so one build-scope source surface remained stale.
+
+Additional context:
+PHWG Immunization Innovations minutes on 2022-05-20 and 2022-05-27 record the decision as persuasive, update to a backbone element, and note that IGs can profile away multiple programs when appropriate. A 2020 Zulip implementer thread raised the same practical ambiguity by asking where the vaccination program is represented. Later Applied issue FHIR-53151 explicitly references programEligibility.programStatus for value-set binding cleanup, confirming the current child name rather than reopening the R5 resolution's provisional .eligibility spelling.
+
+AutoFHIR reconciliation:
+This commit updates the active FHIR model-definition Library content so Immunization.programEligibility is a list of FHIR.Immunization.ProgramEligibility backbone elements, adds that ClassInfo with program and programStatus CodeableConcept children, and regenerates the Library.data attachment to match the sibling content XML. It intentionally leaves the core StructureDefinition child name as programStatus because that is the applied current element name and preserves the requested eligibility-status semantics.
+
+Recommendation:
+Keep this source fix as-is. No further core Immunization structural change is recommended for FHIR-32397; in particular, do not rename programStatus to eligibility without a new work-group decision because later source and Jira context use programStatus.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32397
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-53151: later-change - later Applied value-set cleanup references Immunization.programEligibility.programStatus, confirming the current child name while remaining a separate R6 terminology issue.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32397: Published/Persuasive issue requested programEligibility become a repeating backbone with required program and eligibility-value children. Learned: the final WG intent is to pair each eligibility status with its program.
+- E2 Source source/fhir.ini:197 and source/fhir.ini:266: Immunization and Library are active resources in the current build configuration. Learned: both the Immunization StructureDefinition and FHIR model-definition Library are build-scope source surfaces.
+- E3 Source source/immunization/structuredefinition-Immunization.xml:899: current Immunization source defines programEligibility as a BackboneElement with required program and programStatus CodeableConcept children. Learned: the primary resource structure already carries the intended paired semantics.
+- E4 Source source/library/library-fhir-model-definition-content.xml:1115 and source/library/library-fhir-model-definition-content.xml:2819: this commit adds Immunization.ProgramEligibility model metadata and changes Immunization.programEligibility from List<CodeableConcept> to that backbone type. Learned: the stale model-definition surface is now aligned with the resource structure.
+- E5 Git 0a5b857, f324cb65, 2ab10d9: FHIR-32397 was initially applied, reverted with broader immunization updates, then reapplied with programStatus as the eligibility-status child. Learned: the non-literal child name is part of the applied source history, not an accidental omission in this reconciliation.
+- E6 Confluence PHWG Immunization Innovations minutes 2022-05-20 and 2022-05-27: minutes record persuasive disposition, update to a backbone element, and profiling flexibility for multiple programs. Learned: community/work-group notes support the current backbone shape and do not require a different core cardinality.
+- E7 Zulip #implementers > Immunization.programEligibility: implementer discussion asked where the vaccination program is represented and described VFC/program eligibility variability. Learned: the practical ambiguity matches the Jira rationale for adding a program child.
+- E8 Jira FHIR-53151: Applied/Persuasive with Modification R6 value-set update names programEligibility.programStatus. Learned: later final context confirms programStatus as the current child name for the eligibility value.
+- E9 Verification command: parsed both Library XML files, checked the Library.data base64 equals the content XML, asserted programEligibility uses FHIR.Immunization.ProgramEligibility, and ran git diff --check with CRLF-aware whitespace settings. Learned: the edited source is syntactically valid, internally synchronized, and whitespace-clean.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32397",
+    "url": "https://jira.hl7.org/browse/FHIR-32397",
+    "snapshot_path": "contexts/FHIR-32397/jira/FHIR-32397.md",
+    "ref": { "jira_key": "FHIR-32397" },
+    "summary": "Published/Persuasive PHER issue asking to make Immunization.programEligibility a repeating backbone with required program and eligibility-value children.",
+    "learned": "This establishes the final WG intent to pair each eligibility status with the program it applies to.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:197 and source/fhir.ini:266",
+    "ref": { "path": "source/fhir.ini", "lines": "197,266" },
+    "summary": "The build configuration has active entries for Immunization and Library resources.",
+    "learned": "The Immunization StructureDefinition and FHIR model-definition Library are current build-scope sources.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/immunization/structuredefinition-Immunization.xml:899-958",
+    "ref": { "path": "source/immunization/structuredefinition-Immunization.xml", "start_line": 899, "end_line": 958 },
+    "summary": "Current Immunization source defines programEligibility as a BackboneElement with required program and programStatus CodeableConcept children.",
+    "learned": "The primary resource structure already preserves the requested paired program/status semantics.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/library/library-fhir-model-definition-content.xml:1115 and 2819",
+    "ref": { "path": "source/library/library-fhir-model-definition-content.xml", "lines": "1115,2819" },
+    "summary": "This commit adds FHIR.Immunization.ProgramEligibility model metadata and changes Immunization.programEligibility to reference it.",
+    "learned": "The previously stale CQL/FHIR model-definition surface now matches the current Immunization structure.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "0a5b857, f324cb65, 2ab10d9",
+    "ref": { "commits": "0a5b857fb1dc6c8a2e9caa12e4703e9c4d989c9f,f324cb65de83c63433db9028c335384f66fd0290,2ab10d9e161c5da869c6447c9401dd8de85956ab" },
+    "summary": "FHIR-32397 was initially applied, reverted with a broader immunization update, and then reapplied with programStatus as the eligibility-status child.",
+    "learned": "The current child name reflects applied history, so reconciliation should not rename it without a new decision.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "PHWG Immunization Innovations minutes 2022-05-20 and 2022-05-27",
+    "url": "https://confluence.hl7.org/spaces/PHWG/pages/101359253/2022-05-20+Immunization+Innovations+Group+Meeting+notes",
+    "ref": { "confluence_page_id": 101359253 },
+    "summary": "Minutes record FHIR-32397 as persuasive, update to a backbone element, with IG profiling flexibility for multiple programs.",
+    "learned": "Work-group notes support the backbone shape and do not indicate a remaining core cardinality problem.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > Immunization.programEligibility",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Immunization.programEligibility",
+    "ref": { "stream": "implementers", "topic": "Immunization.programEligibility" },
+    "summary": "A 2020 implementer thread asked where the vaccination program is represented and discussed program eligibility variability.",
+    "learned": "The community discussion matches the Jira rationale for pairing eligibility with a program.",
+    "supports": ["additional_context", "issue_request"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-53151",
+    "url": "https://jira.hl7.org/browse/FHIR-53151",
+    "ref": { "jira_key": "FHIR-53151" },
+    "summary": "Later Applied/Persuasive with Modification issue updates Immunization value-set bindings and names programEligibility.programStatus.",
+    "learned": "Later final context confirms programStatus as the current element name while staying separate from the FHIR-32397 structure fix.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "XML/base64/model assertions and whitespace check",
+    "command": "python3 XML/base64 synchronization checks; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Both Library XML files parse, the wrapper data decodes exactly to the content XML, programEligibility uses FHIR.Immunization.ProgramEligibility, and diff whitespace checks pass.",
+    "learned": "The source fix is syntactically valid, internally synchronized, and whitespace-clean.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

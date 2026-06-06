@@ -1,0 +1,118 @@
+FHIR-14279: Audit PlanDefinition realization result placement
+
+Issue request:
+FHIR-14279 was Published/Persuasive for STU3 and asked where the resource produced by a PlanDefinition.action ActivityDefinition or StructureMap realization is stored. The accepted resolution was to add clarifying language to the PlanDefinition realization documentation explaining how realization proceeds and where the expected ActivityDefinition result is placed.
+
+Initial application:
+The Jira-commented SVN application is present as git commit 2025a5b26f38c7fa5c473f779f6ac7c503fb21e9, which records GF#14279 / SVN 13325. It added Applying-a-PlanDefinition narrative saying the ActivityDefinition target resource is created, referenced from the generated RequestGroup action.resource, and either contained or persisted independently, and it added ActivityDefinition guidance that StructureMap transform output is then modified by dynamicValue elements.
+
+Additional context:
+PlanDefinition and ActivityDefinition are active current-build resources in source/fhir.ini. Later PlanDefinition $apply work, especially FHIR-33169 and the RequestGroup-to-RequestOrchestration rename, intentionally replaced the older CarePlan/RequestGroup placement model with a Bundle-per-subject model whose first entry is a RequestOrchestration and whose other entries include the resources created while applying actions. Related PlanDefinition/ActivityDefinition reconciliation commits for FHIR-14280, FHIR-14283, FHIR-19501, and FHIR-28193 are already represented on the combined branch, so they are context rather than additional decisions here.
+
+AutoFHIR reconciliation:
+Made no source change. Current PlanDefinition narrative already says to create a result Bundle, create a RequestOrchestration, create the target resource as described by ActivityDefinition, reference the resulting resource in RequestOrchestration.action.resource, add it as an entry in the result Bundle, and treat the operation result as transient rather than server-persisted. Current ActivityDefinition narrative still explains StructureMap transform and dynamicValue processing. Adding new wording would duplicate existing guidance or reintroduce superseded STU3 containment/persistence wording.
+
+Recommendation:
+Keep this audit commit as-is. The current source satisfies FHIR-14279 after later PlanDefinition $apply refinements; no follow-up source edit is needed for this issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14279
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-33169: later-change - rewrote PlanDefinition $apply from the original CarePlan/RequestGroup model to the current Bundle and RequestOrchestration result semantics while preserving the result-placement answer.
+FHIR-14280: same-change-family - adjacent PlanDefinition/ActivityDefinition dynamicValue ordering clarification already audited on the combined branch.
+FHIR-14283: same-change-family - adjacent PlanDefinition action realization clarification already audited on the combined branch.
+FHIR-19501: later-change - later clarified access to $apply parameters in dynamicValue expressions and is already audited on the combined branch.
+FHIR-28193: later-change - later corrected PlanDefinition apply intent wording in the same current narrative and is already fixed on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14279: Published/Persuasive CDS issue asking where ActivityDefinition/StructureMap results go during PlanDefinition.action realization. Learned: this establishes the accepted clarification request and STU3 application target.
+- E2 Git 2025a5b26f38: GF#14279 / SVN 13325 added PlanDefinition and ActivityDefinition application narrative. Learned: the issue was explicitly applied in source history.
+- E3 Source source/fhir.ini:273-274: ActivityDefinition and PlanDefinition are active resources. Learned: the checked narrative sources are in current build scope.
+- E4 Source source/plandefinition/plandefinition-notes.xml:11-72: current PlanDefinition realization creates a Bundle, a RequestOrchestration, references ActivityDefinition results in action.resource, adds them to the Bundle, and says results are transient. Learned: the current spec already answers where the result goes.
+- E5 Source source/activitydefinition/activitydefinition-notes.xml:21-38: current ActivityDefinition realization applies StructureMap transforms and dynamicValue elements to the target resource and treats operation output as transient. Learned: the StructureMap/dynamicValue side of the issue remains documented.
+- E6 Git e54c8a3dda / Jira FHIR-33169: later PlanDefinition $apply rewrite changed the result model to Bundle entries with RequestOrchestration first. Learned: the current wording intentionally supersedes the old contained-or-repository language.
+- E7 Command community searches for FHIR-14279 and PlanDefinition/ActivityDefinition result placement found no relevant Zulip or Confluence conflict. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+- E8 Verification command: git status was clean before the empty audit commit, the combined branch had no existing FHIR-14279 reconcile key, and source/history searches identified the current and historical application points. Learned: the no-change decision is idempotent and traceable.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14279",
+    "url": "https://jira.hl7.org/browse/FHIR-14279",
+    "snapshot_path": "contexts/FHIR-14279/jira/FHIR-14279.md",
+    "ref": { "jira_key": "FHIR-14279" },
+    "summary": "Published/Persuasive CDS issue asking where the resource produced by a PlanDefinition.action ActivityDefinition or StructureMap realization is stored.",
+    "learned": "This is the final work-group decision and establishes that PlanDefinition realization documentation needed to explain result placement.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "2025a5b26f38c7fa5c473f779f6ac7c503fb21e9",
+    "ref": { "commit": "2025a5b26f38c7fa5c473f779f6ac7c503fb21e9" },
+    "summary": "GF#14279 / SVN 13325 added Applying-a-PlanDefinition and Applying-an-ActivityDefinition narrative, including result resource placement and transform/dynamicValue processing.",
+    "learned": "The issue was explicitly applied in source history before this reconciliation.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:273-274",
+    "summary": "ActivityDefinition and PlanDefinition are listed as active resources in the current build configuration.",
+    "learned": "The source files inspected for this decision are in current FHIR build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/plandefinition/plandefinition-notes.xml:11-72",
+    "summary": "The current PlanDefinition realization narrative creates a result Bundle, first-entry RequestOrchestration, action.resource references to realized resources, Bundle entries for those resources, and transient result handling.",
+    "learned": "Current PlanDefinition source already gives implementers the result-placement guidance requested by FHIR-14279.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/activitydefinition/activitydefinition-notes.xml:21-38",
+    "summary": "The current ActivityDefinition realization narrative explains target resource creation, StructureMap transform processing, dynamicValue application, and transient results.",
+    "learned": "The ActivityDefinition/StructureMap side of the requested clarification remains covered by current source.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "e54c8a3dda0890598f60c1e0425803a4713ed369 and FHIR-33169",
+    "url": "https://jira.hl7.org/browse/FHIR-33169",
+    "ref": { "commit": "e54c8a3dda0890598f60c1e0425803a4713ed369", "jira_key": "FHIR-33169" },
+    "summary": "FHIR-33169 rewrote PlanDefinition $apply processing to return Bundle results with RequestOrchestration first and created/updated resources as subsequent entries.",
+    "learned": "The current result-placement language is a later intentional refinement, not a regression from the FHIR-14279 application.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-14279 and result placement terms",
+    "command": "bun run zulip:search fts '\"FHIR-14279\" PlanDefinition ActivityDefinition StructureMap' --limit 10; bun run confluence:search refs jira FHIR-14279; bun run confluence:search fts '\"PlanDefinition\" \"ActivityDefinition\" \"result\"' --limit 10",
+    "query": "FHIR-14279 PlanDefinition ActivityDefinition StructureMap result placement",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence evidence was found for FHIR-14279, and broader Confluence hits did not conflict with the Jira/source conclusion.",
+    "learned": "No discovered community record changes the source-history-based no-change decision.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local reconciliation checks",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-14279' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; git status --short; rg -n 'Reference the resulting resource|result Bundle|StructureMap|dynamicValue' source/plandefinition source/activitydefinition; git log --all --grep='14279' -- source/plandefinition source/activitydefinition",
+    "summary": "The combined branch had no existing FHIR-14279 reconcile commit, the worktree was clean, and source/history searches found the current guidance plus the original GF#14279 application commit.",
+    "learned": "The empty audit commit is necessary for reconciliation bookkeeping and does not mask an outstanding source edit.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

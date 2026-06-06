@@ -1,0 +1,112 @@
+FHIR-26900: Audit DeviceUsage patient search scope
+
+Issue request:
+FHIR-26900 is a Published/Persuasive OO technical correction for the R4 DeviceUseStatement clinical-patient search parameter. It asked that the patient search parameter restrict DeviceUseStatement.subject to Patient only so Group references remain available only through the subject search parameter.
+
+Initial application:
+The linked R4B application commit b717783b86bab2bb3aa9ca289f2cd11a7ba18107 changed source/deviceusestatement/bundle-DeviceUseStatement-search-params.xml from DeviceUseStatement.subject to DeviceUseStatement.subject.where(resolve() is Patient). That commit is on the R4B lineage rather than the current core branch. The current branch later renamed DeviceUseStatement to DeviceUsage and, through the FHIR-41413 family-care work, restored the same Patient-only expression plus target Patient on DeviceUsage-patient.
+
+Additional context:
+Current source/fhir.ini no longer lists DeviceUsage as an active core resource; commit 3b38b80cf23f9cbb306fab8fcedb293315478c32 removed DeviceUsage and other OO resources from core build metadata and changed core narrative links to the OO Incubator IG. The remaining source/deviceusage files in this checkout are therefore not authoritative current-build inputs. The current HL7/oo-incubator source and CI build define SearchParameter/DeviceUsage-patient with expression DeviceUsage.subject.where(resolve() is Patient) and target Patient. Related FHIR-28219/FHIR-32876 confirm the broader clinical-patient target intent, and later FHIR-41413 intentionally allows Group on DeviceUsage.subject while preserving the Patient-only patient search parameter.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no core source change. The current FHIR core build no longer owns DeviceUsage, and the external OO Incubator artifact that now owns DeviceUsage already carries the Patient-only search parameter semantics requested by FHIR-26900.
+
+Recommendation:
+Keep this audit commit as-is for core reconciliation. No follow-up is needed in FHIR core for FHIR-26900; if DeviceUsage is reviewed in the OO Incubator IG, preserve the current split between patient = DeviceUsage.subject.where(resolve() is Patient) with target Patient and subject = DeviceUsage.subject for Patient or Group.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26900
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-28219: same-change-family - broader published FHIR-I issue requiring common patient search parameters to use where(resolve() is Patient) and target only Patient when based on subject.
+FHIR-32876: same-change-family - later published FHIR-I issue about generated clinical-patient targets being broader than Patient, citing DeviceUsage.subject as a cause.
+FHIR-41413: later-change - R6 OO family-care change allowed Group on DeviceUsage.subject but explicitly kept DeviceUsage-patient filtered to Patient and added a separate subject search parameter.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26900: Published/Persuasive technical correction requested DeviceUseStatement patient search restrict subject to Patient only. Learned: this establishes the required search parameter semantics.
+- E2 Zulip #implementers > clinical-patient search parameter: reporter identified the DeviceUseStatement patient search bug and David Pyke confirmed patient should point only to Patient while subject can include both. Learned: community discussion matches the Jira request.
+- E3 Confluence OO 2020-09-03 Main and 2021-03-15 HCP: OO passed the healthcare product block vote including FHIR-26900 and later recorded a motion removing Group from the DeviceUseStatement.subject reference. Learned: meeting evidence supports the applied decision and related resource evolution.
+- E4 Git b717783: R4B application changed DeviceUseStatement-patient expression to DeviceUseStatement.subject.where(resolve() is Patient). Learned: the issue was applied on the R4B lineage.
+- E5 Source source/fhir.ini:136-153,180-210,500-530 and git 3b38b80: current core resource metadata omits DeviceUsage and 3b38 removed it from active core lists while linking to the OO Incubator. Learned: DeviceUsage is outside current FHIR core build scope, so editing source/deviceusage here would not fix a current core artifact.
+- E6 Source source/deviceusage/bundle-DeviceUsage-search-params.xml:46-60 and HL7/oo-incubator input/resources/deviceusage/bundle-DeviceUsage-search-params.xml: current local stale source and external authoritative source both define DeviceUsage-patient as DeviceUsage.subject.where(resolve() is Patient) with target Patient. Learned: the requested semantics are already present where the artifact now lives.
+- E7 Jira FHIR-41413: Applied/Persuasive with Modification family-care change says DeviceUsage.subject may reference Patient or Group and DeviceUsage-patient must use DeviceUsage.subject.where(resolve() is Patient). Learned: later final intent preserves FHIR-26900 semantics while allowing Group through subject.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26900",
+    "url": "https://jira.hl7.org/browse/FHIR-26900",
+    "snapshot_path": "contexts/FHIR-26900/jira/FHIR-26900.md",
+    "ref": { "jira_key": "FHIR-26900" },
+    "summary": "Published/Persuasive correction requiring the DeviceUseStatement patient search parameter to restrict subject to Patient only.",
+    "learned": "This establishes the intended patient-search semantics for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > clinical-patient search parameter",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/clinical-patient%20search%20parameter",
+    "snapshot_path": "contexts/FHIR-26900/zulip/implementers--clinical-patient-search-parameter.md",
+    "ref": { "stream": "implementers", "topic": "clinical-patient search parameter" },
+    "summary": "The reporter raised the DeviceUseStatement bug and David Pyke confirmed that patient should point only to Patient while subject can include both Patient and Group.",
+    "learned": "The community discussion directly supports the Jira request and does not add conflicting scope.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "OO minutes 2020-09-03 Main and 2021-03-15 HCP",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/91986582/2020-09-03+Main",
+    "snapshot_path": "contexts/FHIR-26900/confluence/91986582.md",
+    "ref": { "confluence_page_id": 91986582 },
+    "summary": "OO minutes record the healthcare product block vote including FHIR-26900; later HCP minutes record related DeviceUseStatement/DeviceUsage decisions.",
+    "learned": "Meeting evidence supports that the correction was approved and later interpreted in the DeviceUsage rename/family-care context.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "b717783b86bab2bb3aa9ca289f2cd11a7ba18107",
+    "ref": { "commit": "b717783b86bab2bb3aa9ca289f2cd11a7ba18107" },
+    "summary": "R4B commit changed DeviceUseStatement-patient from DeviceUseStatement.subject to DeviceUseStatement.subject.where(resolve() is Patient).",
+    "learned": "The seed issue was applied historically on the R4B lineage.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini and git 3b38b80cf23f9cbb306fab8fcedb293315478c32",
+    "ref": { "path": "source/fhir.ini", "commit": "3b38b80cf23f9cbb306fab8fcedb293315478c32" },
+    "summary": "Current fhir.ini omits DeviceUsage from active resource metadata, and 3b38b80 removed DeviceUsage from core lists while linking to the OO Incubator IG.",
+    "learned": "DeviceUsage is outside the current FHIR core build, so core source edits would target stale inactive files.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "web",
+    "locator": "HL7/oo-incubator input/resources/deviceusage/bundle-DeviceUsage-search-params.xml",
+    "url": "https://github.com/HL7/oo-incubator/blob/main/input/resources/deviceusage/bundle-DeviceUsage-search-params.xml",
+    "ref": { "repository": "HL7/oo-incubator", "path": "input/resources/deviceusage/bundle-DeviceUsage-search-params.xml" },
+    "summary": "The external OO Incubator DeviceUsage-patient search parameter has expression DeviceUsage.subject.where(resolve() is Patient) and target Patient.",
+    "learned": "The artifact that now owns DeviceUsage already satisfies FHIR-26900.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-41413",
+    "url": "https://jira.hl7.org/browse/FHIR-41413",
+    "ref": { "jira_key": "FHIR-41413" },
+    "summary": "Applied/Persuasive with Modification R6 family-care issue allows Group on DeviceUsage.subject while retaining DeviceUsage-patient as subject.where(resolve() is Patient).",
+    "learned": "Later final intent confirms the patient search should stay Patient-only even though subject may include Group.",
+    "supports": ["additional_context", "reconciliation"]
+  }
+]
+</evidence-manifest>

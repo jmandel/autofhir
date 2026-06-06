@@ -1,0 +1,106 @@
+FHIR-12351: Audit HumanName rework application
+
+Issue request:
+FHIR-12351 was a Published/Persuasive DSTU2 MnM change request to rework HumanName for nl/de/es naming needs: make HumanName.family 0..1, keep the family string as the correct display value, add flat HumanName.family extensions for own/partner prefix and name plus mother/father family-name parts, add a HumanName assembly-order extension with v2/Dutch assembly-order codes, and clarify family-name search expectations.
+
+Initial application:
+The Jira comments record svn revision 10241. Git history maps that to 25c2c4b3101b908faefd466feecfb8b299ac68b6, '#12351 - family name changes', which changed source/datatypes/humanname.xml, added source/datatypes/humanname-extensions.xml, and registered the HumanName extension spreadsheet in source/fhir.ini. That commit changed HumanName.family from 0..* to 0..1, replaced the older multiple-family-name note with a decomposition-by-extension note, and added the requested flat extension/value-set definitions.
+
+Additional context:
+The related FHIR-12310 request for an iso21090 qualifier code was retracted in favor of the DevDays 2016 solution implemented by FHIR-12351: one family value such as 'van Wijk-de Boer' with flat extensions for its parts. In current R6 core, HumanName remains an active datatype and source/fhir.ini still contains the HumanName extension profile entry, but the specific common extension definitions have been moved out of core to the FHIR Extension Pack. The Extension Pack now carries the six HumanName.family part extensions, the HumanName assembly-order extension, and the name-assembly-order ValueSet; the ValueSet includes v2 assembly-order codes and the THO name-assembly-order CodeSystem provides NL1-NL4, while unknown is represented through v3 NullFlavor UNK rather than an NL0 code. Current search.html string-search rules ignore punctuation/non-significant whitespace and define :contains for Patient?family examples, and current Patient/Practitioner/Person/RelatedPerson family search parameters search a portion of name.family.
+
+AutoFHIR reconciliation:
+This is an empty audit commit. No FHIR core source change is needed: the active HumanName source preserves the cardinality and decomposition model requested by FHIR-12351, current search semantics cover the family-name search concern without duplicating resource-specific prose, and the requested extension artifacts are maintained in the Extension Pack rather than as core-local definitions.
+
+Recommendation:
+Keep this audit as-is. Future changes to the HumanName part extensions or assembly-order value set should be made in the FHIR Extension Pack or THO as appropriate, not by reintroducing duplicated core definitions. Revisit only if the build is expected to surface extension-pack HumanName links and those generated links are missing from the published extension-pack pages.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12351
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-12310: supporting-decision - the earlier iso21090 voorvoegsel request was retracted in favor of the flat HumanName.family extension approach implemented by FHIR-12351.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12351: Published/Persuasive change request with vote 10-0-0 and svn revision 10241 application comment. Learned: the final WG intent was to make HumanName.family singular and use flat family-part extensions plus assembly-order/search guidance.
+- E2 Git 25c2c4b3101b908faefd466feecfb8b299ac68b6: '#12351 - family name changes' / svn build@10241. Learned: the historical application changed HumanName.family and added the HumanName extension spreadsheet.
+- E3 Source source/datatypes/humanname.xml:910 and :926 plus source/fhir.ini:35 and :461. Learned: HumanName is in the active datatype list, HumanName.family is 0..1, and the source still states family names may be decomposed using extensions.
+- E4 Source /home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-humanname-*.xml and ValueSet-name-assembly-order.xml. Learned: the requested HumanName family-part and assembly-order extension definitions now live in the Extension Pack with the expected contexts and binding.
+- E5 Web THO CodeSystem-name-assembly-order.json. Learned: the external terminology system supplies NL1-NL4 assembly-order codes, while the Extension Pack ValueSet also includes v2 F/G and v3 NullFlavor UNK.
+- E6 Source source/search.html:3407 and :1557 plus current family SearchParameters. Learned: current string search semantics and family search parameter descriptions cover portion/contains matching without needing a new HumanName-local search note.
+- E7 Community/Jira search: Zulip #implementers thread 'http://hl7.org/fhir/StructureDefinition/iso21090-EN-qualifie', Jira FHIR-12310, and Confluence refs/FTS for FHIR-12351. Learned: community discussion supports the flat extension model, FHIR-12310 was withdrawn in favor of this solution, and no Confluence record was found that changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12351",
+    "url": "https://jira.hl7.org/browse/FHIR-12351",
+    "snapshot_path": "contexts/FHIR-12351/jira/FHIR-12351.md",
+    "ref": { "jira_key": "FHIR-12351" },
+    "summary": "Published/Persuasive MnM issue requiring HumanName.family to become 0..1, flat family-part extensions, a name assembly-order extension, and family-name search guidance.",
+    "learned": "This is the final WG decision and defines the reconciliation target for the current HumanName source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "25c2c4b3101b908faefd466feecfb8b299ac68b6",
+    "ref": { "commit": "25c2c4b3101b908faefd466feecfb8b299ac68b6" },
+    "summary": "Git-svn commit '#12351 - family name changes' maps Jira's svn revision 10241 to source/datatypes/humanname.xml, source/datatypes/humanname-extensions.xml, and source/fhir.ini changes.",
+    "learned": "The issue was applied historically in the authoritative datatype and extension-spreadsheet sources.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes/humanname.xml:910; source/datatypes/humanname.xml:926; source/fhir.ini:35; source/fhir.ini:461",
+    "ref": { "path": "source/datatypes/humanname.xml", "line": 910 },
+    "summary": "Current core lists HumanName as an active datatype, keeps HumanName.family at 0..1, and says family names may be decomposed into parts using extensions.",
+    "learned": "The core datatype still conveys the main FHIR-12351 cardinality and decomposition model.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-humanname-*.xml and ValueSet-name-assembly-order.xml",
+    "ref": { "path": "/home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-humanname-assembly-order.xml", "line": 41 },
+    "summary": "The Extension Pack defines humanname-own-name, own-prefix, partner-name, partner-prefix, mothers-family, fathers-family, and assembly-order with HumanName/HumanName.family contexts and the assembly-order ValueSet binding.",
+    "learned": "The requested extension artifacts have not been lost; they are now maintained outside the core checkout.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "web",
+    "locator": "THO CodeSystem-name-assembly-order.json",
+    "url": "https://terminology.hl7.org/CodeSystem-name-assembly-order.json",
+    "summary": "THO name-assembly-order is active and contains NL1 Own Name, NL2 Partner Name, NL3 Partner Name followed by Maiden Name, and NL4 Own Name followed by Partner Name.",
+    "learned": "The Dutch assembly-order codes requested by FHIR-12351 remain available via the terminology binding; unknown is represented in the ValueSet by v3 NullFlavor UNK.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/search.html:3407; source/search.html:1557; source/patient/bundle-Patient-search-params.xml:225",
+    "ref": { "path": "source/search.html", "line": 3407 },
+    "summary": "Current search rules define normalized string search, :contains string matching, and Patient?family as a portion of the family name.",
+    "learned": "The current search specification covers the relevant portion/separator behavior without a new HumanName-local note.",
+    "supports": ["reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip/Jira/Confluence searches for FHIR-12351 HumanName context",
+    "command": "bun run zulip:search snapshot implementers 'http://hl7.org/fhir/StructureDefinition/iso21090-EN-qualifie'; bun run jira:search snapshot FHIR-12310; bun run confluence:search refs jira FHIR-12351; bun run confluence:search fts '\"FHIR-12351\" HumanName family' --limit 10",
+    "query": "FHIR-12351 HumanName family iso21090 qualifier",
+    "result_count": 1,
+    "summary": "The Zulip/Jira trail supports the flat extension approach; FHIR-12310 was withdrawn in favor of FHIR-12351, and no Confluence reference or FTS hit was found for FHIR-12351.",
+    "learned": "No discovered community or meeting evidence contradicts the no-change source conclusion.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

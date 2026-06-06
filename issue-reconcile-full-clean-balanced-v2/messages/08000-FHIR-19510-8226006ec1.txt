@@ -1,0 +1,114 @@
+FHIR-19510: Fix QuestionnaireResponse encounter reference
+
+Issue request:
+FHIR-19510 was Published/Persuasive for the FHIR-I QuestionnaireAnswers/QuestionnaireResponse artifact. It asked that the former context element be renamed to Encounter/encounter, constrained to 0..1 Reference(Encounter), and described as the Encounter during which the record was created or to which creation is tightly associated; EpisodeOfCare linkage was to be handled by extension.
+
+Initial application:
+The change was initially applied in commit 9b1695bfd4, later merged by ecdd7d61, which changed QuestionnaireResponse.context to QuestionnaireResponse.encounter in the spreadsheet and example and changed the type from Reference(Encounter|EpisodeOfCare) to Reference(Encounter). The current generated StructureDefinition retains the requested QuestionnaireResponse.encounter element with min 0, max 1, targetProfile Encounter, and the requested definition.
+
+Additional context:
+QuestionnaireResponse is an active current-build resource in source/fhir.ini. The remaining QuestionnaireResponse.context reference in source/fhir.ini is under the r2-renames migration section and is not current element guidance. While later pattern-alignment work in bd2e3c688f added a QuestionnaireResponse.partOf comment, it reintroduced stale wording telling readers to use the removed context element for Encounter linkage. Related workflow-family issues such as FHIR-17901, FHIR-19511, and FHIR-19516 confirm the broader context-to-encounter migration but are separate or already represented elsewhere on the combined branch.
+
+AutoFHIR reconciliation:
+This commit updates the in-build QuestionnaireResponse.partOf comment so that it directs Encounter linkage to the current encounter element instead of the obsolete context name. It also fixes the adjacent article in the same sentence. No cardinality, type, or broader behavior change was needed because QuestionnaireResponse.encounter already carries the requested 0..1 Reference(Encounter) definition.
+
+Recommendation:
+Keep this source fix. It removes the only discovered authoritative QuestionnaireResponse source text that could lead implementers to the obsolete context element while preserving the already-correct FHIR-19510 structural change. Do not expand this commit to other workflow-family issues without a separate bounded reconciliation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19510
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-17901: supporting-decision - The FHIR-I workflow-pattern issue records the broader context-to-encounter direction for Event/Request patterns and cites GF#17794.
+FHIR-19511: same-change-family - Patient Care resources used the same GF#17794 context-to-encounter request, but the issue is separate and already represented on the combined branch.
+FHIR-19516: same-change-family - OO resources used the same GF#17794 context-to-encounter request, but the issue is separate and already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19510: Published/Persuasive FHIR-I issue for QuestionnaireAnswers requiring context to become 0..1 Encounter with EpisodeOfCare handled by extension. Learned: this establishes the final requested change for QuestionnaireResponse.
+- E2 Source source/fhir.ini:169-220: QuestionnaireResponse is listed as an active resource. Learned: source/questionnaireresponse feeds the current build.
+- E3 Source source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:253-264: QuestionnaireResponse.encounter is 0..1 Reference(Encounter) with the requested definition. Learned: the structural part of FHIR-19510 is already correctly present.
+- E4 Source source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:146-150: QuestionnaireResponse.partOf still told readers to use context for Encounter linkage before this commit. Learned: an in-build stale reference remained and needed correction.
+- E5 Git 9b1695bfd4 / ecdd7d61: original FHIR-19510 application changed the spreadsheet and example from context to encounter and Encounter-only typing. Learned: FHIR-19510 was applied, but later source refactors required checking the current XML surface.
+- E6 Git bd2e3c688f: later pattern-alignment commit introduced the stale partOf comment saying to use context. Learned: the remaining problem was a later regression in narrative guidance, not a missing original element rename.
+- E7 Community search: Jira search found FHIR-17901 and workflow-family issues; Zulip searches for FHIR-19510/QuestionnaireResponse encounter context found no direct conflicting discussion; Confluence refs found no FHIR-19510 references. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E8 Verification command: xmllint --noout on structuredefinition-QuestionnaireResponse.xml, git diff --check, and grep for the stale phrase. Learned: the XML remains parseable, whitespace is clean, and the stale in-build wording is removed.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19510",
+    "url": "https://jira.hl7.org/browse/FHIR-19510",
+    "snapshot_path": "contexts/FHIR-19510/jira/FHIR-19510.md",
+    "ref": { "jira_key": "FHIR-19510" },
+    "summary": "Published/Persuasive FHIR-I issue requiring QuestionnaireAnswers/QuestionnaireResponse context to be renamed to Encounter/encounter as 0..1 Reference(Encounter), with EpisodeOfCare handled by extension.",
+    "learned": "This is the final WG request and establishes the expected QuestionnaireResponse encounter element semantics.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-220",
+    "summary": "QuestionnaireResponse is listed in the active resources section as questionnaireresponse=QuestionnaireResponse.",
+    "learned": "The edited QuestionnaireResponse StructureDefinition is in current build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:253-264",
+    "summary": "The current source defines QuestionnaireResponse.encounter as 0..1 Reference(Encounter) with the requested definition.",
+    "learned": "The structural rename and type restriction requested by FHIR-19510 are already present.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml:146-150",
+    "summary": "Before this commit, the partOf comment still told readers to use the obsolete context element for Encounter linkage.",
+    "learned": "This stale in-build guidance was the remaining semantic issue to fix.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "9b1695bfd4 and ecdd7d61",
+    "ref": { "commit": "9b1695bfd416c4f23560a3e60b999b6c5600db58" },
+    "summary": "The original FHIR-19510 application changed QuestionnaireResponse.context to QuestionnaireResponse.encounter in the spreadsheet and example and changed the type to Reference(Encounter).",
+    "learned": "The core request was applied historically, so current reconciliation should be limited to source drift.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "bd2e3c688f8",
+    "ref": { "commit": "bd2e3c688f8f48ec8b802d66ac3a6032d308612b" },
+    "summary": "A later pattern-alignment commit added the partOf comment that referred to use 'context' for Encounter linkage.",
+    "learned": "The stale wording was a later regression in guidance rather than evidence that the element should still be named context.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Jira/Zulip/Confluence searches for FHIR-19510 and QuestionnaireResponse encounter context",
+    "command": "bun run jira:search fts '\"FHIR-19510\" OR \"GF#17794\" OR \"QuestionnaireResponse context encounter\" OR \"QuestionnaireAnswers context encounter\"' --limit 20; bun run zulip:search fts '\"FHIR-19510\"' --limit 10; bun run zulip:search fts '\"QuestionnaireResponse\" encounter context' --limit 10; bun run confluence:search refs jira FHIR-19510",
+    "query": "FHIR-19510; GF#17794; QuestionnaireResponse context encounter",
+    "summary": "Jira found the seed and related workflow-family issues including FHIR-17901; Zulip and Confluence found no direct FHIR-19510 conflicting evidence.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted validation after source edit",
+    "command": "xmllint --noout source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; git grep -n \"use 'context' for that\" -- source/questionnaireresponse/structuredefinition-QuestionnaireResponse.xml",
+    "summary": "XML parsing and whitespace checks passed, and the stale in-build phrase is no longer present.",
+    "learned": "The surgical XML edit is syntactically safe and removes the identified stale guidance.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

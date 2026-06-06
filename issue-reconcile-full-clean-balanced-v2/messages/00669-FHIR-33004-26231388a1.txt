@@ -1,0 +1,140 @@
+FHIR-33004: Restrict evaluate report type value set
+
+Issue request:
+FHIR-33004 is Applied/Persuasive. It reported that the $evaluate-measure reportType parameter used the old "subject" report type wording and asked that reportType align with MeasureReport.type while using a dedicated evaluation value set that contains only individual, subject-list, and summary, excluding the data-collection/data-exchange report type.
+
+Initial application:
+FHIR-28359 first corrected the operation documentation from subject/population to individual/summary in commit 142c81d92f2c941402c0810650bf7b0e99edc6de. FHIR-33004 was then applied in commit 287186099cc6119f4547894ca2e679b81fbda981 by creating source/measure/valueset-measure-report-evaluation-type.xml and binding Measure/$evaluate-measure reportType to it. FHIR-37571 later copied the same binding to the newer Measure/$evaluate operation.
+
+Additional context:
+The active Measure resource is in source/fhir.ini, and source/measure/list-Measure-operations.xml includes both Measure-evaluate and Measure-evaluate-measure. FHIR-39174 was effectively treated as a duplicate of FHIR-33004 and used the same PR/commit. Later, FHIR-55083 added an "other" escape-valve code to the shared MeasureReport Type code system without changing the evaluation operations. Because the evaluation value set was composed as all measure-report-type codes except data-exchange, it unintentionally began including "other", while both operation descriptions still list only individual, subject-list, and summary.
+
+AutoFHIR reconciliation:
+This commit changes the evaluation value set composition to explicitly include individual, subject-list, and summary. That preserves the applied FHIR-33004/FHIR-39174 intent after the later FHIR-55083 expansion of the shared MeasureReport Type code system, and avoids allowing reportType=other for evaluate operations through the required binding.
+
+Recommendation:
+Keep this source fix. It is a narrow correction to an active Measure value set used by active Measure operation definitions. No further core change is needed unless CQI later decides that evaluate reportType should deliberately support implementation-defined "other" report types.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-33004
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-28359: same-change-family - earlier published issue corrected $evaluate-measure reportType documentation from subject/population to individual/summary.
+FHIR-39174: same-change-family - ballot issue explicitly identified FHIR-33004 as unapplied and was marked applied by the same 2871860 PR.
+FHIR-37571: same-change-family - introduced the newer Measure/$evaluate operation and copied the FHIR-33004 reportType binding there.
+FHIR-55083: later-change - added the "other" code to MeasureReport.type, which exposed the unintended breadth of the evaluation value set composition.
+FHIR-33150: later-change - later clarified defaulting and subject behavior for $evaluate-measure without changing the intended evaluation reportType code set.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-33004: Applied/Persuasive technical correction for Measure $evaluate-measure reportType; later comments request MeasureReportEvaluationType with individual, subject-list, and summary. Learned: this establishes the target value set contents.
+- E2 Jira FHIR-39174: Applied/Persuasive with Modification; describes FHIR-33004 as not applied and asks to bind evaluate reportType to a value set excluding data-exchange, then comments say commit 2871860 applies it. Learned: this confirms the duplicate/same-family application intent.
+- E3 Source source/fhir.ini:268 and source/measure/list-Measure-operations.xml:9-14: Measure is active and the Measure operations list includes both evaluate operations. Learned: the edited value set and operation bindings feed the current build.
+- E4 Source source/measure/operationdefinition-Measure-evaluate-measure.xml:145-149 and source/measure/operationdefinition-Measure-evaluate.xml:121-125: both operation reportType parameters list individual, subject-list, and summary and bind to MeasureReportEvaluationType. Learned: the operation surface expects exactly the evaluation-specific code set.
+- E5 Git 287186099c: created the evaluation value set and bound $evaluate-measure reportType. Learned: the original application used all measure-report-type codes except data-exchange.
+- E6 Jira FHIR-55083: Applied/Persuasive with Modification issue added "other" to MeasureReport.type as a generic escape valve for instances. Learned: later source history changed the shared code system, not the evaluate operation intent.
+- E7 Git 2d1475b129: added the "other" concept to source/measurereport/codesystem-measure-report-type.xml and updated MeasureReport.type prose, without touching evaluate operations. Learned: the current over-inclusion came from transitive ValueSet composition.
+- E8 Zulip #IG creation > Generating valueset that only displays the excluded code: implementer discussion for valueset-measure-report-evaluation-type.xml tested include-all-except-data-exchange and an explicit three-code include; Grahame Grieve said the actual expansion was processed correctly. Learned: this supports using explicit concepts now that the shared code system has grown.
+- E9 Source source/measure/valueset-measure-report-evaluation-type.xml:45-58: this commit enumerates individual, subject-list, and summary. Learned: the current source now matches the Jira-requested evaluation report types and excludes both data-exchange and other.
+- E10 Verification command/query: XML parse, exact code assertion, and git diff whitespace check passed. Learned: the edited XML is syntactically valid and the value set contains exactly the intended codes.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-33004",
+    "url": "https://jira.hl7.org/browse/FHIR-33004",
+    "snapshot_path": "contexts/FHIR-33004/jira/FHIR-33004.md",
+    "ref": { "jira_key": "FHIR-33004" },
+    "summary": "Applied/Persuasive technical correction requiring Measure $evaluate-measure reportType to use an evaluation-specific value set with individual, subject-list, and summary.",
+    "learned": "This establishes the target code set and confirms the issue is in scope for source reconciliation.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-39174",
+    "url": "https://jira.hl7.org/browse/FHIR-39174",
+    "ref": { "jira_key": "FHIR-39174" },
+    "summary": "Applied issue describing FHIR-33004 as not applied and requesting an evaluate report type value set excluding data-exchange; later comments point to commit 2871860.",
+    "learned": "This confirms the same-family intent and that the evaluation value set should not inherit non-evaluation report types.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:268; source/measure/list-Measure-operations.xml:9-14",
+    "ref": { "path": "source/fhir.ini" },
+    "summary": "Measure is an active resource and its operation list references Measure-evaluate and Measure-evaluate-measure.",
+    "learned": "The edited value set and operation bindings are in current build scope.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/measure/operationdefinition-Measure-evaluate-measure.xml:145-149; source/measure/operationdefinition-Measure-evaluate.xml:121-125",
+    "ref": { "path": "source/measure/operationdefinition-Measure-evaluate-measure.xml" },
+    "summary": "Both evaluate operation reportType parameters describe individual, subject-list, or summary and bind to the evaluation value set.",
+    "learned": "The operation surface supports the three evaluation report types, not data-exchange or other.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "287186099cc6119f4547894ca2e679b81fbda981",
+    "ref": { "commit": "287186099cc6119f4547894ca2e679b81fbda981" },
+    "summary": "Created MeasureReportEvaluationType and bound $evaluate-measure reportType to it for FHIR-33004.",
+    "learned": "The original implementation used an include-all/exclude-data-exchange composition that later became too broad.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-55083",
+    "url": "https://jira.hl7.org/browse/FHIR-55083",
+    "ref": { "jira_key": "FHIR-55083" },
+    "summary": "Applied/Persuasive with Modification issue adding an 'other' escape-valve code to MeasureReport.type.",
+    "learned": "The later shared code-system expansion explains why the evaluation value set needed tightening now.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "git",
+    "locator": "2d1475b1298876cb2263a07d5e207dae3b2edfd1",
+    "ref": { "commit": "2d1475b1298876cb2263a07d5e207dae3b2edfd1" },
+    "summary": "Added the 'other' concept to MeasureReport Type and updated MeasureReport.type text, without changing evaluate operation definitions.",
+    "learned": "The evaluate operation binding accidentally inherited 'other' through composition rather than by explicit WG decision.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#IG creation > Generating valueset that only displays the excluded code",
+    "url": "https://chat.fhir.org/#narrow/stream/IG%20creation/topic/Generating%20valueset%20that%20only%20displays%20the%20excluded%20code",
+    "summary": "The March 2025 thread discussed valueset-measure-report-evaluation-type.xml, both include-all-except-data-exchange and explicit three-code forms, and concluded the actual expansion was processed correctly.",
+    "learned": "Community evidence supports the intended three-code expansion and does not require retaining a transitive include-all composition.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "source",
+    "locator": "source/measure/valueset-measure-report-evaluation-type.xml:45-58",
+    "ref": { "path": "source/measure/valueset-measure-report-evaluation-type.xml" },
+    "summary": "The value set now explicitly includes individual, subject-list, and summary.",
+    "learned": "The reconciliation excludes both data-exchange and the later-added other code from evaluate reportType.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E10",
+    "kind": "command",
+    "locator": "Targeted validation commands",
+    "command": "python3 -c \"import xml.etree.ElementTree as ET; ns='{http://hl7.org/fhir}'; root=ET.parse('source/measure/valueset-measure-report-evaluation-type.xml').getroot(); codes=[e.attrib['value'] for e in root.findall('.//'+ns+'compose/'+ns+'include/'+ns+'concept/'+ns+'code')]; assert codes == ['individual','subject-list','summary'], codes\"; git diff --check",
+    "summary": "The edited XML parsed, contained exactly the expected codes, and had no diff whitespace errors.",
+    "learned": "The source edit is syntactically valid and matches the requested code set.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

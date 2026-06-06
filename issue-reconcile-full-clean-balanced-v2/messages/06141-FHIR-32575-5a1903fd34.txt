@@ -1,0 +1,109 @@
+FHIR-32575: Audit DiagnosticReport subject focus handling
+
+Issue request:
+FHIR-32575 was Published with a Persuasive with Modification resolution for R5. It asked that Procedure not remain a DiagnosticReport.subject and resolved to remove Procedure from DiagnosticReport.subject while adding a focus extension, 0..* Reference(Any), for focal components such as a Procedure or manufacturing process evaluated by a quality report.
+
+Initial application:
+The R5 application is visible in HL7/fhir PR #2598. Commit 9622124f4e removed Procedure from DiagnosticReport.subject, and merge 8b80ac4b98 brought in that removal plus a DiagnosticReport focus extension for FHIR-32575. The current core source preserves the subject change: DiagnosticReport.subject references Patient, Group, Device, Location, Organization, Practitioner, Medication, Substance, and BiologicallyDerivedProduct, but not Procedure.
+
+Additional context:
+OO minutes show the January 2023 discussion first reopened an in-person not-persuasive motion to confirm the BR&R manufacturing-process use case, then the January 26 main call accepted the block vote 10-0-2. Later R6 work changed the current core shape: FHIR-49614 added DiagnosticReport.procedure for performed procedures reported on by the DiagnosticReport, FHIR-50866 kept and clarified that element, and FHIR-45132 expanded DiagnosticReport.supportingInfo.reference. The original diagnosticReport-focus extension is no longer authored in core; it exists in the FHIR Extension Pack with the canonical URL http://hl7.org/fhir/StructureDefinition/diagnosticReport-focus and the resolved fixedUri/value reference definition.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active DiagnosticReport resource is in build scope, the current core source already excludes Procedure from DiagnosticReport.subject, and the remaining focus-extension artifact is maintained outside this core checkout in the FHIR Extension Pack. Adding redundant core prose or recreating the extension in core would conflict with the current artifact split and later DiagnosticReport elements.
+
+Recommendation:
+Keep this audit commit as-is. Future changes to the focus extension should be made in the FHIR Extension Pack; future changes to core should be handled through the later DiagnosticReport.procedure and supportingInfo decisions rather than reversing the FHIR-32575 subject cleanup.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32575
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-49614: later-change - added DiagnosticReport.procedure 0..* Reference(Procedure), giving current core an explicit element for performed procedures that are reported on.
+FHIR-50866: later-change - kept DiagnosticReport.procedure rather than replacing it with partOf and clarified it as the performed procedure.
+FHIR-45132: supporting-decision - expanded DiagnosticReport.supportingInfo.reference, showing later DiagnosticReport work around additional focal/supporting references.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32575: Published/Persuasive with Modification; remove Procedure from DiagnosticReport.subject and add a focus extension for non-subject focal components. Learned: this is the final seed request to audit.
+- E2 Confluence OO 2023-01-16-20 WGM page 144996102: minutes record the manufacturing-process rationale, reopening the initial not-persuasive motion, and scheduling BR&R reaffirmation. Learned: Procedure-as-subject was explicitly debated rather than accidentally removed.
+- E3 Confluence OO 2023-01-26 Main page 154993269: minutes record FHIR-32575 in the accepted OO-WGM-Block-R5 vote, 10-0-2. Learned: the final Jira disposition is backed by WG meeting evidence.
+- E4 Source source/fhir.ini:187 and source/diagnosticreport/structuredefinition-DiagnosticReport.xml:305-323,452-464: DiagnosticReport is active in the build; subject does not include Procedure and procedure is present as Reference(Procedure). Learned: current core source satisfies the subject portion and later core procedure modeling.
+- E5 Source /home/jmandel/work/fhir-extensions/input/definitions/DiagnosticReport/StructureDefinition-diagnosticReport-focus.xml:4-69: the diagnosticReport-focus extension exists in the FHIR Extension Pack with the intended canonical URL, definition, and Reference(Resource) value. Learned: the extension portion is maintained outside core rather than missing from the current core build.
+- E6 Git 9622124f4e and 8b80ac4b98: R5 application removed Procedure from DiagnosticReport.subject and merged PR #2598 for FHIR-32575. Learned: the historical application matches the Jira request.
+- E7 Community/command search: Confluence refs for FHIR-32575 found the relevant OO pages; Zulip exact-key search found no direct hits and term search found no conflicting issue-specific thread. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32575",
+    "url": "https://jira.hl7.org/browse/FHIR-32575",
+    "snapshot_path": "contexts/FHIR-32575/jira/FHIR-32575.md",
+    "ref": { "jira_key": "FHIR-32575" },
+    "summary": "Published/Persuasive with Modification issue asking to remove Procedure from DiagnosticReport.subject and add a focus extension for non-subject focal components.",
+    "learned": "This establishes the final seed request and the expected R5 application scope.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "OO 2023-01-16-20 WGM page 144996102",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/144996102/2023-01-16-20+WGM",
+    "ref": { "confluence_page_id": 144996102 },
+    "summary": "Minutes record that Procedure had been added for a manufacturing-process reporting use case, the initial not-persuasive motion was reopened, and BR&R reaffirmation was requested.",
+    "learned": "The WG explicitly considered the process-reporting use case before accepting the modified resolution.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "OO 2023-01-26 Main page 154993269",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/154993269/2023-01-26+Main",
+    "ref": { "confluence_page_id": 154993269 },
+    "summary": "Minutes list FHIR-32575 in the OO-WGM-Block-R5 vote accepted 10-0-2.",
+    "learned": "This corroborates the final Jira vote and disposition.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:187; source/diagnosticreport/structuredefinition-DiagnosticReport.xml:305-323,452-464",
+    "ref": { "path": "source/diagnosticreport/structuredefinition-DiagnosticReport.xml" },
+    "summary": "DiagnosticReport is active in fhir.ini; current DiagnosticReport.subject omits Procedure and current DiagnosticReport.procedure references Procedure.",
+    "learned": "The current core build already reflects the required subject cleanup and later explicit procedure modeling.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/DiagnosticReport/StructureDefinition-diagnosticReport-focus.xml:4-69",
+    "ref": { "path": "/home/jmandel/work/fhir-extensions/input/definitions/DiagnosticReport/StructureDefinition-diagnosticReport-focus.xml" },
+    "summary": "The diagnosticReport-focus extension is present in the FHIR Extension Pack with the intended canonical URL, definition, fixedUri, and Reference(Resource) value.",
+    "learned": "The extension portion of FHIR-32575 is maintained outside the core FHIR checkout, so no core source edit is needed.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "9622124f4e; 8b80ac4b98",
+    "ref": { "commit": "9622124f4e1a393fed8c3e2a8dbaa1012ab03ba1" },
+    "summary": "The R5 application removed Procedure from DiagnosticReport.subject and merged PR #2598 for FHIR-32575.",
+    "learned": "The historical application matches the seed issue's core source requirement.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-32575 and DiagnosticReport Procedure subject focus",
+    "command": "bun run confluence:search refs jira FHIR-32575; bun run confluence:search snapshot 154993269; bun run confluence:search snapshot 144996102; bun run zulip:search fts '\"FHIR-32575\"' --limit 10; bun run zulip:search fts '\"DiagnosticReport\" \"Procedure\" \"subject\"' --limit 10",
+    "query": "FHIR-32575 DiagnosticReport Procedure subject focus",
+    "summary": "Confluence references found the relevant OO minutes; no direct Zulip key hit or conflicting issue-specific Zulip thread was found.",
+    "learned": "No discovered community evidence conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

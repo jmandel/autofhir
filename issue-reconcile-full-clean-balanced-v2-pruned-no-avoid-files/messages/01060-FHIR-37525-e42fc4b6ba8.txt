@@ -1,0 +1,95 @@
+FHIR-37525: Clarify SubscriptionStatus lacks REST endpoint
+
+Issue request:
+FHIR-37525 was Published/Persuasive for R5 and asked to state that SubscriptionStatus is returned in notifications and through the $status method without an expectation that it has a REST endpoint. The approved resolution was to add language similar to Parameters and OperationOutcome saying there is no expectation to expose this resource as a RESTful endpoint.
+
+Initial application:
+Commit 1e5fcb4c2b3221ff721865ac75190c4faa9d502d applied FHIR-37525 by adding that SubscriptionStatus is not persisted to the resource description and that it is not persisted or allowed to be referenced by other resources in the introduction. That captured the transient-resource part of the decision but left the REST endpoint expectation implicit.
+
+Additional context:
+The linked Zulip discussion shows Bas van den Heuvel asking whether SubscriptionStatus has a REST endpoint and Gino Canessa explaining that it is intended to be transient, with $status preserving server implementation freedom. The active fhir.ini resource entry confirms source/subscriptionstatus/subscriptionstatus-introduction.xml feeds the current SubscriptionStatus resource page. Later SubscriptionStatus notes still direct clients to the $status operation, so the reconciliation must distinguish that operation from a resource-level RESTful endpoint for creating, updating, or querying SubscriptionStatus instances.
+
+AutoFHIR reconciliation:
+This commit adds a narrow Scope and Usage paragraph to the active SubscriptionStatus introduction explaining that SubscriptionStatus is generated for notifications and the $status operation rather than representing a persistent server resource, and that servers are not expected to expose a RESTful endpoint for SubscriptionStatus instances. No generated artifacts or out-of-build files were changed.
+
+Recommendation:
+Keep this source change. It completes the published tracker intent without changing the $status operation guidance or adding broader constraints on how servers internally track subscription state.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37525
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37525: Published/Persuasive issue requesting SubscriptionStatus wording that there is no expectation to expose a RESTful endpoint. Learned: this establishes the final issue request and target clarification.
+- E2 Zulip #subscriptions > SubscriptionStatus: Bas asked whether SubscriptionStatus has a REST endpoint and Gino described it as transient with $status as the intended retrieval mechanism. Learned: the discussion confirms the endpoint-language gap that caused the tracker.
+- E3 Git 1e5fcb4c2b3221ff721865ac75190c4faa9d502d: prior FHIR-37525 application added not-persisted wording to SubscriptionStatus source. Learned: the issue was partially applied but did not explicitly mention RESTful endpoints.
+- E4 Source source/fhir.ini:235 and source/subscriptionstatus/subscriptionstatus-introduction.xml:13: SubscriptionStatus is an active resource and the edited introduction now states the no-REST-endpoint expectation. Learned: the edit is in current build scope and addresses the semantic gap.
+- E5 Confluence FHIR Infrastructure Minutes CC 2022-07-25: minutes record the FHIR-37525 Persuasive motion 10-0-0. Learned: work-group approval matches the Jira status.
+- E6 Verification command: xmllint --noout source/subscriptionstatus/subscriptionstatus-introduction.xml and git diff --check both passed. Learned: the edited XHTML fragment is well formed and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37525",
+    "url": "https://jira.hl7.org/browse/FHIR-37525",
+    "snapshot_path": "contexts/FHIR-37525/jira/FHIR-37525.md",
+    "ref": { "jira_key": "FHIR-37525" },
+    "summary": "Published/Persuasive issue asking to state that SubscriptionStatus has no expected RESTful endpoint.",
+    "learned": "The work group approved adding endpoint expectation language for the current SubscriptionStatus page.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#subscriptions > SubscriptionStatus",
+    "url": "https://chat.fhir.org/#narrow/stream/179229-subscriptions/topic/SubscriptionStatus",
+    "ref": { "stream": "subscriptions", "topic": "SubscriptionStatus" },
+    "summary": "The discussion records Bas asking whether SubscriptionStatus has a REST endpoint and Gino explaining it is intended to be transient with $status as the intended access pattern.",
+    "learned": "This confirms that the issue was about explicit resource-level REST endpoint guidance rather than the existence of the $status operation.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "1e5fcb4c2b3221ff721865ac75190c4faa9d502d",
+    "ref": { "commit": "1e5fcb4c2b3221ff721865ac75190c4faa9d502d" },
+    "summary": "Prior FHIR-37525 commit added that SubscriptionStatus is not persisted and not generally referenceable.",
+    "learned": "The prior application captured transient status but left the no-REST-endpoint expectation implicit.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:235; source/subscriptionstatus/subscriptionstatus-introduction.xml:13",
+    "ref": { "path": "source/subscriptionstatus/subscriptionstatus-introduction.xml", "line": 13 },
+    "summary": "SubscriptionStatus is active in fhir.ini and the introduction now states that servers are not expected to expose a RESTful endpoint for SubscriptionStatus instances.",
+    "learned": "The source edit is in build scope and directly addresses the approved clarification.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2022-07-25 page 134943876",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/134943876/FHIR+Infrastructure+Minutes+CC+2022-07-25",
+    "ref": { "confluence_page_id": 134943876 },
+    "summary": "FHIR-I minutes record the FHIR-37525 Persuasive motion as Gino Canessa/Rick Geimer 10-0-0.",
+    "learned": "Meeting evidence confirms the final work-group decision reflected in Jira.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "XML and whitespace validation for SubscriptionStatus introduction",
+    "command": "xmllint --noout source/subscriptionstatus/subscriptionstatus-introduction.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/subscriptionstatus/subscriptionstatus-introduction.xml",
+    "summary": "The edited XHTML fragment was well formed and the diff had no whitespace errors.",
+    "learned": "The narrow source edit is syntactically safe for the checked file.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

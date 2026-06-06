@@ -1,0 +1,97 @@
+FHIR-19339: Audit Consent source identifier cleanup
+
+Issue request:
+FHIR-19339 was a Published/Not Persuasive with Modification STU3 CBCC request about the Consent source-identifier search parameter. The issue asked to constrain source-identifier to Identifier-valued Consent.source entries, but the final resolution instead removed Consent.sourceIdentifier as redundant because identifiers can be carried in Consent.sourceReference.
+
+Initial application:
+Commit eaffed2f39 implemented the decision by removing Identifier from Consent.source[x] and deleting the source-identifier search row from source/consent/consent-spreadsheet.xml. Later source conversion preserved that direction: the current build-scope XML has sourceAttachment and sourceReference elements and no sourceIdentifier element or source-identifier search parameter.
+
+Additional context:
+FHIR-15707 had previously split the generic Consent.source search into source-reference and source-identifier for STU3. FHIR-19339 is the later same-family decision that narrowed the model and search surface to a single source-reference parameter for references, including references identified by identifier. Attachment search remains out of scope.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change because the current source already reflects the later decision: Consent-source-reference has expression Consent.sourceReference, and no source-identifier parameter remains to constrain.
+
+Recommendation:
+Keep this no-change audit. Future work should only revisit source-identifier if the work group explicitly restores a separate Identifier-valued source element or decides that Reference.identifier search support is insufficient.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19339
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-15707: same-change-family - earlier Published issue created the split source-reference/source-identifier search parameter pattern that FHIR-19339 later simplified.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19339: Published/Not Persuasive with Modification issue resolving to remove Consent.sourceIdentifier as redundant due to identifiers in Consent.sourceReference. Learned: establishes the later final decision for this same search-parameter family.
+- E2 Git eaffed2f39: removed Identifier from Consent.source[x] and deleted source-identifier from the Consent spreadsheet. Learned: shows the decision was applied in source history.
+- E3 Source source/consent/bundle-Consent-search-params.xml:289-301 and source/consent/structuredefinition-Consent.xml:329-356: current source has only sourceAttachment/sourceReference and only the source-reference search parameter. Learned: there is no remaining source-identifier parameter requiring a constraint.
+- E4 Jira FHIR-15707 and Git 96e8cdaec5: earlier same-family issue split the generic Consent.source search into source-reference and source-identifier. Learned: explains the provenance of the parameter removed by FHIR-19339.
+- E5 Zulip #implementers > 'source' search param on Consent plus negative issue-key searches: community discussion supports not treating attachment or identifier as a reference search, and no direct later conflict was found. Learned: no community evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19339",
+    "url": "https://jira.hl7.org/browse/FHIR-19339",
+    "snapshot_path": "contexts/FHIR-15707/jira/FHIR-19339.md",
+    "ref": { "jira_key": "FHIR-19339" },
+    "summary": "Published/Not Persuasive with Modification issue resolving to remove Consent.sourceIdentifier as redundant because identifiers are included in Consent.sourceReference.",
+    "learned": "This is the final same-family decision controlling whether a source-identifier search parameter should exist now.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "eaffed2f39 source/consent/consent-spreadsheet.xml",
+    "ref": { "commit": "eaffed2f39" },
+    "summary": "Identifier was removed from Consent.source[x] and the source-identifier search row was deleted.",
+    "learned": "The FHIR-19339 decision was applied in source history.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/consent/bundle-Consent-search-params.xml:289-301; source/consent/structuredefinition-Consent.xml:329-356; source/fhir.ini:265",
+    "summary": "The active current Consent source has sourceAttachment and sourceReference and only the Consent-source-reference search parameter with expression Consent.sourceReference.",
+    "learned": "No source-identifier parameter remains to constrain, so the current build already matches the later decision.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-15707 and 96e8cdaec5",
+    "url": "https://jira.hl7.org/browse/FHIR-15707",
+    "snapshot_path": "contexts/FHIR-15707/jira/FHIR-15707.md",
+    "ref": { "jira_key": "FHIR-15707", "commit": "96e8cdaec5" },
+    "summary": "Earlier Published issue split a generic Consent.source reference search into source-reference and source-identifier rows.",
+    "learned": "This explains the parameter that FHIR-19339 later removed and ties both issues into one change family.",
+    "supports": ["additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > 'source' search param on Consent",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/'source'%20search%20param%20on%20Consent",
+    "snapshot_path": "contexts/FHIR-15707/zulip/implementers--source-search-param-on-Consent.md",
+    "ref": { "stream": "implementers", "topic": "'source' search param on Consent" },
+    "summary": "A December 2017 thread identified the old source reference parameter as incorrectly covering attachment and identifier, and Grahame Grieve agreed it was an error.",
+    "learned": "Community context supports the search-parameter cleanup and does not require a current source edit.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community searches for FHIR-19339",
+    "command": "bun run zulip:search fts '\"FHIR-19339\" sourceIdentifier Consent' --limit 10; bun run confluence:search refs jira FHIR-19339",
+    "result_count": 0,
+    "summary": "No direct Zulip issue-key hits or Confluence references were found for FHIR-19339.",
+    "learned": "No discovered community or meeting record conflicts with Jira and source history.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

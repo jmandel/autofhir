@@ -1,0 +1,107 @@
+FHIR-37368: Audit primitive regex alignment
+
+Issue request:
+FHIR-37368 was a Published FHIR-core datatypes issue resolved Persuasive for R5. It reported mismatches between the primitive datatype regexes shown on the datatypes page and the computable/package representation: integer was missing on the page, uri/url/canonical needed regex exposure in the computable representation, positiveInt was wrong on the page, and markdown differed between page and package with markdown allowed to start with whitespace.
+
+Initial application:
+Commit 3ef54c37a52ed2d27ea04d457899585052cd4b1f explicitly applied FHIR-37368 by updating `source/datatypes.html` and `source/datatypes/primitives.xml`: it added page regex text for integer, url, and canonical, corrected positiveInt to `[1-9][0-9]*`, preserved `\S*` for uri/url/canonical in the primitive spreadsheet, and aligned markdown with the computable representation available at that point. Later source cleanup changed the datatypes page to use `[%regex ...%]` macros, so the rendered page now comes from the same primitive regex source instead of hard-coded literals.
+
+Additional context:
+The current build-scoped datatype sources are active through `source/fhir.ini`, including the `DataType` and `PrimitiveType` infrastructure entries and the datatypes page. Current `source/datatypes/primitives.xml` has regex rows for integer (`[0]|[-+]?[1-9][0-9]*`), uri/url/canonical (`\S*`), positiveInt (`[1-9][0-9]*`), and markdown (`^[\s\S]+$`), while `source/datatypes.html` references each of those through `[%regex ...%]` macros. The later Published issue FHIR-40563, already represented on the combined branch, clarified that string and markdown should share the safer `^[\s\S]+$` expression rather than a literal `^.+$`, so the current markdown regex is intentional rather than a remaining FHIR-37368 mismatch. FHIR-I WGM minutes record the original 14-0-0 persuasive vote, and no directly relevant Zulip or additional Confluence conflict was found.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active source already satisfies the FHIR-37368 request, and changing it would either duplicate generated macro behavior or conflict with the later FHIR-40563 clarification for markdown.
+
+Recommendation:
+Keep this audit commit as-is. No FHIR core source follow-up is needed for FHIR-37368 unless a future work group decision changes primitive regex policy.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37368
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-40563: later-change - later Published datatypes issue aligned string and markdown to `^[\s\S]+$`; its audit commit is already on the combined branch and explains why the current markdown regex is correct.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37368: Published/Persuasive datatypes issue requiring primitive regex page and computable/package representations to be aligned for integer, uri/url/canonical, positiveInt, and markdown. Learned: this establishes the target reconciliation scope.
+- E2 Source source/datatypes/primitives.xml:112,177,291,300,325,334: active primitive regex rows currently contain integer `[0]|[-+]?[1-9][0-9]*`, uri/url/canonical `\S*`, positiveInt `[1-9][0-9]*`, and markdown `^[\s\S]+$`. Learned: the authoritative primitive source already contains the requested aligned values.
+- E3 Source source/datatypes.html:140,243,270,319,359,377: the datatypes page references canonical, integer, markdown, positiveInt, uri, and url through `[%regex ...%]` macros. Learned: the rendered page now draws from the same computable regex source instead of stale hard-coded text.
+- E4 Git 3ef54c37a52ed2d27ea04d457899585052cd4b1f: explicit FHIR-37368 implementation commit updated the datatype page and primitive spreadsheet. Learned: the issue was applied in source history before this reconciliation.
+- E5 Jira/Git FHIR-40563 and a1399a403f83c03909be3339799102160801faa6: later Published issue and existing combined-branch audit support the current shared string/markdown regex. Learned: the markdown value should not be reverted to older page/package wording.
+- E6 Confluence FHIR Infrastructure Minutes WGM 202205 page 101355607 and community search commands: minutes record FHIR-37368 Persuasive 14-0-0; Zulip and Confluence FTS searches found no conflicting discussion. Learned: community evidence corroborates the Jira vote and does not change the source conclusion.
+- E7 Verification command: `rg` checks of `source/datatypes/primitives.xml`, `source/datatypes.html`, and `source/fhir.ini` confirmed current regex rows, page macro references, and active datatype build scope. Learned: no build-scoped current source correction remains.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37368",
+    "url": "https://jira.hl7.org/browse/FHIR-37368",
+    "snapshot_path": "contexts/FHIR-37368/jira/FHIR-37368.md",
+    "ref": { "jira_key": "FHIR-37368" },
+    "summary": "Published/Persuasive FHIR-core datatypes issue requiring primitive regex mismatches between page and computable/package representations to be corrected.",
+    "learned": "This establishes the target reconciliation scope for integer, uri/url/canonical, positiveInt, and markdown regex alignment.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/datatypes/primitives.xml:112,177,291,300,325,334",
+    "ref": { "path": "source/datatypes/primitives.xml", "lines": "112,177,291,300,325,334" },
+    "summary": "The active primitive spreadsheet has aligned regex rows for integer, uri, url, canonical, positiveInt, and markdown.",
+    "learned": "The authoritative primitive regex source already contains the requested values, including the later-correct markdown expression.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/datatypes.html:140,243,270,319,359,377",
+    "ref": { "path": "source/datatypes.html", "lines": "140,243,270,319,359,377" },
+    "summary": "The datatypes page uses `[%regex ...%]` macros for canonical, integer, markdown, positiveInt, uri, and url.",
+    "learned": "The rendered page now pulls regexes from the same computable primitive source rather than maintaining divergent literals.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "3ef54c37a52ed2d27ea04d457899585052cd4b1f",
+    "ref": { "commit": "3ef54c37a52ed2d27ea04d457899585052cd4b1f" },
+    "summary": "Explicit FHIR-37368 implementation commit updated `source/datatypes.html` and `source/datatypes/primitives.xml` for the reported primitive regex mismatches.",
+    "learned": "The Jira issue was applied in source history before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "a1399a403f83c03909be3339799102160801faa6 / FHIR-40563",
+    "ref": { "commit": "a1399a403f83c03909be3339799102160801faa6", "jira_key": "FHIR-40563" },
+    "summary": "Existing combined-branch FHIR-40563 audit records the later Published decision supporting the current shared string/markdown regex `^[\\s\\S]+$`.",
+    "learned": "The current markdown regex is intentional later context, not an unresolved FHIR-37368 mismatch.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes WGM 202205 page 101355607",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/101355607/FHIR+Infrastructure+Minutes+WGM+202205",
+    "ref": { "confluence_page_id": 101355607 },
+    "summary": "FHIR-I WGM minutes record FHIR-37368 as Persuasive with a 14-0-0 vote.",
+    "learned": "The formal Jira disposition is corroborated by work-group minutes.",
+    "supports": ["issue_request", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source and community verification",
+    "command": "rg -n ... source/datatypes/primitives.xml source/datatypes.html source/fhir.ini; bun run zulip:search fts '\"FHIR-37368\" \"primitive\" regex markdown positiveInt' --limit 10; bun run confluence:search fts '\"FHIR-37368\" primitive regex' --limit 10",
+    "query": "FHIR-37368 primitive regex markdown positiveInt",
+    "result_count": 0,
+    "summary": "Source greps confirmed aligned current rows and macro references; targeted Zulip and Confluence FTS found no conflicting discussion beyond the minutes reference.",
+    "learned": "No build-scoped current source correction or conflicting community evidence remains.",
+    "supports": ["verification", "absence_of_conflict", "reconciliation"]
+  }
+]
+</evidence-manifest>

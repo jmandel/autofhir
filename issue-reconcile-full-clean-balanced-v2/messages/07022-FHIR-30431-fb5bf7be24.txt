@@ -1,0 +1,117 @@
+FHIR-30431: Align Group status audit metadata
+
+Issue request:
+FHIR-30431 was a Published FHIR-core Group change request, resolved Persuasive with Modification for R5, asking why Group.active was not a modifier when Patient.active was. The approved resolution was to update Group.active to mirror Patient.active's modifier and meaningWhenMissing behavior.
+
+Initial application:
+The issue was applied in git commit 14cf0e36f8b60a5507c6add4b039cea6ffcffa99, which added meaningWhenMissing, isModifier, and isModifierReason to Group.active in source/group/structuredefinition-Group.xml. Patient.active already had the corresponding modifier and missing-meaning metadata.
+
+Additional context:
+FHIR-41583 later changed Group for conceptual CohortDefinition support by adding CanonicalResource-style metadata, adding Group.status as a modifier status element, and then removing Group.active. That related issue is already represented on the combined branch by reconcile commit 1a124d02c1efbf24a9faccb297a4cf5f4983539d, so this commit does not duplicate a FHIR-41583 decision. The current Group source is in build scope through source/fhir.ini, and after the later refactor the only stale Group.active semantic residue in active source was the build entered-in-error-status metadata still pointing at .active = false.
+
+AutoFHIR reconciliation:
+This commit updates source/group/structuredefinition-Group.xml so Group's entered-in-error-status metadata points at the current Group.status element using .status = retired. No Group.active element is restored; current Group.status remains the modifier status element that carries the post-FHIR-41583 replacement semantics.
+
+Recommendation:
+Keep this source fix. It preserves the FHIR-30431 outcome after the later Group.active-to-Group.status refactor and removes a stale active-element reference without reopening the already-audited broader FHIR-41583 Group redesign.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-30431
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-41583: later-change - replaced Group.active with CanonicalResource-style Group.status; this commit only fixes the stale metadata residue needed for the current FHIR-30431-aligned status representation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-30431: Published/Persuasive with Modification issue requiring Group.active to mirror Patient.active's modifier and meaningWhenMissing properties. Learned: this establishes the final seed request.
+- E2 Confluence FHIR-I minutes 2022-10-03 page 139665973: recorded "Will update both modifier and meaningIfMissing" with an 8-0-1 vote. Learned: this confirms the work group decision and intended properties.
+- E3 Git 14cf0e36f8b60a5507c6add4b039cea6ffcffa99: added meaningWhenMissing, isModifier, and isModifierReason to Group.active. Learned: the original R5 application did implement the seed request.
+- E4 Source source/group/structuredefinition-Group.xml:23-24 and 228-240: current Group is CanonicalResource-based, has modifier Group.status, and now uses .status = retired for entered-in-error-status metadata. Learned: the current active source no longer carries a stale Group.active status metadata reference.
+- E5 Source source/patient/structuredefinition-Patient.xml:161-174: Patient.active remains a modifier with meaningWhenMissing. Learned: this is the pattern the seed issue asked Group.active to mirror before Group.active was later replaced.
+- E6 Jira/Git FHIR-41583 and git a3e47c0826634c4884f97e947727bb12b97ba4e6: later applied Group redesign added modifier Group.status and removed Group.active. Learned: current differences from the original FHIR-30431 text are intentional later changes, but stale metadata still needed alignment with the replacement status element.
+- E7 Command/community search: Zulip searches for FHIR-30431 and Group.active/Patient.active modifier found no direct hits; Confluence refs found the PA and FHIR-I minutes. Learned: no discovered community discussion contradicts the Jira/minutes/source conclusion.
+- E8 Verification command: git diff --check plus a Python source checklist confirmed Group is build-active, Group.active element is absent, Group.status is a modifier, Group entered-in-error-status uses .status = retired, and Patient.active still has modifier plus meaningWhenMissing. Learned: the source correction satisfies the current issue-specific checks.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-30431",
+    "url": "https://jira.hl7.org/browse/FHIR-30431",
+    "snapshot_path": "contexts/FHIR-30431/jira/FHIR-30431.md",
+    "ref": { "jira_key": "FHIR-30431" },
+    "summary": "Published/Persuasive with Modification issue asking why Group.active was not a modifier when Patient.active was.",
+    "learned": "The approved request was to update Group.active to mirror Patient.active's modifier and missing-meaning behavior.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2022-10-03 page 139665973",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/139665973/FHIR+Infrastructure+Minutes+CC+2022-10-03",
+    "snapshot_path": "contexts/FHIR-30431/confluence/139665973.md",
+    "ref": { "confluence_page_id": 139665973 },
+    "summary": "FHIR-I minutes record FHIR-30431 as 'Will update both modifier and meaningIfMissing' with a Persuasive with Modification vote.",
+    "learned": "This confirms the work group intent behind the Jira resolution.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "14cf0e36f8b60a5507c6add4b039cea6ffcffa99",
+    "ref": { "commit": "14cf0e36f8b60a5507c6add4b039cea6ffcffa99" },
+    "summary": "The FHIR-30431 commit added meaningWhenMissing, isModifier, and isModifierReason to Group.active.",
+    "learned": "The seed issue was originally applied to the R5 Group.active element.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/group/structuredefinition-Group.xml:23-24,228-240",
+    "summary": "Current Group source has modifier Group.status and now uses .status = retired for the build entered-in-error-status metadata.",
+    "learned": "The current source aligns the FHIR-30431 status semantics with the later replacement status element instead of a removed Group.active element.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/patient/structuredefinition-Patient.xml:161-174",
+    "summary": "Patient.active is a modifier and has meaningWhenMissing stating that absent active is generally assumed true.",
+    "learned": "This is the Patient pattern the seed issue asked Group.active to mirror before Group.active was later replaced.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-41583 and git a3e47c0826634c4884f97e947727bb12b97ba4e6",
+    "url": "https://jira.hl7.org/browse/FHIR-41583",
+    "snapshot_path": "contexts/FHIR-30431/jira/FHIR-41583.md",
+    "ref": { "jira_key": "FHIR-41583", "commit": "a3e47c0826634c4884f97e947727bb12b97ba4e6" },
+    "summary": "Later Applied/Persuasive with Modification Group redesign added modifier Group.status and removed Group.active.",
+    "learned": "Current absence of Group.active is an intentional later change, while the stale entered-in-error-status value needed to follow the replacement status element.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-30431 and Group.active Patient.active modifier",
+    "command": "bun run zulip:search fts '\"FHIR-30431\" \"Group.active\" modifier' --limit 10; bun run zulip:search fts '\"Group.active\" \"Patient.active\" modifier' --limit 10; bun run confluence:search refs jira FHIR-30431",
+    "query": "FHIR-30431 Group.active Patient.active modifier",
+    "summary": "Zulip searches found no direct hits; Confluence references found PA and FHIR-I minutes for the issue.",
+    "learned": "No discovered community discussion changes the Jira/minutes/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Source correction verification",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; python3 source checklist for Group and Patient active/status metadata",
+    "summary": "Checks confirmed no whitespace errors and verified Group.status/Patient.active metadata after the edit.",
+    "learned": "The current source satisfies the issue-specific reconciliation checks.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

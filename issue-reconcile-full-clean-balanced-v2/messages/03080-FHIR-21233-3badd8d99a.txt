@@ -1,0 +1,96 @@
+FHIR-21233: Audit EventDefinition FHIRPath example
+
+Issue request:
+FHIR-21233 was a Published/Persuasive CDS change request asking to correct the EventDefinition example FHIRPath expression from `(this | %previous).location.where(...).exists()` to `(%current | %previous).location.where(...).exists()`, matching the Jira resolution and cited FHIRPath discussion.
+
+Initial application:
+The issue was already applied in commit 55d4f72b248936ab5778942d8a4294d79000e15e, `J#21233: Fixed FHIRPath in event definition example`, which changed source/eventdefinition/eventdefinition-example.xml from the broken `this | %previous` expression to the approved `%current | %previous` expression.
+
+Additional context:
+EventDefinition is an active current-build resource in source/fhir.ini, so source/eventdefinition/eventdefinition-example.xml is in scope. The cited Zulip thread confirms the same resolution text: Grahame Grieve identified `%current | %previous` as the intended expression, and no Confluence or Zulip issue-key search found contrary later guidance.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change because the current source already contains the Jira-approved expression at source/eventdefinition/eventdefinition-example.xml:30, and a source-wide fixed-string check found no remaining old EventDefinition expression.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up source work is needed for FHIR-21233 unless future validation policy changes require broader automated checking of example FHIRPath expressions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-21233
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-21233: Published/Persuasive issue requests replacing the broken EventDefinition example expression with `(%current | %previous).location.where(...).exists()`. Learned: this establishes the final requested expression.
+- E2 Source source/fhir.ini:170,267: EventDefinition is listed as an active current-build resource. Learned: source/eventdefinition/eventdefinition-example.xml is in build scope.
+- E3 Source source/eventdefinition/eventdefinition-example.xml:30: the example condition expression is `(%current | %previous).location.where(location = 'Location/emergency' and status in {'active', 'completed'}).exists()`. Learned: the current source already matches the Jira resolution.
+- E4 Git 55d4f72b248936ab5778942d8a4294d79000e15e: `J#21233: Fixed FHIRPath in event definition example` changed `(this | %previous)` to `(%current | %previous)`. Learned: the historical application is explicit and targeted.
+- E5 Zulip #fhirpath > this vs $this: the cited 2019 discussion says the example was not validated and should use `%current | %previous`; Josh Mandel then filed GF#21233. Learned: community context supports the Jira resolution and current source.
+- E6 Verification command/query: fixed-string search found the approved expression in source/eventdefinition/eventdefinition-example.xml and no remaining old expression; Confluence and quoted Zulip issue-key searches found no contrary records. Learned: there is no discovered conflicting current-source or community evidence.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-21233",
+    "url": "https://jira.hl7.org/browse/FHIR-21233",
+    "snapshot_path": "contexts/FHIR-21233/jira/FHIR-21233.md",
+    "ref": { "jira_key": "FHIR-21233" },
+    "summary": "Published/Persuasive CDS issue requiring the EventDefinition example expression to use `(%current | %previous).location.where(...).exists()`.",
+    "learned": "This is the final Jira decision and establishes the expected source text.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170,267",
+    "ref": { "path": "source/fhir.ini", "lines": "170,267" },
+    "summary": "The active [resources] list includes `eventdefinition=EventDefinition`.",
+    "learned": "EventDefinition example source is in the current build scope.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/eventdefinition/eventdefinition-example.xml:30",
+    "ref": { "path": "source/eventdefinition/eventdefinition-example.xml", "line": 30 },
+    "summary": "The example condition expression already uses `(%current | %previous).location.where(location = 'Location/emergency' and status in {'active', 'completed'}).exists()`.",
+    "learned": "The current source matches the Jira-approved correction.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "55d4f72b248936ab5778942d8a4294d79000e15e",
+    "ref": { "commit": "55d4f72b248936ab5778942d8a4294d79000e15e" },
+    "summary": "Commit `J#21233: Fixed FHIRPath in event definition example` replaced `(this | %previous)` with `(%current | %previous)` in source/eventdefinition/eventdefinition-example.xml.",
+    "learned": "The issue had an explicit prior source application.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#fhirpath > this vs $this",
+    "url": "https://chat.fhir.org/#narrow/stream/fhirpath/topic/this%20vs%20%24this",
+    "ref": { "stream": "fhirpath", "topic": "this vs $this" },
+    "summary": "The cited discussion identifies the broken example and says it should use `(%current | %previous)`, after which GF#21233 was filed.",
+    "learned": "The community discussion aligns with Jira and the current source.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Source/community verification for FHIR-21233",
+    "command": "rg --fixed-strings \"(%current | %previous).location.where(location = 'Location/emergency' and status in {'active', 'completed'}).exists()\" source; ! rg --fixed-strings \"(this | %previous).location.where(location = 'Location/emergency' and status in {'active', 'completed'}).exists()\" source; bun run confluence:search fts '\"FHIR-21233\"' --limit 10; bun run zulip:search fts '\"FHIR-21233\"' --limit 10",
+    "query": "FHIR-21233 and EventDefinition expression",
+    "result_count": 0,
+    "summary": "The approved expression is present, the old expression is absent, and quoted issue-key community searches found no contrary records.",
+    "learned": "No additional current-source or community evidence requires a source edit.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

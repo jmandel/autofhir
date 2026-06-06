@@ -1,0 +1,106 @@
+FHIR-11365: Audit SNOMED route display sourcing
+
+Issue request:
+FHIR-11365 was a Published/Persuasive FHIR-core clarification for DSTU2 medication route-code artifacts. It reported that the route-codes value set expansion displayed some SNOMED CT concepts with the "(qualifier value)" semantic tag and others without it, and asked why the build process chose inconsistent displays.
+
+Initial application:
+The Jira comments record svn revision 11563. In the migrated git history, commit b6754c234cfadd320aea6259f0e6732f8b49c5d4 is the matching build@11563 commit, titled "update snomed ct content in cache"; it refreshed source/snomed/snomed.xml and many vscache entries rather than changing the route ValueSet definition itself. That historical embedded SNOMED cache source is no longer present in the current build-source tree.
+
+Additional context:
+The current build-scope medication resources are active in source/fhir.ini, with MedicationPrescription now represented by MedicationRequest. Their route bindings resolve to the shared http://hl7.org/fhir/ValueSet/route-codes value set, whose current authoritative source is an intensional SNOMED CT include under source/datatypes/valueset-route-codes.xml. Later issue FHIR-42606 changed that source from is-a to descendent-of 284009009 so the generic route-of-administration concept is no longer included; this confirms the current route-code semantics are maintained in the datatypes ValueSet source. The current build page expands the value set from tx.fhir.org using SNOMED CT International 01-Feb-2025 and shows terminology-supplied display/designation data rather than checked-in FHIR display rows. No relevant Zulip or Confluence discussion for FHIR-11365 was found.
+
+AutoFHIR reconciliation:
+No source change was made. The current source has no hard-coded route-code display list to normalize, Coding.display is defined as a representation following the code system's rules, and the current route-code expansion is terminology-server-derived. Adding or editing FHIR source solely to force all SNOMED displays to include "(qualifier value)" would override current terminology behavior without a current work-group decision.
+
+Recommendation:
+Keep this empty audit commit as-is. No core FHIR source follow-up is needed for FHIR-11365 unless the responsible work group makes a new decision to constrain SNOMED display/designation selection in generated expansions.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11365
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-42606: later-change - A later Applied pharmacy correction changed route-codes from is-a to descendent-of 284009009, confirming the current authoritative route ValueSet source and removing the generic parent concept.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11365: Published/Persuasive issue reports inconsistent SNOMED CT displays in the route-codes expansion and records svn revision 11563. Learned: this establishes the final issue request and historical application pointer.
+- E2 Git b6754c234cfadd320aea6259f0e6732f8b49c5d4: migrated build@11563 commit refreshed SNOMED CT cache content and vscache entries. Learned: the original application was a terminology/cache refresh, not a durable route ValueSet source edit.
+- E3 Source source/fhir.ini:200-203,1467 and source/medicationadministration/structuredefinition-MedicationAdministration.xml:691-706: medication resources remain active, MedicationPrescription became MedicationRequest, and MedicationAdministration.dosage.route binds to ValueSet/route-codes. Learned: the relevant current medication route binding is in build scope.
+- E4 Source source/datatypes/valueset-route-codes.xml:38-59 and source/datatypes/dosage.xml:5922-5926: the shared RouteOfAdministration value set is an intensional SNOMED CT descendant include with no checked-in display list. Learned: there is no current FHIR source table of SNOMED displays that needs normalization.
+- E5 Jira/Git FHIR-42606 and 8b0ad1770b796a1bc13d8ae3356ead8e553484a4: later Applied correction changed route-codes from is-a to descendent-of. Learned: later work refined route-code membership but did not require SNOMED display overrides.
+- E6 Published-spec command: build.fhir.org/valueset-route-codes.html expands from tx.fhir.org based on SNOMED CT International 01-Feb-2025 and shows terminology-derived display/designation columns. Learned: current display differences are generated from terminology service data, not stale checked-in route-code source.
+- E7 Command community searches: Jira broad searches found FHIR-11365 and FHIR-42606 as the relevant core route-code issues; Zulip searches for FHIR-11365/route-codes/qualifier value and Confluence refs for FHIR-11365 found no relevant records. Learned: no discovered community evidence changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11365",
+    "url": "https://jira.hl7.org/browse/FHIR-11365",
+    "snapshot_path": "contexts/FHIR-11365/jira/FHIR-11365.md",
+    "ref": { "jira_key": "FHIR-11365" },
+    "summary": "Published/Persuasive FHIR-core issue reports inconsistent SNOMED CT displays in the route-codes expansion and records svn revision 11563.",
+    "learned": "This establishes the final issue request and the historical application pointer for reconciliation.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "b6754c234cfadd320aea6259f0e6732f8b49c5d4",
+    "ref": { "commit": "b6754c234cfadd320aea6259f0e6732f8b49c5d4" },
+    "summary": "The migrated build@11563 commit refreshed source/snomed/snomed.xml and many vscache entries as an SNOMED CT cache update.",
+    "learned": "The original application was a terminology/cache refresh rather than a route ValueSet source-definition change.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:200-203,1467; source/medicationadministration/structuredefinition-MedicationAdministration.xml:691-706",
+    "summary": "The current build lists medication administration, dispense, request, and statement as active resources, notes MedicationPrescription became MedicationRequest, and binds MedicationAdministration.dosage.route to ValueSet/route-codes.",
+    "learned": "The relevant current medication route binding remains in build scope and points to the shared route-codes value set.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/valueset-route-codes.xml:38-59; source/datatypes/dosage.xml:5922-5926; source/datatypes/coding.xml:921-922",
+    "summary": "The shared route value set is an intensional SNOMED CT descendant include with no checked-in display rows, and Coding.display follows code-system rules.",
+    "learned": "There is no current FHIR source display table to normalize for this issue.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-42606 and commit 8b0ad1770b796a1bc13d8ae3356ead8e553484a4",
+    "url": "https://jira.hl7.org/browse/FHIR-42606",
+    "ref": { "jira_key": "FHIR-42606", "commit": "8b0ad1770b796a1bc13d8ae3356ead8e553484a4" },
+    "summary": "Later Applied pharmacy correction changed route-codes from is-a to descendent-of 284009009 to remove the generic parent concept.",
+    "learned": "Later maintenance refined route-code membership in the same authoritative source without requiring display overrides.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/valueset-route-codes.html",
+    "url": "https://build.fhir.org/valueset-route-codes.html",
+    "command": "curl -fsSL https://build.fhir.org/valueset-route-codes.html | rg -n 'Expansion from|Oral route|qualifier value|284009009|SNOMED'",
+    "summary": "The current build expands route-codes from tx.fhir.org based on SNOMED CT International 01-Feb-2025 and shows terminology-derived Display and Display (English) columns.",
+    "learned": "Current display differences are produced by the terminology expansion surface, not by stale checked-in route-code display rows.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and neighborhood searches for FHIR-11365 route-code display evidence",
+    "command": "bun run jira:search fts '\"SNOMED\" display \"qualifier value\"'; bun run jira:search fts '\"valueset-route-codes\"'; bun run zulip:search fts '\"FHIR-11365\" OR \"route-codes\" \"qualifier value\"'; bun run confluence:search refs jira FHIR-11365",
+    "query": "FHIR-11365 route-codes qualifier value SNOMED display",
+    "result_count": 0,
+    "summary": "Searches found FHIR-11365 and the later FHIR-42606 route-code membership correction, but no Zulip or Confluence records for FHIR-11365 and no conflicting core source decision.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

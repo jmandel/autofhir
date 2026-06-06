@@ -1,0 +1,130 @@
+FHIR-26370: Audit canonical version comparison mechanism
+
+Issue request:
+FHIR-26370 was Published with a Persuasive with Modification resolution for FHIR-core ValueSet. It asked for a technical mechanism to determine the most recent canonical resource version, centered on a new STU CanonicalResource.versionAlgorithm[x] choice element of type Coding|string with an extensible VersionAlgorithm binding, comparison-expression comments, initial comparison codes, and a warning when a canonical version is present without a declared algorithm.
+
+Initial application:
+The issue was explicitly applied by git commit f5a3f369a4dc96aa0f75a2c75f90a258388a9a5a, which added CanonicalResource.versionAlgorithm[x] plus the version-algorithm CodeSystem and ValueSet. Later canonical-alignment commits propagated versionAlgorithm[x] to concrete canonical resources, including ValueSet, and related FHIR-35834 commits added the $current-canonical operation that uses versionAlgorithm to retrieve the most current canonical resource.
+
+Additional context:
+source/fhir.ini keeps CanonicalResource, ValueSet, CodeSystem, and OperationDefinition in current build scope. Later FHIR-I decisions and current source centralize the conformance guidance on canonical reference/version matching: source/references.html says canonical resources SHOULD declare versionAlgorithm[x] because determining the current version is problematic without it, while the $current-canonical operation allows servers to infer or reject ambiguous algorithms when the element is absent or inconsistent. FHIR-39268 later considered moving versionAlgorithm above the resource level but kept the per-resource element as the best available compromise. The current source does not contain a literal validator warning invariant for missing versionAlgorithm[x], but adding one now would broadly change validation/QA behavior across canonical resources and would be redundant with the current centralized SHOULD guidance absent a newer work-group decision to make that machine warning mandatory.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current build-scope source already contains the versionAlgorithm[x] element, the extensible VersionAlgorithm terminology, concrete ValueSet participation, the current-canonical retrieval operation, and narrative guidance for what servers may do when the algorithm is missing.
+
+Recommendation:
+Keep this no-change audit as-is. If FHIR-I still wants validators to emit a warning whenever a canonical resource has version but no versionAlgorithm[x], that should be handled as an explicit follow-up because it would affect many canonical resource instances; no current source correction is required for the published FHIR-26370 intent.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26370
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-27920: supporting-decision - centralized canonical versioning guidance on the References page and was adjusted for the FHIR-26370 versionAlgorithm[x] mechanism.
+FHIR-35834: supporting-decision - added the $current-canonical operation that depends on versionAlgorithm[x] to return the most current canonical resource.
+FHIR-38159: same-change-family - aligned terminology resources such as ValueSet and CodeSystem with the CanonicalResource versionAlgorithm[x] change.
+FHIR-39268: later-change - kept versionAlgorithm[x] on individual canonical resources despite concerns that the mechanism is clunky.
+FHIR-40523: later-change - confirmed the versionAlgorithm binding strength should be extensible, matching current source.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26370: Published/Persuasive with Modification, voted 40-0-4 on 2022-01-18, requested CanonicalResource.versionAlgorithm[x], VersionAlgorithm codes, and missing-algorithm warning guidance. Learned: establishes the final seed request and source scope.
+- E2 Source source/canonicalresource/structuredefinition-CanonicalResource.xml:141-174: CanonicalResource.version points to versionAlgorithm and CanonicalResource.versionAlgorithm[x] is a 0..1 string/Coding element bound extensibly to ValueSet/version-algorithm. Learned: the core computable comparison element is present in build-scope source.
+- E3 Source source/canonicalresource/codesystem-version-algorithm.xml:36-79 and source/canonicalresource/valueset-version-algorithm.xml:36-42: current terminology defines the VersionAlgorithm code system/value set with semver, integer, alpha, date, natural, and later added codes. Learned: the requested extensible terminology exists and has been maintained by later decisions.
+- E4 Source source/valueset/structuredefinition-ValueSet.xml:155-188 and source/fhir.ini:128-133,226,269: ValueSet is an active resource and includes versionAlgorithm[x]. Learned: the Jira's ValueSet-related use case is covered in current build-scope source.
+- E5 Source source/canonicalresource/operationdefinition-CanonicalResource-current-canonical.xml:37,57-86 and source/references.html:528-532: $current-canonical compares versions using versionAlgorithm, and central canonical-reference guidance says canonical resources SHOULD declare versionAlgorithm[x] while allowing server inference/default logic when absent. Learned: current source handles most-recent retrieval and missing-algorithm behavior without a new local edit.
+- E6 Git f5a3f369, c01ed3ed, dff8b8d9, and 3642d16b: FHIR-26370 added the base element and terminology, FHIR-38159 aligned vocabulary resources, and FHIR-35834 added/clarified $current-canonical. Learned: source history shows the issue family was applied and refined.
+- E7 Zulip #fhir/infrastructure-wg > Sorting versions of knowledge artifacts and Confluence FHIR-I 2022-01-10/2022 WGM minutes: discussion and minutes cover the need for an algorithm/operation and later questions about integer vs numeric without overturning the model. Learned: community evidence supports the current versionAlgorithm/current-canonical approach and found no conflicting final decision.
+- E8 Verification command/query: searched combined branch for Issue-Reconcile-Key: FHIR-26370 and searched current source/history/community records for versionAlgorithm, current-canonical, and warning-invariant evidence. Learned: no duplicate seed audit exists and no discovered current-build source omission warrants a source-changing commit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26370",
+    "url": "https://jira.hl7.org/browse/FHIR-26370",
+    "snapshot_path": "contexts/FHIR-26370/jira/FHIR-26370.md",
+    "ref": { "jira_key": "FHIR-26370" },
+    "summary": "Published/Persuasive with Modification issue requesting CanonicalResource.versionAlgorithm[x], comparison terminology, and missing-algorithm warning guidance for most-recent canonical version retrieval.",
+    "learned": "This establishes the final work-group request and confirms the issue is in the Applied/Published reconciliation scope.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/canonicalresource/structuredefinition-CanonicalResource.xml:141-174",
+    "ref": { "path": "source/canonicalresource/structuredefinition-CanonicalResource.xml", "start_line": 141, "end_line": 174 },
+    "summary": "CanonicalResource.version points readers to versionAlgorithm, and CanonicalResource.versionAlgorithm[x] is a 0..1 string/Coding element with an extensible VersionAlgorithm binding.",
+    "learned": "The core computable comparison mechanism requested by the issue is present in current source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/canonicalresource/codesystem-version-algorithm.xml:36-79; source/canonicalresource/valueset-version-algorithm.xml:36-42",
+    "ref": { "paths": "source/canonicalresource/codesystem-version-algorithm.xml; source/canonicalresource/valueset-version-algorithm.xml" },
+    "summary": "The current VersionAlgorithm CodeSystem and ValueSet define the comparison-code terminology, including the original semver/integer/alpha/date/natural codes and later additions.",
+    "learned": "The requested terminology exists and has been maintained by subsequent versionAlgorithm work.",
+    "supports": ["initial_application", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/valueset/structuredefinition-ValueSet.xml:155-188; source/fhir.ini:128-133,226,269",
+    "ref": { "paths": "source/valueset/structuredefinition-ValueSet.xml; source/fhir.ini" },
+    "summary": "ValueSet is active in fhir.ini and its StructureDefinition includes versionAlgorithm[x] with the same string/Coding extensible binding pattern.",
+    "learned": "The ValueSet use case identified by the seed issue is represented in current build-scope source.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/canonicalresource/operationdefinition-CanonicalResource-current-canonical.xml:37,57-86; source/references.html:528-532",
+    "ref": { "paths": "source/canonicalresource/operationdefinition-CanonicalResource-current-canonical.xml; source/references.html" },
+    "summary": "$current-canonical compares versions using versionAlgorithm, and canonical-reference guidance says resources SHOULD declare versionAlgorithm[x] while allowing inference/default logic when it is absent.",
+    "learned": "The current source covers most-recent retrieval semantics and missing-algorithm behavior without requiring a new edit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "f5a3f369a4dc96aa0f75a2c75f90a258388a9a5a; c01ed3edbe8a92201a72a348a4daf757fc8c2526; dff8b8d97d1dd45db806680c44cd318b68c21333; 3642d16be2895c4bb49a67465ad40f4226bf8efe",
+    "ref": { "commits": "f5a3f369a4dc96aa0f75a2c75f90a258388a9a5a,c01ed3edbe8a92201a72a348a4daf757fc8c2526,dff8b8d97d1dd45db806680c44cd318b68c21333,3642d16be2895c4bb49a67465ad40f4226bf8efe" },
+    "summary": "Source history added versionAlgorithm/terminology for FHIR-26370, aligned vocabulary resources through FHIR-38159, and added/clarified $current-canonical through FHIR-35834.",
+    "learned": "The issue family has a direct application history matching the current source state.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#fhir/infrastructure-wg > Sorting versions of knowledge artifacts",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir%2Finfrastructure-wg/topic/Sorting%20versions%20of%20knowledge%20artifacts",
+    "ref": { "stream": "fhir/infrastructure-wg", "topic": "Sorting versions of knowledge artifacts" },
+    "summary": "The linked discussion explains the need for an algorithm and operation for sorting canonical resource versions and records later questions about algorithm details.",
+    "learned": "Community discussion supports the current versionAlgorithm/current-canonical model and did not reveal a conflicting final decision.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 2022-01-10 and WGM 202201 pages 81019157, 81028096",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/81019157/FHIR+Infrastructure+Minutes+CC+2022-01-10",
+    "ref": { "confluence_page_ids": "81019157,81028096" },
+    "summary": "FHIR-I minutes record that Bas would propose the version-sorting extension idea on Zulip and later discuss the current-version use case with the related operation.",
+    "learned": "Meeting evidence aligns with the Jira/Zulip trail and current source approach.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Idempotency and source/history/community searches for FHIR-26370",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-26370' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n 'versionAlgorithm|version-algorithm|current-canonical' source/canonicalresource source/valueset source/codesystem source/references.html source/fhir.ini; git log --all --grep='FHIR-26370'; bun run zulip:search snapshot fhir/infrastructure-wg 'Sorting versions of knowledge artifacts'; bun run confluence:search refs jira FHIR-26370",
+    "query": "FHIR-26370 versionAlgorithm version-algorithm current-canonical warning invariant",
+    "summary": "No prior FHIR-26370 combined audit was found; searches found the current build-scope source, explicit implementation history, linked Zulip discussion, and Confluence references without a conflicting final decision.",
+    "learned": "No duplicate commit or source-changing reconciliation is required.",
+    "supports": ["absence_of_conflict", "confidence", "reconciliation"]
+  }
+]
+</evidence-manifest>

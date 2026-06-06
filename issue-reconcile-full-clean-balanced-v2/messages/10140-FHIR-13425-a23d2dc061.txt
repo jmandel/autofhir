@@ -1,0 +1,105 @@
+FHIR-13425: Audit Observation focus handling
+
+Issue request:
+FHIR-13425 was Published with a Persuasive with Modification resolution for STU3. It asked how to document a related person's health literacy or care skill, such as whether a mother is trained to change her child's tracheostomy tube, when Observation.subject did not support RelatedPerson. The final resolution chose the focal-subject mechanism with the child as subject and the mother as the focal target, and requested a choice plus an example for clarity.
+
+Initial application:
+The source history shows the request was applied before this reconciliation. Git 75c4cced61 added focal-subject.reference to the Observation extension spreadsheet with Reference(Patient, Person, RelatedPerson, Group, Device), a RelatedPerson example note, and committee note #13425. Git d06b52856c kept the #13425 trail while separating the code-based extension from the reference-based focus modeling. Git 5c093b94a9 then renamed Observation.focalSubject to Observation.focus as part of the same Observation focus change family.
+
+Additional context:
+Observation is an active current-build resource in source/fhir.ini. Current core source deliberately leaves Observation.subject as the record subject and does not add RelatedPerson there, while Observation.focus is a Reference(Resource) for the actual focus when it differs from the subject of record. The active focus comment includes the parent/child tracheostomy use case, and the trachcare example records the child as subject and the mother as focus. The old observation-focusCode extension is now in the FHIR Extension Pack, marked deprecated/retired, and points implementers to Observation.focus and referenced resource elements. Later FHIR-14443/FHIR-14863 and the linked Zulip discussion explain why the WG chose focus instead of broadening subject, and FHIR-43357 later reinforced focus as the current modeling location for a more specific target.
+
+AutoFHIR reconciliation:
+This audit commit makes no source change. The current core build already conveys the requested rule through Observation.focus and the tracheostomy-care example, and adding RelatedPerson to Observation.subject would contradict the later accepted focus/subject split.
+
+Recommendation:
+Keep this no-change audit. Do not change Observation.subject for FHIR-13425; use Observation.focus when the observation is stored against one subject of record but is actually focused on a related person or other associated resource. If desired, any cleanup of deprecated focusCode extension wording belongs in the FHIR Extension Pack and is not required to make the current core spec correct.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13425
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-14443: same-change-family - promoted the broader focal-subject/focus capability rather than expanding Observation.subject to Reference(Any).
+FHIR-14863: same-change-family - supplied the focal-point/focus use cases that became Observation.focus.
+FHIR-43357: later-change - reaffirmed in R6 that Observation.focus is the place for a more specific target while the subject remains the subject of record.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13425: Published/Persuasive with Modification request for related-person care-skill observations. Learned: the WG chose focal-subject/focus with the child as subject and mother as focal target, not RelatedPerson on Observation.subject.
+- E2 Source source/fhir.ini:169 and source/observation/structuredefinition-Observation.xml:489-545: Observation is active, subject remains the record subject, and focus is Reference(Resource) for the actual focus. Learned: current core source preserves the intended subject/focus split.
+- E3 Source source/observation/observation-example-trachcare.xml:20-27 and list-Observation-examples.xml:537-543: the tracheostomy-care example has child subject and mother focus. Learned: the requested clarifying example exists in active Observation source.
+- E4 Git 75c4cced61, d06b52856c, and 5c093b94a9: historical commits added focal-subject reference support tagged #13425, then evolved it into Observation.focus. Learned: the Jira request was applied and later refactored into the current element name.
+- E5 Jira/Zulip FHIR-14443/FHIR-14863 and #implementers > Proposal to make Observation Subject Reference(any): the 2018 discussion and resolutions chose focus instead of broadening subject. Learned: later accepted context supports leaving Observation.subject unchanged.
+- E6 Source /home/jmandel/work/fhir-extensions/input/definitions/Observation/StructureDefinition-observation-focusCode.xml:11-16,36-56: the old focusCode extension is deprecated/retired and directs users to Observation.focus. Learned: remaining extension wording is outside the core checkout and not a core source defect for this issue.
+- E7 Command confluence refs jira FHIR-13425: no references found. Learned: no Confluence evidence was found that changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13425",
+    "url": "https://jira.hl7.org/browse/FHIR-13425",
+    "snapshot_path": "contexts/FHIR-13425/jira/FHIR-13425.md",
+    "ref": { "jira_key": "FHIR-13425" },
+    "summary": "Published/Persuasive with Modification issue asking how to represent a related person's care skill when Observation.subject did not support RelatedPerson.",
+    "learned": "The approved request was to use focal-subject/focus with the child as subject and the mother as focal target, not to add RelatedPerson to Observation.subject.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-209; source/observation/structuredefinition-Observation.xml:489-545",
+    "summary": "Observation is active in the current build; Observation.subject remains the record subject and Observation.focus is Reference(Resource) for the actual focus when different from the subject.",
+    "learned": "Current core source implements the subject/focus split needed for FHIR-13425 without adding RelatedPerson to subject.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/observation/observation-example-trachcare.xml:20-27; source/observation/list-Observation-examples.xml:537-543",
+    "summary": "The tracheostomy-care example records the child as Observation.subject and the mother as Observation.focus.",
+    "learned": "The requested clarity example exists in active Observation source.",
+    "supports": ["current_source", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "75c4cced61; d06b52856c; 5c093b94a9",
+    "ref": { "commit_1": "75c4cced61", "commit_2": "d06b52856c", "commit_3": "5c093b94a9" },
+    "summary": "Historical commits added focal-subject.reference with RelatedPerson support and #13425 notes, then promoted/renamed the model to Observation.focus.",
+    "learned": "The issue was initially applied and later refactored into the current core element.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "zulip",
+    "locator": "#implementers > Proposal to make Observation Subject Reference(any)",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Proposal%20to%20make%20Observation%20Subject%20Reference(any)",
+    "ref": { "stream": "implementers", "topic": "Proposal to make Observation Subject Reference(any)" },
+    "summary": "The February 2018 thread records implementer/WG discussion favoring a focus element over expanding Observation.subject to Reference(Any).",
+    "learned": "The community rationale supports preserving current subject semantics and using Observation.focus for the related-person target.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/Observation/StructureDefinition-observation-focusCode.xml:11-16,36-56",
+    "summary": "The old observation-focusCode extension is in the Extension Pack, marked deprecated/retired, and says alternate representation is through Observation.focus and referenced resource elements.",
+    "learned": "Any remaining extension wording is outside the core checkout and does not require a core source change for this issue.",
+    "supports": ["build_scope", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Confluence references for FHIR-13425",
+    "command": "bun run confluence:search refs jira FHIR-13425",
+    "result_count": 0,
+    "summary": "No Confluence references were found for FHIR-13425.",
+    "learned": "No discovered meeting-minutes evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

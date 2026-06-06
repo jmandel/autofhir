@@ -1,0 +1,94 @@
+FHIR-8754: Audit physical item alignment
+
+Issue request:
+FHIR-8754 was a Published/Persuasive with Modification FHIR-core OO change request for Medication, Device, Substance, and Immunization. It asked for a common way to represent a physical item's type and instance attributes; the accepted resolution narrowed this to aligning grouping, ordering, and definitions across related "thing" resources as much as possible, while explicitly not creating a new common structure.
+
+Initial application:
+The direct source history found two explicit #8754 application commits, both in the Device resource. Commit 22debf21aa reordered and grouped Device physical item elements and examples, and commit 966df8c99a continued Device updates while incorporating UDI-related identifier/type/production metadata. I did not find an explicit #8754 commit for Medication, Substance, or Immunization; their current models have subsequently evolved through later resource-specific decisions.
+
+Additional context:
+The current build includes Device, Immunization, Medication, and Substance as active approved resources. Current Device keeps identifiers, UDI carrier, record/availability status, manufacturer, manufacturing/expiration, lot, serial, type, and other device properties inline. Current Medication separates catalog/business identity from physical package instance details via Medication.instance and points to definitional medication/product resources. Current Immunization keeps vaccineCode plus an optional administeredProduct CodeableReference(Medication), with manufacturer, lot number, and expiration date adjacent; that later shape was specifically approved in FHIR-27018. Current Substance keeps identifier, status, category/code, description, expiry, and quantity inline. A later Zulip discussion about type-vs-physical-instance confirmed the broader modeling tension but did not reveal a conflicting final decision requiring a common PhysicalItem structure.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already matches the accepted FHIR-8754 disposition: no new shared structure, inline per-resource fields, and resource-specific ordering/definitions that are aligned where the semantics overlap but differ where the resources now model different type-vs-instance boundaries. Reordering or renaming current elements solely for cosmetic parallelism would be broader than the issue resolution and could disrupt later approved resource designs.
+
+Recommendation:
+Keep this audit commit as-is. Future work on a cross-resource physical-item pattern should proceed through a new work-group decision because current Medication, Device, Immunization, and Substance definitions reflect later resource-specific choices rather than an unapplied FHIR-8754 correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8754
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-27018: later-change - Published Immunization issue that added Immunization.administeredProduct as a CodeableReference(Medication), refining the vaccine product/type-vs-instance question after FHIR-8754.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8754: Published/Persuasive with Modification; resolution says to align grouping/ordering/definitions with related "thing" resources as much as possible, but keep fields inline and do not create new structures. Learned: the accepted target is bounded alignment, not a new PhysicalItem model.
+- E2 Source source/fhir.ini:1130,1169,1180,1246 and 1352,1379,1389,1441: Device, Immunization, Medication, and Substance are active approved build resources. Learned: current StructureDefinition files are in build scope for this audit.
+- E3 Git 22debf21aa and 966df8c99a: explicit #8754 source commits grouped Device physical item fields and later folded UDI updates into Device. Learned: the historical application path for the seed is present in source history.
+- E4 Source source/device/structuredefinition-Device.xml:137-642; source/medication/structuredefinition-Medication.xml:99-483; source/immunization/structuredefinition-Immunization.xml:251-393; source/substance/structuredefinition-Substance.xml:94-257: current resource definitions keep the relevant identifier/type/status/manufacturer/lot/expiry/quantity details inline or in resource-specific inline backbones. Learned: the current source expresses the no-common-structure approach and does not contain a semantic omission that FHIR-8754 requires fixing.
+- E5 Jira/Git FHIR-27018, cdbe6bb977, and 2ab10d9e16: later Published Immunization work added administeredProduct CodeableReference(Medication) while retaining adjacent manufacturer, lot, and expiration fields. Learned: later final decisions deliberately refined Immunization rather than applying the older proposed mandatory vaccineGiven model.
+- E6 Community search: Jira FTS for FHIR-8754/Physical Item found only the seed; Zulip FTS found broader type-vs-physical-instance discussion and the svn commit notification; Confluence refs found no FHIR-8754 pages. Learned: no discovered community evidence overrides the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8754",
+    "url": "https://jira.hl7.org/browse/FHIR-8754",
+    "snapshot_path": "contexts/FHIR-8754/jira/FHIR-8754.md",
+    "ref": { "jira_key": "FHIR-8754" },
+    "summary": "Published/Persuasive with Modification issue requesting harmonized physical-item attributes across Medication, Device, Substance, and Immunization.",
+    "learned": "The final disposition requires bounded alignment while keeping fields inline and avoiding a new shared structure.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1130,1169,1180,1246,1352,1379,1389,1441",
+    "summary": "Device, Immunization, Medication, and Substance are active approved resources in the current build configuration.",
+    "learned": "The inspected StructureDefinition sources are current build-scope artifacts.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "22debf21aa4d990db2d0d76b70d03098cd30c040; 966df8c99a9ec454013169646fe4862b168b0b03",
+    "ref": { "commit_1": "22debf21aa4d990db2d0d76b70d03098cd30c040", "commit_2": "966df8c99a9ec454013169646fe4862b168b0b03" },
+    "summary": "Historical #8754 commits grouped Device physical item fields and then continued Device UDI/identifier updates.",
+    "learned": "FHIR-8754 has an explicit historical application path in Device source history.",
+    "supports": ["initial_application", "history"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:137-642; source/medication/structuredefinition-Medication.xml:99-483; source/immunization/structuredefinition-Immunization.xml:251-393; source/substance/structuredefinition-Substance.xml:94-257",
+    "summary": "Current resources define relevant physical-item attributes inline or in resource-specific inline backbones/references.",
+    "learned": "The current source satisfies the no-new-structure resolution without a semantic gap that warrants a source edit.",
+    "supports": ["reconciliation", "source_state"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-27018 with commits cdbe6bb977 and 2ab10d9e16",
+    "url": "https://jira.hl7.org/browse/FHIR-27018",
+    "ref": { "jira_key": "FHIR-27018", "commit_1": "cdbe6bb97719c4b17cede9f76dec5bde0ea0cebb", "commit_2": "2ab10d9e161c5da869c6447c9401dd8de85956ab" },
+    "summary": "Published Immunization issue added administeredProduct as a CodeableReference(Medication) and associated narrative/source changes.",
+    "learned": "Later final work intentionally refined Immunization product modeling, so FHIR-8754 should not be used to restore the older vaccineGiven proposal.",
+    "supports": ["additional_context", "avoid_overbroad_change"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-8754 and Physical Item",
+    "command": "bun run jira:search fts '\"FHIR-8754\" \"Physical Item\"' --limit 10; bun run jira:search fts '\"Physical Item\" Medication Device Substance Immunization' --limit 20; bun run zulip:search fts '\"FHIR-8754\" OR \"Physical Item\"' --limit 10; bun run confluence:search refs jira FHIR-8754",
+    "query": "FHIR-8754 Physical Item Medication Device Substance Immunization",
+    "summary": "Jira search found only the seed; Zulip found broader type-vs-physical-instance discussion and a commit notification; Confluence references found none.",
+    "learned": "No discovered community record conflicts with treating the current source as already aligned with the final FHIR-8754 disposition.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

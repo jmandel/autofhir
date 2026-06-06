@@ -1,0 +1,125 @@
+FHIR-32985: Complete MeasureReport location support
+
+Issue request:
+FHIR-32985 was Published with a Persuasive with Modification resolution for R5. It asked to stop treating the reporting location as part of MeasureReport.reporter, add a first-class MeasureReport.location element that can reference a Location or an Organization representing where the report is from, and add a public health indicator example sent from multiple locations.
+
+Initial application:
+The issue was partially applied in source history. Commit 692a0961542b67f199286eb41cd512ee69ade637 added MeasureReport.location and removed Location from MeasureReport.reporter, but the new element allowed only Reference(Location) and therefore missed the approved Organization target. Commit af54eae034891419e6713e7ed99a72d67b666569 added the MeasureReport-location search parameter. The current HIV indicators example was listed as a public health data example, but it did not actually populate MeasureReport.location.
+
+Additional context:
+MeasureReport is active in the current build through source/fhir.ini, and the edited StructureDefinition, search parameter bundle, and listed example are all source files under the active resource folder. Later applied issue FHIR-40416 intentionally changed MeasureReport.location from 0..1 to 0..*, with Zulip implementer consultation and no discovered objection, so this reconciliation preserves the later 0..* cardinality rather than reverting to the original FHIR-32985 cardinality. No Confluence reference or conflicting Zulip discussion for FHIR-32985 was found.
+
+AutoFHIR reconciliation:
+This commit updates the authoritative MeasureReport StructureDefinition so MeasureReport.location can reference either Location or Organization, updates the matching location search parameter description and target metadata, and updates the HIV indicators public health MeasureReport example to include two contained Location resources referenced through repeated location elements. The checked-in SVG remains a generated-looking diagram artifact and was not hand-edited; the authoritative XML now carries the corrected semantics for regeneration.
+
+Recommendation:
+Keep this commit. It completes the missed semantic part of FHIR-32985 while respecting FHIR-40416's later cardinality change; no further core source action is indicated beyond normal generated artifact refresh during the build.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32985
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-40416: later-change - changed MeasureReport.location cardinality from 0..1 to 0..* and controls why this commit does not restore the original 0..1 cardinality.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32985: Published/Persuasive with Modification requested a first-class MeasureReport.location that can reference Location or Organization and a public health indicator example. Learned: the current source must support Organization as well as Location and include an example, while removing Location from reporter is already correct.
+- E2 Source source/fhir.ini:269: active resource entry measurereport=MeasureReport. Learned: MeasureReport files under source/measurereport are in current build scope.
+- E3 Source source/measurereport/structuredefinition-MeasureReport.xml:358: MeasureReport.location is now 0..* Reference(Location|Organization). Learned: the authoritative conformance source now matches the approved target scope while retaining the later cardinality.
+- E4 Source source/measurereport/bundle-MeasureReport-search-params.xml:161: MeasureReport-location search parameter now describes and advertises Location and Organization targets. Learned: the search surface stays aligned with the widened reference target.
+- E5 Source source/measurereport/measurereport-hiv-indicators.xml:1: the listed public health example now contains and references two reporting locations. Learned: the requested multi-location public health example is represented in source.
+- E6 Git 692a0961542b67f199286eb41cd512ee69ade637 and af54eae034891419e6713e7ed99a72d67b666569: original J#32985 commits added the element and search parameter but only as Location. Learned: the prior application missed the Organization target and example population.
+- E7 Jira FHIR-40416 and Git ade5bfd88fad9dda8885c3265552f987fdaeaa28: later Applied/Persuasive decision changed MeasureReport.location to 0..*. Learned: the correct current cardinality is 0..*, not the original 0..1 in FHIR-32985.
+- E8 Community search: Zulip search found the FHIR-40416 implementer consultation; quoted FHIR-32985 Zulip search and Confluence refs found no direct conflicting evidence. Learned: no discovered community evidence changes the Jira/source conclusion.
+- E9 Verification command/query: git diff --check and xmllint --noout on the modified XML files passed; xmllint schema validation was not usable because the existing source/fhir-all.xsd does not compile. Learned: the edited XML is well formed and has no diff whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32985",
+    "url": "https://jira.hl7.org/browse/FHIR-32985",
+    "snapshot_path": "contexts/FHIR-32985/jira/FHIR-32985.md",
+    "ref": { "jira_key": "FHIR-32985" },
+    "summary": "Published/Persuasive with Modification issue requesting a first-class MeasureReport.location that can reference Location or Organization and a public health indicator example.",
+    "learned": "This establishes the approved semantics that current source must preserve or complete.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:269",
+    "ref": { "path": "source/fhir.ini", "line": 269 },
+    "summary": "The active resources list contains measurereport=MeasureReport.",
+    "learned": "The MeasureReport resource folder is in current build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/measurereport/structuredefinition-MeasureReport.xml:358",
+    "ref": { "path": "source/measurereport/structuredefinition-MeasureReport.xml", "line": 358 },
+    "summary": "MeasureReport.location is defined as a repeatable reference and now targets both Location and Organization.",
+    "learned": "The authoritative StructureDefinition now aligns with FHIR-32985 target semantics while keeping the later cardinality.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/measurereport/bundle-MeasureReport-search-params.xml:161",
+    "ref": { "path": "source/measurereport/bundle-MeasureReport-search-params.xml", "line": 161 },
+    "summary": "The MeasureReport-location search parameter now describes and declares Location and Organization targets.",
+    "learned": "The search parameter surface remains consistent with the corrected element target profiles.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/measurereport/measurereport-hiv-indicators.xml:1",
+    "ref": { "path": "source/measurereport/measurereport-hiv-indicators.xml", "line": 1 },
+    "summary": "The HIV indicators public health MeasureReport example now includes two contained Location resources referenced by location elements.",
+    "learned": "The source now includes the requested public health indicator example sent from multiple locations.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "692a0961542b67f199286eb41cd512ee69ade637; af54eae034891419e6713e7ed99a72d67b666569",
+    "ref": { "commit": "692a0961542b67f199286eb41cd512ee69ade637" },
+    "summary": "Original J#32985 commits added MeasureReport.location and its search parameter but left the element Location-only.",
+    "learned": "The issue was only partially applied before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-40416",
+    "url": "https://jira.hl7.org/browse/FHIR-40416",
+    "ref": { "jira_key": "FHIR-40416", "commit": "ade5bfd88fad9dda8885c3265552f987fdaeaa28" },
+    "summary": "Applied/Persuasive later issue changed MeasureReport.location cardinality to 0..* and was implemented by commit ade5bfd88fad9dda8885c3265552f987fdaeaa28.",
+    "learned": "FHIR-40416 supersedes the original 0..1 cardinality from FHIR-32985 for the current build.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#implementers > MeasureReport.location breaking change",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/MeasureReport.location%20breaking%20change",
+    "summary": "Paul Denning posted the FHIR-40416 implementer consultation for changing MeasureReport.location from 0..1 to 0..*; no objections were found in the snapshot.",
+    "learned": "Community evidence supports retaining 0..* while completing the FHIR-32985 target-profile correction.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Validation and negative community searches",
+    "command": "git diff --check -- source/measurereport/structuredefinition-MeasureReport.xml source/measurereport/bundle-MeasureReport-search-params.xml source/measurereport/measurereport-hiv-indicators.xml; xmllint --noout source/measurereport/structuredefinition-MeasureReport.xml source/measurereport/bundle-MeasureReport-search-params.xml source/measurereport/measurereport-hiv-indicators.xml; bun run zulip:search fts '\"FHIR-32985\" MeasureReport location' --limit 10; bun run confluence:search refs jira FHIR-32985",
+    "summary": "Whitespace and XML well-formedness checks passed, and no direct FHIR-32985 Zulip or Confluence conflict was found.",
+    "learned": "The edited files are syntactically safe and no discovered community record contradicts the fix.",
+    "supports": ["verification", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,113 @@
+FHIR-12452: Clarify Observation stats units and codes
+
+Issue request:
+FHIR-12452 is a Published/Persuasive OO change request for Observation.$stats. It asked to use `statistic` consistently instead of `params`, prevent statistics over observations the user is not authorized to see, add skew/kurtosis/regression statistic codes, and clarify how unit variations should be handled.
+
+Initial application:
+The issue was initially applied by git commit a4bc03f16720aa6553cbff8e798d1585f5a63ed5, which updated the legacy Observation spreadsheet for FHIR-12452 and FHIR-9964. That commit added skew, kurtosis, and regression, renamed the input from `params` to `statistic`, and added the authorization footer. The later source refactor in 33b409a4b6d544598262f2f074ebb4b6dc466157 split the generated material into the current OperationDefinition and observation-statistics CodeSystem, but the $stats request/response examples and the statistic parameter summary still used stale `min`/`max` codes while the required CodeSystem uses `minimum`/`maximum`; the unit-variation clarification was still absent.
+
+Additional context:
+Observation is an active resource in source/fhir.ini and source/observation/list-Observation-operations.xml includes OperationDefinition/Observation-stats, so these files are in current build scope. FHIR-10041 is the same change family because it created the $stats operation and statistic code system. Jira, Zulip, and Confluence searches found no later applied decision that changes the FHIR-12452 unit-handling or authorization conclusions; OO 2025 WGM minutes mention a possible future move of $stats to an API Incubator IG, but there is no applied source change for that migration in the current core build.
+
+AutoFHIR reconciliation:
+This commit adds the missing common-UCUM-unit guidance to the OperationDefinition footer/comment, aligns the statistic parameter documentation with the required `average|maximum|minimum|count` codes, and updates the request and response examples to use `maximum` and `minimum` instead of stale `max` and `min`.
+
+Recommendation:
+Keep this source fix as-is for the current core build. If OO later applies a separate decision to move Observation.$stats out of core, handle that as a separate issue because the current source still publishes this operation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12452
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-10041: same-change-family - created the original Observation.$stats operation and statistic code system that FHIR-12452 clarified.
+FHIR-9964: background - was applied in the same 2017 commit but concerns Observation.$lastn, not this reconciliation.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12452: Published/Persuasive OO issue requested Observation.$stats clarifications for the statistic parameter, authorization, added statistic codes, and unit variations. Learned: this is final WG intent for the seed fix.
+- E2 Source source/fhir.ini:208 and source/observation/list-Observation-operations.xml:9: Observation is active and lists OperationDefinition/Observation-stats. Learned: the edited operation and examples are in current build scope.
+- E3 Source source/observation/operationdefinition-Observation-stats.xml:37,67,125 and source/observation/$stats-request.txt:2: the reconciled source now documents common UCUM unit handling and uses required statistic codes. Learned: the current source now carries the missing clarification and code alignment.
+- E4 Source source/observation/codesystem-observation-statistics.xml:48,53,133,138,143: the required statistic CodeSystem contains `maximum`, `minimum`, `skew`, `kurtosis`, and `regression`. Learned: examples and parameter docs need to align with these required codes.
+- E5 Git a4bc03f16720aa6553cbff8e798d1585f5a63ed5: applied [#12452], [#9964] to the legacy Observation spreadsheet. Learned: the initial application covered most requested changes but not unit variations.
+- E6 Git 33b409a4b6d544598262f2f074ebb4b6dc466157: reworked the source into current OperationDefinition/CodeSystem files. Learned: this later refactor explains why current examples could drift from the required CodeSystem.
+- E7 Command community searches: Jira searches for Observation stats/unit terms only found FHIR-12452; Zulip/Confluence searches found no conflicting applied decision. Learned: no discovered community evidence changes the source/Jira conclusion.
+- E8 Verification command: XML parse of OperationDefinition, response example, CodeSystem, and ValueSet plus regex checks for stale `min`/`max` statistic codes passed. Learned: the edited XML is parseable and the examples align with the required code system.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12452",
+    "url": "https://jira.hl7.org/browse/FHIR-12452",
+    "snapshot_path": "contexts/FHIR-12452/jira/FHIR-12452.md",
+    "ref": { "jira_key": "FHIR-12452" },
+    "summary": "Published/Persuasive OO issue requesting Observation.$stats clarification for statistic naming, authorization, added statistic codes, and unit variation handling.",
+    "learned": "This establishes the final WG intent for the current source reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:208 and source/observation/list-Observation-operations.xml:9",
+    "summary": "Observation is an active resource and its operations list references OperationDefinition/Observation-stats.",
+    "learned": "The edited OperationDefinition and examples feed the current core build.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/observation/operationdefinition-Observation-stats.xml:37,67,125; source/observation/$stats-request.txt:2; source/observation/$stats-response.txt:48,64,134,150",
+    "summary": "The reconciled OperationDefinition now includes common-UCUM-unit handling and the examples use `maximum`/`minimum` statistic codes.",
+    "learned": "The source now resolves the missing unit guidance and stale example-code mismatch.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/observation/codesystem-observation-statistics.xml:48,53,133,138,143",
+    "summary": "The required observation-statistics CodeSystem defines `maximum`, `minimum`, `skew`, `kurtosis`, and `regression`.",
+    "learned": "The $stats examples and parameter documentation must use the required CodeSystem codes rather than stale abbreviations.",
+    "supports": ["additional_context", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "a4bc03f16720aa6553cbff8e798d1585f5a63ed5",
+    "ref": { "commit": "a4bc03f16720aa6553cbff8e798d1585f5a63ed5" },
+    "summary": "Initial [#12452], [#9964] commit updated the legacy Observation spreadsheet with statistic naming, authorization text, and added statistic codes.",
+    "learned": "Most of FHIR-12452 was applied in 2017, but unit variation guidance was not present in the carried-forward source.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "33b409a4b6d544598262f2f074ebb4b6dc466157",
+    "ref": { "commit": "33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "The 2021 source refactor created the current OperationDefinition and CodeSystem files for Observation.$stats.",
+    "learned": "The required CodeSystem codes became explicit in current source while request/response examples still retained stale `min`/`max` values.",
+    "supports": ["additional_context", "source_change"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for Observation.$stats unit and statistic terms",
+    "command": "bun run jira:search fts 'Observation stats authorized units' --limit 15; bun run zulip:search fts 'Observation stats UCUM units' --limit 20; bun run confluence:search refs jira FHIR-12452; bun run confluence:search fts 'Observation stats statistic' --limit 10",
+    "query": "Observation stats authorized units; Observation stats UCUM units; FHIR-12452",
+    "summary": "Searches found FHIR-12452 and no conflicting applied Zulip or Confluence decision; a later OO WGM note only discussed possible future migration to an API Incubator IG.",
+    "learned": "No discovered community evidence changes the conclusion that the current core source should be corrected.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML and stale-code validation",
+    "command": "python3 XML parse/check script for operationdefinition, response, CodeSystem, ValueSet; rg for stale statistic=(min|max), <code value=\"min|max\" and average|max|min|count",
+    "summary": "XML parsing succeeded and the stale-code search found no remaining invalid min/max statistic examples or parameter summaries.",
+    "learned": "The edited source is syntactically valid and aligned with the required statistic codes.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,95 @@
+FHIR-5535: Audit resource profile common elements
+
+Issue request:
+FHIR-5535 was a Published/Persuasive DSTU1 change request asking that resource profile JSON definitions include the common elements and attributes shared by all resources, not just resource-specific elements.
+
+Initial application:
+The Jira comments record that this was a DSTU1 profile-generation concern and that, after profile work in 2015, it was considered sorted. No source-changing commit explicitly tagged FHIR-5535 was found on the current combined branch. Later source rework moved the current build to active StructureDefinition sources with explicit baseDefinition chains rather than duplicating inherited elements into each differential.
+
+Additional context:
+The current build-scope configuration registers Resource and DomainResource as abstract infrastructure resources and registers concrete resources such as Patient in the active resource list. Resource defines id, meta, implicitRules, and language; DomainResource defines text, contained, extension, and modifierExtension; concrete resource StructureDefinitions, represented by Patient, derive from DomainResource. A current build Patient snapshot also contains all of those inherited elements, so the JSON profile surface requested by the issue is present even though the per-resource source differentials do not duplicate inherited elements. Jira, Zulip, and Confluence searches found no later conflicting decision.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source model and generated profile snapshots already satisfy the applied DSTU1 request through inheritance and snapshot expansion, and adding duplicated common elements to each resource differential would be inconsistent with the current StructureDefinition source pattern.
+
+Recommendation:
+Keep this audit commit as-is. Revisit only if a current generated StructureDefinition snapshot omits inherited Resource or DomainResource elements; otherwise no FHIR core follow-up is needed.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5535
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5535: Published/Persuasive DSTU1 request to include common resource elements in JSON profile definitions, with a 2015 comment that profile work had sorted the issue. Learned: this is a final historical generation issue, not a new current source requirement to duplicate inherited elements.
+- E2 Source source/fhir.ini:128-134,169-211 and source/resource/structuredefinition-Resource.xml:53-136, source/domainresource/structuredefinition-DomainResource.xml:53-204, source/patient/structuredefinition-Patient.xml:90-96. Learned: active build-scope source defines common elements on Resource/DomainResource and concrete resources inherit them.
+- E3 Git 33b409a4b6d544598262f2f074ebb4b6dc466157: reworked source for new build core and introduced the current StructureDefinition source pattern for these files. Learned: current source organization is inheritance-based and does not require per-resource duplication of common differential elements.
+- E4 Verification command: parsed source/fhir.ini and StructureDefinition XML; found 127 active resource entries, all with baseDefinition, and all Resource/DomainResource common elements present. Learned: the current active source model consistently supports inherited common elements.
+- E5 Published spec https://build.fhir.org/patient.profile.json: Patient snapshot contains Patient.id, Patient.meta, Patient.implicitRules, Patient.language, Patient.text, Patient.contained, Patient.extension, and Patient.modifierExtension. Learned: the current generated JSON profile surface includes the requested common elements.
+- E6 Community search: Jira exact/broader searches, Zulip FHIR-5535/common-resource-elements searches, and Confluence Jira-reference/term searches found no conflicting community evidence. Learned: no discovered later decision changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5535",
+    "url": "https://jira.hl7.org/browse/FHIR-5535",
+    "snapshot_path": "contexts/FHIR-5535/jira/FHIR-5535.md",
+    "ref": { "jira_key": "FHIR-5535" },
+    "summary": "Published/Persuasive DSTU1 request asking that JSON resource profile definitions include common resource elements.",
+    "learned": "The final Jira record treats this as an old profile-generation concern that was sorted by later profile work.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini and Resource/DomainResource/Patient StructureDefinition XML",
+    "ref": { "paths": "source/fhir.ini; source/resource/structuredefinition-Resource.xml; source/domainresource/structuredefinition-DomainResource.xml; source/patient/structuredefinition-Patient.xml" },
+    "summary": "Active build-scope source registers Resource, DomainResource, and Patient; Resource and DomainResource define common elements while Patient derives from DomainResource.",
+    "learned": "Current source represents common resource elements through inheritance instead of duplicating them in every resource differential.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "33b409a4b6d544598262f2f074ebb4b6dc466157",
+    "ref": { "commit": "33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "The 2021 source rework introduced the current StructureDefinition source files for Resource, DomainResource, and Patient.",
+    "learned": "The relevant current source organization postdates the DSTU1 issue and already models inheritance correctly.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Local source inheritance validation",
+    "command": "python3 script parsing source/fhir.ini plus source/*/structuredefinition-*.xml",
+    "summary": "The script found 127 active resource entries, zero missing baseDefinition entries, and all Resource/DomainResource common elements present.",
+    "learned": "The active source set consistently supports inherited common elements for resource profiles.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/patient.profile.json",
+    "url": "https://build.fhir.org/patient.profile.json",
+    "summary": "The current Patient snapshot contains Patient.id, meta, implicitRules, language, text, contained, extension, modifierExtension, and identifier.",
+    "learned": "The generated JSON profile surface includes both inherited common elements and resource-specific elements.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative Jira/Zulip/Confluence search for FHIR-5535 and common resource elements",
+    "command": "bun run jira:search fts '\"FHIR-5535\" \"common resource elements\"' --limit 10; bun run zulip:search fts '\"FHIR-5535\"' --limit 10; bun run confluence:search refs jira FHIR-5535",
+    "query": "FHIR-5535 common resource elements profile definitions",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits and no conflicting Jira issue were found.",
+    "learned": "No discovered community or later Jira evidence changes the source/build conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

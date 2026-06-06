@@ -1,0 +1,112 @@
+FHIR-41197: Finish Subscription filter resource rename
+
+Issue request:
+FHIR-41197 was Applied/Persuasive for R5 and asked to rename Subscription.filterBy.resourceType to Subscription.filterBy.resource because the resourceType element name caused issues with JSON serializers/parsers and had been missed when matching SubscriptionTopic elements were renamed.
+
+Initial application:
+The issue was partially applied by dc74cb37a2095621b5fd69bd1eb0217f7d381c18, which renamed the authoritative Subscription StructureDefinition element and two examples. The current source still had live Subscription narrative, framework guidance, a negative invariant test instance, and the checked-in Subscription UML SVG using the old resourceType name.
+
+Additional context:
+FHIR-28490 introduced Subscription.filterBy.resourceType as the filter resource discriminator for multi-resource subscriptions, and FHIR-39033 later confirmed the discriminator should remain because filters may apply only to some triggering resources. FHIR-41197 changes the element name, not that semantics. The active fhir.ini resources entries include Subscription and SubscriptionTopic, and source/hierarchy.xml includes subscriptions.html, so these narrative and resource files feed the current build; fhir.ini also retains an explicit old-to-new alias for Subscription.filterBy.resourceType.
+
+AutoFHIR reconciliation:
+This commit updates the remaining current-build Subscription references from resourceType to Subscription.filterBy.resource, updates the invariant failure fixture to use the valid renamed element while still failing scr-1 for comparator-plus-modifier, and aligns the checked-in Subscription SVG label/link with the authoritative StructureDefinition.
+
+Recommendation:
+Keep this commit as-is. It completes the applied rename without changing the Subscription filter semantics preserved by FHIR-39033; no further core source change is indicated beyond normal regeneration if the build rewrites diagrams.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-41197
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-28490: same-change-family - introduced the multi-resource Subscription filter discriminator that FHIR-41197 later renamed.
+FHIR-39033: supporting-decision - confirmed the filter resource discriminator should remain for multi-resource subscriptions, so this reconciliation should rename stale references rather than remove the element.
+FHIR-46492: later-change - later moved SubscriptionTopic canFilterBy under trigger, explaining current SubscriptionTopic paths referenced by Subscription.filterBy.resource definitions.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-41197: Applied/Persuasive issue requesting Subscription.filterBy.resourceType be named resource. Learned: establishes the final rename requirement for the seed.
+- E2 Jira FHIR-39033: Published/Persuasive with Modification issue retaining the filter resource discriminator for multi-resource subscriptions. Learned: the correct reconciliation is a name alignment, not removal of the filter resource element.
+- E3 Source source/fhir.ini:235 and source/subscription/structuredefinition-Subscription.xml:242: Subscription is an active current-build resource and its authoritative element is Subscription.filterBy.resource. Learned: source edits target active build inputs and must align to the current element path.
+- E4 Git dc74cb37: FHIR-41197 application renamed the StructureDefinition and examples but did not touch the Subscription notes, framework guidance, invariant test fixture, or SVG. Learned: the original application was incomplete in nearby current-build surfaces.
+- E5 Source/command stale-reference scan: before reconciliation, source/subscription/subscription-notes.xml, source/subscriptions.html, source/subscription/invariant-tests/scr-1.f1.fail.xml, and source/subscription/subscription.svg still used resourceType in the Subscription filter context; after reconciliation, no such stale matches remain outside the fhir.ini compatibility alias. Learned: this commit closes the remaining current-source inconsistencies.
+- E6 Confluence FHIR-I Minutes 2023-11-06 page 202408310: block vote lists FHIR-41197 as Persuasive with the 12-0-0 vote also recorded in Jira. Learned: meeting evidence corroborates the Jira disposition.
+- E7 Zulip search for FHIR-41197 and Subscription.filterBy.resourceType: found only the block-vote announcement for the seed and no conflicting discussion about the rename. Learned: no discovered community discussion changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-41197",
+    "url": "https://jira.hl7.org/browse/FHIR-41197",
+    "snapshot_path": "contexts/FHIR-41197/jira/FHIR-41197.md",
+    "ref": { "jira_key": "FHIR-41197" },
+    "summary": "Applied/Persuasive issue requesting Subscription.filterBy.resourceType be renamed to Subscription.filterBy.resource.",
+    "learned": "This is final work-group intent for the seed and establishes the required element name.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-39033",
+    "url": "https://jira.hl7.org/browse/FHIR-39033",
+    "snapshot_path": "contexts/FHIR-39033/jira/FHIR-39033.md",
+    "ref": { "jira_key": "FHIR-39033" },
+    "summary": "Published/Persuasive with Modification issue explaining that multi-resource subscriptions still need a filter resource discriminator.",
+    "learned": "The element should be retained and stale references should be renamed rather than removed.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:235; source/subscription/structuredefinition-Subscription.xml:242",
+    "ref": { "paths": "source/fhir.ini; source/subscription/structuredefinition-Subscription.xml" },
+    "summary": "Subscription is active in fhir.ini and the authoritative StructureDefinition element is Subscription.filterBy.resource.",
+    "learned": "The edited Subscription resource inputs are in current build scope and must use the renamed path.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "dc74cb37a2095621b5fd69bd1eb0217f7d381c18",
+    "ref": { "commit": "dc74cb37a2095621b5fd69bd1eb0217f7d381c18" },
+    "summary": "Original FHIR-41197 source commit renamed the StructureDefinition element and two examples.",
+    "learned": "The application did not cover nearby narrative guidance, the invariant test fixture, or the checked-in UML SVG.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Targeted stale Subscription filter resourceType scan",
+    "command": "rg -n 'Subscription\\.filterBy\\.resourceType|filterBy\\.resourceType|#Subscription\\.filterBy\\.resourceType|<resourceType value|resourceType</a>|<code>resourceType</code>' source/subscription source/subscriptions.html",
+    "summary": "The scan identified stale current-source references before the fix and no remaining matches after the fix.",
+    "learned": "The reconciliation removed the remaining current-build inconsistencies while leaving only the fhir.ini compatibility alias outside the scan scope.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "FHIR-I Minutes 2023-11-06 page 202408310",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/202408310/FHIR+Infrastructure+Minutes+CC+2023-11-06",
+    "snapshot_path": "contexts/FHIR-41459/confluence/202408310.md",
+    "ref": { "confluence_page_id": 202408310 },
+    "summary": "Minutes list FHIR-41197 as Persuasive in a 12-0-0 FHIR block vote.",
+    "learned": "Meeting evidence corroborates the Jira vote and does not narrow the requested rename.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip search for FHIR-41197 and Subscription.filterBy.resourceType",
+    "command": "bun run zulip:search fts '\"FHIR-41197\" Subscription filterBy resourceType' --limit 10; bun run zulip:search fts '\"Subscription.filterBy.resourceType\" \"Subscription.filterBy.resource\"' --limit 10",
+    "query": "FHIR-41197 Subscription.filterBy.resourceType Subscription.filterBy.resource",
+    "result_count": 1,
+    "summary": "Search found the block-vote announcement for FHIR-41197 and no separate conflicting rename discussion.",
+    "learned": "No discovered Zulip evidence changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

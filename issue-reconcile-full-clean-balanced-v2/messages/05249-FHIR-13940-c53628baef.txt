@@ -1,0 +1,110 @@
+FHIR-13940: Audit ValueSet code search support
+
+Issue request:
+FHIR-13940 was a Published/Persuasive Vocabulary change request from STU3 asking FHIR-core to let clients search ValueSet by code, e.g. ValueSet?code=http://loinc.org|1234-5, so implementers could find reusable value sets. The accepted resolution required adding the ValueSet code search capability and a TerminologyCapabilities declaration for whether the server searches definitions, expansions, or both.
+
+Initial application:
+The issue was applied in svn/git import commit 6826aa32162838368e2e38376119ff0b90e35b95 (#13940, svn r12750), which added the ValueSet search notes, the TerminologyCapabilities.codeSearch element/example, and the original ValueSet code search parameter to the then-current spreadsheet source. Commit e0f69bc5cb8aa9ec01633efea90d88bacb2f8ef3 immediately corrected the search expression to select expansion codes. The later 2021 source rework carried the same capability into the current XML bundle and resource StructureDefinition sources.
+
+Additional context:
+Current source/fhir.ini actively includes ValueSet and TerminologyCapabilities resources, so the checked source files feed the current build. Later FHIR-17792 replaced the confusing original CodeSearchSupport values with in-compose, in-expansion, and in-compose-or-expansion, and that related issue is already represented on the combined branch. Later FHIR-49784 changed ValueSet-code to use repeat(contains), preserving the seed behavior for nested expansions. Community searches found no conflicting FHIR-13940-specific record; the relevant Zulip thread confirms the intended distinction between compose and expansion support.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. The current ValueSet-code SearchParameter searches ValueSet.expansion.repeat(contains).code and ValueSet.compose.include.concept.code, the ValueSet notes explain the cost/context of the search and point to TerminologyCapabilities, and TerminologyCapabilities.codeSearch has the required binding to CodeSearchSupport.
+
+Recommendation:
+Keep this no-change audit commit as-is. No FHIR-core follow-up is needed for FHIR-13940; any future work should be driven by a new decision about broader ValueSet reverse-lookup behavior or terminology-server implementation guidance rather than by this already-applied STU3 tracker.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13940
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17792: same-change-family - later Published Vocabulary issue clarified the TerminologyCapabilities CodeSearchSupport values used to declare support for the ValueSet code search; it is already represented on the combined branch.
+FHIR-49784: later-change - later Applied issue updated nested search-parameter expressions, including ValueSet-code, to use repeat(contains) for nested expansion codes.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13940: Published/Persuasive request to add ValueSet?code and declare definition/expansion support in TerminologyCapabilities. Learned: this establishes the target behavior for the seed decision.
+- E2 Source source/fhir.ini:169-283,640,922-943: ValueSet and TerminologyCapabilities are active resources, assigned to vocab, with ValueSet in the normative package. Learned: the inspected source files are in current build scope.
+- E3 Source source/valueset/bundle-ValueSet-search-params.xml:8-20: ValueSet-code exists as a token SearchParameter over ValueSet.expansion.repeat(contains).code and ValueSet.compose.include.concept.code. Learned: the requested ValueSet code search parameter is present and covers current nested expansion source.
+- E4 Source source/valueset/valueset-notes.xml:664-672: the ValueSet notes explain the code search parameter, its cost/context sensitivity, and TerminologyCapabilities declaration. Learned: the requested implementer guidance is present.
+- E5 Source source/terminologycapabilities/structuredefinition-TerminologyCapabilities.xml:908-925 and source/terminologycapabilities/codesystem-code-search-support.xml:40-54: codeSearch is bound to CodeSearchSupport with in-compose, in-expansion, and in-compose-or-expansion values. Learned: servers can declare whether they support searching definitions, expansions, or both.
+- E6 Git 6826aa32162838368e2e38376119ff0b90e35b95 and e0f69bc5cb8aa9ec01633efea90d88bacb2f8ef3: initial #13940 application plus immediate expression correction. Learned: the historical application path matches the Jira resolution.
+- E7 Zulip #terminology > Clarification on CodeSearchSupport value set, 2018-08-16 to 2018-09-04: discussion clarified compose versus expansion behavior and led to FHIR-17792. Learned: later context supports the current CodeSearchSupport representation rather than reopening FHIR-13940.
+- E8 Community search: quoted FHIR-13940 Zulip and Confluence searches returned no direct hits; broader codeSearch searches found only the expected CodeSearchSupport discussion. Learned: no conflicting community record changes the no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13940",
+    "url": "https://jira.hl7.org/browse/FHIR-13940",
+    "snapshot_path": "contexts/FHIR-13940/jira/FHIR-13940.md",
+    "ref": { "jira_key": "FHIR-13940" },
+    "summary": "Published/Persuasive request to add ValueSet?code and declare definition/expansion support in TerminologyCapabilities.",
+    "learned": "This establishes the target behavior for the seed decision.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-283,640,922-943",
+    "summary": "ValueSet and TerminologyCapabilities are active resources, assigned to vocab, with ValueSet in the normative package.",
+    "learned": "The inspected source files are in current build scope.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/valueset/bundle-ValueSet-search-params.xml:8-20",
+    "summary": "ValueSet-code exists as a token SearchParameter over ValueSet.expansion.repeat(contains).code and ValueSet.compose.include.concept.code.",
+    "learned": "The requested ValueSet code search parameter is present and covers nested expansion contains entries.",
+    "supports": ["reconciliation", "source_state"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/valueset/valueset-notes.xml:664-672",
+    "summary": "The ValueSet notes explain the code search parameter, its cost/context sensitivity, and TerminologyCapabilities declaration.",
+    "learned": "The requested implementer guidance is present without needing redundant prose.",
+    "supports": ["reconciliation", "source_state"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/terminologycapabilities/structuredefinition-TerminologyCapabilities.xml:908-925; source/terminologycapabilities/codesystem-code-search-support.xml:40-54",
+    "summary": "TerminologyCapabilities.codeSearch is bound to CodeSearchSupport with in-compose, in-expansion, and in-compose-or-expansion values.",
+    "learned": "Servers can declare whether they support searching definitions, expansions, or both.",
+    "supports": ["reconciliation", "source_state"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "6826aa32162838368e2e38376119ff0b90e35b95; e0f69bc5cb8aa9ec01633efea90d88bacb2f8ef3",
+    "summary": "The #13940 application added the ValueSet search notes, TerminologyCapabilities.codeSearch material, and ValueSet code search parameter, followed by an expression correction.",
+    "learned": "The historical application path matches the Jira resolution.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#terminology > Clarification on CodeSearchSupport value set",
+    "url": "https://chat.fhir.org/#narrow/stream/terminology/topic/Clarification%20on%20CodeSearchSupport%20valeu%20set",
+    "summary": "The 2018 thread clarified compose versus expansion behavior and identified the need to refine CodeSearchSupport values.",
+    "learned": "Later context supports the current CodeSearchSupport representation rather than reopening FHIR-13940.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative and broad community searches for FHIR-13940 and ValueSet codeSearch",
+    "command": "bun run zulip:search fts '\"FHIR-13940\"' --limit 10; bun run confluence:search fts '\"FHIR-13940\"' --limit 10; bun run zulip:search fts '\"codeSearch\" \"ValueSet\"' --limit 10",
+    "summary": "No direct FHIR-13940 Zulip or Confluence hits were found; broader codeSearch results led only to the expected CodeSearchSupport discussion.",
+    "learned": "No discovered community record conflicts with the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

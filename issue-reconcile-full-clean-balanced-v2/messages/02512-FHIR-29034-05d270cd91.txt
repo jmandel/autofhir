@@ -1,0 +1,116 @@
+FHIR-29034: Audit Organization contact migration
+
+Issue request:
+FHIR-29034 was a Published/Persuasive PA change request for R5 asking to remove the top-level Organization.telecom and Organization.address elements and update Organization.contact from a BackboneElement to 0..* ExtendedContactDetail.
+
+Initial application:
+The change was applied in stages. Commit a9d7aa77e88c7070371eabb413aa4f91101d07fb changed Organization.contact to ExtendedContactDetail while temporarily deprecating the old top-level telecom/address elements. Commit e1320848bd2700338a2a11b634693d52f9fb8ad1 then removed the deprecated Organization.telecom and Organization.address elements from the active Organization StructureDefinition. Commit eb428f546bf447e01fc427a07f417c31f242b1ce updated the Organization address search parameters to point at Organization.contact.address.
+
+Additional context:
+FHIR-29035 created ExtendedContactDetail with telecom, address, organization, and period fields, and FHIR-27005 records that using ExtendedContactDetail on Organization.contact satisfies the missing contact period request. PA minutes from 2021-12-01 confirm the work group decision to remove Organization telecom/address and use ExtendedContactDetail for Organization.contact. The remaining Organization.telecom and Organization.address mentions in source/fhir.ini are in the [r4-r6-changes] migration mapping section, and the inactive CDA profile entry is commented out of [profiles].
+
+AutoFHIR reconciliation:
+No source change was made. The active Organization resource is in source/fhir.ini, current source/organization/structuredefinition-Organization.xml has Organization.contact typed as ExtendedContactDetail and no active Organization.telecom or Organization.address element definitions, Organization address search parameters use Organization.contact.address, and a parse check found no direct telecom/address children in active Organization examples.
+
+Recommendation:
+Keep this no-change audit commit as-is. Future cleanup should not re-add local Organization.telecom/address prose; only migration/change-summary mappings or external compatibility material should mention the retired paths.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-29034
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25375: same-change-family - Location.contact followed the same ExtendedContactDetail migration pattern and is referenced in the originating discussion.
+FHIR-29035: supporting-decision - Created the ExtendedContactDetail datatype that Organization.contact now uses.
+FHIR-27005: supporting-decision - Its Organization contact period request was satisfied by Organization.contact using ExtendedContactDetail.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-29034: Published/Persuasive request to remove Organization.telecom and Organization.address and change Organization.contact to ExtendedContactDetail. Learned: this establishes the final seed issue request.
+- E2 Source source/fhir.ini:170-212 and source/organization/structuredefinition-Organization.xml:293-306: Organization is an active resource and Organization.contact is 0..* ExtendedContactDetail. Learned: the authoritative current source uses the approved contact type.
+- E3 Source source/organization/structuredefinition-Organization.xml and source/organization/bundle-Organization-search-params.xml: current grep found no Organization.telecom/address element definitions and address search parameters use Organization.contact.address. Learned: the removed elements are absent from the active definition and adjacent search surface was migrated.
+- E4 Source source/fhir.ini:1562 and source/fhir.ini:1977-1982: remaining Organization.address/telecom entries are in [r4-r6-changes] with migration guidance to contact.address/contact.telecom. Learned: those residual mentions are compatibility mappings, not active elements needing deletion.
+- E5 Git a9d7aa77, e1320848, eb428f54: history shows the staged migration to ExtendedContactDetail, removal of deprecated top-level elements, and search-parameter update. Learned: prior application matches the Jira request.
+- E6 Confluence PA 2021-12-01 page 81011689: minutes record a 4-0-0 disposition that Organization.contact would use ExtendedContactDetail and telecom/address would be removed. Learned: community/work-group evidence supports the current source state.
+- E7 Command Zulip search for "FHIR-29034" Organization telecom address contact: no direct Zulip hits found. Learned: no discovered Zulip evidence conflicts with the Jira/source/confluence conclusion.
+- E8 Verification command: parsed source/organization examples for direct Organization child telecom/address and found none. Learned: active examples are not carrying the removed top-level elements.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-29034",
+    "url": "https://jira.hl7.org/browse/FHIR-29034",
+    "snapshot_path": "contexts/FHIR-29034/jira/FHIR-29034.md",
+    "ref": { "jira_key": "FHIR-29034" },
+    "summary": "Published/Persuasive PA change request to remove Organization.telecom and Organization.address and update Organization.contact to ExtendedContactDetail.",
+    "learned": "This is the final seed issue request and decision to check against the current source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-212; source/organization/structuredefinition-Organization.xml:293-306",
+    "summary": "Organization is active in the build and Organization.contact is typed as ExtendedContactDetail.",
+    "learned": "The authoritative current StructureDefinition has the requested replacement contact model.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/organization/structuredefinition-Organization.xml; source/organization/bundle-Organization-search-params.xml:27-133",
+    "summary": "Current source has no active Organization.telecom or Organization.address element definitions, and Organization address search parameters point to Organization.contact.address paths.",
+    "learned": "The removed elements and the adjacent search-parameter surface were migrated consistently.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:1562; source/fhir.ini:1977-1982",
+    "summary": "Remaining Organization.address and Organization.telecom mentions are in [r4-r6-changes] migration mappings to contact.address/contact.telecom.",
+    "learned": "Residual old-path mentions are expected compatibility guidance rather than active resource elements.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "a9d7aa77e88c7070371eabb413aa4f91101d07fb; e1320848bd2700338a2a11b634693d52f9fb8ad1; eb428f546bf447e01fc427a07f417c31f242b1ce",
+    "summary": "Git history shows Organization.contact changed to ExtendedContactDetail, top-level Organization.telecom/address removed, and address search parameters retargeted to Organization.contact.address.",
+    "learned": "The issue was previously applied through source commits that match the approved request.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "confluence",
+    "locator": "PA 2021-12-01 Conference Call Minutes page 81011689",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/81011689/2021-12-01+Conference+Call+Minutes",
+    "snapshot_path": "contexts/FHIR-29034/confluence/81011689.md",
+    "ref": { "confluence_page_id": 81011689 },
+    "summary": "Minutes record the PA decision that Organization.contact would use ExtendedContactDetail and telecom/address would be removed, with a 4-0-0 vote.",
+    "learned": "Work-group minutes confirm the Jira disposition and current source interpretation.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative Zulip search for FHIR-29034 Organization telecom address contact",
+    "command": "bun run zulip:search fts '\"FHIR-29034\" Organization telecom address contact' --limit 10",
+    "query": "\"FHIR-29034\" Organization telecom address contact",
+    "result_count": 0,
+    "summary": "No direct Zulip hits were found for the issue key and Organization telecom/address terms.",
+    "learned": "No discovered Zulip discussion changes the Jira, Confluence, source, and git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Organization example direct child validation",
+    "command": "python - <<'PY' ... parse source/organization/*.xml and invariant-tests/*.xml for direct Organization child telecom/address ... PY",
+    "summary": "The validation printed no direct Organization child telecom/address elements.",
+    "learned": "Organization examples are not stale with respect to the removed top-level elements.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,83 @@
+FHIR-13447: Audit DocumentReference required-element cardinalities
+
+Issue request:
+Published FHIR-13447 was a Persuasive with Modification STU3 change request for DocumentReference asking whether required fields were truly required after a Zulip discussion about lightweight attachment use. The final decision was to relax DocumentReference.type and DocumentReference.indexed, keep DocumentReference.status mandatory, and keep both DocumentReference.relatesTo.code and DocumentReference.relatesTo.target mandatory when relatesTo is present.
+
+Initial application:
+The decision appears to have been applied in git commit 94e532a611046fcdc40df2d7d28457eeb7dad3a6, whose San Diego WGM block-vote message explicitly lists GF#13447. That commit changed the then-authoritative DocumentReference spreadsheet so DocumentReference.type went from 1..1 to 0..1 and DocumentReference.indexed became DocumentReference.date with cardinality 0..1 and an indexed alias; status remained 1..1 and relatesTo.code/target remained 1..1.
+
+Additional context:
+DocumentReference is active in source/fhir.ini. The current authoritative source is source/documentreference/structuredefinition-DocumentReference.xml after later source refactoring, and it preserves the intended cardinalities: status 1..1, type 0..1, date 0..1 with alias indexed, relatesTo 0..*, relatesTo.code 1..1, and relatesTo.target 1..1. The origin Zulip thread confirms the use case and Lloyd McKenzie's concern that indexed and possibly type did not meet the bar for mandatory elements. FHIR-13281 independently requested the indexed relaxation and was handled in the same application commit.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change because the current build source already reflects the published FHIR-13447 decision without needing redundant narrative or generated-artifact edits.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up is needed for FHIR-core unless a future work group decision changes DocumentReference mandatory-element policy.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13447
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13281: same-change-family - independently requested relaxing DocumentReference.indexed to 0..1 and was applied in the same DocumentReference block-vote commit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13447: Published/Persuasive with Modification; relax type and indexed, keep status and relatesTo.code/target mandatory. Learned: this establishes the final target cardinalities.
+- E2 Zulip implementers/Add an attachment to a /ReferralRequest: discussion raised lightweight DocumentReference attachment use and concern that indexed/type may be overkill as mandatory fields. Learned: this confirms the use case behind the tracker.
+- E3 Git 94e532a611046fcdc40df2d7d28457eeb7dad3a6: block-vote commit lists GF#13447 and changes DocumentReference.type to 0..1 and indexed/date to 0..1. Learned: the issue was applied in source history.
+- E4 Source source/fhir.ini:170-190 and source/documentreference/structuredefinition-DocumentReference.xml:236-352,738-745,970-1037: DocumentReference is active and current cardinalities match the decision. Learned: no current build source correction is needed.
+- E5 Community/Jira searches: Confluence refs/FTS found no FHIR-13447 or required-element minutes, and Jira searches found only FHIR-13281 as a tightly connected indexed-cardinality issue. Learned: no later discovered decision conflicts with the current source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13447",
+    "url": "https://jira.hl7.org/browse/FHIR-13447",
+    "snapshot_path": "contexts/FHIR-13447/jira/FHIR-13447.md",
+    "ref": { "jira_key": "FHIR-13447" },
+    "summary": "Published/Persuasive with Modification DocumentReference issue requesting review of required elements and deciding to relax type and indexed while keeping status and relatesTo.code/target mandatory.",
+    "learned": "This establishes the final target cardinalities for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Add an attachment to a /ReferralRequest",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Add%20an%20attachment%20to%20a%20%2FReferralRequest",
+    "summary": "The thread raised lightweight eReferral attachment use, noted required DocumentReference fields, and included Lloyd McKenzie's statement that indexed is overkill and type may not always meet the mandatory-element bar.",
+    "learned": "This confirms the use case and rationale behind FHIR-13447.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "94e532a611046fcdc40df2d7d28457eeb7dad3a6",
+    "ref": { "commit": "94e532a611046fcdc40df2d7d28457eeb7dad3a6" },
+    "summary": "San Diego WGM block-vote commit lists GF#13447 and changes DocumentReference.type from 1..1 to 0..1 and DocumentReference.indexed/date from 1..1 to 0..1.",
+    "learned": "This shows the issue was applied in source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-190; source/documentreference/structuredefinition-DocumentReference.xml:236-352,738-745,970-1037",
+    "summary": "DocumentReference is active, with status 1..1, type 0..1, date 0..1 carrying alias indexed, relatesTo 0..*, and relatesTo.code/target 1..1.",
+    "learned": "The current build source already matches the FHIR-13447 target state.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community and related-decision searches for FHIR-13447",
+    "command": "bun run confluence:search refs jira FHIR-13447; bun run confluence:search fts '\"FHIR-13447\"' --limit 10; bun run jira:search fts 'DocumentReference date indexed mandatory optional' --limit 20",
+    "summary": "No Confluence references or high-signal text hits were found; the only tightly connected Jira hit was FHIR-13281 for indexed cardinality.",
+    "learned": "No discovered community record changes the Jira/source conclusion, and FHIR-13281 supports the indexed/date part of the same applied change family.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

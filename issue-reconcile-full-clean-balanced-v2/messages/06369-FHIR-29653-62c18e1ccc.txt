@@ -1,0 +1,119 @@
+FHIR-29653: Audit Observation search parameter FHIRPath expressions
+
+Issue request:
+FHIR-29653 is a Published/Persuasive OO technical correction for R5. It asked to fix Observation search parameter FHIRPath expressions that used the FHIRPath `as` type specifier on potentially multi-item collections such as `Observation.component.value`, because valid blood pressure Observations with multiple components could make those expressions error instead of selecting each typed value.
+
+Initial application:
+The issue was applied in git commit ee9191ec79, which changed `source/observation/bundle-Observation-search-params.xml` from `as` expressions to `ofType(...)` expressions for the Observation value and component-value search parameters called out by the Jira. The branch also contains merge commit b5673aa1e3 for the FHIR-29653 pull request. A later related FHIRPath cleanup, 7b140eccee, changed the remaining Observation date search parameter `.as(...)` expressions to `.ofType(...)`.
+
+Additional context:
+`source/fhir.ini` actively includes the Observation resource, so `source/observation/bundle-Observation-search-params.xml` is in current build scope. The originating Zulip thread confirms the problem and specifically recommends `Observation.component.value.ofType(CodeableConcept)` for multi-valued collections. OO minutes show FHIR-29653 being tracked for a May 2021 block vote and later still on the Observation tracker list before application. Related FHIRPath issue FHIR-25188 was ultimately Resolved - No Change in 2026 because the current core spec uses the corrected `ofType(X)` forms.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Current Observation search parameter expressions use `ofType(...)` for the affected value, component-value, combo-value, and date parameters, and an explicit search found no `as` or `.as(...)` expression in `source/observation/bundle-Observation-search-params.xml`.
+
+Recommendation:
+Keep this no-change audit commit. No additional FHIR core source work is needed for FHIR-29653; future edits to Observation choice-type search parameters should continue using `ofType(...)` rather than `as` when the input may contain multiple items.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-29653
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-25188: supporting-decision - the broader FHIRPath `as` over collections issue was later resolved no-change because core had already been corrected to use `ofType(X)`.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-29653: Published/Persuasive technical correction requesting Observation search parameter FHIRPath expressions be changed away from `as` on multi-item collections. Learned: this establishes the final WG request for the seed.
+- E2 Zulip #implementers > Observation FHIRPath expressions?: the reporter described errors on blood pressure Observations and responders agreed `ofType(CodeableConcept)` was the proper form before Grahame requested a task. Learned: this confirms the concrete defect and intended expression pattern.
+- E3 Source source/fhir.ini:169,945: Observation is listed as an active resource. Learned: the Observation search parameter bundle is current build-scope source.
+- E4 Source source/observation/bundle-Observation-search-params.xml:258,277,382,401,439,725,744,763: affected Observation choice-type search parameter expressions use `ofType(...)`. Learned: the current source satisfies the requested correction.
+- E5 Git ee9191ec79 and 7b140eccee: FHIR-29653 changed the value/component expressions from `as` to `ofType(...)`, and a later FHIRPath cleanup changed the remaining Observation-date `.as(...)` calls. Learned: prior application and later maintenance account for the current source state.
+- E6 Jira FHIR-25188: Resolved - No Change after noting newer FHIR uses `ofType(X)` and all core uses had been corrected. Learned: no later FHIRPath decision requires restoring `as` in the Observation search parameters.
+- E7 Confluence OO minutes 2021-05-11 and 2022-02-15: FHIR-29653 was added to the May 2021 block vote and later tracked among outstanding Observation issues before application. Learned: community minutes do not reveal a conflicting scope.
+- E8 Verification command: `rg '<expression value="[^"]*\\.as\\(|<expression value="[^"]* as ' source/observation/bundle-Observation-search-params.xml` returned no matches. Learned: no affected Observation SearchParameter expression remains in the obsolete form.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-29653",
+    "url": "https://jira.hl7.org/browse/FHIR-29653",
+    "snapshot_path": "contexts/FHIR-29653/jira/FHIR-29653.md",
+    "ref": { "jira_key": "FHIR-29653" },
+    "summary": "Published/Persuasive OO technical correction asking to fix Observation search parameter FHIRPath expressions that used `as` on potentially multi-item collections.",
+    "learned": "This is the final seed request and establishes that `ofType(...)`-style filtering is the accepted correction.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Observation FHIRPath expressions?",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Observation%20FHIRPath%20expressions%3F",
+    "snapshot_path": "contexts/FHIR-29653/zulip/implementers--Observation-FHIRPath-expressions.md",
+    "ref": { "stream": "implementers", "topic": "Observation FHIRPath expressions?" },
+    "summary": "The originating thread identifies errors from `Observation.component.value as CodeableConcept` on multi-component Observations and recommends `Observation.component.value.ofType(CodeableConcept)`.",
+    "learned": "This confirms the specific defect and intended replacement pattern behind the Jira.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,945",
+    "ref": { "path": "source/fhir.ini", "lines": "169,945" },
+    "summary": "The current build configuration has an active `[resources]` section and active `Observation=observation` entry.",
+    "learned": "Observation source files, including the search parameter bundle, are in current FHIR build scope.",
+    "supports": ["source_scope", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/observation/bundle-Observation-search-params.xml:258,277,382,401,439,725,744,763",
+    "ref": { "path": "source/observation/bundle-Observation-search-params.xml", "lines": "258,277,382,401,439,725,744,763" },
+    "summary": "The affected Observation search parameters now use `ofType(...)` expressions for value, component-value, combo-value, and date choice-type filtering.",
+    "learned": "The current source already implements the requested semantic correction.",
+    "supports": ["reconciliation", "source_state"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "ee9191ec79; 7b140eccee",
+    "ref": { "commits": "ee9191ec79,7b140eccee" },
+    "summary": "Commit ee9191ec79 applied FHIR-29653 by replacing Observation value/component `as` expressions with `ofType(...)`; commit 7b140eccee changed the remaining Observation-date `.as(...)` calls to `.ofType(...)`.",
+    "learned": "Git history explains why the current source has no remaining FHIR-29653 defect.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-25188",
+    "url": "https://jira.hl7.org/browse/FHIR-25188",
+    "ref": { "jira_key": "FHIR-25188" },
+    "summary": "Related FHIRPath issue was resolved No Change in 2026 after noting current FHIR core uses had been corrected to `ofType(X)`.",
+    "learned": "No later FHIRPath decision undermines leaving the Observation expressions in their current corrected form.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "OO minutes 2021-05-11 page 111124750; OO minutes 2022-02-15 page 90351841",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/111124750/2021-05-11+FHIR",
+    "ref": { "confluence_page_ids": "111124750,90351841" },
+    "summary": "OO minutes show FHIR-29653 added to the May 2021 block vote and later listed among outstanding Observation trackers before application.",
+    "learned": "The minutes provide process context and no conflicting scope for this reconciliation.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "No remaining Observation SearchParameter `as` expressions",
+    "command": "rg '<expression value=\"[^\"]*\\\\.as\\\\(|<expression value=\"[^\"]* as ' source/observation/bundle-Observation-search-params.xml",
+    "result_count": 0,
+    "summary": "The search returned no matches in the Observation search parameter bundle.",
+    "learned": "There is no remaining affected `as` or `.as(...)` expression to edit for FHIR-29653.",
+    "supports": ["verification", "reconciliation"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,106 @@
+FHIR-20522: Add MessageHeader child invariants
+
+Issue request:
+FHIR-20522 was a Published/Persuasive with Modification FHIR-core MessageHeader change request for R5. It asked to make MessageHeader.source.endpoint and MessageHeader.destination.endpoint optional because real-world V2-derived messaging does not always know endpoint URLs; the accepted InM motion also required constraints that each present MessageHeader.source or MessageHeader.destination backbone have at least one of its children.
+
+Initial application:
+The issue was partially applied by dd765a96be, which changed MessageHeader.destination.endpoint and MessageHeader.source.endpoint from 1..1 to 0..1. The later cd5098720d commit refactored both elements to endpoint[x] with url and Reference(Endpoint) choices and updated examples, but the accepted source/destination child invariants were still absent from the current StructureDefinition.
+
+Additional context:
+source/fhir.ini actively lists messageheader=MessageHeader and assigns messageheader to InM, so source/messageheader/structuredefinition-MessageHeader.xml is in current build scope. Duplicate Jira issues FHIR-33690, FHIR-32369, FHIR-26898, and FHIR-24921 request the same optional endpoint behavior. Zulip discussion and InM minutes confirm the interoperability need and do not supersede the invariant requirement.
+
+AutoFHIR reconciliation:
+Added msh-1 on MessageHeader.destination requiring endpoint, name, or receiver when a destination backbone is present, and msh-2 on MessageHeader.source requiring endpoint, name, software, version, contact, or sender for the mandatory source backbone. Added matching condition references to the child elements involved in each invariant.
+
+Recommendation:
+Keep this source fix. It completes the published InM decision without changing endpoint cardinalities or the later endpoint[x] type choice; no separate commits are needed for the duplicate Jira issues.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20522
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-33690: duplicate - Same request to make MessageHeader endpoints optional; cited by FHIR-20522 resolution as duplicate.
+FHIR-32369: duplicate - Same MessageHeader.destination.endpoint optionality request; cited by FHIR-20522 resolution as duplicate.
+FHIR-26898: duplicate - Same MessageHeader.destination endpoint cardinality concern; cited by FHIR-20522 resolution as duplicate.
+FHIR-24921: duplicate - Same MessageHeader endpoint optionality concern for identifier-only messaging use cases; cited by FHIR-20522 resolution as duplicate.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20522: Published/Persuasive with Modification; comments and InM vote request endpoint optionality plus child invariants. Learned: this is the final issue decision to reconcile.
+- E2 Confluence 2022-02-01 InM WG Agenda/Minutes page 90343516: records the 4-0-0 motion to make source.endpoint and destination.endpoint 0..1 and create invariants requiring one child on source and destination. Learned: the invariant was part of the approved scope, not optional editorial text.
+- E3 Source source/fhir.ini:206 and source/fhir.ini:582: messageheader is an active MessageHeader resource assigned to InM. Learned: the edited StructureDefinition is in current build scope.
+- E4 Source source/messageheader/structuredefinition-MessageHeader.xml:151 and :249: current source had optional endpoint[x] elements but no source/destination child invariant before this commit. Learned: the cardinality portion was applied while the invariant portion was missing.
+- E5 Git dd765a96be and cd5098720d: historical commits made endpoints optional and later changed them to url|Reference(Endpoint). Learned: prior application addressed endpoint cardinality/type but not the accepted constraints.
+- E6 Zulip #fhir-messages > Use of endpoints and #committers > MessageHeader.destination: community discussion explains the endpoint optionality and later endpoint[x] mechanics. Learned: no discovered community evidence reverses the InM invariant requirement.
+- E7 Verification command: git diff --check and xmllint --noout source/messageheader/structuredefinition-MessageHeader.xml succeeded. Learned: the XML edit is well-formed and has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20522",
+    "url": "https://jira.hl7.org/browse/FHIR-20522",
+    "snapshot_path": "contexts/FHIR-20522/jira/FHIR-20522.md",
+    "ref": { "jira_key": "FHIR-20522" },
+    "summary": "Published/Persuasive with Modification issue requesting MessageHeader.source.endpoint and MessageHeader.destination.endpoint optionality for V2-derived messaging use cases.",
+    "learned": "The final decision establishes endpoint optionality and, with the recorded comments/minutes, the need for source and destination child invariants.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "2022-02-01 InM WG Agenda/Minutes page 90343516",
+    "url": "https://confluence.hl7.org/spaces/INM/pages/90343516/2022-02-01+InM+WG+Agenda+Minutes",
+    "ref": { "confluence_page_id": 90343516 },
+    "summary": "Minutes record a 4-0-0 motion to make source.endpoint and destination.endpoint 0..1 and create invariants requiring one child for both source and destination.",
+    "learned": "This confirms the child invariants were approved as part of the issue scope.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:206,582",
+    "summary": "fhir.ini actively lists messageheader=MessageHeader and assigns messageheader to the InM work group.",
+    "learned": "MessageHeader source files are in current FHIR build scope.",
+    "supports": ["build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/messageheader/structuredefinition-MessageHeader.xml",
+    "summary": "Before reconciliation, MessageHeader.destination.endpoint[x] and MessageHeader.source.endpoint[x] were 0..1, but the source and destination backbone elements had no child-presence constraints.",
+    "learned": "The remaining semantic gap was the missing invariant portion of the approved change.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "dd765a96be; cd5098720d",
+    "ref": { "commit_1": "dd765a96beb1acc58f2276f9d6f6c3fa9e89b2fc", "commit_2": "cd5098720dc816719e91b4990af2f60ccee98121" },
+    "summary": "Historical commits made MessageHeader endpoints optional and later refactored them to endpoint[x] with url and Reference(Endpoint) choices.",
+    "learned": "Prior application explains the current cardinality/type state but does not account for the missing invariants.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#fhir-messages > Use of endpoints; #committers > MessageHeader.destination",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir-messages/topic/Use%20of%20endpoints",
+    "summary": "The endpoint discussion supports optional endpoint use cases, and the committers thread explains the later endpoint[x] implementation mechanics.",
+    "learned": "No discovered community discussion supersedes the approved child-invariant requirement.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local XML and whitespace validation",
+    "command": "git diff --check -- source/messageheader/structuredefinition-MessageHeader.xml && xmllint --noout source/messageheader/structuredefinition-MessageHeader.xml",
+    "summary": "Both validation commands completed successfully.",
+    "learned": "The edited XML is well-formed and does not introduce whitespace errors.",
+    "supports": ["verification"]
+  }
+]
+</evidence-manifest>

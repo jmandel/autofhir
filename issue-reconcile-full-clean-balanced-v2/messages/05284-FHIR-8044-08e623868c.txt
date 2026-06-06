@@ -1,0 +1,118 @@
+FHIR-8044: Audit CommunicationRequest occurrence range
+
+Issue request:
+FHIR-8044 was a Published/Persuasive Patient Care DSTU1 change request asking FHIR Core to rename CommunicationRequest.scheduledTime to scheduled[x], allow dateTime or Period, and explain that a Period represents the time period within which the communication should occur.
+
+Initial application:
+The request was applied in git commit a452682b2a (#8044, #8198, #8466, #6251), which changed the CommunicationRequest spreadsheet element from scheduledTime to scheduled[x] and changed its type from dateTime to dateTime|Period. The implementation kept the element definition as "The time when this communication is to occur," which already applies to either a point in time or a Period.
+
+Additional context:
+Later Published/Persuasive Patient Care issue FHIR-10293 applied workflow standardization to CommunicationRequest. Its implementation commit 999f9323ad renamed the scheduling element from scheduled[x] to CommunicationRequest.occurrence[x], preserved the dateTime|Period choice and the "When scheduled" short description, updated examples/search parameters to occurrence, and left the active conversion mapping CommunicationRequest.scheduled=CommunicationRequest.occurrence in source/fhir.ini. The current CommunicationRequest resource is active in source/fhir.ini, and the current occurrence search parameter explicitly searches both dateTime and Period. Related FHIR-8198 was part of the same original implementation commit and is already represented on the combined branch by its own no-change audit commit.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current active CommunicationRequest definition no longer contains scheduledTime; its workflow-aligned successor CommunicationRequest.occurrence[x] remains 0..1 dateTime|Period and conveys the effective timing/range requested by FHIR-8044. Adding another local sentence specifically restating Period semantics would not change implementer understanding and could create maintenance drift.
+
+Recommendation:
+Keep this no-change audit commit. No FHIR core follow-up is needed for FHIR-8044 unless Patient Care reopens the broader CommunicationRequest timing model, such as adding Timing for repeated reminders or requiring a new explicit comment beyond the existing dateTime|Period choice.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8044
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-8198: same-change-family - The same 2015 implementation commit also renamed CommunicationRequest.orderedOn to requestedOn; that issue is already represented separately on the combined branch.
+FHIR-10293: later-change - Published Patient Care workflow alignment renamed scheduled[x] to occurrence[x] while preserving dateTime|Period.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8044: Published/Persuasive request to rename scheduledTime to scheduled[x], allow dateTime or Period, and explain Period as the communication time period. Learned: establishes the final WG intent for this audit.
+- E2 Git a452682b2a: #8044 implementation changed CommunicationRequest.scheduledTime to scheduled[x] and dateTime to dateTime|Period. Learned: the seed issue was historically applied in source.
+- E3 Source source/communicationrequest/structuredefinition-CommunicationRequest.xml:468: current active StructureDefinition defines CommunicationRequest.occurrence[x] as 0..1 dateTime|Period with short "When scheduled" and definition "The time when this communication is to occur." Learned: the current authoritative element preserves the requested range capability under the later workflow-aligned name.
+- E4 Source source/fhir.ini:182 and source/fhir.ini:2748: CommunicationRequest is active in the build and maps CommunicationRequest.scheduled to CommunicationRequest.occurrence for conversion. Learned: the checked source is in scope and the old scheduled name is intentionally mapped to the current name.
+- E5 Source source/communicationrequest/bundle-CommunicationRequest-search-params.xml:160: the current occurrence date search parameter targets CommunicationRequest.occurrence.ofType(dateTime) and CommunicationRequest.occurrence.ofType(Period). Learned: parallel search metadata also preserves both timing types.
+- E6 Jira FHIR-10293 and git 999f9323ad: Published workflow standardization renamed scheduled[x] to occurrence[x] and updated examples/search parameters while retaining dateTime|Period. Learned: the current element name is a later final decision, not a regression from FHIR-8044.
+- E7 Zulip #implementers > How to use Timing with CommunicationRequest: Lloyd McKenzie explained that CommunicationRequest occurrence supports only dateTime or Period and Timing was intentionally not included for repeating reminders. Learned: later community discussion confirms the limited timing model and does not conflict with the no-change conclusion.
+- E8 Command community/source searches: quoted FHIR-8044 and scheduledTime searches found no directly relevant Zulip or Confluence records; current source search found occurrence[x] and the scheduled-to-occurrence mapping but no current scheduledTime element. Learned: no discovered community or source evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8044",
+    "url": "https://jira.hl7.org/browse/FHIR-8044",
+    "snapshot_path": "contexts/FHIR-8044/jira/FHIR-8044.md",
+    "ref": { "jira_key": "FHIR-8044" },
+    "summary": "Published/Persuasive Patient Care issue requesting CommunicationRequest.scheduledTime be renamed to scheduled[x] with dateTime or Period support and a Period explanation.",
+    "learned": "This establishes the final WG intent for the seed issue.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "a452682b2a",
+    "ref": { "commit": "a452682b2ad0328e1dec9b63685546719904daf2" },
+    "summary": "Commit #8044/#8198/#8466/#6251 changed CommunicationRequest.scheduledTime to scheduled[x] and its type from dateTime to dateTime|Period.",
+    "learned": "FHIR-8044 was historically applied in the CommunicationRequest source spreadsheet.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/communicationrequest/structuredefinition-CommunicationRequest.xml:468",
+    "ref": { "path": "source/communicationrequest/structuredefinition-CommunicationRequest.xml", "line": 468 },
+    "summary": "The current StructureDefinition defines CommunicationRequest.occurrence[x] as 0..1 dateTime or Period with short 'When scheduled' and definition 'The time when this communication is to occur.'.",
+    "learned": "The current authoritative element preserves the effective point-or-period timing capability requested by FHIR-8044.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:182; source/fhir.ini:2748",
+    "ref": { "path": "source/fhir.ini", "line": 2748 },
+    "summary": "CommunicationRequest is active in source/fhir.ini, and the conversion map records CommunicationRequest.scheduled=CommunicationRequest.occurrence.",
+    "learned": "The build-scope source intentionally maps the older scheduled name to the current workflow-aligned occurrence element.",
+    "supports": ["source_scope", "additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/communicationrequest/bundle-CommunicationRequest-search-params.xml:160",
+    "ref": { "path": "source/communicationrequest/bundle-CommunicationRequest-search-params.xml", "line": 160 },
+    "summary": "The occurrence search parameter points at CommunicationRequest.occurrence[x] and searches both dateTime and Period forms.",
+    "learned": "Parallel search metadata is consistent with the current dateTime|Period model.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "999f9323ad / FHIR-10293",
+    "url": "https://jira.hl7.org/browse/FHIR-10293",
+    "ref": { "commit": "999f9323adf4afe35f07a0276356db43f8786234", "jira_key": "FHIR-10293" },
+    "summary": "Published workflow-alignment issue and implementation renamed scheduled[x] to occurrence[x], updated examples/search parameters, and retained dateTime|Period.",
+    "learned": "The current occurrence name is a later final Patient Care decision rather than an unapplied FHIR-8044 regression.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#implementers > How to use Timing with CommunicationRequest",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/How%20to%20use%20Timing%20with%20CommunicationRequest",
+    "ref": { "stream": "implementers", "topic": "How to use Timing with CommunicationRequest" },
+    "summary": "A 2021 discussion noted CommunicationRequest.occurrence only supports dateTime or Period, and Lloyd McKenzie explained Timing was not included for repeating reminders.",
+    "learned": "Later community discussion confirms the limited dateTime|Period model and raises no conflict with FHIR-8044.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Negative community/source searches for FHIR-8044 scheduledTime",
+    "command": "bun run zulip:search fts '\"FHIR-8044\" CommunicationRequest scheduled Period' --limit 10; bun run zulip:search fts 'CommunicationRequest scheduledTime scheduled period' --limit 10; bun run confluence:search refs jira FHIR-8044; bun run confluence:search fts 'CommunicationRequest scheduledTime scheduled period' --limit 10; git grep -n -E 'scheduledTime|CommunicationRequest\\.scheduled|CommunicationRequest\\.occurrence\\[x\\]' HEAD -- source/communicationrequest source/fhir.ini",
+    "query": "FHIR-8044 CommunicationRequest scheduledTime scheduled period",
+    "summary": "No directly relevant FHIR-8044/scheduledTime Zulip or Confluence records were found; current source contains occurrence[x] and the scheduled-to-occurrence conversion mapping but no current scheduledTime element.",
+    "learned": "No discovered external or source evidence changes the no-change conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,108 @@
+FHIR-11127: Audit request intent order code
+
+Issue request:
+FHIR-11127 is Published/Persuasive with Modification. It reported that the DSTU2 DiagnosticRequest.stage element was required and forced systems that could not distinguish original-order from reflex-order to send potentially wrong data. The accepted resolution was not to make the modifier element optional, but to define a generic order code that subsumes original-order, filler-order, and reflex-order.
+
+Initial application:
+The Jira-tagged implementation commit 135effcdc1 renamed DiagnosticRequest.stage to DiagnosticRequest.intent and moved the binding from the old diagnostic-request-stage value set to the required RequestIntent value set. That commit still showed original-order and reflex-order in the then-current DiagnosticRequest spreadsheet, but later workflow/request-pattern history replaced DiagnosticRequest/DeviceUseRequest with the active ServiceRequest and DeviceRequest model and centralized request-intent terminology.
+
+Additional context:
+Related stage-name decisions FHIR-11190 and FHIR-12052 explicitly kept the element required as intent and allowed resource-specific detailed codes to map under proposal, plan, or order. The current build has ServiceRequest and DeviceRequest active in source/fhir.ini, with ServiceRequest.intent and DeviceRequest.intent still 1..1 and bound to http://hl7.org/fhir/ValueSet/request-intent. The authoritative request-intent code system now contains a generic order concept with original-order, reflex-order, filler-order, and instance-order beneath it. Older request-stage terminology XML files still exist in the tree, but they are not listed in the active source/fhir.ini [codesystems] or [valuesets] sections and are not the current binding for the active request resources.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current source already satisfies the FHIR-11127 resolution by preserving a required modifier intent and providing the generic order code that systems can use when they cannot or should not assert original-order or reflex-order.
+
+Recommendation:
+Keep this audit commit as-is. Do not edit the inactive request-stage files for this issue; if a future cleanup wants to remove or retire those stale terminology files, it should be handled separately from FHIR-11127 because they are not the active current-spec source for request intent.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-11127
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-11190: same-change-family - renamed DiagnosticRequest.stage to intent and kept a required intent code while detailed order-like codes map under order.
+FHIR-12052: same-change-family - request-pattern decision establishing intent as 1..1 code with proposal, plan, and order as the coarse concepts.
+FHIR-11126: background - rejected removing stage/intent and explained that the concept is distinct from status.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-11127: Published/Persuasive with Modification issue asking that required DiagnosticRequest.stage not force systems to choose original-order or reflex-order. Learned: the approved fix was a generic order code, not making the modifier optional.
+- E2 Git 135effcdc1: Jira-tagged implementation commit changed DiagnosticRequest.stage to DiagnosticRequest.intent and moved the binding to request-intent. Learned: the issue was historically applied through the workflow/request pattern rather than by dropping cardinality.
+- E3 Source source/request/codesystem-request-intent.xml:41: current RequestIntent has a generic order code with original-order/reflex-order children. Learned: the current terminology supports the exact fallback requested by FHIR-11127.
+- E4 Source source/servicerequest/structuredefinition-ServiceRequest.xml:332 and source/devicerequest/structuredefinition-DeviceRequest.xml:265: active request resources have 1..1 intent bound to ValueSet/request-intent. Learned: the current spec preserves required modifier intent while avoiding false specificity through the generic order code.
+- E5 Source source/fhir.ini:169 and source/fhir.ini:1262: ServiceRequest and DeviceRequest are active resources, while request-stage files are absent from active [codesystems] and [valuesets]. Learned: stale request-stage XML files do not require a FHIR-11127 source edit.
+- E6 Jira FHIR-11190/FHIR-12052: related Published decisions renamed stage to intent and said detailed codes such as original-order and reflex-order map to order. Learned: later same-family decisions confirm the current 1..1 intent plus generic order shape.
+- E7 Community search: direct Zulip and Confluence searches for FHIR-11127 and DiagnosticRequest.stage found no relevant conflicting discussion; broader order/reflex hits were general later context only. Learned: no discovered community record changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-11127",
+    "url": "https://jira.hl7.org/browse/FHIR-11127",
+    "snapshot_path": "contexts/FHIR-11127/jira/FHIR-11127.md",
+    "ref": { "jira_key": "FHIR-11127" },
+    "summary": "Published/Persuasive with Modification issue requiring a generic order code so systems need not falsely choose original-order or reflex-order.",
+    "learned": "The approved change was to keep intent required while adding a broader order concept.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "135effcdc1",
+    "ref": { "commit": "135effcdc18c5860253e8fc6df7197732441fe74" },
+    "summary": "Jira-tagged implementation commit for FHIR-11127 renamed DiagnosticRequest.stage to DiagnosticRequest.intent and changed the binding to request-intent.",
+    "learned": "The historical application followed the request-pattern intent approach rather than making the modifier optional.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/request/codesystem-request-intent.xml:41",
+    "ref": { "path": "source/request/codesystem-request-intent.xml", "line": 41 },
+    "summary": "Current RequestIntent defines order as a generic concept with original-order, reflex-order, filler-order, and instance-order descendants.",
+    "learned": "The current terminology gives implementers the non-specific order code requested by FHIR-11127.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/servicerequest/structuredefinition-ServiceRequest.xml:332; source/devicerequest/structuredefinition-DeviceRequest.xml:265",
+    "ref": { "paths": "source/servicerequest/structuredefinition-ServiceRequest.xml; source/devicerequest/structuredefinition-DeviceRequest.xml" },
+    "summary": "ServiceRequest.intent and DeviceRequest.intent are 1..1 modifier elements bound to ValueSet/request-intent.",
+    "learned": "The active request resources use the corrected request-intent terminology while preserving required intent semantics.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:169,1262-1284",
+    "ref": { "path": "source/fhir.ini", "lines": "169-213,1262-1284" },
+    "summary": "fhir.ini lists DeviceRequest and ServiceRequest as active resources; request-stage XML files are not listed in active codesystems or valuesets entries.",
+    "learned": "The remaining request-stage files are not the authoritative current binding for this issue and do not justify a source edit.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-11190 and FHIR-12052",
+    "url": "https://jira.hl7.org/browse/FHIR-12052",
+    "ref": { "jira_keys": "FHIR-11190,FHIR-12052" },
+    "summary": "Related Published decisions renamed stage to intent and documented that specific order-like codes map under the generic order concept.",
+    "learned": "Same-family workflow decisions support the current required intent plus generic order hierarchy.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-11127, DiagnosticRequest.stage, original-order, and reflex-order",
+    "command": "bun run zulip:search fts '\"FHIR-11127\"'; bun run zulip:search fts '\"DiagnosticRequest.stage\"'; bun run confluence:search refs jira FHIR-11127; bun run confluence:search fts '\"FHIR-11127\"'; bun run confluence:search fts '\"DiagnosticRequest.stage\"'",
+    "query": "FHIR-11127 DiagnosticRequest.stage original-order reflex-order",
+    "summary": "No directly relevant or conflicting Zulip or Confluence record was found; broader order/reflex hits were general later discussion.",
+    "learned": "No discovered community evidence changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

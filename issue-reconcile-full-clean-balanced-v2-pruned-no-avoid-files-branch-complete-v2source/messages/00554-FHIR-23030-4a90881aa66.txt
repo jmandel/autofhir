@@ -1,0 +1,110 @@
+FHIR-23030: Make CareTeam participant effective repeatable
+
+Issue request:
+FHIR-23030 was Published/Persuasive with Modification for CareTeam.participant. The final decision changed CareTeam.participant.role from 0..* to 0..1 with the comment that multiple participant roles should be represented as multiple participants, and merged participant.period plus participant.timing into a single CareTeam.participant.coverage[x] choice of Period | Timing with cardinality 0..*.
+
+Initial application:
+FHIR-20650 first added CareTeam.participant.timing as Timing 0..1. Commit 0ab189a35e212d2c6239ecae40a92696165d1ec7 then applied GF#23030 by changing role to 0..1, adding the multiple-roles comment, and replacing separate period/timing rows with CareTeam.participant.coverage[x] Period | Timing. That application left the merged choice at 0..1, and the later generated/current StructureDefinition preserved that narrower cardinality.
+
+Additional context:
+CareTeam is an active resource in source/fhir.ini. FHIR-44834 later renamed CareTeam.participant.coverage[x] to CareTeam.participant.effective[x] and did not change cardinality; an existing combined-branch audit commit already represents FHIR-44834. Current fhir.ini R4/R5 rename maps still correctly map old period/coverage names to effective[x]. The checked-in careteam.svg and a negative invariant fixture still contain coverage[x]/coverageTiming collateral, but those are generated-looking or QA artifacts and are not the authoritative element definition. Searches found no Zulip or Confluence decision that reverses FHIR-23030's 0..* cardinality.
+
+AutoFHIR reconciliation:
+This commit changes the authoritative CareTeam StructureDefinition so CareTeam.participant.effective[x], the current name of the FHIR-23030 merged Period | Timing choice, has max cardinality * instead of 1. The role cardinality/comment and the later FHIR-44834 rename were already correct, so no other source was changed.
+
+Recommendation:
+Keep this source fix. Regeneration may update rendered diagrams or collateral, but those should be handled by the normal generator/QA workflow rather than manually broadening this issue beyond the authoritative StructureDefinition correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-23030
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-20650: same-change-family - added the initial CareTeam.participant.timing element that FHIR-23030 later merged with period.
+FHIR-44834: later-change - renamed FHIR-23030's coverage[x] element to effective[x] without changing the requested cardinality.
+FHIR-25267: background - unresolved/Triaged CareTeam participant status discussion references coverage semantics but is not a final source-edit decision.
+FHIR-54161: later-change - Resolved - change required CareTeam date search-parameter issue, outside this Applied/Published seed scope.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-23030: Published/Persuasive with Modification; final resolution makes role 0..1 with a multiple-participants comment and merges period/timing into coverage[x] Period | Timing 0..*. Learned: this establishes the cardinality required for the current effective[x] successor element.
+- E2 Source source/careteam/structuredefinition-CareTeam.xml:275-380: role is already 0..1 with the requested comment, and effective[x] is the current Period | Timing choice. Learned: only the max cardinality on the merged choice still needed correction.
+- E3 Git 0ab189a35e212d2c6239ecae40a92696165d1ec7: GF#23030 application converted timing/period into coverage[x] but left the spreadsheet cardinality at 0..1. Learned: the historical application was explicit but incomplete against the published resolution.
+- E4 Jira FHIR-44834 and git b68ab105af158b23b0d680ff04f5d8174548caad: Applied/Persuasive rename from coverage[x] to effective[x]. Learned: the current element name is a later accepted rename, not a reason to leave the FHIR-23030 cardinality at 0..1.
+- E5 Source source/fhir.ini:1109,1337,1609,2116: CareTeam is active/approved and old period/coverage names are mapped to effective[x]. Learned: the edited StructureDefinition is in current build scope, while compatibility rename maps remain appropriate.
+- E6 Command Zulip and Confluence searches for FHIR-23030/CareTeam participant coverage/effective/cardinality: no conflicting community decision was found; the FHIR-20650 Zulip thread only supplies background on availability/timing use cases. Learned: no discovered community evidence changes the Jira/source-history conclusion.
+- E7 Verification command: xmllint --noout source/careteam/structuredefinition-CareTeam.xml and git diff --check both passed. Learned: the XML remains well-formed and the one-line source change has no whitespace issue.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-23030",
+    "url": "https://jira.hl7.org/browse/FHIR-23030",
+    "snapshot_path": "contexts/FHIR-23030/jira/FHIR-23030.md",
+    "ref": { "jira_key": "FHIR-23030" },
+    "summary": "Published/Persuasive with Modification issue changing CareTeam.participant.role to 0..1 and merging period/timing into coverage[x] Period | Timing 0..*.",
+    "learned": "This establishes the final work group intent and the repeatable cardinality that should carry forward to the current effective[x] element.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/careteam/structuredefinition-CareTeam.xml:275-380",
+    "ref": { "path": "source/careteam/structuredefinition-CareTeam.xml", "line": 374 },
+    "summary": "The current CareTeam StructureDefinition already has role 0..1 with the requested comment and has effective[x] as the Period | Timing choice.",
+    "learned": "Only the max cardinality of the merged choice was inconsistent with FHIR-23030 before this reconciliation.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "0ab189a35e212d2c6239ecae40a92696165d1ec7",
+    "ref": { "commit": "0ab189a35e212d2c6239ecae40a92696165d1ec7" },
+    "summary": "GF#23030 application changed the old spreadsheet source to coverage[x] Period | Timing but left cardinality 0..1.",
+    "learned": "The published issue was applied in history, but the repeatable cardinality was missed.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-44834 / b68ab105af158b23b0d680ff04f5d8174548caad",
+    "url": "https://jira.hl7.org/browse/FHIR-44834",
+    "snapshot_path": "contexts/FHIR-44834/jira/FHIR-44834.md",
+    "ref": { "jira_key": "FHIR-44834", "commit": "b68ab105af158b23b0d680ff04f5d8174548caad" },
+    "summary": "Applied/Persuasive later decision renamed CareTeam.participant.coverage[x] to CareTeam.participant.effective[x].",
+    "learned": "The current element name is a later accepted rename and does not supersede FHIR-23030's cardinality decision.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:1109,1337,1609,2116",
+    "ref": { "path": "source/fhir.ini", "line": 1109 },
+    "summary": "CareTeam is active/approved in fhir.ini, and old period/coverage names map to CareTeam.participant.effective[x].",
+    "learned": "The edited CareTeam StructureDefinition is in current build scope and compatibility maps should remain unchanged.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community searches for FHIR-23030 and CareTeam participant coverage/effective cardinality",
+    "command": "bun run zulip:search fts '\"FHIR-23030\" \"CareTeam.participant\"' --limit 10; bun run confluence:search fts '\"FHIR-23030\" \"CareTeam.participant\"' --limit 10; bun run zulip:search snapshot implementers 'Requesting feedback on CareTeam'",
+    "query": "FHIR-23030 CareTeam.participant coverage effective cardinality",
+    "summary": "No conflicting Zulip or Confluence decision was found; the FHIR-20650 Zulip thread provides only background on availability/timing use cases.",
+    "learned": "Community evidence did not alter the Jira and source-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "xmllint --noout source/careteam/structuredefinition-CareTeam.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "The edited CareTeam StructureDefinition remains well-formed XML and the diff has no whitespace errors.",
+    "learned": "The source fix is mechanically safe for commit.",
+    "supports": ["confidence"]
+  }
+]
+</evidence-manifest>

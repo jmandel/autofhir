@@ -1,0 +1,114 @@
+FHIR-12666: Restore Consent V2 mapping coverage
+
+Issue request:
+FHIR-12666 was a Published/Persuasive CBCC change request for FHIR-core Consent asking to add HL7 V2 CON segment mappings. The resolution mapped Consent category/scope to CON-2 with V2 table HL70496/0496 support, policy/policyRule to CON-3, identifier to CON-4, status to CON-11, dateTime to CON-13, provision.period to CON-14/15, performer to CON-24/25, and source[x] to the remaining consent text/background fields.
+
+Initial application:
+The issue was initially applied by git commit 2da480ca699986fa93ba5f234dc5b055146d8144 in the old Consent spreadsheet. Subsequent source conversion preserved many mappings in source/consent/structuredefinition-Consent.xml, including identifier, status, category, date, regulatoryBasis, provision.period, sourceAttachment, and sourceReference. Later refactors changed the relevant element model: FHIR-31903 removed Consent.scope and merged scope into Consent.category, FHIR-32817 split policy/policyRule into regulatoryBasis/policyBasis/policyText, and commit 632f4b84972d170c0dfe48c80a7f7afad35c7c66 split performer into grantor/grantee while dropping the CON-24/25 mapping.
+
+Additional context:
+Consent is active in source/fhir.ini, and the current R4/R6 map notes show the old issue-era elements were renamed or split: dateTime to date, policy to policyBasis, policyRule to policyText, scope into category, source[x] into sourceAttachment/sourceReference, and performer into current actor elements. Community searches for FHIR-12666 and Consent CON mapping found no directly relevant Zulip or Confluence evidence that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+This commit updates the active Consent StructureDefinition source to preserve the applied V2 mapping intent after later refactors: Consent.category now retains the scope-derivation note for CON-2, Consent.grantor carries the CON-24/25 consenter mapping, and Consent.policyBasis plus Consent.policyText carry the CON-3 policy/form mapping alongside the existing regulatoryBasis map. It also updates the active consent category example value set to include http://terminology.hl7.org/ValueSet/v2-0496 and describe that V2 table 0496 is part of the included Consent Type examples.
+
+Recommendation:
+Keep this commit as-is. It restores missing applied mapping content in current build-scope source without reopening later Consent model decisions; no related issue needs a separate reconciliation commit from this investigation.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12666
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-31903: later-change - removed Consent.scope and merged scope semantics into Consent.category, so the FHIR-12666 CON-2 note now belongs on category rather than a deleted scope element.
+FHIR-32817: later-change - split Consent.policy/policyRule into regulatoryBasis, policyBasis, and policyText, so the FHIR-12666 CON-3 mapping needs to survive on the current policy elements.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12666: Published/Persuasive request to add Consent V2 CON mappings and include table 0496 in the Consent category value set. Learned: this establishes final WG intent for the reconciliation.
+- E2 Source source/fhir.ini:265 and source/fhir.ini:1645-1655: Consent is active in the current build and records the later element moves from dateTime, performer, policy, policyRule, scope, and source[x]. Learned: edits to Consent source are in build scope and must target current element names.
+- E3 Source source/consent/structuredefinition-Consent.xml:193,275,406,446: current source now carries CON-2, CON-24/25, and CON-3 mappings on the relevant current elements. Learned: the missing source mappings have been restored on authoritative conformance source.
+- E4 Source source/consent/valueset-consent-category-example.xml:33,40: the Consent category example value set now documents and includes HL7 V2 table 0496 via the THO v2-0496 value set. Learned: the terminology part of the Jira resolution is represented in current source.
+- E5 Git 2da480ca699986fa93ba5f234dc5b055146d8144, 632f4b84972d170c0dfe48c80a7f7afad35c7c66, 1d9f9af12577c135d97d84282f75fd4c45a42d5e, and 7ec3c37642c57792ee12bc07696299ddcc974dd4: history shows the original spreadsheet application and later refactors that removed or relocated parts of it. Learned: this was a partial-loss-after-refactor problem, not an unapplied issue from scratch.
+- E6 Jira FHIR-31903 and FHIR-32817: later Published Consent decisions removed scope and changed the policy element structure. Learned: the current fix must preserve FHIR-12666 through those later accepted model changes.
+- E7 Command: bun run zulip:search fts '"FHIR-12666" Consent CON' --limit 10; bun run confluence:search refs jira FHIR-12666; bun run confluence:search fts '"FHIR-12666" Consent' --limit 10. Learned: no directly relevant community evidence was found that conflicts with the Jira/source/history conclusion.
+- E8 Verification command: xmllint --noout source/consent/structuredefinition-Consent.xml source/consent/valueset-consent-category-example.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check. Learned: edited XML is well formed and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12666",
+    "url": "https://jira.hl7.org/browse/FHIR-12666",
+    "snapshot_path": "contexts/FHIR-12666/jira/FHIR-12666.md",
+    "ref": { "jira_key": "FHIR-12666" },
+    "summary": "Published/Persuasive CBCC change request to add Consent V2 CON mappings and include table 0496 in the category value set.",
+    "learned": "This establishes final WG intent for the current source reconciliation.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:265 and source/fhir.ini:1645-1655",
+    "summary": "Consent is an active resource and fhir.ini records current successors for issue-era elements such as dateTime, performer, policy, policyRule, scope, and source[x].",
+    "learned": "Consent source edits are in current build scope and must be applied to current element names.",
+    "supports": ["build_scope", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/consent/structuredefinition-Consent.xml:193,275,406,446",
+    "summary": "Current Consent StructureDefinition source carries restored V2 mappings for category CON-2, grantor CON-24/25, policyBasis CON-3, and policyText CON-3.",
+    "learned": "The authoritative conformance source now preserves the applicable FHIR-12666 mappings after later refactors.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/consent/valueset-consent-category-example.xml:33,40",
+    "summary": "The Consent category example value set now describes and includes HL7 V2 table 0496 through http://terminology.hl7.org/ValueSet/v2-0496.",
+    "learned": "The terminology include requested by FHIR-12666 is represented in current source.",
+    "supports": ["reconciliation", "source_change"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "2da480ca699986fa93ba5f234dc5b055146d8144; 632f4b84972d170c0dfe48c80a7f7afad35c7c66; 1d9f9af12577c135d97d84282f75fd4c45a42d5e; 7ec3c37642c57792ee12bc07696299ddcc974dd4",
+    "summary": "History shows the 2019 FHIR-12666 spreadsheet application, the performer split that dropped CON-24/25, the scope removal, and the policy structure split.",
+    "learned": "The current issue is a partial loss or relocation of applied mappings during later accepted refactors.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-31903 and FHIR-32817",
+    "url": "https://jira.hl7.org/browse/FHIR-31903",
+    "ref": { "jira_key": "FHIR-31903" },
+    "summary": "Published later Consent decisions removed Consent.scope and split Consent.policy/policyRule into regulatoryBasis, policyBasis, and policyText.",
+    "learned": "FHIR-12666 must be interpreted against the current Consent element structure rather than the old DSTU2/R4 names.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-12666 Consent CON mapping",
+    "command": "bun run zulip:search fts '\"FHIR-12666\" Consent CON' --limit 10; bun run confluence:search refs jira FHIR-12666; bun run confluence:search fts '\"FHIR-12666\" Consent' --limit 10",
+    "query": "FHIR-12666 Consent CON",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip messages or Confluence references/pages were found for the issue key and Consent CON mapping terms.",
+    "learned": "No discovered community record changes the Jira, source, and git-history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML and whitespace validation",
+    "command": "xmllint --noout source/consent/structuredefinition-Consent.xml source/consent/valueset-consent-category-example.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/consent/structuredefinition-Consent.xml source/consent/valueset-consent-category-example.xml",
+    "summary": "The edited XML files are well formed and the diff has no whitespace errors.",
+    "learned": "The source change is syntactically safe for the checked files.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

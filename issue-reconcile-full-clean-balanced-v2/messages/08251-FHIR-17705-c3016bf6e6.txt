@@ -1,0 +1,95 @@
+FHIR-17705: Fix SNOMED concept-domain mapping link
+
+Issue request:
+FHIR-17705 was a Published/Persuasive FHIR-core issue for the mappings page. It reported that the SNOMED CT Concept Domain Binding and SNOMED CT Attribute Binding links on mappings.html were broken or unhelpful, and the accepted request was to use SNOMED's stable shortlinks http://snomed.org/conceptdomainbinding and http://snomed.org/attributebinding.
+
+Initial application:
+The historical Jira-tagged application was commit 922dc896f3 ("GF#17705 - fix SNomed Links"). That commit updated the SNOMED attribute binding mapping to http://snomed.org/attributebinding, but it only added an explicit link for the concept-domain mapping while leaving both its formal URL and link at http://snomed.info/conceptdomain.
+
+Additional context:
+The linked 2018 Zulip thread confirms the issue was about the two mappings.html SNOMED binding links. A related implementers thread notes that the existing links were defaulting to a logical namespace and were not final. source/mappingSpaces.xml is the mappings-page mapping-space source, and source/fhir.ini lists Condition and Observation as active resources; the active Condition and Observation StructureDefinition sources and Observation vital-sign profiles declared the same stale SNOMED concept-domain URI, so leaving them unchanged would keep the generated conformance mapping identity inconsistent with the fixed mapping-space URL.
+
+AutoFHIR reconciliation:
+This commit changes the SNOMED CT Concept Domain Binding URL and link in source/mappingSpaces.xml to http://snomed.org/conceptdomainbinding, and updates the matching sct-concept mapping URI in active Condition/Observation StructureDefinition sources. The already-correct SNOMED attribute binding shortlink was left unchanged, and out-of-scope historical release artifacts were not edited.
+
+Recommendation:
+Keep this commit as-is. It completes the previously partial FHIR-17705 application and keeps the active mapping page and conformance mapping declarations aligned with the SNOMED shortlink requested by the published Jira issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17705
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17705: Published/Persuasive FHIR-core issue for FHIR-core-mappings, voted 8-0-0, requesting http://snomed.org/conceptdomainbinding and http://snomed.org/attributebinding for the two broken SNOMED Formal URLs. Learned: this establishes final WG intent and the exact target URLs.
+- E2 Zulip #snomed > Mappings from FHIR to Snomed: the linked thread reports the two mappings.html SNOMED binding links as dead and shows the handoff to SNOMED/HL7. Learned: the community evidence matches the Jira scope and does not broaden it.
+- E3 Zulip #implementers > Mappings from FHIR to Snomed: Grahame noted the links were defaulting to the logical namespace and were not final. Learned: this supports replacing the stale logical-style concept-domain URL rather than preserving it as intentional.
+- E4 Git 922dc896f3: the prior application changed the attribute binding URL to snomed.org/attributebinding but left the concept-domain URL/link at snomed.info/conceptdomain. Learned: the current source was only partially applied.
+- E5 Source source/mappingSpaces.xml:83 and source/fhir.ini:169-214: mappingSpaces contains the mapping-page URL/link source, and fhir.ini lists Condition and Observation as active resources. Learned: the edited source feeds the current build, and the active resource StructureDefinitions needed the same URI alignment.
+- E6 Verification command/query: rg found no remaining http://snomed.info/conceptdomain under source after the edit, Python parsed all edited XML files, and curl showed the new SNOMED shortlinks redirect to HTTP 200 while old snomed.info HTTP targets failed. Learned: the bounded source change is syntactically valid and points to live targets.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17705",
+    "url": "https://jira.hl7.org/browse/FHIR-17705",
+    "snapshot_path": "contexts/FHIR-17705/jira/FHIR-17705.md",
+    "ref": { "jira_key": "FHIR-17705" },
+    "summary": "Published/Persuasive FHIR-core issue requesting the broken SNOMED Concept Domain Binding and Attribute Binding links on mappings.html be replaced with SNOMED shortlinks.",
+    "learned": "This establishes final WG intent and the exact concept-domain shortlink used by this reconciliation.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#snomed > Mappings from FHIR to Snomed",
+    "url": "https://chat.fhir.org/#narrow/stream/snomed/topic/Mappings%20from%20FHIR%20to%20Snomed",
+    "ref": { "stream": "snomed", "topic": "Mappings from FHIR to Snomed" },
+    "summary": "The linked thread reports that the mappings.html SNOMED CT Concept Domain Binding and Attribute Binding links were dead.",
+    "learned": "The community thread matches the Jira request and confirms the issue is limited to the SNOMED mapping links.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "zulip",
+    "locator": "#implementers > Mappings from FHIR to Snomed",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Mappings%20from%20FHIR%20to%20Snomed",
+    "ref": { "stream": "implementers", "topic": "Mappings from FHIR to Snomed" },
+    "summary": "Grahame Grieve stated that the links were defaulting to the logical namespace and were not finalized.",
+    "learned": "This supports replacing the stale snomed.info concept-domain target instead of treating it as an intentional stable URI.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "922dc896f3",
+    "ref": { "commit": "922dc896f3f17dd452862190426da1c97c3bb6be" },
+    "summary": "Historical GF#17705 commit updated the attribute binding URL but left the concept-domain URL/link at http://snomed.info/conceptdomain.",
+    "learned": "The prior application was partial and explains why current source still needed a concept-domain fix.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/mappingSpaces.xml:83; source/fhir.ini:169-214",
+    "ref": { "path": "source/mappingSpaces.xml", "line": 83 },
+    "summary": "mappingSpaces.xml defines the mapping-page SNOMED Concept Domain Binding entry; fhir.ini lists Condition and Observation as active resources.",
+    "learned": "The edited source is in current build scope, and active StructureDefinition mapping declarations needed to stay aligned with the mapping-space URL.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Validation commands for SNOMED mapping URL fix",
+    "command": "git diff --check; rg -n 'http://snomed\\.info/conceptdomain' source || true; python3 XML parse of edited files; curl -L -I https://snomed.org/conceptdomainbinding https://snomed.org/attributebinding",
+    "summary": "No stale concept-domain URL remains under source, all edited XML files parse, and the new SNOMED shortlinks redirect to HTTP 200.",
+    "learned": "The reconciliation is syntactically valid and points the mapping entries at live shortlink targets.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

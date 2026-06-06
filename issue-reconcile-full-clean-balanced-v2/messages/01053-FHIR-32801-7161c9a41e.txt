@@ -1,0 +1,116 @@
+FHIR-32801: Align MedicationKnowledge metadata semantics
+
+Issue request:
+FHIR-32801 was a Published/Persuasive Pharmacy change request for R5 MedicationKnowledge. It asked to change MedicationKnowledge from DomainResource to MetadataResource so medication knowledge could follow canonical and metadata resource patterns, and to remove or replace local identifier, author, and status elements as needed. The decisive Jira comment clarified that the intent was to make all MetadataResource and CanonicalResource data elements available for MedicationKnowledge, not only to require a canonical URL.
+
+Initial application:
+The issue appears to have been initially applied by git commit dc170b26ef270aa638b21e96e615b162e17b6d06, which changed only source/medicationknowledge/structuredefinition-MedicationKnowledge.xml from DomainResource to MetadataResource. Later source history partially corrected the same family: FHIR-45285 changed MedicationKnowledge.status to publication-status, author to ContactDetail, and name to max 1; FHIR-45284 added the MetadataResource template marker; FHIR-42901 renamed intendedJurisdiction to jurisdiction and noted that author/status were handled by FHIR-45285. Before this reconciliation, stale pre-metadata wording still described identifier, status, author, name, the status search parameter, and the example name as medication-instance/catalogue semantics rather than metadata/canonical artifact semantics.
+
+Additional context:
+MedicationKnowledge is an active current-build resource in source/fhir.ini. MetadataResource templates CanonicalResource, and the current source declares MetadataResource as both template and baseDefinition for MedicationKnowledge. The combined branch already contains a no-change audit commit for FHIR-45285, so this commit does not duplicate that issue; it fixes the residual FHIR-32801 semantic mismatch that remained after the base/interface changes. The checked-in medicationknowledge.svg and obsolete MedicationKnowledge status terminology files still contain old status text, but the SVG is a generated-looking diagram and the status terminology is no longer referenced by the authoritative binding or active fhir.ini terminology entries.
+
+AutoFHIR reconciliation:
+This commit updates the authoritative MedicationKnowledge source to match its MetadataResource/CanonicalResource role. It changes the entered-in-error status marker to retired, rewrites retained identifier/status/author/name element text to metadata/canonical artifact semantics, changes the status binding metadata to PublicationStatus, adds the canonical name constraint, updates the identifier and status search parameter descriptions, and changes the example name to a machine-friendly canonical name while leaving the medication display in code.text.
+
+Recommendation:
+Keep this source fix. If the publisher still uses source/medicationknowledge/medicationknowledge.svg directly, regenerate that diagram from the updated StructureDefinition rather than hand-editing it. If obsolete MedicationKnowledgeStatus terminology pages are still emitted despite no active binding, handle their retirement as a separate build-scope/terminology cleanup because this issue's authoritative resource semantics are now aligned.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-32801
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-45285: same-change-family - later Applied Pharmacy issue made MedicationKnowledge.name/status/author interface-compatible; already represented on the combined branch by fe7a179beccbcce2f459e6b34bc98aa577952b07.
+FHIR-45284: supporting-decision - FHIR-I interface clarification and source change added the MetadataResource template marker used by the current source.
+FHIR-42901: same-change-family - later Applied Pharmacy issue asked for CanonicalResource semantics and its application says author/status were handled by FHIR-45285 while intendedJurisdiction became jurisdiction.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-32801: Published/Persuasive Pharmacy issue requiring MedicationKnowledge to become a MetadataResource and use MetadataResource/CanonicalResource data elements. Learned: this establishes the seed issue's final work-group intent.
+- E2 Source source/fhir.ini:580,726,870: MedicationKnowledge is active, Pharmacy-owned, business-classified, and FMM 1 in the current build configuration. Learned: MedicationKnowledge source edits are in current build scope.
+- E3 Git dc170b26ef270aa638b21e96e615b162e17b6d06: FHIR-32801/FHIR-37631 implementation changed only the baseDefinition from DomainResource to MetadataResource. Learned: the original application did not finish aligning retained local metadata-looking elements.
+- E4 Source source/medicationknowledge/structuredefinition-MedicationKnowledge.xml:23-207: current source declares MetadataResource template/base and this commit aligns entered-in-error, identifier, status, author, and name with metadata/canonical semantics. Learned: the authoritative resource definition now matches the requested pattern.
+- E5 Source source/medicationknowledge/bundle-MedicationKnowledge-search-params.xml:84-96,293-304 and source/medicationknowledge/medicationknowledge-example.xml:13-14: search descriptions and the example now use metadata/canonical status, identifier, and name semantics. Learned: parallel source artifacts no longer contradict the StructureDefinition.
+- E6 Jira/Git FHIR-45285, FHIR-45284, FHIR-42901: later applied issues in the same family adjusted interface compatibility, template declaration, and jurisdiction naming; FHIR-45285 is already audited on the combined branch. Learned: the reconciliation should use those later decisions as context but not publish duplicate commits for them.
+- E7 Community search commands: Confluence refs found Pharmacy/FHIR-I minutes for FHIR-32801/FHIR-45285/FHIR-42901, while targeted Zulip searches found no direct FHIR-32801 conflict; a later Zulip MetadataResource thread highlighted the same MedicationKnowledge interface incoherence. Learned: community evidence does not contradict the source fix and supports avoiding an overbroad rewrite.
+- E8 Verification command: XML parsing plus git diff --check succeeded for the edited XML files. Learned: the patch is well-formed and has no whitespace errors under the repository's CRLF-aware check.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-32801",
+    "url": "https://jira.hl7.org/browse/FHIR-32801",
+    "snapshot_path": "contexts/FHIR-32801/jira/FHIR-32801.md",
+    "ref": { "jira_key": "FHIR-32801" },
+    "summary": "Published/Persuasive Pharmacy issue requiring MedicationKnowledge to become a MetadataResource and use MetadataResource/CanonicalResource data elements.",
+    "learned": "This establishes the seed issue's final work-group intent and the target semantics for the source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:580,726,870",
+    "summary": "MedicationKnowledge is an active Pharmacy resource in the current build configuration with business security categorization and FMM 1.",
+    "learned": "The MedicationKnowledge source files edited by this commit are in current build scope.",
+    "supports": ["source_change_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "dc170b26ef270aa638b21e96e615b162e17b6d06",
+    "ref": { "commit": "dc170b26ef270aa638b21e96e615b162e17b6d06" },
+    "summary": "FHIR-32801/FHIR-37631 implementation changed MedicationKnowledge baseDefinition from DomainResource to MetadataResource.",
+    "learned": "The initial application handled the root change but left local element semantics to reconcile.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/medicationknowledge/structuredefinition-MedicationKnowledge.xml:23-207",
+    "summary": "MedicationKnowledge declares MetadataResource template/base and this commit aligns entered-in-error handling plus identifier, status, author, and name definitions with metadata/canonical semantics.",
+    "learned": "The authoritative resource definition now follows the requested MetadataResource/CanonicalResource pattern.",
+    "supports": ["source_change", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/medicationknowledge/bundle-MedicationKnowledge-search-params.xml:84-96,293-304; source/medicationknowledge/medicationknowledge-example.xml:13-14",
+    "summary": "MedicationKnowledge identifier/status search descriptions and the example name now use metadata/canonical wording and a machine-friendly name.",
+    "learned": "Parallel source artifacts no longer preserve the old medication inventory/status semantics.",
+    "supports": ["source_change", "consistency"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-45285, FHIR-45284, FHIR-42901",
+    "url": "https://jira.hl7.org/browse/FHIR-45285",
+    "ref": { "jira_key": "FHIR-45285" },
+    "summary": "Later applied issues in the same family made MedicationKnowledge interface-compatible, clarified interface rules, and renamed intendedJurisdiction; FHIR-45285 already has combined-branch audit commit fe7a179beccbcce2f459e6b34bc98aa577952b07.",
+    "learned": "These later decisions constrain the seed reconciliation and prevent duplicate opportunistic commits.",
+    "supports": ["additional_context", "related_issue_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-32801 and MedicationKnowledge metadata/interface issues",
+    "command": "bun run confluence:search refs jira FHIR-32801; bun run confluence:search refs jira FHIR-45285; bun run confluence:search refs jira FHIR-42901; bun run zulip:search fts 'FHIR-32801 MedicationKnowledge MetadataResource' --limit 10; bun run zulip:search snapshot implementers MetadataResource",
+    "query": "FHIR-32801 MedicationKnowledge MetadataResource CanonicalResource interface",
+    "result_count": 6,
+    "summary": "Confluence found Pharmacy/FHIR-I minutes for the issue family; direct Zulip search found no FHIR-32801 conflict, and the MetadataResource thread highlighted MedicationKnowledge interface incoherence.",
+    "learned": "Community evidence supports a narrow semantics alignment and does not reveal a conflicting work-group decision.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "XML and whitespace validation for edited MedicationKnowledge files",
+    "command": "xmllint --noout source/medicationknowledge/structuredefinition-MedicationKnowledge.xml source/medicationknowledge/bundle-MedicationKnowledge-search-params.xml source/medicationknowledge/medicationknowledge-example.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check",
+    "summary": "Edited XML files parsed successfully and diff whitespace checking passed.",
+    "learned": "The source patch is mechanically valid.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

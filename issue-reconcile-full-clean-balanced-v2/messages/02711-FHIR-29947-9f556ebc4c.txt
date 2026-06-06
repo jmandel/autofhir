@@ -1,0 +1,120 @@
+FHIR-29947: Audit ConceptMap rendering outside core source
+
+Issue request:
+FHIR-29947 is a Published/Persuasive Vocab change request raised for R4 and applied for R5. It asked that ConceptMap examples render relationship codes without reversing source/target meaning, specifically by changing the column heading "Destination" to "Target" and adding hover text over Relationship column values that shows the concept definition.
+
+Initial application:
+No core source commit explicitly tagged FHIR-29947 was found. Jira and Vocab minutes show the issue was partially fixed in the build before July 2022, then reopened because the ConceptMap renderer still hard-coded a shortened relationship display/description. Current build output for cm-administrative-gender-v2 shows the heading has been changed to Target Concept Details, but the Relationship links still use title="source-is-broader-than-target" rather than the concept definition.
+
+Additional context:
+The authoritative core sources are in build scope: source/fhir.ini lists ConceptMap as an active resource, source/terminologies/bindings.xml supplies the administrative-gender ConceptMap data, and source/conceptmap/codesystem-concept-map-relationship.xml contains the correct definitions such as "The source concept is broader in meaning than the target concept." The remaining rendering behavior is not controlled by tracked source in this checkout: build.gradle.kts runs org.hl7.fhir.tools.publisher.Publisher from the external org.hl7.fhir:kindling dependency, and this repository currently tracks no Java publisher source. The example-comment follow-up from FHIR-29947 became FHIR-37815 and is already represented on the combined branch by commit 8ca85d225d.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change and records an external-repo decision. The core FHIR source data needed by the renderer is already present and correct, while the still-missing hover-definition behavior belongs in the external Kindling/publisher renderer rather than in generated HTML or local source files in this checkout.
+
+Recommendation:
+Keep this audit commit as-is for core. Follow up in the Kindling/FHIR publisher renderer so ConceptMap relationship links use the relationship concept definition as their hover/title text while retaining the current Target heading. Do not edit generated ConceptMap HTML in this repository as a substitute for the renderer fix.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-29947
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-24899: background - Earlier administrative-gender ConceptMap issue closed no-change after deciding the example was correct but that a new ticket should address relationship rendering.
+FHIR-37815: same-change-family - Follow-up ticket for the administrative-gender ConceptMap comments; already audited separately on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-29947: Published/Persuasive Vocab issue requiring Target heading and relationship hover definitions in ConceptMap example rendering. Learned: this establishes final WG intent and the exact rendering behavior to check.
+- E2 Confluence 134942130: 2022-07-18 Vocab minutes say the build hard-coded the concept display, Destination should be Target, and GG would add hover text. Learned: the unresolved work was identified as build-renderer behavior rather than terminology source content.
+- E3 Published spec https://build.fhir.org/cm-administrative-gender-v2.html: current table uses Target Concept Details, but relationship anchors have title="source-is-broader-than-target". Learned: the heading part is applied, while hover text still does not show the concept definition.
+- E4 Source source/conceptmap/codesystem-concept-map-relationship.xml:39-47: source-is-broader-than-target has definition "The source concept is broader in meaning than the target concept." Learned: the source definition is available and correct for renderer use.
+- E5 Source/build source/fhir.ini:170-228 and build.gradle.kts:41-52: ConceptMap is an active resource and the publisher runs from external org.hl7.fhir:kindling. Learned: ConceptMap is in build scope, but the renderer implementation is external to this checkout.
+- E6 Command git/ls checks: no FHIR-29947-tagged core source commit was found, the repository tracks zero Java files, and only gradle-wrapper.jar is tracked. Learned: there is no local publisher source hunk available for the remaining fix.
+- E7 Jira FHIR-24899: prior no-change ticket says the example was correct and a new ticket would address rendering of the code description. Learned: FHIR-29947 is the intended rendering follow-up, not a request to change the mapping itself.
+- E8 Command community search: direct Zulip search for FHIR-29947 found no relevant hits, while Confluence refs located the Vocab tracker minutes. Learned: no discovered Zulip discussion changes the Jira/Confluence/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-29947",
+    "url": "https://jira.hl7.org/browse/FHIR-29947",
+    "snapshot_path": "contexts/FHIR-29947/jira/FHIR-29947.md",
+    "ref": { "jira_key": "FHIR-29947" },
+    "summary": "Published/Persuasive Vocab issue requiring the ConceptMap example rendering to use a Target heading and relationship hover text with the concept definition.",
+    "learned": "This is the final WG decision and defines the required rendering behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "Tracker Issues 2022-07-18 Call Agenda and Minutes page 134942130",
+    "url": "https://confluence.hl7.org/spaces/VOC/pages/134942130/Tracker+Issues+2022-07-18+Call+Agenda+and+Minutes",
+    "ref": { "confluence_page_id": 134942130 },
+    "summary": "Minutes record that FHIR-29947 was partially fixed, the build hard-coded concept display text, Destination should be Target, and GG would add hover text.",
+    "learned": "The remaining requested change was a build-renderer change rather than a terminology source change.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/cm-administrative-gender-v2.html",
+    "url": "https://build.fhir.org/cm-administrative-gender-v2.html",
+    "summary": "The current rendered ConceptMap table has Target Concept Details, but relationship links still use title=\"source-is-broader-than-target\" instead of the definition text.",
+    "learned": "The current build shows partial application and confirms the remaining issue is the hover/title renderer behavior.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/conceptmap/codesystem-concept-map-relationship.xml:39-47",
+    "ref": { "path": "source/conceptmap/codesystem-concept-map-relationship.xml", "line": 39 },
+    "summary": "The relationship CodeSystem source defines source-is-broader-than-target as 'The source concept is broader in meaning than the target concept.'",
+    "learned": "The core terminology source already contains the correct definition the renderer should expose.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:170-228; build.gradle.kts:41-52",
+    "ref": { "path": "source/fhir.ini", "line": 170 },
+    "summary": "ConceptMap is an active resource in fhir.ini, and the build invokes org.hl7.fhir.tools.publisher.Publisher from the external org.hl7.fhir:kindling dependency.",
+    "learned": "The page is in current build scope, but the renderer code that must change is outside this source checkout.",
+    "supports": ["build_scope", "external_repo"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Publisher source absence and git history checks",
+    "command": "git log --all --grep='FHIR-29947'; git ls-files '*.java' | wc -l; git ls-files | grep -Ei 'publisher|org\\.hl7\\.fhir|\\.jar$'",
+    "summary": "No FHIR-29947-tagged core source commit was found; the checkout tracks zero Java files and no publisher jar other than the Gradle wrapper.",
+    "learned": "There is no local Kindling/publisher source change to make in this repository for the remaining renderer behavior.",
+    "supports": ["initial_application", "external_repo"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-24899",
+    "url": "https://jira.hl7.org/browse/FHIR-24899",
+    "snapshot_path": "contexts/FHIR-29947/jira/FHIR-24899.md",
+    "ref": { "jira_key": "FHIR-24899" },
+    "summary": "Resolved-No-Change administrative-gender ConceptMap issue concluded the example was correct and a new ticket would address code-description rendering.",
+    "learned": "FHIR-29947 is the intended rendering follow-up, not evidence that the mapping source should be changed.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community search for FHIR-29947 ConceptMap rendering",
+    "command": "bun run zulip:search fts '\"FHIR-29947\" ConceptMap relationship rendering' --limit 10; bun run confluence:search refs jira FHIR-29947 --limit 10",
+    "query": "FHIR-29947 ConceptMap relationship rendering",
+    "result_count": 0,
+    "summary": "Direct Zulip search found no relevant FHIR-29947 hits; Confluence refs found Vocab tracker minutes including the 2022-07-18 build-renderer discussion.",
+    "learned": "No discovered Zulip discussion changes the Jira/Confluence/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

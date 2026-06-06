@@ -1,0 +1,110 @@
+FHIR-34147: Audit machine-friendly name regex length
+
+Issue request:
+FHIR-34147 was a Published/Persuasive with Modification FHIR-core change request, raised for R5 CodeSystem, asking that the machine-friendly name regular expression require at least one character after the initial uppercase letter by using `[A-Z]([A-Za-z0-9_]){1,254}` instead of `[A-Z]([A-Za-z0-9_]){0,254}`. The resolution said to change all such regular expressions to a minimum of 1 because other mechanisms already enforced the requirement and the change made the documentation consistent.
+
+Initial application:
+Git history shows the issue was explicitly applied by commit 70ad673b9e1f81ff3c228e62b42f005a1538d9ad, which changed the cnl-0 name regular expressions in `source/canonicalresource/structuredefinition-CanonicalResource.xml`, `source/codesystem/structuredefinition-CodeSystem.xml`, and `source/questionnaire/structuredefinition-Questionnaire.xml` from `{0,254}` to `{1,254}`.
+
+Additional context:
+The current CodeSystem source is in build scope through `source/fhir.ini` resource and approval entries, and the current active CodeSystem constraint uses `name.exists() implies name.matches('^[A-Z]([A-Za-z0-9_]){1,254}$')`. Searches across current `source/` found no remaining `{0,254}` regex occurrences, while the remaining `{0,254}` hits are in historical R4 release archive files under `tools/history/release4`, not current build source. Related audit commits for FHIR-36127 and FHIR-36184 confirm the surrounding `name.exists() implies` guard is intentional later context and should be preserved.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change. The current build-scope source already implements the approved minimum-length regex for CodeSystem and the broader canonical-name regex family, so editing current source would be redundant and risks disturbing later guard/anchoring cleanup.
+
+Recommendation:
+Keep this no-change audit commit as-is. No FHIR core source follow-up is needed for FHIR-34147 unless a future work group decision reopens canonical resource name syntax or the historical release archive is explicitly brought into scope.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-34147
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-36127: same-change-family - audited the optional-name `name.exists() implies` guard around the same canonical name regex family and explains why the current expression is guarded.
+FHIR-36184: same-change-family - audited the Questionnaire-specific optional-name guard and cites FHIR-34147 as the later approved reason for the current `{1,254}` quantifier.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-34147: Published/Persuasive with Modification issue requiring machine-friendly name regexes to use `{1,254}` instead of `{0,254}`. Learned: establishes the final WG decision and target current-source behavior.
+- E2 Confluence FHIR Infrastructure Minutes CC 20211220: minutes record FHIR-34147 discussion, rationale that name cannot be zero, and 7-0-0 Persuasive vote. Learned: confirms the FHIR-I approval behind the Jira resolution.
+- E3 Confluence Vocabulary 2021-12-13 minutes: Vocab identified the CodeSystem cnl-0 regex issue as related to CanonicalResource and transferred it to FHIR-I. Learned: explains why a CodeSystem-related request was applied to the canonical-name regex family.
+- E4 Git 70ad673b9e1f81ff3c228e62b42f005a1538d9ad: changed CanonicalResource, CodeSystem, and Questionnaire regexes from `{0,254}` to `{1,254}`. Learned: the issue was explicitly applied in source history.
+- E5 Source source/codesystem/structuredefinition-CodeSystem.xml:143 and source/fhir.ini:1111,1339: active CodeSystem source uses the guarded anchored `{1,254}` expression and is in current build scope. Learned: the seed artifact already contains the approved current rule.
+- E6 Verification command/query: `rg -n '\{0,254\}' source --glob '!publish/**'` found no current source hits; `rg -n '\{1,254\}'` found the active canonical-name regexes. Learned: there is no remaining current-build source correction to make for FHIR-34147.
+- E7 Community search: Zulip searches for `"FHIR-34147"` and `"machine-friendly" name regex` found no hits; Confluence key search found only the relevant Vocab/FHIR-I minutes. Learned: no discovered community evidence changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-34147",
+    "url": "https://jira.hl7.org/browse/FHIR-34147",
+    "snapshot_path": "contexts/FHIR-34147/jira/FHIR-34147.md",
+    "ref": { "jira_key": "FHIR-34147" },
+    "summary": "Published/Persuasive with Modification FHIR-core issue requiring machine-friendly name regexes to use `{1,254}` instead of `{0,254}`.",
+    "learned": "This establishes the final WG decision and the target current-source behavior for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20211220 page 81019153",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/81019153/FHIR+Infrastructure+Minutes+CC+20211220",
+    "ref": { "confluence_page_id": 81019153 },
+    "summary": "Minutes record FHIR-34147, note that name cannot be zero, and record a 7-0-0 Persuasive vote by Grahame Grieve and Vassil Peytchev.",
+    "learned": "This confirms the FHIR-I approval behind the Jira resolution.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "confluence",
+    "locator": "FHIR Tracker Issues 2021-12-13 Call Agenda and Minutes page 81017045",
+    "url": "https://confluence.hl7.org/spaces/VOC/pages/81017045/FHIR+Tracker+Issues+2021-12-13+Call+Agenda+and+Minutes",
+    "ref": { "confluence_page_id": 81017045 },
+    "summary": "Vocabulary minutes identify the CodeSystem cnl-0 regex as incorrect, note its relation to CanonicalResource, and transfer the issue to FHIR-I.",
+    "learned": "This explains why the CodeSystem request was applied to the canonical-name regex family rather than only local CodeSystem prose.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "70ad673b9e1f81ff3c228e62b42f005a1538d9ad",
+    "ref": { "commit": "70ad673b9e1f81ff3c228e62b42f005a1538d9ad" },
+    "summary": "Jira-tagged commit changed CanonicalResource, CodeSystem, and Questionnaire name regexes from `{0,254}` to `{1,254}`.",
+    "learned": "The approved change was explicitly applied in source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/codesystem/structuredefinition-CodeSystem.xml:143; source/fhir.ini:1111,1339",
+    "ref": { "path": "source/codesystem/structuredefinition-CodeSystem.xml", "line": 143 },
+    "summary": "Active CodeSystem source uses `name.exists() implies name.matches('^[A-Z]([A-Za-z0-9_]){1,254}$')`, and fhir.ini lists CodeSystem as an active approved resource.",
+    "learned": "The seed artifact is in current build scope and already contains the approved minimum-length rule.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current source regex verification",
+    "command": "rg -n '\\{0,254\\}' source --glob '!publish/**' || true; rg -n '\\{1,254\\}' source/codesystem/structuredefinition-CodeSystem.xml source/canonicalresource/structuredefinition-CanonicalResource.xml source/questionnaire/structuredefinition-Questionnaire.xml source/valueset/structuredefinition-ValueSet.xml source/structuredefinition/structuredefinition-StructureDefinition.xml source/operationdefinition/structuredefinition-OperationDefinition.xml source/searchparameter/structuredefinition-SearchParameter.xml",
+    "result_count": 0,
+    "summary": "No `{0,254}` hits were found in current `source/`; active StructureDefinition sources use `{1,254}`.",
+    "learned": "There is no remaining current-build source correction to make for FHIR-34147.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-34147 and machine-friendly name regex",
+    "command": "bun run zulip:search fts '\"FHIR-34147\"' --limit 10; bun run zulip:search fts '\"machine-friendly\" name regex' --limit 10; bun run confluence:search fts '\"FHIR-34147\"' --limit 10",
+    "query": "FHIR-34147; machine-friendly name regex",
+    "result_count": 3,
+    "summary": "Zulip returned no hits; Confluence returned the three relevant Vocab/FHIR-I minutes pages already considered.",
+    "learned": "No discovered community evidence contradicts the Jira, git, and source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

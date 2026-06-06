@@ -1,0 +1,112 @@
+FHIR-13630: Restore ServiceRequest reason findings guidance
+
+Issue request:
+FHIR-13630 was a Published/Persuasive with Modification STU3 Orders and Observations issue asking Procedure and ProcedureRequest reasonReference to permit DiagnosticReport and DocumentReference, with ProcedureRequest.reasonReference comments clarifying that less-specific report or document references should contain findings that justify the follow-up request.
+
+Initial application:
+The issue was explicitly pre-applied in commit ab9c1bd7f48d954924628ca167dbc5a912901bcb, which changed ProcedureRequest.reasonReference to Reference(Condition | Observation | DiagnosticReport | DocumentReference) and added the requested DiagnosticReport/DocumentReference findings guidance. ProcedureRequest was later renamed/merged into ServiceRequest, and R4/R5 source history preserved the target types but the source rework that merged reasonCode and reasonReference into ServiceRequest.reason carried forward only the shorter reasonCode-style comment, losing the report/document-specific guidance.
+
+Additional context:
+source/fhir.ini lists servicerequest and procedure as active resources and records that ProcedureRequest was merged into ServiceRequest, so current reconciliation belongs in active ServiceRequest source rather than retired ProcedureRequest source. Current Procedure.reason already includes DiagnosticReport and DocumentReference and has a later FHIR-32510 comment decision specific to Procedure.reason consistency, so this commit does not alter Procedure. Later FHIR-47851 refined the same ServiceRequest.reason comment from referral to request and corrected the free-text path; this fix preserves that wording while restoring the FHIR-13630-specific guidance. FHIR-16681 renamed DiagnosticReport.codedDiagnosis to DiagnosticReport.conclusionCode, so the restored comment uses the current element name.
+
+AutoFHIR reconciliation:
+This commit updates source/servicerequest/structuredefinition-ServiceRequest.xml so ServiceRequest.reason again explains that DiagnosticReport references should contain findings in DiagnosticReport.conclusion and/or DiagnosticReport.conclusionCode, and that DocumentReference targets should contain clear findings language providing the relevant reason for the service request. It updates source/servicerequest/servicerequest-request-mapping-exceptions.xml with the matching Request mapping exception copy so the build-scope source remains synchronized.
+
+Recommendation:
+Keep this source fix. It restores substantive guidance approved by FHIR-13630 to the active ServiceRequest successor without changing later-approved target profiles or Procedure.reason wording.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13630
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-13756: same-change-family - companion ProcedureRequest reason comment issue applied in the same historical commit and already audited on the combined branch; this fix preserves its current "why the request is being made" clarification.
+FHIR-13867: later-change - renamed/merged ProcedureRequest into ServiceRequest, establishing the current active successor source surface.
+FHIR-16681: later-change - renamed DiagnosticReport.codedDiagnosis to DiagnosticReport.conclusionCode, so the restored FHIR-13630 guidance uses the current element name.
+FHIR-47851: later-change - later Applied issue added Procedure to ServiceRequest.reason and refined the same comment from referral to request; this fix preserves those edits.
+FHIR-32510: later-change - later Procedure.reason-specific comment decision explains why this reconciliation does not edit Procedure.reason prose.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13630: Published/Persuasive with Modification issue requested DiagnosticReport and DocumentReference as reasonReference targets and accompanying comments for ProcedureRequest.reasonReference. Learned: the final WG decision includes both target expansion and report/document findings guidance.
+- E2 Zulip #implementers > Modelling follow-up: the origin discussion describes follow-up imaging based on a DiagnosticReport finding and ends with the reporter noting GF#13630 was added. Learned: this confirms the intended use case for referencing report-level findings.
+- E3 Git ab9c1bd7f48d954924628ca167dbc5a912901bcb: pre-applied GF#13630 to ProcedureRequest.reasonReference, including DiagnosticReport/DocumentReference target types and the findings-language comment. Learned: historical source carried the approved semantics.
+- E4 Git 33b409a4b6 and 7daa0d220d: the later source rework/CodeableReference merge retained ServiceRequest.reason target types but carried forward only the shorter merged comment. Learned: the current omission is a drift from the FHIR-13630 application, not a new WG reversal.
+- E5 Source source/fhir.ini:169-213,1450-1474; source/servicerequest/structuredefinition-ServiceRequest.xml:1070-1088; source/servicerequest/servicerequest-request-mapping-exceptions.xml:267-280. Learned: ServiceRequest is active, ProcedureRequest is retired/merged, and the authoritative ServiceRequest source plus mapping exception copy now contain the restored guidance.
+- E6 Jira FHIR-13756/FHIR-13867/FHIR-16681/FHIR-47851/FHIR-32510: later and companion decisions govern current terminology, element names, and Procedure.reason wording. Learned: the fix is scoped to ServiceRequest.reason and does not conflict with later decisions.
+- E7 Validation/community searches: xmllint and CRLF-aware diff checks passed; Confluence refs for FHIR-13630 found none; Zulip exact key search found only the saved origin thread and no conflicting discussion. Learned: the edited XML is well-formed and no discovered community evidence changes the source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13630",
+    "url": "https://jira.hl7.org/browse/FHIR-13630",
+    "snapshot_path": "contexts/FHIR-13630/jira/FHIR-13630.md",
+    "ref": { "jira_key": "FHIR-13630" },
+    "summary": "Published/Persuasive with Modification STU3 OO issue requesting DiagnosticReport and DocumentReference reasonReference targets plus ProcedureRequest.reasonReference comments about report/document findings.",
+    "learned": "This establishes that the approved change included both the target expansion and explanatory findings guidance.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Modelling follow-up",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Modelling.20follow-up",
+    "snapshot_path": "contexts/FHIR-13630/zulip/implementers--Modelling-follow-up.md",
+    "ref": { "stream": "implementers", "topic": "Modelling follow-up" },
+    "summary": "The origin thread discusses follow-up imaging based on findings in a DiagnosticReport and records that GF#13630 was filed for ProcedureRequest.reasonReference to include DiagnosticReport.",
+    "learned": "The use case supports retaining guidance that report/document references should actually contain findings relevant to the request reason.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "ab9c1bd7f48d954924628ca167dbc5a912901bcb",
+    "ref": { "commit": "ab9c1bd7f48d954924628ca167dbc5a912901bcb" },
+    "summary": "Historical application commit added DiagnosticReport and DocumentReference to ProcedureRequest.reasonReference and inserted the approved findings-language comment.",
+    "learned": "The missing current comment text was once present in authoritative source for this issue.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "33b409a4b6; 7daa0d220d",
+    "ref": { "commit": "7daa0d220d80bdaf2229f7aa05f4d4e6c0f5a698" },
+    "summary": "Later source rework and CodeableReference merge retained ServiceRequest.reason target profiles but merged to the shorter comment that omitted DiagnosticReport/DocumentReference findings guidance.",
+    "learned": "The omission is attributable to refactoring drift rather than an identified reversal of FHIR-13630.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-213,1450-1474; source/servicerequest/structuredefinition-ServiceRequest.xml:1070-1088; source/servicerequest/servicerequest-request-mapping-exceptions.xml:267-280",
+    "ref": { "path": "source/servicerequest/structuredefinition-ServiceRequest.xml", "line": 1077 },
+    "summary": "ServiceRequest is active, ProcedureRequest is retired/merged into ServiceRequest, and ServiceRequest.reason now carries the restored DiagnosticReport/DocumentReference findings guidance in both source and mapping exception copy.",
+    "learned": "The source change is in build scope and repairs the active successor artifact.",
+    "supports": ["build_scope", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-13756, FHIR-13867, FHIR-16681, FHIR-47851, FHIR-32510",
+    "url": "https://jira.hl7.org/browse/FHIR-47851",
+    "snapshot_path": "contexts/FHIR-13630/jira/FHIR-47851.md",
+    "summary": "Companion and later Jira decisions rename ProcedureRequest to ServiceRequest, update the DiagnosticReport coded finding element name, refine ServiceRequest.reason wording, and separately govern Procedure.reason comments.",
+    "learned": "These decisions define the current terminology and constrain the fix to ServiceRequest.reason comment guidance.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Validation and community conflict checks for FHIR-13630",
+    "command": "xmllint --noout source/servicerequest/structuredefinition-ServiceRequest.xml source/servicerequest/servicerequest-request-mapping-exceptions.xml; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check -- source/servicerequest/structuredefinition-ServiceRequest.xml source/servicerequest/servicerequest-request-mapping-exceptions.xml; bun run confluence:search refs jira FHIR-13630; bun run zulip:search fts '\"FHIR-13630\"' --limit 10; bun run zulip:search fts '\"ServiceRequest.reason\" \"DiagnosticReport\" \"DocumentReference\"' --limit 10",
+    "query": "FHIR-13630; ServiceRequest.reason DiagnosticReport DocumentReference",
+    "summary": "XML and CRLF-aware diff checks passed; Confluence had no FHIR-13630 references; Zulip found the origin thread and no conflicting ServiceRequest.reason discussion.",
+    "learned": "No discovered validation or community evidence contradicts the restored source guidance.",
+    "supports": ["verification", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

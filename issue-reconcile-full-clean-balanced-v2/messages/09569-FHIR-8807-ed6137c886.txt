@@ -1,0 +1,95 @@
+FHIR-8807: Audit Resource base definition
+
+Issue request:
+FHIR-8807 was a Published/Persuasive FHIR-core correction for the DSTU1 BaseResource artifact. It reported that the StructureDefinition for the Resource base resource had a malformed base of http://hl7.org/fhir/StructureDefinition/ and said Resource should not have a base; the approved technical correction was applied for DSTU2.
+
+Initial application:
+No Git commit in the current checkout mentions FHIR-8807, which is consistent with the Jira comment that the fix had already been made in an earlier SVN revision. The current Git-era Resource source was introduced by 33b409a4b6d544598262f2f074ebb4b6dc466157 and models Resource as a specialization of http://hl7.org/fhir/StructureDefinition/Base, not as deriving from the malformed empty StructureDefinition URL named in the issue.
+
+Additional context:
+source/fhir.ini keeps Resource in the active resource-infrastructure build set and lists it in the normative infrastructure package. The current CI build publishes both StructureDefinition/Resource with baseDefinition StructureDefinition/Base and the abstract StructureDefinition/Base itself, so the later Base root model is part of the current specification surface. Searches found no remaining source occurrence of the malformed empty base URL and no Zulip or Confluence discussion that changes the Jira/source conclusion.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change. Removing Resource.baseDefinition would incorrectly undo the current valid Base specialization model, while the original invalid empty base has already been removed.
+
+Recommendation:
+Keep this audit commit as-is. No follow-up is needed for FHIR-8807 unless the work group separately decides to revisit the current Base root model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8807
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8807: Published/Persuasive technical correction for a malformed Resource StructureDefinition base, with a comment that it was already fixed in SVN. Learned: the issue's target was the empty StructureDefinition URL from DSTU1, not a mandate against the current later Base model.
+- E2 Source source/resource/structuredefinition-Resource.xml:50: Current Resource is an abstract resource with baseDefinition http://hl7.org/fhir/StructureDefinition/Base. Learned: the invalid empty base is absent from the authoritative current Resource source.
+- E3 Source source/fhir.ini:128 and source/fhir.ini:929: Resource is active resource infrastructure and part of the normative infrastructure package. Learned: the checked Resource StructureDefinition is in current build scope.
+- E4 Git 33b409a4b6d544598262f2f074ebb4b6dc466157: 2021 new build core source import introduced the current Resource StructureDefinition with Base as baseDefinition; no current Git commit mentions FHIR-8807. Learned: the current Base parent is a later Git-era model state, while Jira records the original application as pre-Git/SVN.
+- E5 Verification command/query: rg found no malformed empty StructureDefinition base in source; build.fhir.org reports Resource.baseDefinition = StructureDefinition/Base and publishes StructureDefinition/Base. Learned: current source and published CI surface agree and do not contain the reported defect.
+- E6 Community search: quoted Zulip and Confluence searches for FHIR-8807 plus Resource StructureDefinition base found no direct hits, and Confluence refs found no Jira references. Learned: no discovered community record conflicts with the Jira/source decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8807",
+    "url": "https://jira.hl7.org/browse/FHIR-8807",
+    "snapshot_path": "contexts/FHIR-8807/jira/FHIR-8807.md",
+    "ref": { "jira_key": "FHIR-8807" },
+    "summary": "Published/Persuasive DSTU1 correction saying Resource's StructureDefinition had a malformed http://hl7.org/fhir/StructureDefinition/ base and was approved as a technical correction for DSTU2.",
+    "learned": "The final issue establishes that the malformed empty StructureDefinition base URL should be gone; Jira also records that this was already fixed in SVN.",
+    "supports": ["issue_request", "initial_application", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/resource/structuredefinition-Resource.xml:50-54",
+    "ref": { "path": "source/resource/structuredefinition-Resource.xml", "start_line": 50, "end_line": 54 },
+    "summary": "Current Resource is an abstract resource whose baseDefinition is http://hl7.org/fhir/StructureDefinition/Base.",
+    "learned": "The authoritative current Resource source does not contain the malformed empty base URL reported by FHIR-8807.",
+    "supports": ["reconciliation", "source_current_state"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:128-134 and source/fhir.ini:929-948",
+    "ref": { "path": "source/fhir.ini", "start_line": 128, "end_line": 948 },
+    "summary": "Resource is listed in active resource-infrastructure and in the normative infrastructure package metadata.",
+    "learned": "The Resource StructureDefinition checked for this audit is part of the current FHIR build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "33b409a4b6d544598262f2f074ebb4b6dc466157",
+    "ref": { "commit": "33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "The 2021 'rework source for new build core' commit introduced source/resource/structuredefinition-Resource.xml with baseDefinition StructureDefinition/Base.",
+    "learned": "The current Base parent is a later Git-era source model, while no current Git commit mentions FHIR-8807 and Jira says the original fix was made in SVN.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Malformed base search and build.fhir.org Resource/Base check",
+    "command": "rg -n '<baseDefinition value=\"http://hl7\\.org/fhir/StructureDefinition/\"|<base value=\"http://hl7\\.org/fhir/StructureDefinition/\"' source --glob '*.xml'; curl -fsSL https://build.fhir.org/resource.profile.json | jq -r '.url + \" \" + .baseDefinition + \" \" + (.derivation // \"\")'; curl -fsSL https://build.fhir.org/base.profile.json | jq -r '.url + \" \" + .kind + \" abstract=\" + (.abstract|tostring) + \" type=\" + .type'",
+    "summary": "The malformed empty StructureDefinition base was not found in source; build.fhir.org reports Resource derives from StructureDefinition/Base and publishes Base as an abstract complex-type.",
+    "learned": "Current source and current CI publication agree that the reported defect is absent and Base is a valid current target.",
+    "supports": ["verification", "published_surface", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-8807 Resource StructureDefinition base",
+    "command": "bun run zulip:search fts '\"FHIR-8807\" Resource StructureDefinition base' --limit 10; bun run confluence:search refs jira FHIR-8807; bun run confluence:search fts '\"FHIR-8807\" Resource StructureDefinition base' --limit 10",
+    "query": "FHIR-8807 Resource StructureDefinition base",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found for FHIR-8807 and the Resource StructureDefinition base issue.",
+    "learned": "There is no discovered community evidence that changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

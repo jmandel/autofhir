@@ -1,0 +1,97 @@
+FHIR-17987: Make PaymentNotice amount optional
+
+Issue request:
+FHIR-17987 was a Published/Persuasive FM change request for PaymentNotice from the STU3 ballot cycle. It asked to add `amount 0..1 Money` for the amount of the payment.
+
+Initial application:
+The 2018 application commit f369c813fb added PaymentNotice.amount to the PaymentNotice spreadsheet and example, but the spreadsheet row applied it as `1..1` rather than the Jira-requested `0..1`. The source was later refactored into `source/paymentnotice/structuredefinition-PaymentNotice.xml`, preserving the required cardinality.
+
+Additional context:
+PaymentNotice is active in the current build through `source/fhir.ini`, and the current authoritative StructureDefinition carries the added Money element. Later published R4/R5 surfaces and current source still showed amount as `1..1`. A 2021 #implementers Zulip thread raised exactly this optionality problem, and Paul Knapp confirmed a use case where the payment amount is not required and suggested changing the cardinality to `0..1`. Searches found no later final Jira or Confluence decision requiring amount to remain mandatory.
+
+AutoFHIR reconciliation:
+This commit changes only `PaymentNotice.amount` from min `1` to min `0` in the active PaymentNotice StructureDefinition, preserving the Money type, max `1`, definition, requirements, and summary flag.
+
+Recommendation:
+Keep this source fix. It aligns the current build with the final Jira request and later implementer discussion, while avoiding unrelated PaymentNotice changes already covered by separate issues.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-17987
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-17988: same-change-family - the same PaymentNotice ballot batch requested summary flags for the newly added fields, including amount; it is already represented on the combined branch.
+FHIR-19494: same-change-family - the same PaymentNotice ballot family changed other PaymentNotice cardinalities to required but did not list amount, so it does not override the 0..1 amount request.
+FHIR-15126: background - later no-change payment posting issue mentions PaymentNotice/PaymentReconciliation boundaries but does not decide PaymentNotice.amount cardinality.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-17987: Published/Persuasive FM issue requested adding `amount 0..1 Money` to PaymentNotice. Learned: this establishes the final requested cardinality and datatype for the seed issue.
+- E2 Source source/fhir.ini:254,605,1414 and source/paymentnotice/structuredefinition-PaymentNotice.xml:324-332: PaymentNotice is an active FM resource and the authoritative StructureDefinition contains PaymentNotice.amount. Learned: this source file is in current build scope and is the correct edit surface.
+- E3 Git f369c813fb: original application commit for GF#17987 added PaymentNotice.amount to the historical spreadsheet/example but used `1..1`. Learned: the issue was applied for presence/type but the requested optionality was not preserved.
+- E4 Zulip #implementers > PaymentNotice, 2021-03-23 to 2021-03-25: implementers identified a check-arrived use case without a known amount, and Paul Knapp said the amount cardinality could be changed to 0..1. Learned: later community discussion supports the original optional-cardinality request and reveals no contrary rationale.
+- E5 Published spec query for R4/R5 paymentnotice.profile.json: both published surfaces showed PaymentNotice.amount as 1..1. Learned: the mismatch persisted after initial application and should be corrected in current source rather than treated as a transient generated artifact.
+- E6 Verification command: `python3` XML parse and `git diff --check` succeeded after the edit. Learned: the edited StructureDefinition remains well-formed and the patch has no whitespace errors.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-17987",
+    "url": "https://jira.hl7.org/browse/FHIR-17987",
+    "snapshot_path": "contexts/FHIR-17987/jira/FHIR-17987.md",
+    "ref": { "jira_key": "FHIR-17987" },
+    "summary": "Published/Persuasive FM change request to add PaymentNotice.amount as 0..1 Money for the amount of the payment.",
+    "learned": "This is the final seed issue request and establishes the desired optional Money element.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:254,605,1414; source/paymentnotice/structuredefinition-PaymentNotice.xml:324-332",
+    "ref": { "path": "source/paymentnotice/structuredefinition-PaymentNotice.xml" },
+    "summary": "PaymentNotice is active in fhir.ini and its StructureDefinition contains PaymentNotice.amount as a Money element.",
+    "learned": "The StructureDefinition is current build source and is the correct place to fix the cardinality.",
+    "supports": ["build_scope", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "f369c813fb40cd39c0db46336b2b3186f496fb47",
+    "ref": { "commit": "f369c813fb40cd39c0db46336b2b3186f496fb47" },
+    "summary": "The original GF#17987 application added PaymentNotice.amount to the historical spreadsheet and example but with spreadsheet cardinality 1..1.",
+    "learned": "The initial application implemented the element but not the optional cardinality requested by Jira.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "zulip",
+    "locator": "#implementers > PaymentNotice",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/PaymentNotice",
+    "ref": { "stream": "implementers", "topic": "PaymentNotice" },
+    "summary": "A 2021 thread raised a PaymentNotice use case where the amount is unknown, and Paul Knapp said the amount cardinality could be changed to 0..1.",
+    "learned": "Later community discussion supports optional amount and does not provide a rationale for keeping it mandatory.",
+    "supports": ["additional_context", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "https://hl7.org/fhir/R4/paymentnotice.profile.json and https://hl7.org/fhir/R5/paymentnotice.profile.json",
+    "url": "https://hl7.org/fhir/R5/paymentnotice.profile.json",
+    "summary": "R4 and R5 published profile JSON both showed PaymentNotice.amount as 1..1 Money.",
+    "learned": "The cardinality mismatch persisted after publication, so this reconciliation needs a current source correction.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Local validation commands",
+    "command": "python3 - <<'PY' ... ET.parse('source/paymentnotice/structuredefinition-PaymentNotice.xml') ... PY; git diff --check -- source/paymentnotice/structuredefinition-PaymentNotice.xml",
+    "summary": "The edited StructureDefinition parsed as XML and diff whitespace checks passed.",
+    "learned": "The source edit is syntactically safe and limited to the intended cardinality change.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

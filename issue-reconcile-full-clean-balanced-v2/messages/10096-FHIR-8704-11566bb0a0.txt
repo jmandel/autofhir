@@ -1,0 +1,99 @@
+FHIR-8704: Audit unbound binding strengths
+
+Issue request:
+FHIR-8704 was a Published/Persuasive DSTU1 FHIR-core profiles issue asking that elements with unbound bindings (no valueSet reference) not publish a required binding strength. The exemplar was Encounter.hospitalization.reAdmission with strength required and no binding reference.
+
+Initial application:
+The issue was applied in git-svn commits 8f49b5a5d1b3c665726162148b67a86bef8bc9f6, aba5a84eb72c0b924c56a0a719df63525e6137c7, and 5277cd48bd7e1b226a0190a07c1e4d728b245ce3. The first generator change suppressed binding.strength when BindingMethod.Unbound, the follow-up made the binding summary tolerate a null strength, and the final adjustment set BindingStrength.EXAMPLE for unbound bindings because ElementDefinition.binding.strength remained required in that model.
+
+Additional context:
+Current source has renamed Encounter.hospitalization to Encounter.admission; the original reAdmission binding is in active Encounter build scope and now has strength example plus the v2-0092 valueSet. A current scan of StructureDefinition XML found 17 binding elements with strength and no valueSet, all strength example and none required, extensible, or preferred. Later FHIR-48325 added the descriptive binding strength and an invariant for descriptive bindings without valueSet, and that issue is already represented on the combined branch. FHIR-46606 removed the obsolete terminologies Unbound section; current source has no unbound section.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change because the current specification no longer contains the FHIR-8704 defect of a required binding strength without a valueSet reference. Removing or reclassifying remaining example/no-valueSet bindings would be a later descriptive-binding policy cleanup, not the DSTU1 fix represented by FHIR-8704.
+
+Recommendation:
+Keep this audit commit as-is. If the work group wants existing no-valueSet example bindings migrated to descriptive, handle that as follow-up to FHIR-48325 or a new terminology decision rather than reopening this historical FHIR-8704 application.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-8704
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-48325: later-change - added descriptive binding strength and the descriptive-without-valueSet invariant for R6; already represented on the combined branch.
+FHIR-46606: later-change - removed the obsolete terminologies Unbound section, confirming later vocabulary policy moved away from the old unbound prose.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-8704: Published/Persuasive issue asking to remove meaningful strength from unbound bindings, with Encounter.hospitalization.reAdmission as the example. Learned: this is the final seed request and its applied scope.
+- E2 Git 8f49b5a5/aba5a84e/5277cd48: git-svn revisions 7038, 7039, and 7046 applied FHIR-8704 in generator/rendering code and settled on example strength for unbound bindings. Learned: the initial application deliberately avoided required strength but retained example as the model-compatible fallback.
+- E3 Source source/fhir.ini:1147 and source/encounter/structuredefinition-Encounter.xml:1131: active Encounter source now binds Encounter.admission.reAdmission with strength example and valueSet http://terminology.hl7.org/ValueSet/v2-0092. Learned: the original reported example is no longer an unbound required binding.
+- E4 Verification command: StructureDefinition scan found 17 bindings with strength and no valueSet, all example, with no non-example active rows. Learned: the current source does not contain the FHIR-8704 required-without-valueSet defect.
+- E5 Jira/source FHIR-48325 plus source/datatypes/elementdefinition.xml:2595 and source/terminologies.html:444: later R6 work added descriptive binding strength and an invariant for descriptive without valueSet. Learned: any broader migration of no-valueSet bindings belongs to later descriptive-binding policy and is already separately represented.
+- E6 Community search: Zulip and Confluence searches for FHIR-8704 and unbound binding strength found no directly relevant contrary discussion or minutes. Learned: no discovered community record changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-8704",
+    "url": "https://jira.hl7.org/browse/FHIR-8704",
+    "snapshot_path": "contexts/FHIR-8704/jira/FHIR-8704.md",
+    "ref": { "jira_key": "FHIR-8704" },
+    "summary": "Published/Persuasive DSTU1 issue requesting that unbound bindings not carry a required binding strength, citing Encounter.hospitalization.reAdmission.",
+    "learned": "The final seed request targets required or otherwise misleading strength on bindings with no valueSet reference.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "8f49b5a5, aba5a84e, 5277cd48",
+    "ref": { "commits": "8f49b5a5d1b3c665726162148b67a86bef8bc9f6 aba5a84eb72c0b924c56a0a719df63525e6137c7 5277cd48bd7e1b226a0190a07c1e4d728b245ce3" },
+    "summary": "The git-svn implementation first suppressed strength for BindingMethod.Unbound, fixed null rendering, then set unbound bindings to BindingStrength.EXAMPLE.",
+    "learned": "FHIR-8704 was applied historically and the accepted compatibility behavior was example, not a missing strength element.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/encounter/structuredefinition-Encounter.xml:1131 and source/fhir.ini:1147",
+    "ref": { "path": "source/encounter/structuredefinition-Encounter.xml", "line": 1131 },
+    "summary": "Encounter.admission.reAdmission has a binding with strength example and valueSet http://terminology.hl7.org/ValueSet/v2-0092, and Encounter is active in fhir.ini.",
+    "learned": "The issue's concrete Encounter example is in current build scope and no longer exhibits an unbound required binding.",
+    "supports": ["source_state", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Current StructureDefinition no-valueSet binding scan",
+    "command": "python3 scan of source/**/structuredefinition-*.xml for ElementDefinition bindings with strength and no valueSet",
+    "summary": "The scan found 17 such current StructureDefinition bindings; every one had strength example and non_example_active was empty.",
+    "learned": "Current source has no required, extensible, or preferred binding strength without a valueSet in the scanned StructureDefinitions.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-48325",
+    "url": "https://jira.hl7.org/browse/FHIR-48325",
+    "snapshot_path": "contexts/FHIR-48325/jira/FHIR-48325.md",
+    "ref": { "jira_key": "FHIR-48325" },
+    "summary": "Applied/Persuasive with Modification R6 issue added descriptive binding strength and required valueSet omission when strength is descriptive.",
+    "learned": "Later descriptive-binding policy is separate from FHIR-8704 and is already represented on the combined branch.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-8704 and unbound binding strength",
+    "command": "bun run zulip:search fts '\"FHIR-8704\"' --limit 10; bun run zulip:search fts '\"unbound bindings\" \"binding strength\"' --limit 10; bun run confluence:search refs jira FHIR-8704; bun run confluence:search fts '\"unbound bindings\" \"binding strength\"' --limit 10",
+    "query": "FHIR-8704 unbound bindings binding strength",
+    "result_count": 0,
+    "summary": "No directly relevant or conflicting Zulip or Confluence evidence was found; one phrase-only Confluence hit was unrelated clinical-genomics minutes.",
+    "learned": "No discovered community record changes the Jira/source/git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,115 @@
+FHIR-25057: Correct cross-reference type binding text
+
+Issue request:
+FHIR-25057 was a Published/Persuasive BRR change request for R5 asking to fix MedicinalProductDefinition.crossReference by making it a BackboneElement so it could carry the referenced product and a separate MedicinalProductDefinition.crossReference.type relationship code.
+
+Initial application:
+The issue appears to have been applied by d017cd22c28c50b2e285e0a2b5dc87edcc6dbb71, whose message says it made MedicinalProductDefinition Product Cross-Reference a backbone element and added a type, despite using the apparent typo GF#25067 rather than FHIR-25057. That spreadsheet commit changed the old 0..* Identifier crossReference into a parent row with crossReference.product[x] 1..1 Identifier|Reference(MedicinalProductDefinition) and crossReference.type 0..1 Coding. The later XML source migration retained the BackboneElement shape.
+
+Additional context:
+FHIR-26570 later simplified crossReference.product[x] to CodeableReference(MedicinalProductDefinition), and that later issue is already represented on the combined branch by f9d6a727e79e31c052fb4a01fb19d9080e258358. Current source/fhir.ini includes medicinalproductdefinition as an active resource, and the current StructureDefinition already has crossReference as BackboneElement, product as CodeableReference targeting MedicinalProductDefinition, and type as CodeableConcept. However, the binding description for crossReference.type still described "Extra measures" instead of product cross-reference relationships, contradicting the ProductCrossReferenceType value set and code system descriptions.
+
+AutoFHIR reconciliation:
+This commit corrects the MedicinalProductDefinition.crossReference.type binding description to "Relationship to another Medicinal Product." so the binding text matches the active ProductCrossReferenceType terminology and the requested relationship-type element. No other crossReference structure change was needed.
+
+Recommendation:
+Keep this source fix as-is. The core model now reflects FHIR-25057 plus the later FHIR-26570 CodeableReference decision; further product-reference cardinality or datatype changes should be handled by a new BRR decision, not inferred from this issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-25057
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-26570: later-change - simplified the product child from Identifier|Reference(MedicinalProductDefinition) to CodeableReference(MedicinalProductDefinition); already audited on the combined branch as no-change.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-25057: Published/Persuasive BRR issue requiring MedicinalProductDefinition.crossReference to become a BackboneElement with a relationship type. Learned: this establishes the final issue request and approved R5 scope.
+- E2 Git d017cd22c28c50b2e285e0a2b5dc87edcc6dbb71: changed the historical spreadsheet from a 0..* Identifier crossReference to a backbone-style parent with product[x] and type children. Learned: the structural portion of FHIR-25057 was applied before this reconciliation.
+- E3 Source source/fhir.ini:289 and source/medicinalproductdefinition/structuredefinition-MedicinalProductDefinition.xml:996: medicinalproductdefinition is active and crossReference is a BackboneElement in current source. Learned: the edited file is in current build scope and already contains the requested backbone structure.
+- E4 Jira/Git FHIR-26570 and d2e6d81f27044374ce30401b189d3de9cd0d5a4d: later Published issue and implementation changed crossReference.product to CodeableReference(MedicinalProductDefinition). Learned: the current product datatype is a later approved refinement, not a regression from FHIR-25057.
+- E5 Source source/medicinalproductdefinition/valueset-medicinal-product-cross-reference-type.xml:36 and source/medicinalproductdefinition/codesystem-medicinal-product-cross-reference-type.xml:39: ProductCrossReferenceType terminology is described as a relationship to another Medicinal Product. Learned: the previous binding description on crossReference.type was stale and misleading.
+- E6 Git 9ee11711505abd6bd166111e6b5b4e0db63d8210: added the ProductCrossReferenceType binding while carrying the unrelated "Extra measures" description. Learned: the remaining defect was introduced after the initial application and is safe to fix narrowly.
+- E7 Community searches: direct Zulip and Confluence searches for FHIR-25057 found no relevant discussion, while FHIR-26570 BRR minutes confirmed the later CodeableReference direction. Learned: no discovered community evidence conflicts with the source correction.
+- E8 Verification command/query: git diff --check, XML parse, and rg for stale productIdentifier/productReference/product[x]/Identifier|Reference(MedicinalProductDefinition) representations succeeded after the edit. Learned: the one-line XML change is syntactically valid and no old crossReference representation remains in the relevant source folder.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-25057",
+    "url": "https://jira.hl7.org/browse/FHIR-25057",
+    "snapshot_path": "contexts/FHIR-25057/jira/FHIR-25057.md",
+    "ref": { "jira_key": "FHIR-25057" },
+    "summary": "Published/Persuasive BRR R5 issue asking to make MedicinalProductDefinition.crossReference a BackboneElement with product and type children.",
+    "learned": "This establishes the final request and approved scope for the seed issue.",
+    "supports": ["issue_request", "source_change_scope"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "d017cd22c28c50b2e285e0a2b5dc87edcc6dbb71",
+    "ref": { "commit": "d017cd22c28c50b2e285e0a2b5dc87edcc6dbb71" },
+    "summary": "Historical spreadsheet commit changed crossReference from a repeated Identifier into a backbone-style parent with product[x] and type children.",
+    "learned": "The structural part of FHIR-25057 had already been applied before this reconciliation.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:289; source/medicinalproductdefinition/structuredefinition-MedicinalProductDefinition.xml:996",
+    "summary": "fhir.ini includes medicinalproductdefinition as an active resource, and the StructureDefinition defines crossReference as BackboneElement.",
+    "learned": "The edited StructureDefinition is in current build scope and already contains the requested backbone structure.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "FHIR-26570; d2e6d81f27044374ce30401b189d3de9cd0d5a4d; f9d6a727e79e31c052fb4a01fb19d9080e258358",
+    "url": "https://jira.hl7.org/browse/FHIR-26570",
+    "ref": { "jira_key": "FHIR-26570", "commit": "d2e6d81f27044374ce30401b189d3de9cd0d5a4d" },
+    "summary": "Later Published issue FHIR-26570 and its implementation changed crossReference.product to CodeableReference(MedicinalProductDefinition); an existing combined-branch audit commit already represents that issue.",
+    "learned": "The current product datatype is an approved later refinement and should not be reverted while reconciling FHIR-25057.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/medicinalproductdefinition/valueset-medicinal-product-cross-reference-type.xml:36; source/medicinalproductdefinition/codesystem-medicinal-product-cross-reference-type.xml:39",
+    "summary": "The ProductCrossReferenceType value set and code system describe relationships to another Medicinal Product.",
+    "learned": "The old crossReference.type binding description about extra measures contradicted the bound terminology and needed correction.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "9ee11711505abd6bd166111e6b5b4e0db63d8210",
+    "ref": { "commit": "9ee11711505abd6bd166111e6b5b4e0db63d8210" },
+    "summary": "Later value-set/definition work added the ProductCrossReferenceType binding while carrying the unrelated extra-measures description.",
+    "learned": "The remaining source defect was a later stale binding description, not a need to remodel crossReference.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community searches for FHIR-25057 and crossReference",
+    "command": "bun run zulip:search fts '\"FHIR-25057\" MedicinalProductDefinition crossReference' --limit 10; bun run confluence:search refs jira FHIR-25057; bun run confluence:search fts 'MedicinalProductDefinition crossReference' --limit 10",
+    "query": "FHIR-25057 MedicinalProductDefinition crossReference",
+    "summary": "No direct FHIR-25057 Zulip or Confluence discussion was found; FHIR-26570 BRR minutes supported the later CodeableReference direction.",
+    "learned": "No discovered community evidence conflicts with the Jira, source, and git conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Validation after source edit",
+    "command": "git diff --check; xmllint --noout source/medicinalproductdefinition/structuredefinition-MedicinalProductDefinition.xml; rg -n 'productIdentifier|productReference|product\\[x\\]|<product[xX]|Identifier\\|Reference\\(MedicinalProductDefinition\\)' source/medicinalproductdefinition",
+    "result_count": 0,
+    "summary": "Whitespace check and XML parsing succeeded; no stale old crossReference representation was found in source/medicinalproductdefinition.",
+    "learned": "The one-line source correction is syntactically valid and does not leave the old representation behind.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

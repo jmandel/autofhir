@@ -1,0 +1,130 @@
+FHIR-10292: Audit code binding tooling enforcement
+
+Issue request:
+FHIR-10292 was Published/Persuasive for FHIR-core and asked that the build fail when an element of type code has a binding strength other than required. The Jira was copied from FHIR-10272, whose motivating example was Condition.clinicalStatus being a code with a preferred binding.
+
+Initial application:
+The issue was applied in historical HL7/fhir commit 25a14c34669e6e4e477a6970231743ce1ebd9432, matching the Jira comment's SVN revision 9170. That commit changed the then-vendored ResourceValidator so simple code bindings had to be required, with a max-binding exception and grandfathered exemptions, and required code elements to provide a binding.
+
+Additional context:
+FHIR-10272 fixed the specific Condition.clinicalStatus example, and the current active Condition resource now has clinicalStatus as CodeableConcept with a required ConditionClinicalStatus binding. FHIR-28285 later reaffirmed and refined the same tooling rule for example bindings and the max-binding/extensible exception; it is already represented on the combined branch by 06449f181d7b733debe269c563625ba4ca0e0e4c. Current HL7/fhir no longer carries the publisher validation source directly: build.gradle.kts depends on org.hl7.fhir:kindling and runs org.hl7.fhir.tools.publisher.Publisher using the kindlingVersion from gradle.properties. Current Kindling ResourceValidator retains the required-binding rule for simple code bindings.
+
+AutoFHIR reconciliation:
+This is an empty external-repo audit commit. No HL7/fhir source file was changed because the requested enforcement is a build-tooling behavior now maintained in HL7/kindling, and scans of current core StructureDefinition and spreadsheet source found no code element bindings with a non-required strength.
+
+Recommendation:
+Keep this audit commit as-is for core source reconciliation. If the rule regresses, update or version the external Kindling/Publisher tooling rather than adding redundant narrative or editing generated artifacts in HL7/fhir.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-10292
+Issue-Reconcile-Decision: external-repo
+
+<related-jiras>
+FHIR-10272: same-change-family - original Condition.clinicalStatus report that supplied the concrete code/preferred example and requested both a source fix and build-tool enforcement.
+FHIR-28285: later-change - later Published/Persuasive FHIR-I decision reaffirming code binding enforcement and the max-binding/extensible exception; already audited on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-10292: Published/Persuasive issue copied from FHIR-10272 asking the build to error when a code binding strength is not required. Learned: establishes the seed request and final workflow status.
+- E2 Jira FHIR-10272: Published/Persuasive Condition issue described clinicalStatus as a code with preferred binding and requested both tooling enforcement and a resource fix. Learned: identifies the motivating source example and same-change family.
+- E3 Git 25a14c34669e6e4e477a6970231743ce1ebd9432: historical HL7/fhir commit '#10292 - check bindings properly' added/moved ResourceValidator rules requiring simple code bindings to be required and code elements to have bindings. Learned: confirms the seed was initially applied in the then-vendored tooling source.
+- E4 Source build.gradle.kts:47,137 and gradle.properties:2: current HL7/fhir depends on org.hl7.fhir:kindling and runs org.hl7.fhir.tools.publisher.Publisher using kindlingVersion 1.25.5-SNAPSHOT. Learned: the active validation implementation is external Kindling tooling, not editable core source in this checkout.
+- E5 Git HL7/kindling ResourceValidator.java at b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8: current validator has rules that simple code bindings must be required unless a max binding is present and that code elements need a binding. Learned: the requested behavior remains implemented in the active external tooling.
+- E6 Source source/fhir.ini:169-180 and source/condition/structuredefinition-Condition.xml:143-167: Condition is an active resource and clinicalStatus is now CodeableConcept with required ConditionClinicalStatus binding. Learned: the original concrete violation is not present in current core source.
+- E7 Command source scan: StructureDefinition XML scan found 337 code elements with bindings and 0 non-required strengths; spreadsheet source scan found 32 code rows with bindings and 0 non-required strengths. Learned: no current in-scope core source correction is needed for this rule.
+- E8 Zulip implementers 'binding strength bug?' 2016-07-05: Josh Mandel raised the clinicalStatus code/preferred issue, Lloyd McKenzie said it should be caught by the build tool, and Robert McClure agreed a code should not have preferred strength. Learned: community discussion supports the Jira interpretation and reveals no conflicting intent.
+- E9 Confluence FHIR-I Minutes CC 20201207 page 97469316: FHIR-I agreed on FHIR-28285 and recorded the max-binding/extensible exception. Learned: later WG context refines but does not conflict with FHIR-10292.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-10292",
+    "url": "https://jira.hl7.org/browse/FHIR-10292",
+    "snapshot_path": "contexts/FHIR-10292/jira/FHIR-10292.md",
+    "ref": { "jira_key": "FHIR-10292" },
+    "summary": "Published/Persuasive FHIR-core issue asking build tooling to error when code bindings are not required.",
+    "learned": "This establishes the final seed request and that the requested change is tooling enforcement.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "jira",
+    "locator": "FHIR-10272",
+    "url": "https://jira.hl7.org/browse/FHIR-10272",
+    "snapshot_path": "contexts/FHIR-10292/jira/FHIR-10272.md",
+    "ref": { "jira_key": "FHIR-10272" },
+    "summary": "Published/Persuasive Condition issue reported Condition.clinicalStatus as a code with preferred binding and requested a source fix plus build-tool enforcement.",
+    "learned": "This is the concrete example copied into FHIR-10292 and explains the same-change family.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "HL7/fhir 25a14c34669e6e4e477a6970231743ce1ebd9432",
+    "ref": { "commit": "25a14c34669e6e4e477a6970231743ce1ebd9432" },
+    "summary": "Historical commit '#10292 - check bindings properly' updated ResourceValidator to require required bindings for simple code bindings and require code bindings to exist.",
+    "learned": "FHIR-10292 was applied in the then-vendored tooling source before that tooling moved out of this checkout.",
+    "supports": ["initial_application", "external_repo"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "build.gradle.kts:47,137; gradle.properties:2",
+    "summary": "Current HL7/fhir depends on org.hl7.fhir:kindling and runs org.hl7.fhir.tools.publisher.Publisher with kindlingVersion 1.25.5-SNAPSHOT.",
+    "learned": "The active publisher validation implementation is external Kindling tooling rather than an HL7/fhir source file to edit.",
+    "supports": ["build_scope", "external_repo"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "HL7/kindling ResourceValidator.java b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8",
+    "url": "https://github.com/HL7/kindling/blob/b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8/src/main/java/org/hl7/fhir/definitions/validation/ResourceValidator.java",
+    "ref": { "repo": "HL7/kindling", "commit": "b6cb1f66e49ac8ef4ace2932ad5345cb3e5624d8" },
+    "summary": "Current Kindling ResourceValidator enforces that simple code bindings are required unless a max binding is present and that code elements need bindings.",
+    "learned": "The requested behavior remains implemented in the build tooling consumed by this repository.",
+    "supports": ["reconciliation", "external_repo"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-180; source/condition/structuredefinition-Condition.xml:143-167",
+    "summary": "Condition is active in the current build and clinicalStatus is CodeableConcept with a required ConditionClinicalStatus binding.",
+    "learned": "The original Condition.clinicalStatus code/preferred violation is not present in current source.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Current source scans for code elements with non-required bindings",
+    "command": "python3 scans over source/**/structuredefinition-*.xml and source/**/*spreadsheet.xml",
+    "summary": "StructureDefinition XML had 337 code elements with bindings and 0 non-required strengths; spreadsheet source had 32 code rows with bindings and 0 non-required strengths.",
+    "learned": "There is no current in-scope HL7/fhir source violation requiring an edit.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#implementers > binding strength bug?",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/binding%20strength%20bug%3F",
+    "snapshot_path": "contexts/FHIR-10292/zulip/implementers--binding-strength-bug.md",
+    "ref": { "stream": "implementers", "topic": "binding strength bug?" },
+    "summary": "2016 discussion identified Condition.clinicalStatus as code/preferred, with agreement that the build tool should catch this and that code should not have preferred strength.",
+    "learned": "Community evidence supports the Jira/source interpretation and reveals no conflicting intent.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E9",
+    "kind": "confluence",
+    "locator": "FHIR Infrastructure Minutes CC 20201207 page 97469316",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/97469316/FHIR+Infrastructure+Minutes+CC+20201207",
+    "snapshot_path": "contexts/FHIR-10292/confluence/97469316.md",
+    "ref": { "confluence_page_id": 97469316 },
+    "summary": "FHIR-I minutes for FHIR-28285 record agreement on tooling enforcement and the max-binding/extensible exception.",
+    "learned": "Later WG context refines the rule but does not contradict FHIR-10292.",
+    "supports": ["additional_context", "reconciliation"]
+  }
+]
+</evidence-manifest>

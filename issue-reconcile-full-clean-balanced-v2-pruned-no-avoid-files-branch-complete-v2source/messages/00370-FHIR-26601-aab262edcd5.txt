@@ -1,0 +1,118 @@
+FHIR-26601: Complete PaymentReconciliation patient-payment scope
+
+Issue request:
+FHIR-26601 was Published/Persuasive with Modification for R5 and asked to keep the PaymentReconciliation resource name while expanding the resource to cover patient payments. The approved change added payment source/workflow/payment-method elements, renamed paymentDate/paymentAmount/detail to date/amount/allocation, replaced allocation.request with allocation.target, made allocation.type optional, narrowed allocation.response to ClaimResponse, added allocation account/encounter search parameters, and requested descriptive text and examples for the expanded scope.
+
+Initial application:
+The issue appears to have been partially applied by untagged PaymentReconciliation source updates in August 2022, especially ffa7a1ee67 and 161b0f1ce1. Those commits added most structure changes, the payment issuer/kind terminology, patient and related-person payment issuers, account/encounter allocation search parameters, and example renames from detail/request to allocation/target. They left the current narrative focused on insurer/payor bulk payments, left PaymentReconciliation.allocation.target at 0..1 even though the approved request made it 1..1, and did not add the target search parameter requested by the allocation.request to allocation.target rename.
+
+Additional context:
+FHIR-15126 records a later no-change decision saying the R5 PaymentReconciliation changes from FHIR-26601 addressed payment posting needs. Zulip implementer discussion and PA minutes confirm FM was expanding PaymentReconciliation to cover patient payments and credit-card/online-payment use cases. FHIR-40279 later removed Person as a paymentIssuer choice but preserved Patient and RelatedPerson. FHIR-53869 is a later Triaged R6 request about additional capitation support and is not final enough to decide here. ChargeItem was removed from the current build in 71567db3ee, and Statement is not an active current resource, so this reconciliation does not re-add those historical target choices.
+
+AutoFHIR reconciliation:
+This commit updates current build-scope PaymentReconciliation source. It makes PaymentReconciliation.allocation.target 1..1, adds the PaymentReconciliation target search parameter for allocation.target while clarifying the existing request search parameter description, updates the Scope/Usage and Boundaries text to include insurer/payor and patient-collected payments, adds a patient-payment example, registers it in the resource example list, and gives the existing example's advance allocation an Account target so examples conform to the corrected target cardinality.
+
+Recommendation:
+Keep this commit as-is. It completes the remaining source-visible pieces of the published FHIR-26601 decision without reintroducing inactive ChargeItem/Statement references. If FM later wants capitation-specific subject/characteristics support, handle that under a final disposition of FHIR-53869 or a successor issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-26601
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-15126: supporting-decision - no-change payment-posting request explicitly points to the R5 PaymentReconciliation changes from FHIR-26601 as the applied solution.
+FHIR-40279: later-change - later Published correction removed Person from paymentIssuer while preserving Patient and RelatedPerson support for patient payments.
+FHIR-53869: background - later Triaged R6 request asks for additional capitation target/subject support but is not final and does not change the FHIR-26601 reconciliation.
+FHIR-40659: background - contemporaneous financial module roadmap text confirms the payment-related resource focus and future FIAB/statement work.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-26601: Published/Persuasive with Modification R5 issue for expanding PaymentReconciliation to patient payments. Learned: final WG intent requires structural, search parameter, narrative, and example support for patient payments.
+- E2 Source source/paymentreconciliation/structuredefinition-PaymentReconciliation.xml:533: current allocation.target existed but was 0..1 and omitted inactive ChargeItem after later resource removal. Learned: the active source needed target cardinality correction but not restoration of out-of-build target resources.
+- E3 Source source/paymentreconciliation/bundle-PaymentReconciliation-search-params.xml:103 and :157: current search params had request/requestor/account/encounter but no allocation.target search parameter. Learned: the approved request-to-target search change was still missing.
+- E4 Source source/paymentreconciliation/paymentreconciliation-introduction.xml:7 and :37: current narrative described payor/insurance bulk payments only. Learned: the descriptive text did not convey the patient-payment scope even though the structure mostly did.
+- E5 Git ffa7a1ee67 and 161b0f1ce1: August 2022 untagged PaymentReconciliation updates added most FHIR-26601 structure and terminology changes. Learned: FHIR-26601 was initially applied incompletely rather than not applied.
+- E6 Git 71567db3ee: removed ChargeItem and related draft resources from the current build and dropped ChargeItem from allocation.target. Learned: restoring ChargeItem from the old resolution would conflict with current build scope.
+- E7 Jira/Zulip/Confluence search: FHIR-15126, FHIR-40279, FHIR-53869 plus Zulip Payment refund/Cash based practice modeling and PA minutes. Learned: related evidence supports patient-payment scope, narrows paymentIssuer Person, and leaves later capitation changes undecided.
+- E8 Verification command: XML parse, CRLF-aware diff check, and example allocation-target check passed for changed PaymentReconciliation files. Learned: edited source is well-formed and examples align with the corrected target cardinality.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-26601",
+    "url": "https://jira.hl7.org/browse/FHIR-26601",
+    "snapshot_path": "contexts/FHIR-26601/jira/FHIR-26601.md",
+    "ref": { "jira_key": "FHIR-26601" },
+    "summary": "Published/Persuasive with Modification issue to expand PaymentReconciliation for patient payments while retaining the resource name.",
+    "learned": "This establishes final WG intent for patient-payment elements, allocation target/search changes, narrative updates, and examples.",
+    "supports": ["issue_request", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/paymentreconciliation/structuredefinition-PaymentReconciliation.xml:533",
+    "ref": { "path": "source/paymentreconciliation/structuredefinition-PaymentReconciliation.xml", "line": 533 },
+    "summary": "PaymentReconciliation.allocation.target existed in active resource source but had min 0 before this reconciliation.",
+    "learned": "The approved 1..1 allocation target requirement remained incompletely applied in current build-scope source.",
+    "supports": ["initial_application", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/paymentreconciliation/bundle-PaymentReconciliation-search-params.xml:103-188",
+    "ref": { "path": "source/paymentreconciliation/bundle-PaymentReconciliation-search-params.xml" },
+    "summary": "The active search parameter bundle had request, requestor, allocation-encounter, and allocation-account entries but no allocation.target/target search parameter.",
+    "learned": "The search-parameter portion of the allocation.request to allocation.target rename was still missing.",
+    "supports": ["initial_application", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/paymentreconciliation/paymentreconciliation-introduction.xml:7-63",
+    "ref": { "path": "source/paymentreconciliation/paymentreconciliation-introduction.xml" },
+    "summary": "The active narrative still framed PaymentReconciliation as bulk payor/insurance payment reconciliation.",
+    "learned": "Narrative text needed updating to avoid contradicting the expanded patient-payment scope.",
+    "supports": ["initial_application", "source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "ffa7a1ee67; 161b0f1ce1",
+    "ref": { "commits": "ffa7a1ee67,161b0f1ce1" },
+    "summary": "Untagged August 2022 PaymentReconciliation source updates added most structural, example, and terminology changes for the issue.",
+    "learned": "The issue was initially applied through generic source commits but not fully reconciled against the Jira resolution.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "71567db3ee",
+    "ref": { "commit": "71567db3ee" },
+    "summary": "A later source commit removed ChargeItem and related draft resources from the current build and removed ChargeItem from PaymentReconciliation.allocation.target.",
+    "learned": "Current reconciliation should not restore inactive ChargeItem or nonexistent Statement target choices from the historical resolution text.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Related Jira, Zulip, and Confluence searches for PaymentReconciliation patient payments",
+    "command": "bun run jira:search fts '\"PaymentReconciliation\" \"patient\" \"payment\"'; bun run zulip:search fts '\"PaymentReconciliation\" \"patient\" \"payment\"'; bun run confluence:search refs jira FHIR-26601",
+    "query": "PaymentReconciliation patient payment FHIR-26601",
+    "summary": "Searches found FHIR-15126, FHIR-40279, FHIR-53869, implementer Zulip threads about patient payments/refunds, and PA minutes reviewing FHIR-26601.",
+    "learned": "Community and related-issue evidence supports completing patient-payment scope while leaving later capitation work undecided.",
+    "supports": ["additional_context", "recommendation", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted validation of changed PaymentReconciliation source",
+    "command": "python3 XML parse for changed files; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; Python check that PaymentReconciliation example allocations have target",
+    "summary": "Changed XML files parsed successfully, CRLF-aware diff check passed, and PaymentReconciliation examples have allocation.target on each allocation.",
+    "learned": "The reconciliation edits are syntactically valid and examples conform to the corrected cardinality.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

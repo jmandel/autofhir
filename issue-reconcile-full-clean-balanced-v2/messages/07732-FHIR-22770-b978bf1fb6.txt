@@ -1,0 +1,115 @@
+FHIR-22770: Audit duplicate-create response guidance
+
+Issue request:
+FHIR-22770 was a Published/Persuasive FHIR-core issue, raised against STU3 and applied for R5, asking for create-interaction language that would let a server detect a duplicate patient or other existing record and return 201 with the existing resource as though a new resource had been created.
+
+Initial application:
+The Jira-tagged commit 5de04e66970292a21c6f7393527c115fef02fe4d added the requested create-section note to source/http.html in May 2022, stating that a server MAY return 201 when a create request matches an existing record with high confidence and reminding clients to review returned data.
+
+Additional context:
+FHIR-32757 was a later Published/Persuasive with Modification FHIR-I decision for the same duplicate-create behavior. Its resolution says returning 201 when no new record was created is non-conformant and instead allows 303 See Other with Location pointing to the existing unchanged record. The combined branch already contains Issue-Reconcile-Key: FHIR-32757 in commit 984dc7f24002d09b308b2e3710f51dfa1dacca3a, which moved that later rule into the active create section and removed the stale FHIR-22770 201 allowance. FHIR-53546 was inspected as nearby conditional-create duplicate/race-condition context, but it concerns If-None-Exist concurrency rather than the standard create response requested here.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Current source/http.html already reflects the later controlling FHIR-32757 decision: 201 applies when the create request creates a new resource, duplicate POSTs MAY return 303 See Other with Location, and a server SHALL NOT return 201 Created if it did not create a new resource.
+
+Recommendation:
+Keep this no-change audit. Do not restore the older FHIR-22770 201-for-existing-record note unless FHIR-I makes a new explicit decision reversing FHIR-32757; the current source is the correct reconciled state for duplicate create responses.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-22770
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-32757: superseded-by - later Published/Persuasive with Modification issue directly changed the duplicate-create response rule, prohibiting 201 when no record was created and allowing 303 See Other.
+FHIR-53546: background - later Applied issue covers conditional-create If-None-Exist race conditions, which is adjacent duplicate-prevention guidance but not the same standard create response decision.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-22770: Published/Persuasive issue asking to permit 201 when a create request matches an existing record with high confidence. Learned: establishes the original seed request and why the 201 note once existed.
+- E2 Git 5de04e66970292a21c6f7393527c115fef02fe4d: commit titled "FHIR-22770 Create response when duplicate found" added the requested 201-for-existing-record note to source/http.html. Learned: confirms the seed was initially applied.
+- E3 Jira FHIR-32757: later Published/Persuasive with Modification issue says 201 without creating a new record is non-conformant and duplicate POSTs MAY return 303 See Other with Location. Learned: supplies the later controlling work-group decision that supersedes the seed wording.
+- E4 Git 984dc7f24002d09b308b2e3710f51dfa1dacca3a: combined-branch FHIR-32757 reconciliation removed the stale FHIR-22770 note and placed the 303/SHALL NOT 201 guidance in the create section. Learned: current combined source already contains the correct later source fix.
+- E5 Source source/http.html:1265,1294-1297,1314,2533: active HTTP source limits 201 to newly created resources, allows 303 for duplicate POSTs, and lists 303 in create response codes. Learned: no additional source change is needed for the seed.
+- E6 Source source/exchange-module.html:51: the Exchange module links implementers to http.html as the RESTful API page. Learned: source/http.html is active build-scope narrative for create behavior.
+- E7 Community search: corrected Zulip searches for "FHIR-22770" and "FHIR-32757" found no direct issue-key hits; the "Response to Create Interaction" thread discusses GF#22770 and the create-response risks that led to later guidance; Confluence refs found FHIR-I WGM 202105 minutes for FHIR-32757. Learned: community evidence supports the later FHIR-32757 context and revealed no final reversal.
+- E8 Verification command/query: git log checks found no existing FHIR-22770 reconciliation commit on the combined branch and did find the FHIR-32757 reconciliation commit; rg checks found the current 303 and SHALL NOT 201 text. Learned: this empty audit commit is required for the seed and is not duplicative.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-22770",
+    "url": "https://jira.hl7.org/browse/FHIR-22770",
+    "snapshot_path": "contexts/FHIR-22770/jira/FHIR-22770.md",
+    "ref": { "jira_key": "FHIR-22770" },
+    "summary": "Published/Persuasive issue asking to allow 201 when a create request matches an existing record with high confidence.",
+    "learned": "This establishes the original seed request and explains the older create-section note.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "5de04e66970292a21c6f7393527c115fef02fe4d",
+    "ref": { "commit": "5de04e66970292a21c6f7393527c115fef02fe4d" },
+    "summary": "Commit titled 'FHIR-22770 Create response when duplicate found' added the requested 201-for-existing-record note to source/http.html.",
+    "learned": "The seed was initially applied before later duplicate-create guidance superseded it.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-32757",
+    "url": "https://jira.hl7.org/browse/FHIR-32757",
+    "ref": { "jira_key": "FHIR-32757" },
+    "summary": "Later Published/Persuasive with Modification issue says 201 without creating a record is non-conformant and duplicate POSTs MAY return 303 See Other with Location.",
+    "learned": "This is the later controlling decision for the same duplicate-create response behavior.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "984dc7f24002d09b308b2e3710f51dfa1dacca3a",
+    "ref": { "commit": "984dc7f24002d09b308b2e3710f51dfa1dacca3a" },
+    "summary": "Combined-branch FHIR-32757 reconciliation removed the stale FHIR-22770 note and placed the 303/SHALL NOT 201 guidance in the create section.",
+    "learned": "The current combined source already contains the needed later correction, so FHIR-22770 needs only an audit commit.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/http.html:1265,1294-1297,1314,2533",
+    "summary": "Current active HTTP source limits 201 to newly created resources, allows 303 See Other for duplicate POSTs, and lists 303 in create response codes.",
+    "learned": "The current source already reflects the later correct duplicate-create semantics.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/exchange-module.html:51",
+    "summary": "The Exchange module links implementers to http.html as the RESTful API page.",
+    "learned": "This confirms source/http.html is in the current build scope for REST create behavior.",
+    "supports": ["source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-22770/FHIR-32757 create-response context",
+    "command": "bun run zulip:search fts '\"FHIR-22770\" duplicate create existing patient' --limit 10; bun run zulip:search fts '\"Response to Create Interaction\"' --limit 10; bun run confluence:search refs jira FHIR-32757",
+    "query": "FHIR-22770 FHIR-32757 duplicate create response",
+    "summary": "Direct issue-key Zulip searches found no hits; the Response to Create Interaction thread mentions GF#22770, and Confluence refs found FHIR-I WGM minutes for FHIR-32757.",
+    "learned": "Community evidence supports the later duplicate-create guidance context and revealed no final reversal.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Idempotency and source validation for FHIR-22770",
+    "command": "git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-22770' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2; rg -n '303 See Other|SHALL NOT return a <code>201 Created|If the <code>create</code> request creates a new resource' source/http.html",
+    "summary": "No existing FHIR-22770 reconciliation commit was present; current source contains the 303 and SHALL NOT 201 duplicate-create guidance.",
+    "learned": "The seed needs an audit commit but no source edit.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

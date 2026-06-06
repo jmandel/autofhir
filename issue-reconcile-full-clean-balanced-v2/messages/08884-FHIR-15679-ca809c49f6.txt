@@ -1,0 +1,101 @@
+FHIR-15679: Audit search parameter FHIRPath expressions
+
+Issue request:
+FHIR-15679 was Published/Persuasive for STU3 and asked that generated search-parameters.json expressions stop using obsolete .is()/.as() FHIRPath functions, with Condition abatement-age given as an example. The resolution accepted correcting those statements and explicitly left the separate operator-precedence concern for a different tracker.
+
+Initial application:
+The issue was applied in git commit 066aa2229dc6b81e2f31ea04fac2adfa083c6e42, matching the Jira comment for svn revision 14466. That commit changed the generated search-parameter FHIRPath builder in SourceParser.java from .as(Type) calls to parenthesized as operators.
+
+Additional context:
+The current build no longer has the old SourceParser path from the 2018 commit, and current checked-in bundle-*-search-params.xml files are the authoritative search-parameter source inputs. SearchParameter is an active resource in source/fhir.ini. Current FHIRPath documentation also describes .as(type) as a legacy simple-FHIRPath alias, so the safe reconciliation target is the specific search-parameter expressions from this issue, not a broad removal of every .as/.is mention in unrelated FHIRPath documentation or constraints.
+
+AutoFHIR reconciliation:
+This commit makes no source change. A current-source scan of all 147 source/**/bundle-*-search-params.xml files found zero .as() or .is() calls, and the Jira example now appears as Condition.abatement.ofType(Age) | Condition.abatement.ofType(Range), which avoids the obsolete function syntax.
+
+Recommendation:
+Keep this audit commit as-is. No current core source edit is needed for FHIR-15679; future work, if any, should be handled under a separate tracker if the FHIRPath legacy-alias documentation or operator-precedence behavior is intentionally revisited.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15679
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15679: Published/Persuasive STU3 issue requesting generated search-parameters.json expressions be corrected from .is()/.as() functions. Learned: final WG intent was limited to correcting those search-parameter statements.
+- E2 Git 066aa2229dc6b81e2f31ea04fac2adfa083c6e42: GF#15679 commit for svn revision 14466 changed generated FHIRPath from .as(Type) to parenthesized as operators. Learned: the historical application occurred before this reconciliation.
+- E3 Source source/fhir.ini:245 and source/fhir.ini:248: Bundle and SearchParameter are active current resources. Learned: current bundle-*-search-params.xml files are in current build scope for source checking.
+- E4 Source source/condition/bundle-Condition-search-params.xml:19: Condition-abatement-age expression is Condition.abatement.ofType(Age) | Condition.abatement.ofType(Range). Learned: the Jira example no longer uses obsolete .as() syntax.
+- E5 Verification command: rg -n '\.(as|is)\(' source --glob '**/bundle-*-search-params.xml' returned zero matches across 147 files. Learned: current search-parameter source expressions do not contain the legacy function calls targeted by the issue.
+- E6 Source source/fhirpath.html:548-563: current simple FHIRPath documentation lists .as(type) only as a legacy alias for .ofType(type). Learned: broader .as/.is documentation is separate context and not a current SearchParameter source defect.
+- E7 Community search: Zulip key search found no FHIR-15679 discussion, title search found only a committers bot notification, and Confluence searches found no references. Learned: no discovered community record conflicts with the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15679",
+    "url": "https://jira.hl7.org/browse/FHIR-15679",
+    "snapshot_path": "contexts/FHIR-15679/jira/FHIR-15679.md",
+    "ref": { "jira_key": "FHIR-15679" },
+    "summary": "Published/Persuasive STU3 issue requesting correction of generated search-parameters.json expressions that used obsolete .is()/.as() functions.",
+    "learned": "This establishes the final requested change and shows that the operator-precedence note was intentionally deferred to a separate tracker.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "066aa2229dc6b81e2f31ea04fac2adfa083c6e42",
+    "ref": { "commit": "066aa2229dc6b81e2f31ea04fac2adfa083c6e42" },
+    "summary": "GF#15679 commit matching svn revision 14466 changed generated FHIRPath output from .as(Type) calls to parenthesized as operators.",
+    "learned": "The issue had an explicit historical application in the generator used at that time.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:245, source/fhir.ini:248",
+    "summary": "The current fhir.ini lists Bundle and SearchParameter as active resources.",
+    "learned": "The checked-in bundle search-parameter source files are current-build inputs worth checking for this issue.",
+    "supports": ["additional_context", "source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/condition/bundle-Condition-search-params.xml:19",
+    "summary": "Condition-abatement-age now uses Condition.abatement.ofType(Age) | Condition.abatement.ofType(Range).",
+    "learned": "The concrete Jira example no longer contains the obsolete .as() function syntax.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current search-parameter FHIRPath scan",
+    "command": "rg -n '\\.(as|is)\\(' source --glob '**/bundle-*-search-params.xml'",
+    "result_count": 0,
+    "summary": "No .as() or .is() function calls were found in the 147 current bundle-*-search-params.xml source files.",
+    "learned": "The current search-parameter source no longer has the expression defect targeted by FHIR-15679.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "source",
+    "locator": "source/fhirpath.html:548-563",
+    "summary": "The simple FHIRPath page now lists .as(type) as a legacy alias for .ofType(type).",
+    "learned": "Any broader FHIRPath alias policy is separate from the already-corrected SearchParameter expressions.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Zulip and Confluence searches for FHIR-15679",
+    "command": "bun run zulip:search fts '\"FHIR-15679\"' --limit 10; bun run zulip:search fts '\"Correct search-parameters.json expressions\"' --limit 10; bun run confluence:search refs jira FHIR-15679; bun run confluence:search fts '\"FHIR-15679\"' --limit 10",
+    "summary": "No substantive Zulip or Confluence discussion was found; the only Zulip hit was a committers bot notification for the tracker title.",
+    "learned": "No discovered community evidence changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

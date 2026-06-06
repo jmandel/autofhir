@@ -1,0 +1,119 @@
+FHIR-14469: Audit Appointment procedure request coverage
+
+Issue request:
+FHIR-14469 was a Published PA change request for STU3, resolved Not Persuasive with Modification. It asked to update the Appointment indication so a procedure-to-be-performed could be represented by ProcedureRequest, and also noted the typo "Reason the appointment is to takes place".
+
+Initial application:
+No direct git commit mentioning FHIR-14469 was found. The relevant application happened through the Appointment request-reference work: FHIR-13195 renamed Appointment.incomingReferral to Appointment.basedOn, and the historical request-resource commits merged ReferralRequest with ProcedureRequest and then renamed ProcedureRequest to ServiceRequest before current source generation.
+
+Additional context:
+Appointment is an active resource in source/fhir.ini. Current Appointment.basedOn is a request reference whose definition explicitly includes an incoming referral or procedure request and whose target profiles include ServiceRequest, the current successor that covers the old ProcedureRequest/ReferralRequest scope. Current Appointment.reason also has clean wording and no remaining "to takes place" typo. The existing combined-branch FHIR-25278 audit records a later basedOn expansion that preserved ServiceRequest and the reason-vs-basedOn separation.
+
+AutoFHIR reconciliation:
+No source change was made. Adding a legacy ProcedureRequest target or moving this request relationship back into Appointment.reason/indication would be wrong for current FHIR source; the current build already conveys the approved resolution through Appointment.basedOn.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-14469 unless PA later decides to change Appointment.reason semantics independently of the already-applied basedOn request relationship.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-14469
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13195: same-change-family - established the Appointment.basedOn property that covers prior orders and procedure requests, making the FHIR-14469 request already satisfied.
+FHIR-25278: later-change - later expanded Appointment.basedOn request targets while preserving ServiceRequest and the separation between reason and basedOn; already represented on the combined branch.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-14469: Published/Not Persuasive with Modification; resolution says Appointment changes between STU3 and R4 already covered ProcedureRequest via Appointment.basedOn after ProcedureRequest merged with ReferralRequest. Learned: the final decision was to rely on basedOn, not add a legacy ProcedureRequest target to reason/indication.
+- E2 Source source/fhir.ini:230: appointment=Appointment is active. Learned: the Appointment StructureDefinition is in current build scope.
+- E3 Source source/appointment/structuredefinition-Appointment.xml:837-849: Appointment.basedOn is a request reference, says "incoming referral or procedure request", has alias incomingReferral, and targets ServiceRequest. Learned: current source already represents the approved procedure-request scheduling relationship.
+- E4 Source source/appointment/structuredefinition-Appointment.xml:393-405 and rg typo check: Appointment.reason says "Reason this appointment is scheduled" and no "to takes place" typo remains. Learned: the editorial part of the issue is already corrected.
+- E5 Git 463cb5b344 and 06bd9f6ffe: source history merged ReferralRequest with ProcedureRequest and renamed ProcedureRequest to ServiceRequest. Learned: ServiceRequest is the appropriate current target for the old ProcedureRequest request use case.
+- E6 Git 62c1d1a5a6 and b60b1f7199: FHIR-13195 renamed Appointment.incomingReferral to Appointment.basedOn and updated examples/definitions. Learned: the source history applied the basedOn mechanism cited by the FHIR-14469 resolution.
+- E7 Zulip #patient administration WG > GF#13195: Add reference to ProcedureRequest to Appointment: discussion says ReferralRequest and ProcedureRequest had merged into ServiceRequest, proposes Appointment.basedOn, and confirms it covers the use case. Learned: community evidence supports interpreting FHIR-14469 through FHIR-13195/basedOn.
+- E8 Verification commands: direct FHIR-14469 Zulip/Confluence searches found no conflicting hits; idempotency grep found no existing FHIR-14469 reconcile commit; current source grep found no legacy ProcedureRequest/ReferralRequest or typo in Appointment source. Learned: no discovered evidence requires a source edit or blocks this audit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-14469",
+    "url": "https://jira.hl7.org/browse/FHIR-14469",
+    "snapshot_path": "contexts/FHIR-14469/jira/FHIR-14469.md",
+    "ref": { "jira_key": "FHIR-14469" },
+    "summary": "Published/Not Persuasive with Modification issue asking Appointment indication to include ProcedureRequest and fixing a reason-description typo.",
+    "learned": "The accepted resolution was that STU3-to-R4 Appointment changes already covered ProcedureRequest through Appointment.basedOn after ProcedureRequest and ReferralRequest merged.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:230",
+    "ref": { "path": "source/fhir.ini", "line": 230 },
+    "summary": "The resources section contains the active appointment=Appointment entry.",
+    "learned": "Appointment source files are in the current FHIR build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/appointment/structuredefinition-Appointment.xml:837-849",
+    "ref": { "path": "source/appointment/structuredefinition-Appointment.xml", "line": 837 },
+    "summary": "Appointment.basedOn is defined as the request this appointment is allocated to assess, gives incoming referral or procedure request as examples, aliases incomingReferral, and targets ServiceRequest.",
+    "learned": "Current source already contains the request relationship needed for the old ProcedureRequest use case.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "command",
+    "locator": "Appointment typo and legacy-resource grep",
+    "command": "rg -n 'Reason the appointment is to takes place|to takes place|ProcedureRequest|ReferralRequest|Appointment\\.indication' source/appointment",
+    "result_count": 0,
+    "summary": "No legacy ProcedureRequest/ReferralRequest references, Appointment.indication, or the old typo were found in current Appointment source.",
+    "learned": "The current source does not retain the obsolete field name, obsolete resource names, or the editorial typo from the issue text.",
+    "supports": ["source_state", "verification"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "463cb5b34402267dc25cce0f247c022ed752c72e and 06bd9f6ffe08096694a3424721006e5fdcd82d3a",
+    "ref": { "commit": "06bd9f6ffe08096694a3424721006e5fdcd82d3a" },
+    "summary": "Source history first merged ReferralRequest with ProcedureRequest and then renamed ProcedureRequest to ServiceRequest.",
+    "learned": "ServiceRequest is the current resource that carries the ProcedureRequest scheduling intent referenced by FHIR-14469.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "62c1d1a5a69cd36ef1eb086ba089c27d865d8a02 and b60b1f71994c66dccd2ef3964fd52a956acaa535",
+    "ref": { "commit": "62c1d1a5a69cd36ef1eb086ba089c27d865d8a02" },
+    "summary": "FHIR-13195 commits renamed Appointment.incomingReferral to Appointment.basedOn and later updated examples and definitions.",
+    "learned": "The basedOn mechanism cited by FHIR-14469 was applied in source history.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#patient administration WG > GF#13195: Add reference to ProcedureRequest to Appointment",
+    "url": "https://chat.fhir.org/#narrow/stream/patient%20administration%20WG/topic/GF%2313195%3A%20Add%20reference%20to%20ProcedureRequest%20to%20Appointment",
+    "snapshot_path": "contexts/FHIR-14469/zulip/patient-administration-WG--GF-13195-Add-reference-to-ProcedureRequest-to-Appointment.md",
+    "ref": { "stream": "patient administration WG", "topic": "GF#13195: Add reference to ProcedureRequest to Appointment" },
+    "summary": "PA discussion notes the proposed ProcedureRequest reference, observes ReferralRequest and ProcedureRequest had merged into ServiceRequest, proposes Appointment.basedOn, and confirms it covers the use case.",
+    "learned": "Community discussion supports the no-change interpretation based on Appointment.basedOn.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Community and idempotency searches for FHIR-14469",
+    "command": "bun run zulip:search fts '\"FHIR-14469\" Appointment ProcedureRequest' --limit 10; bun run confluence:search refs jira FHIR-14469; bun run confluence:search fts '\"FHIR-14469\" Appointment ProcedureRequest' --limit 10; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-14469' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "result_count": 0,
+    "summary": "Direct Zulip and Confluence searches found no FHIR-14469-specific discussion, and the combined branch had no existing FHIR-14469 reconcile commit.",
+    "learned": "No conflicting community evidence or duplicate reconcile record was found before this audit.",
+    "supports": ["absence_of_conflict", "idempotency"]
+  }
+]
+</evidence-manifest>

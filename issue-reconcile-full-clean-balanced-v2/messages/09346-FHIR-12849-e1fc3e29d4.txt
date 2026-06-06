@@ -1,0 +1,109 @@
+FHIR-12849: Audit root sliceName cleanup
+
+Issue request:
+FHIR-12849 was a Published/Persuasive FHIR-core profiles issue asking why generated profiles had sliceName on the first snapshot and differential element even though that root element is not a slice. The approved resolution was to ensure the spreadsheet tool no longer carried those root sliceName values into generated profiles.
+
+Initial application:
+The Jira comment says the issue was complete in svn revision 14850. The matching git-svn commit 91f374cbc3822262cd065dee8ab454c1dec4c488, "GF#12849 - make sure not to populate slice name on slice itself," changed the old IG spreadsheet parser and added a root guard that errors when a root element carries a sliceName. That Java spreadsheet-tool path is no longer present in the current FHIR checkout.
+
+Additional context:
+The linked Zulip thread confirmed the intended rule: a StructureDefinition may have a name, but its base/root element should not have sliceName. Current ElementDefinition source says sliceName is prohibited for both type-definition and constraint-definition root elements. The current active StructureDefinition resource source also carries invariant sdf-23, "No slice name on root," and attaches it to both snapshot.element and differential.element; that invariant was separately audited for FHIR-13400 on the combined branch. FHIR-13740 is the same family for SimpleQuantity generator output, but is profile-specific and not decided by this seed commit.
+
+AutoFHIR reconciliation:
+No source change was made. A scan of current source StructureDefinitions found zero first snapshot or differential elements with sliceName, so the original generated-profile defect is no longer present in current source. The remaining authoritative source already prohibits root sliceName and validates the rule through StructureDefinition constraints.
+
+Recommendation:
+Keep this no-change audit commit. No core-source follow-up is needed for FHIR-12849; if an external IG or historical tool still emits root sliceName values, handle that in the relevant generator or IG source rather than duplicating text in core.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-12849
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13400: same-change-family - Later Published issue added the formal no-root-sliceName StructureDefinition invariant and has already been reconciled on the combined branch.
+FHIR-13740: same-change-family - Published SimpleQuantity-specific root sliceName generator defect discovered during neighborhood search; it is closely related background but not decided by this seed commit.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-12849: Published/Persuasive issue asked to stop generated profiles from carrying sliceName on snapshot/differential root elements. Learned: final WG intent is a tooling cleanup, not new redundant prose.
+- E2 Zulip #implementers > Profiles and First Element Slice: Lloyd McKenzie concluded the base element should not have sliceName and the thread identified profile spreadsheet generation as the source. Learned: the linked community discussion confirms the semantic target.
+- E3 Git 91f374cbc382: GF#12849 / svn revision 14850 changed the old IG spreadsheet parser and added a root sliceName guard. Learned: the issue was historically applied in tooling.
+- E4 Source source/elementdefinition.html:126-145: current ElementDefinition interpretation table says sliceName is prohibited on root elements. Learned: current specification prose already states the root rule.
+- E5 Source source/structuredefinition/structuredefinition-StructureDefinition.xml:162-166,956,1029 and source/fhir.ini:169-258: current active StructureDefinition source defines sdf-23 "No slice name on root" and applies it to snapshot.element and differential.element. Learned: current build-scope source validates the rule.
+- E6 Verification command: parsed 209 current source StructureDefinition XML files and found zero first snapshot/differential elements with sliceName. Learned: the generated-profile defect is not present in current source.
+- E7 Command community searches for FHIR-12849: quoted Zulip key and Confluence searches found no conflicting direct references; the linked Zulip topic was the relevant community evidence. Learned: no discovered community record changes the Jira/source conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-12849",
+    "url": "https://jira.hl7.org/browse/FHIR-12849",
+    "snapshot_path": "contexts/FHIR-12849/jira/FHIR-12849.md",
+    "ref": { "jira_key": "FHIR-12849" },
+    "summary": "Published/Persuasive issue requested that generated profiles stop carrying sliceName on snapshot and differential root elements.",
+    "learned": "The final decision establishes a tooling cleanup for root sliceName values rather than a need for additional current prose.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "zulip",
+    "locator": "#implementers > Profiles and First Element Slice",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Profiles.20and.20First.20Element.20Slice",
+    "ref": { "stream": "implementers", "topic": "Profiles and First Element Slice" },
+    "summary": "The linked discussion concluded that a StructureDefinition can have a name but its base/root element should not have sliceName.",
+    "learned": "This confirms the intended semantics behind the Jira request and identifies spreadsheet-generated profiles as the source of the bad root sliceName values.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "91f374cbc3822262cd065dee8ab454c1dec4c488",
+    "ref": { "commit": "91f374cbc3822262cd065dee8ab454c1dec4c488", "svn_revision": 14850 },
+    "summary": "GF#12849 changed the old IG spreadsheet parser and added a guard against sliceName on a root element.",
+    "learned": "The Jira was historically applied in tooling, matching the Jira comment that svn revision 14850 completed the issue.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/elementdefinition.html:126-145",
+    "ref": { "path": "source/elementdefinition.html", "line": 126 },
+    "summary": "The current ElementDefinition interpretation table says sliceName is prohibited for both type-definition and constraint-definition root elements.",
+    "learned": "The current specification text already states the same root sliceName rule implicated by the issue.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/structuredefinition/structuredefinition-StructureDefinition.xml:162-166,956,1029; source/fhir.ini:169-258",
+    "ref": { "path": "source/structuredefinition/structuredefinition-StructureDefinition.xml", "line": 162 },
+    "summary": "The active StructureDefinition source defines sdf-23, 'No slice name on root,' as '(snapshot | differential).element.all(path.contains('.').not() implies sliceName.empty())' and attaches it to snapshot.element and differential.element.",
+    "learned": "Current build-scope source validates that root sliceName is prohibited in both relevant element lists.",
+    "supports": ["source_state", "build_scope", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Current source StructureDefinition root sliceName scan",
+    "command": "python3 - <<'PY' ... parse source/**/*.xml StructureDefinition snapshot/differential first elements ... PY",
+    "result_count": 0,
+    "summary": "Parsed 209 current source StructureDefinition XML files and found zero first snapshot or differential elements with sliceName.",
+    "learned": "The generated-profile root sliceName defect is not present in current source.",
+    "supports": ["source_state", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community search for FHIR-12849 and root sliceName",
+    "command": "bun run zulip:search fts '\"FHIR-12849\" sliceName root profile' --limit 10; bun run confluence:search fts '\"FHIR-12849\" sliceName root profile' --limit 10; bun run confluence:search refs jira FHIR-12849",
+    "query": "FHIR-12849 sliceName root profile",
+    "result_count": 0,
+    "summary": "No direct Zulip key hits or Confluence references were found beyond the Jira-linked Zulip topic.",
+    "learned": "No discovered community evidence conflicts with the Jira, git, and current source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

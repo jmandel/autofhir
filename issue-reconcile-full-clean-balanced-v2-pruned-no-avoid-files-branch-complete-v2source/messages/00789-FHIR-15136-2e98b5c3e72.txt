@@ -1,0 +1,114 @@
+FHIR-15136: Clarify conditional Dosage definitions
+
+Issue request:
+FHIR-15136 was Published with a Persuasive with Modification resolution for R5. It asked FHIR-core datatypes to support conditional doses, including examples such as insulin sliding scale, doses based on INR, and doses based on blood pressure. The final resolution was to add an extension and examples.
+
+Initial application:
+No current git commit explicitly names FHIR-15136. Git history shows cb366d831c added source/datatypes/dosage-extensions-spreadsheet.xml in January 2019 with the message "added an extension to Dosage datatype to handle conditional dosing", matching the issue's extension-based resolution. Pharmacy Confluence minutes from late 2019 also tracked FHIR-15136 as "Conditional Dosages" and called for CDS/oncology/NCPDP examples. Later extension-specific work, including FHIR-26899, was applied separately, and that legacy extension source is no longer active in current core fhir.ini.
+
+Additional context:
+Current source/fhir.ini actively lists Dosage, DosageDetails, DosageSafety, and DosageCondition as datatypes and maps them to the dosage page under the Pharmacy work group. The later R6 dosage rework around FHIR-51540 introduced an active DosageCondition datatype and dosage examples, but the new DosageCondition source retained copied RelativeTime wording, wrong/duplicated value set metadata, a stale ConditionDetails path, and an example using the invalid code fragment "if needed" instead of "if-needed". A 2026 Zulip thread about R6 DosageCondition vs. the dosage-conditions extension independently called out the same documentation and binding-label problems while treating broader R6 semantics as still needing use-case-driven review.
+
+AutoFHIR reconciliation:
+This commit fixes the active current-core conditional dosage artifacts. It updates Dosage.condition and DosageCondition definitions so they describe dosage applicability rather than RelativeTime anchors, corrects the DosageCondition code binding definition and value[x] wording, gives dosage-condition-code/details value sets distinct and accurate metadata, fixes the CodeSystem property path, and aligns the conditional dosage example and note with the actual if-needed code. These files are in build scope through the active datatype and dosage page entries in source/fhir.ini.
+
+Recommendation:
+Keep this source fix. It resolves obvious current-spec defects that would mislead implementers using the active DosageCondition datatype. Do not treat this as deciding the broader FHIR-51540 R6 dosage redesign or the already-audited FHIR-26899 Extension Pack follow-up; those remain separate work if Pharmacy wants additional semantic changes such as step-level conditions or legacy extension migration.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-15136
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-26899: same-change-family - later Published issue adjusted the legacy conditional Dosage extension; it already has an external-repo audit commit on the combined branch and helps explain why current core should fix the active datatype rather than the retired core extension spreadsheet.
+FHIR-51540: later-change - R6 dosage rework created the active DosageCondition datatype and examples where these documentation and binding defects now live, but its Jira status is Resolved - change required rather than Published/Applied in this run.
+FHIR-19694: background - FHIR-15136 comments and Pharmacy minutes cite it as an example source for dosage clarification, but it concerns MedicationRequest.reasonCode and was not needed for this bounded source fix.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-15136: Published/Persuasive with Modification, R5, Pharmacy issue asking for conditional dose support and resolving to add an extension and examples. Learned: the seed is final and establishes the need for conditional dosage representation.
+- E2 Git cb366d831c: "added an extension to Dosage datatype to handle conditional dosing" added dosage-extensions-spreadsheet.xml in January 2019. Learned: the original application appears to have used the extension approach requested by the resolution, even though the commit did not name FHIR-15136.
+- E3 Source source/fhir.ini:51-54,100-103,539-542,1142-1145: DosageCondition is an active datatype, mapped to the dosage page and Pharmacy ownership. Learned: the edited DosageCondition definitions and dosage page examples are current build inputs.
+- E4 Source source/datatypes/dosagecondition.xml:842-872,958-959 and source/datatypes/valueset-dosage-condition-*.xml:10-22: pre-reconciliation source had RelativeTime wording, copied Dose Limit Scope/Additional Binding Purpose labels, and a duplicate details value set URL. Learned: the current active datatype implementation was semantically misleading, not merely stylistically rough.
+- E5 Source source/dosage-examples.html:2608,2843: the conditional dosage example used #if needed and referred to contextCode, while the CodeSystem defines code if-needed and DosageCondition.code. Learned: the built example contradicted the active conditional-dosage code system.
+- E6 Zulip #Medication > R6 DosageCondition vs. dosage-conditions extension: 2026 discussion reported that R6 DosageCondition documentation had wrong value set URLs/labels and clarified that condition is not time-related. Learned: community review supports this bounded documentation/binding cleanup while leaving larger design questions separate.
+- E7 Confluence PHAR 2019-11-18/2019-11-25 minutes: minutes referenced FHIR-15136 as Conditional Dosages and called for CDS/oncology/NCPDP examples. Learned: Pharmacy follow-up focused on examples and confirms the issue family context.
+- E8 Verification command: python XML parse for changed XML files; git diff --check; targeted rg for stale copied phrases. Learned: changed XML remains well-formed, whitespace is clean, and the identified stale strings were removed from the edited surfaces.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-15136",
+    "url": "https://jira.hl7.org/browse/FHIR-15136",
+    "snapshot_path": "contexts/FHIR-15136/jira/FHIR-15136.md",
+    "ref": { "jira_key": "FHIR-15136" },
+    "summary": "Published/Persuasive with Modification R5 Pharmacy issue asking to support conditional doses and resolving to add an extension and examples.",
+    "learned": "The seed is final and establishes conditional dosage support as the required current-spec behavior.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "cb366d831c",
+    "ref": { "commit": "cb366d831cfdf41d8d1997335f9df88413c6ae0e" },
+    "summary": "Commit added source/datatypes/dosage-extensions-spreadsheet.xml with the message 'added an extension to Dosage datatype to handle conditional dosing'.",
+    "learned": "The original application appears to have followed FHIR-15136's extension-based resolution even though the commit did not name the Jira key.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:51-54,100-103,539-542,1142-1145",
+    "summary": "DosageCondition is an active datatype, mapped to the dosage page, assigned to Pharmacy, and given a datatype code.",
+    "learned": "The edited datatype spreadsheets, terminology files, and dosage examples are current core build inputs.",
+    "supports": ["build_scope", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/dosagecondition.xml:842-872,958-959; source/datatypes/valueset-dosage-condition-code.xml:10-22; source/datatypes/valueset-dosage-condition-details.xml:10-22",
+    "summary": "Pre-reconciliation active source contained copied RelativeTime wording, copied Dose Limit Scope/Additional Binding Purpose value set labels, and a duplicate details value set URL.",
+    "learned": "The current active DosageCondition presentation was semantically misleading and needed source correction.",
+    "supports": ["reconciliation", "source_change_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/dosage-examples.html:2608,2843",
+    "summary": "The conditional dosage example used '#if needed' and the note referred to contextCode even though the active CodeSystem code is 'if-needed' on DosageCondition.code.",
+    "learned": "The example contradicted the active conditional-dosage code system and would mislead implementers.",
+    "supports": ["reconciliation", "examples"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#Medication > R6 DosageCondition vs. dosage-conditions extension",
+    "url": "https://chat.fhir.org/#narrow/stream/Medication/topic/R6%20DosageCondition%20vs.%20dosage-conditions%20extension",
+    "summary": "2026 thread reported that R6 DosageCondition documentation had wrong value set URLs/labels and clarified that condition is not time-related.",
+    "learned": "Community review supports a bounded documentation/binding cleanup while leaving larger design changes for separate Pharmacy review.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "PHAR 2019-11-18 and 2019-11-25 Agenda/Meeting Notes",
+    "url": "https://confluence.hl7.org/spaces/PHAR/pages/66932394/2019-11-18+Agenda+Meeting+Notes",
+    "ref": { "confluence_page_id": 66932394 },
+    "summary": "Pharmacy minutes referenced FHIR-15136 as Conditional Dosages and called for CDS/oncology/NCPDP examples.",
+    "learned": "The meeting trail confirms Pharmacy follow-up around examples and the conditional dosage issue family.",
+    "supports": ["additional_context", "issue_request"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Targeted validation of changed conditional dosage files",
+    "command": "python XML parse of changed XML files; git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; rg stale phrases in edited files",
+    "summary": "Changed XML parsed successfully, diff whitespace checks passed, and stale copied phrases were absent from the edited surfaces.",
+    "learned": "The source fix is syntactically safe for the edited XML files and removes the identified stale text.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

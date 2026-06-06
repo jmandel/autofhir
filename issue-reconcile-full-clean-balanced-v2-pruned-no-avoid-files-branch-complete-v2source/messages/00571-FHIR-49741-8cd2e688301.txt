@@ -1,0 +1,127 @@
+FHIR-49741: Restore DeviceDefinition additive backbone
+
+Issue request:
+FHIR-49741 was an Applied/Persuasive with Modification OO change request for R6. It asked for additive 0..* backbones on both DeviceDefinition and Device so Specimen.container.device can represent container additives, with additive.type 1..1 CodeableReference(Substance) and additive.quantity 0..1 SimpleQuantity; the Device-specific performer/performed fields were part of the original resolution.
+
+Initial application:
+The issue was initially applied by ead1000d9e and merged by PR #3424, adding Device.additive and DeviceDefinition.additive plus FiveWs mapping exceptions. Current Device source still has additive.type and additive.quantity, but DeviceDefinition.additive disappeared from the active StructureDefinition after PR #3432 merged a DeviceDefinition branch that lacked the newly added element.
+
+Additional context:
+Device and DeviceDefinition are active current-build resources in source/fhir.ini. FHIR-50160 was later Applied/Persuasive with Modification and intentionally removed Device.additive.performer and Device.additive.performed, replacing those details with Procedure guidance; this reconciliation therefore does not restore those Device sub-elements. FHIR-49881 discusses a broader future approach for Device/DeviceDefinition additives, but it remains Waiting for Input and is not a final superseding decision.
+
+AutoFHIR reconciliation:
+This commit restores DeviceDefinition.additive, DeviceDefinition.additive.type, and DeviceDefinition.additive.quantity in the active DeviceDefinition StructureDefinition, aligned with the current Device.additive shape using CodeableReference(SubstanceDefinition) and SimpleQuantity. It also restores the FiveWs mapping exception for the repeating additive backbone and adds R5-to-R6 fhir.ini change entries for the new DeviceDefinition elements.
+
+Recommendation:
+Keep this commit as the bounded completion of FHIR-49741 for current core source. Revisit the additive modeling only when FHIR-49881 or another final work-group decision replaces this applied R6 structure; do not reintroduce Device.additive.performer or Device.additive.performed because FHIR-50160 already removed them.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-49741
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-50160: later-change - final OO decision removing Device.additive.performer/performed and adding Procedure guidance, constraining what not to restore from the original FHIR-49741 application.
+FHIR-49881: background - broader Device/DeviceDefinition additive reconsideration remains Waiting for Input, so it does not supersede the applied seed issue.
+FHIR-53625: background - later Device ballot note records Device.additive as an R6 Device change.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-49741: Applied/Persuasive with Modification, vote 5-0-0, requested additive backbones on DeviceDefinition and Device for specimen container additives. Learned: final WG intent requires a DeviceDefinition additive element in current R6 source.
+- E2 Source source/fhir.ini:1132-1135,1241: Device, DeviceDefinition, and Specimen are active resources. Learned: the edited DeviceDefinition source and fhir.ini metadata feed the current core build.
+- E3 Source source/device/structuredefinition-Device.xml:1327-1382: current Device.additive has type and quantity only, using CodeableReference(SubstanceDefinition) and SimpleQuantity. Learned: the restored DeviceDefinition backbone should align with the current post-FHIR-50160 Device shape.
+- E4 Git ead1000d9e and merge 8db681a364: initial FHIR-49741 application added Device.additive and DeviceDefinition.additive. Learned: the issue was previously applied, and the missing DeviceDefinition element is an application regression.
+- E5 Git 2bf25cf80e: PR #3432 merged DeviceDefinition content from a branch whose parent lacked DeviceDefinition.additive, leaving the merge result without that element. Learned: the DeviceDefinition omission was introduced by nearby source history rather than by a Jira-tagged reversal.
+- E6 Jira FHIR-50160 and git 7983eb8596: Applied/Persuasive with Modification removed Device.additive.performer/performed and added Procedure guidance. Learned: this reconciliation must not restore the original performer/performed pieces.
+- E7 Confluence OO Specimen minutes 2025-03-10 and 2025-03-17: minutes discuss DeviceDefinition additives for manufacturer-provided containers and vote FHIR-49741 persuasive with modification. Learned: community minutes support the DeviceDefinition portion of the seed resolution.
+- E8 Jira FHIR-49881 and Confluence HCP/Devices minutes: later broader additive work is Waiting for Input and still under discussion. Learned: no final later decision supersedes restoring the seed's DeviceDefinition backbone.
+- E9 Verification command: CRLF-aware git diff --check and XML parsing for edited DeviceDefinition files passed. Learned: the source edit is mechanically clean.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-49741",
+    "url": "https://jira.hl7.org/browse/FHIR-49741",
+    "snapshot_path": "contexts/FHIR-49741/jira/FHIR-49741.md",
+    "ref": { "jira_key": "FHIR-49741" },
+    "summary": "Applied/Persuasive with Modification OO issue requesting additive backbones on DeviceDefinition and Device for specimen container additives.",
+    "learned": "This final seed decision establishes that DeviceDefinition needs additive.type and additive.quantity in current R6 source.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:1132-1135,1241",
+    "summary": "fhir.ini lists Device, DeviceDefinition, and Specimen as active resources.",
+    "learned": "The edited DeviceDefinition StructureDefinition and fhir.ini metadata are in current build scope.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:1327-1382",
+    "summary": "Current Device.additive has type and quantity only, with CodeableReference(SubstanceDefinition) and SimpleQuantity.",
+    "learned": "DeviceDefinition.additive should be restored without the removed performer/performed fields and aligned to the current Device additive type shape.",
+    "supports": ["additional_context", "source_change_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "ead1000d9ed8fbf15bbc6d1a0459112090bf59dc; 8db681a3640f7e75d02d308d8e0c3783fdc9f0e8",
+    "ref": { "commits": "ead1000d9e,8db681a364" },
+    "summary": "The initial FHIR-49741 application and PR #3424 added additive backbones to both Device and DeviceDefinition.",
+    "learned": "DeviceDefinition.additive was part of the original applied source change.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "2bf25cf80e3e5a79e89085ac62e09b82edfe69cf",
+    "ref": { "commit": "2bf25cf80e3e5a79e89085ac62e09b82edfe69cf" },
+    "summary": "PR #3432 merged DeviceDefinition content from a branch without DeviceDefinition.additive, leaving the merge result without that element.",
+    "learned": "The current omission is explained by source history, not by a final Jira reversal.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-50160 and git 7983eb8596914813665b09a62a3181c4ec20bc1d",
+    "url": "https://jira.hl7.org/browse/FHIR-50160",
+    "ref": { "jira_key": "FHIR-50160", "commit": "7983eb8596914813665b09a62a3181c4ec20bc1d" },
+    "summary": "Applied/Persuasive with Modification issue removed Device.additive.performer and Device.additive.performed and added Procedure guidance.",
+    "learned": "The seed's original Device performer/performed sub-elements must stay removed.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E7",
+    "kind": "confluence",
+    "locator": "2025-03-10 OO - Specimen page 324963281; 2025-03-17 OO - Specimen page 324966398",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/324966398/2025-03-17+OO+-+Specimen",
+    "ref": { "confluence_page_id": 324966398 },
+    "summary": "OO Specimen minutes discuss DeviceDefinition additives and record the persuasive-with-modification vote for FHIR-49741.",
+    "learned": "The meeting evidence supports restoring DeviceDefinition additive for manufacturer-provided container additives.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E8",
+    "kind": "jira",
+    "locator": "FHIR-49881",
+    "url": "https://jira.hl7.org/browse/FHIR-49881",
+    "ref": { "jira_key": "FHIR-49881" },
+    "summary": "Related broader Device/DeviceDefinition additive issue remains Waiting for Input with tentative ideas about extensions and properties.",
+    "learned": "There is no final later decision that supersedes the applied seed issue.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E9",
+    "kind": "command",
+    "locator": "Whitespace and XML validation",
+    "command": "git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --check; xmllint --noout source/devicedefinition/structuredefinition-DeviceDefinition.xml source/devicedefinition/devicedefinition-fivews-mapping-exceptions.xml",
+    "summary": "CRLF-aware whitespace checking and XML parsing passed for the edited source files.",
+    "learned": "The source edit is mechanically clean.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

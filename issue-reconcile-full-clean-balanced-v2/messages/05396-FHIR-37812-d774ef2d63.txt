@@ -1,0 +1,93 @@
+FHIR-37812: Audit DeviceAssociation clinical-patient search
+
+Issue request:
+FHIR-37812 was Applied with a Persuasive with Modification resolution for R6. It asked why Device/DeviceAssociation did not use the common http://hl7.org/fhir/SearchParameter/clinical-patient search parameter and resolved that DeviceAssociation.subject should participate in clinical-patient with expression DeviceAssociation.subject.where(resolve() is Patient), with the unused generated DeviceAssociation-patient search parameter removed.
+
+Initial application:
+Commit f8251515a3 added DeviceAssociation to source/searchparameter/common-search-parameters.xml under clinical-patient. That initial Jira-tagged application did not itself touch the DeviceAssociation search-parameter bundle, but the current source also has a DeviceAssociation patient row that supplies the resource-specific expression used by the build.
+
+Additional context:
+DeviceAssociation is active in source/fhir.ini, and its search-parameter bundle is an active resource source. A later Applied issue, FHIR-46973, noticed that the patient parameter had disappeared or was incorrect and resolved to add the DeviceAssociation patient search row while keeping it linked to the common clinical-patient parameter. The current CI build and search-parameters.json show the generated canonical URL as http://hl7.org/fhir/SearchParameter/clinical-patient, include DeviceAssociation in the common base list, include DeviceAssociation.subject.where(resolve() is Patient) in the clinical-patient expression, and do not expose a separate DeviceAssociation-patient canonical search parameter.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. Removing the local DeviceAssociation-patient source entry would not improve the generated specification; it would remove the source row that currently feeds the DeviceAssociation expression/target into the common generated clinical-patient search parameter.
+
+Recommendation:
+Keep this audit commit as-is. The seed request is satisfied in the generated current specification; any future cleanup of the resource-local source id/url convention should be handled as a publisher/source-model refactor rather than as a FHIR-37812 correction.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-37812
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-46973: later-change - later Applied DeviceAssociation search-parameter issue that re-added/clarified the patient row after FHIR-37812, confirming the row is still needed to generate the common clinical-patient surface.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-37812: Applied/Persuasive with Modification for R6; requested DeviceAssociation.subject be represented by common clinical-patient with expression DeviceAssociation.subject.where(resolve() is Patient). Learned: establishes the target behavior for this audit.
+- E2 Source source/searchparameter/common-search-parameters.xml:304-329 and source/deviceassociation/bundle-DeviceAssociation-search-params.xml:46-57: clinical-patient includes base DeviceAssociation and the DeviceAssociation patient source row has the requested expression and Patient target. Learned: current source has the data needed to generate the requested search parameter.
+- E3 Source source/fhir.ini:305: DeviceAssociation is an active resource in the current build. Learned: the inspected DeviceAssociation source is in build scope.
+- E4 Git f8251515a3 and 11a4adc200: FHIR-37812 added DeviceAssociation to clinical-patient; FHIR-46973 later added/clarified the DeviceAssociation patient source row. Learned: later history explains why a local source row remains even though the generated canonical parameter is common.
+- E5 Published-spec https://build.fhir.org/deviceassociation-search.html and https://build.fhir.org/search-parameters.json: generated output exposes DeviceAssociation patient as clinical-patient, includes the DeviceAssociation expression, and has no DeviceAssociation-patient canonical row. Learned: the current built specification already satisfies the seed resolution.
+- E6 Community search: Zulip found only a tracker-list mention of FHIR-37812; Confluence search found OO minutes supporting clinical-patient for DeviceAssociation and later Devices minutes noting the patient parameter removal concern. Learned: community evidence supports the same source/build conclusion and reveals no conflicting final decision.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-37812",
+    "url": "https://jira.hl7.org/browse/FHIR-37812",
+    "snapshot_path": "contexts/FHIR-37812/jira/FHIR-37812.md",
+    "ref": { "jira_key": "FHIR-37812" },
+    "summary": "Applied/Persuasive with Modification issue requiring DeviceAssociation.subject to use common clinical-patient with DeviceAssociation.subject.where(resolve() is Patient).",
+    "learned": "This establishes the target behavior for the reconciliation.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/searchparameter/common-search-parameters.xml:304-329; source/deviceassociation/bundle-DeviceAssociation-search-params.xml:46-57",
+    "summary": "clinical-patient includes base DeviceAssociation, and the DeviceAssociation patient source row carries the requested expression and Patient target.",
+    "learned": "The current source contains the inputs needed to generate the requested common search parameter behavior.",
+    "supports": ["reconciliation", "source_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:305",
+    "summary": "DeviceAssociation is listed as an active resource in source/fhir.ini.",
+    "learned": "The inspected DeviceAssociation source is in current build scope.",
+    "supports": ["source_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "f8251515a3; 11a4adc200",
+    "ref": { "commit_fhir_37812": "f8251515a3", "commit_fhir_46973": "11a4adc200" },
+    "summary": "FHIR-37812 added DeviceAssociation to common clinical-patient; later FHIR-46973 added/clarified the DeviceAssociation patient source row.",
+    "learned": "Later history explains why the resource-local source row remains while the generated parameter is common.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E5",
+    "kind": "published-spec",
+    "locator": "build.fhir.org DeviceAssociation search and search-parameters.json",
+    "url": "https://build.fhir.org/deviceassociation-search.html",
+    "command": "curl -fsSL https://build.fhir.org/search-parameters.json | jq -r '.entry[].resource | select((.id==\"clinical-patient\") or (.id==\"DeviceAssociation-patient\")) | [.id,.url,(.base|join(\",\")),.expression] | @tsv'",
+    "summary": "The generated output exposes DeviceAssociation patient as clinical-patient, includes DeviceAssociation in the base list and expression, and does not expose DeviceAssociation-patient.",
+    "learned": "The current built specification already satisfies the requested canonical search-parameter behavior.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Community search for FHIR-37812 and DeviceAssociation clinical-patient",
+    "command": "bun run zulip:search fts '\"FHIR-37812\"' --limit 10; bun run confluence:search fts '\"clinical-patient\" \"DeviceAssociation\"' --limit 3; bun run confluence:search fts '\"patient search parameter was removed\" DeviceAssociation' --limit 3",
+    "summary": "Zulip only surfaced a tracker-list mention; Confluence surfaced OO minutes supporting clinical-patient for DeviceAssociation and later Devices minutes about the patient-parameter removal concern.",
+    "learned": "No discovered community record conflicts with leaving the current source/build behavior unchanged.",
+    "supports": ["additional_context", "absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

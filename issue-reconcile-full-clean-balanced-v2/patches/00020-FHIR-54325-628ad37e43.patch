@@ -1,0 +1,172 @@
+diff --git a/source/immunization/bundle-Immunization-search-params.xml b/source/immunization/bundle-Immunization-search-params.xml
+index 87ac90671b..300881311a 100644
+--- a/source/immunization/bundle-Immunization-search-params.xml
++++ b/source/immunization/bundle-Immunization-search-params.xml
+@@ -279,7 +279,7 @@
+           <valueString value="Immunization.statusReason"/>
+         </extension>
+         <url value="http://hl7.org/fhir/build/SearchParameter/Immunization-status-reason"/>
+-        <description value="Reason why the vaccine was not administered"/>
++        <description value="Reason why the vaccine was not administered or the immunization record was entered in error"/>
+         <code value="status-reason"/>
+         <type value="token"/>
+         <expression value="Immunization.statusReason"/>
+diff --git a/source/immunization/immunization.svg b/source/immunization/immunization.svg
+index 26eee3571d..4283d5f0d2 100644
+--- a/source/immunization/immunization.svg
++++ b/source/immunization/immunization.svg
+@@ -151,7 +151,7 @@
+        class="diagram-class-detail"><a
+    id="n780"
+    xlink:href="immunization-definitions.html#Immunization.statusReason"><title
+-   id="title40424">Indicates the reason the immunization event was not performed</title>statusReason</a> : <a
++   id="title40424">Indicates the reason the immunization event was not performed or was entered in error</title>statusReason</a> : <a
+    id="n781"
+    xlink:href="datatypes.html#CodeableConcept">CodeableConcept</a> [0..1] « <a
+    id="n782"
+diff --git a/source/immunization/invariant-tests/imm-1.f1.fail.json b/source/immunization/invariant-tests/imm-1.f1.fail.json
+index 35d4cd6b06..c1f2a5c06d 100644
+--- a/source/immunization/invariant-tests/imm-1.f1.fail.json
++++ b/source/immunization/invariant-tests/imm-1.f1.fail.json
+@@ -16,7 +16,7 @@
+           "tag": [{"display":  "INVALID: status='completed' but statusReason is present. Core invariant violation — statusReason must not appear on a completed immunization." }]
+         },
+         "_invariant": "imm-1",
+-        "_violation": "statusReason.exists() is true but status != 'not-done'",
++        "_violation": "statusReason.exists() is true but status is neither 'not-done' nor 'entered-in-error'",
+         "status": "completed",
+         "statusReason": {
+           "coding": [
+@@ -47,45 +47,6 @@
+         "primarySource": true
+       }
+     },
+-    {
+-      "fullUrl": "urn:uuid:invalid-002",
+-      "resource": {
+-        "resourceType": "Immunization",
+-        "id": "invalid-002",
+-        "meta": {
+-          "profile": ["http://hl7.org/fhir/StructureDefinition/Immunization"],
+-          "tag": [{"display":  "INVALID: status='entered-in-error' but statusReason is present. statusReason is only permitted when status='not-done'." }]
+-        },
+-        "status": "entered-in-error",
+-        "statusReason": {
+-          "coding": [
+-            {
+-              "system": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+-              "code": "PATOBJ",
+-              "display": "Patient Objection"
+-            }
+-          ],
+-          "text": "Incorrect: statusReason does not belong on an entered-in-error record"
+-        },
+-        "vaccineCode": {
+-          "coding": [
+-            {
+-              "system": "http://hl7.org/fhir/sid/cvx",
+-              "code": "08",
+-              "display": "Hepatitis B vaccine, pediatric or pediatric/adolescent dosage"
+-            }
+-          ],
+-          "text": "Hepatitis B vaccine"
+-        },
+-        "patient": {
+-          "reference": "Patient/example-102",
+-          "display": "Brian Johnson"
+-        },
+-        "occurrenceDateTime": "2024-05-14",
+-        "recorded": "2024-05-14T10:00:00Z",
+-        "primarySource": true
+-      }
+-    },
+     {
+       "fullUrl": "urn:uuid:invalid-003",
+       "resource": {
+diff --git a/source/immunization/invariant-tests/imm-1.p1.pass.json b/source/immunization/invariant-tests/imm-1.p1.pass.json
+index 992a9ecab3..c28300628b 100644
+--- a/source/immunization/invariant-tests/imm-1.p1.pass.json
++++ b/source/immunization/invariant-tests/imm-1.p1.pass.json
+@@ -223,6 +223,45 @@
+         "recorded": "2024-01-10T13:45:00Z",
+         "primarySource": true
+       }
++    },
++    {
++      "fullUrl": "urn:uuid:valid-007",
++      "resource": {
++        "resourceType": "Immunization",
++        "id": "valid-007",
++        "meta": {
++          "profile": ["http://hl7.org/fhir/StructureDefinition/Immunization"],
++          "tag": [{"display":  "VALID: status='entered-in-error', statusReason present. Error-corrected record with a reason for the entered-in-error status." }]
++        },
++        "status": "entered-in-error",
++        "statusReason": {
++          "coding": [
++            {
++              "system": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
++              "code": "PATOBJ",
++              "display": "Patient Objection"
++            }
++          ],
++          "text": "Correction reason recorded for an immunization entered in error"
++        },
++        "vaccineCode": {
++          "coding": [
++            {
++              "system": "http://hl7.org/fhir/sid/cvx",
++              "code": "08",
++              "display": "Hepatitis B vaccine, pediatric or pediatric/adolescent dosage"
++            }
++          ],
++          "text": "Hepatitis B vaccine"
++        },
++        "patient": {
++          "reference": "Patient/example-007",
++          "display": "Brian Johnson"
++        },
++        "occurrenceDateTime": "2024-05-14",
++        "recorded": "2024-05-14T10:00:00Z",
++        "primarySource": true
++      }
+     }
+   ]
+ }
+diff --git a/source/immunization/structuredefinition-Immunization.xml b/source/immunization/structuredefinition-Immunization.xml
+index a8629ee261..8cc3896f8f 100644
+--- a/source/immunization/structuredefinition-Immunization.xml
++++ b/source/immunization/structuredefinition-Immunization.xml
+@@ -88,8 +88,8 @@
+       <constraint>
+         <key value="imm-1"/>
+         <severity value="error"/>
+-        <human value="statusReason SHALL only be present if the immunization status is 'not-done'"/>
+-        <expression value="statusReason.exists() implies status = 'not-done'"/>
++        <human value="statusReason SHALL only be present if the immunization status is 'not-done' or 'entered-in-error'"/>
++        <expression value="statusReason.exists() implies (status = 'not-done' or status = 'entered-in-error')"/>
+         <source value="http://hl7.org/fhir/StructureDefinition/Immunization"/>
+       </constraint>
+       <constraint>
+@@ -226,7 +226,7 @@
+           <valueString value="ImmunizationStatusReason"/>
+         </extension>
+         <extension url="http://hl7.org/fhir/tools/StructureDefinition/binding-definition">
+-          <valueString value="The reason why a vaccine was not administered."/>
++          <valueString value="The reason why a vaccine was not administered or the immunization record was entered in error."/>
+         </extension>
+         <strength value="example"/>
+         <description value="x"/>
+diff --git a/source/immunization/valueset-immunization-status-reason.xml b/source/immunization/valueset-immunization-status-reason.xml
+index de44429f7d..9ec733b433 100644
+--- a/source/immunization/valueset-immunization-status-reason.xml
++++ b/source/immunization/valueset-immunization-status-reason.xml
+@@ -25,7 +25,7 @@
+       <value value="http://hl7.org/fhir"/>
+     </telecom>
+   </contact>
+-  <description value="The value set to instantiate this attribute should be drawn from a terminologically robust code system that consists of or contains concepts to support describing the reason why a dose of vaccine was not administered. This value set is provided as a suggestive example."/>
++  <description value="The value set to instantiate this attribute should be drawn from a terminologically robust code system that consists of or contains concepts to support describing the reason why a dose of vaccine was not administered or the immunization record was entered in error. This value set is provided as a suggestive example."/>
+   <copyright value="This resource includes content from SNOMED Clinical Terms® (SNOMED CT®) which is copyright of the International Health Terminology Standards Development Organisation (IHTSDO). Implementers of these specifications must have the appropriate SNOMED CT Affiliate license - for more information contact http://www.snomed.org/snomed-ct/get-snomed-ct or info@snomed.org"/>
+   <compose>
+     <include>

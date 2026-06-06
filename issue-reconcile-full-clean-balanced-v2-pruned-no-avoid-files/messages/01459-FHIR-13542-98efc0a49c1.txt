@@ -1,0 +1,108 @@
+FHIR-13542: Allow servers to page remaining $everything results
+
+Issue request:
+FHIR-13542 was Published/Persuasive for STU3 and asked that $everything not require an unpaged, single-bundle response when a server judges paging necessary. The accepted resolution was to document paging for $everything, including performance issues, and to consider descending last-updated ordering.
+
+Initial application:
+The Jira comment pointed to the 2018 SVN application window; git history shows 3e2924dc7e9eef23cf97085a8cb3491ad5ec8781 (svn build@13071) titled "document paging on $everything operation" adding _count and the paging/performance discussion to Patient, Encounter, and Group $everything spreadsheet sources. Later source refactors generated standalone OperationDefinition XML and preserved the new paging discussion, but the old opening bullet still said the server returns the entire result set in one bundle unless the client asks otherwise.
+
+Additional context:
+Patient, Encounter, and EpisodeOfCare $everything were subsequently updated by FHIR-44604/FHIR-43373 and FHIR-44816 to remove the single-bundle requirement and describe the key difference as client freedom from choosing included resources. Those PA-scoped changes did not cover the current core Group and MedicinalProductDefinition operation definitions, which are active resources in source/fhir.ini and are referenced by their resource operation lists. A Zulip HAPI thread independently illustrates that implementers read the old sentence as conflicting with server-enforced paging.
+
+AutoFHIR reconciliation:
+This commit removes the stale single-bundle/client-controls-paging bullet from the active Group and MedicinalProductDefinition $everything OperationDefinition footer/comment text, using the same semantic pattern as the later Patient/Encounter/EpisodeOfCare fixes. It leaves the existing _count parameter, server-required paging allowance, performance discussion, and sorting guidance in place.
+
+Recommendation:
+Keep this commit as-is. It is a bounded source correction for current core artifacts that still carried the obsolete single-bundle sentence; the related PA issues are useful context but were not separately audited here because their scoped Patient/Encounter/EpisodeOfCare edits are already represented in source history and those operations are no longer the remaining core mismatch.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13542
+Issue-Reconcile-Decision: fixed
+
+<related-jiras>
+FHIR-44604: same-change-family - later Applied PA issue explicitly removed the single-bundle requirement from Patient $everything.
+FHIR-43373: supporting-decision - preceding Applied PA issue updated adjacent Patient $everything paging/order wording that FHIR-44604 depended on.
+FHIR-44816: same-change-family - Applied PA issue propagated the Patient $everything paging cleanup to Encounter and EpisodeOfCare.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13542: Published/Persuasive issue asked to allow server-selected paging for $everything and resolve performance risk from mandatory unpaged bundles. Learned: final WG intent supports removing the remaining mandatory single-bundle wording.
+- E2 Git 3e2924dc7e9eef23cf97085a8cb3491ad5ec8781: 2018 "document paging on $everything operation" commit added _count plus paging/performance text while retaining the old opening bullet. Learned: the original application was partial and later copied into current OperationDefinition XML.
+- E3 Source source/fhir.ini:169-288 and list-*-operations.xml:9: Group and MedicinalProductDefinition are active resources and their operation lists reference the edited $everything OperationDefinitions. Learned: the edited files are current build inputs, not stale generated-only artifacts.
+- E4 Source source/group/operationdefinition-Group-everything.xml:37,60 and source/medicinalproductdefinition/operationdefinition-MedicinalProductDefinition-everything.xml:37,64: current text now describes the key difference without the single-bundle bullet while retaining server-required paging text and _count. Learned: the source now matches FHIR-13542's paging intent for remaining core $everything operations.
+- E5 Jira/Git FHIR-44604 plus commits 8085536f12e251d00b80ac47323658eb94e9b1ac and e8524f5b6b54904776987148319de565a582b52d: later applied decisions removed the single-bundle sentence from Patient, Encounter, and EpisodeOfCare. Learned: this reconciliation follows a later approved pattern rather than inventing new semantics.
+- E6 Zulip #hapi > _count on $everything: implementer discussion recorded HAPI's inability to stream unlimited unpaged $everything results and questioned the old sentence. Learned: community evidence supports the Jira concern and reveals no conflicting rationale for retaining the sentence.
+- E7 Verification command: git grep confirmed the old single-bundle phrase is absent from current source; XML parsing and git diff --check passed for the edited files. Learned: the bounded edit is syntactically valid and removes the targeted stale requirement.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13542",
+    "url": "https://jira.hl7.org/browse/FHIR-13542",
+    "snapshot_path": "contexts/FHIR-13542/jira/FHIR-13542.md",
+    "ref": { "jira_key": "FHIR-13542" },
+    "summary": "Published/Persuasive issue requested that $everything allow server-chosen paging and document paging performance concerns.",
+    "learned": "This is final WG intent that the spec must not require one unpaged $everything Bundle when a server requires paging.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "3e2924dc7e9eef23cf97085a8cb3491ad5ec8781",
+    "ref": { "commit": "3e2924dc7e9eef23cf97085a8cb3491ad5ec8781", "svn_revision": 13071 },
+    "summary": "2018 commit titled 'document paging on $everything operation' added _count and paging/performance prose to $everything source.",
+    "learned": "The original application documented paging but left the old single-bundle bullet that later became contradictory.",
+    "supports": ["initial_application", "source_change_scope"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-288; source/group/list-Group-operations.xml:9; source/medicinalproductdefinition/list-MedicinalProductDefinition-operations.xml:9",
+    "summary": "Group and MedicinalProductDefinition are active resources and their operation lists reference the edited $everything OperationDefinitions.",
+    "learned": "The edited OperationDefinition XML files are current build inputs.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/group/operationdefinition-Group-everything.xml:37,60; source/medicinalproductdefinition/operationdefinition-MedicinalProductDefinition-everything.xml:37,64",
+    "summary": "The remaining active core $everything definitions now omit the single-bundle bullet and retain server-required paging, _count, performance, and sorting guidance.",
+    "learned": "The current source now expresses the intended paging behavior without contradicting itself.",
+    "supports": ["reconciliation", "source_changes"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-44604, FHIR-43373, FHIR-44816",
+    "url": "https://jira.hl7.org/browse/FHIR-44604",
+    "snapshot_path": "contexts/FHIR-13542/jira/FHIR-44604.md",
+    "ref": { "jira_key": "FHIR-44604", "related_commit_1": "8085536f12e251d00b80ac47323658eb94e9b1ac", "related_commit_2": "e8524f5b6b54904776987148319de565a582b52d" },
+    "summary": "Later Applied PA issues removed the single-bundle requirement from Patient and synchronized Encounter/EpisodeOfCare with that pattern.",
+    "learned": "The chosen edit follows a later approved pattern and should be limited to remaining current core $everything definitions.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#hapi > _count on $everything",
+    "url": "https://chat.fhir.org/#narrow/stream/hapi/topic/_count%20on%20%24everything",
+    "snapshot_path": "contexts/FHIR-13542/zulip/hapi--_count-on-everything.md",
+    "ref": { "stream": "hapi", "topic": "_count on $everything" },
+    "summary": "Implementers discussed HAPI returning paged $everything results despite the old spec sentence requiring a single bundle unless the client requested otherwise.",
+    "learned": "The old wording created real implementer confusion and no conflicting community rationale for keeping it was found.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Post-edit validation",
+    "command": "git grep -n -F 'unless the client requests otherwise, the server returns the entire result set in a single bundle' -- source; python - <<'PY' ... ET.parse(...) ... PY; git diff --check",
+    "summary": "The stale phrase is absent, both edited XML files parse, and git diff --check reports no whitespace errors.",
+    "learned": "The reconciliation removes the targeted requirement without introducing syntax or whitespace errors.",
+    "supports": ["reconciliation", "confidence"]
+  }
+]
+</evidence-manifest>

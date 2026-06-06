@@ -1,0 +1,124 @@
+FHIR-13987: Audit Composition document declaration
+
+Issue request:
+FHIR-13987 was Published with a Persuasive with Modification resolution for STU3 Composition. It reported that Composition/$document was declared for both instance and type use even though the type-level [base]/Composition/$document form did not identify which Composition to use; the resolution said to add an id input parameter, and the issue comments treated the separate GraphDefinition parameter request as a duplicate of FHIR-13856.
+
+Initial application:
+The issue was applied historically. Jira records svn revision 13105, and git-svn commit 9b504f3a74 (GF#13987 - add Composition/$document.id) records the original application. The current XML source lineage also shows the old applied shape before FHIR-19974: Composition-document had type=true, instance=true, and a type-scoped id input parameter typed uri that could identify a local id or full URL.
+
+Additional context:
+The GraphDefinition part of the original request is already covered by FHIR-13856 and FHIR-14391, both represented on the combined branch with no-change audit commits; the active operation still has a 0..1 graph input parameter. Later, FHIR-19974 was Published with a Persuasive with Modification resolution for the same Composition/$document operation. SD minutes on 2023-02-09 approved removing the [base]/Composition/$document URL variant and id parameter because $document always requires an existing Composition resource. Commit 7f9f6257cc applied that later decision by setting type=false and removing the id parameter, while retaining instance=true and graph.
+
+AutoFHIR reconciliation:
+Made no source change. The active build source is source/composition/operationdefinition-Composition-document.xml, referenced through the active Composition resource and operation list; it now declares the operation as instance-only and therefore no longer has the incorrect type-level declaration that FHIR-13987 addressed. Re-adding the id parameter would contradict the later FHIR-19974 decision.
+
+Recommendation:
+Keep this audit commit. The current specification should remain instance-only for Composition/$document unless SD opens and resolves a new issue for a separate type-level or remote-Composition document-generation design.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13987
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-13856: same-change-family - covers the GraphDefinition parameter mentioned in FHIR-13987 comments and is already audited on the combined branch.
+FHIR-14391: same-change-family - repeats the GraphDefinition parameter request and is already audited on the combined branch.
+FHIR-19974: later-change - later Published SD decision removed the type-level [base]/Composition/$document variant and id parameter, superseding the old FHIR-13987 application shape.
+FHIR-36699: background - raised the same confusion about Composition/$document without an id and was handled through the FHIR-19974 clarification path.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13987: Published/Persuasive with Modification issue for Composition/$document, resolved to add an id parameter and noting the GraphDefinition request was duplicate/background. Learned: this establishes the original applied request and its scope.
+- E2 Source source/fhir.ini:189, source/composition/list-Composition-operations.xml:9, and source/composition/operationdefinition-Composition-document.xml:68-86: Composition is active, the operation list references Composition-document, and the operation is instance-only with graph but no id parameter. Learned: the authoritative current source no longer has the incorrect type-level declaration.
+- E3 Git 9b504f3a74 and 7f9f6257cc^: the original GF#13987 application added Composition/$document.id, and the pre-FHIR-19974 XML still had type=true plus a type-scoped id parameter typed uri. Learned: FHIR-13987 was not lost; it was later superseded.
+- E4 Jira FHIR-19974 and git 7f9f6257cc: Published/Persuasive with Modification issue and implementation removed the type-level URL variant and id parameter because $document always requires a resource. Learned: current source intentionally should not include the old id parameter.
+- E5 Confluence 144992485: SD 2023-02-09 minutes approved the FHIR-19974 resolution 14-0-0, including removing URL:[base]/Composition/$document and the id parameter. Learned: the later removal is work-group-approved, not an accidental regression.
+- E6 Zulip/command searches: original #implementers $document discussion led to FHIR-13987, and later implementers discussion around FHIR-36699/FHIR-19974 focused on the no-id/type-level ambiguity. Learned: community evidence supports the same issue trail and shows no conflict with the later removal.
+- E7 Jira FHIR-13856/FHIR-14391 and existing combined-branch audit commits: the GraphDefinition parameter family is already satisfied by the active graph parameter and already represented. Learned: this seed should not duplicate those related issue decisions.
+- E8 Verification commands: idempotency check found no existing FHIR-13987 reconcile commit; rg, xmllint, and git diff --check confirmed the current operation flags/parameters and well-formed source. Learned: an empty no-change audit is sufficient.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13987",
+    "url": "https://jira.hl7.org/browse/FHIR-13987",
+    "snapshot_path": "contexts/FHIR-13987/jira/FHIR-13987.md",
+    "ref": { "jira_key": "FHIR-13987" },
+    "summary": "Published/Persuasive with Modification issue saying Composition/$document was incorrectly declared at type level without a way to identify the Composition; resolution added an id parameter, with GraphDefinition treated as duplicate/background.",
+    "learned": "This establishes the original request and separates the id/type-level problem from the GraphDefinition parameter family.",
+    "supports": ["issue_request", "initial_application"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:189; source/composition/list-Composition-operations.xml:9; source/composition/operationdefinition-Composition-document.xml:68-86",
+    "ref": { "path": "source/composition/operationdefinition-Composition-document.xml", "line": 68 },
+    "summary": "Composition is active in fhir.ini, the operation list references OperationDefinition/Composition-document, and the current operation has system=false, type=false, instance=true, a graph input, and no id input.",
+    "learned": "The active build source no longer declares the problematic type-level Composition/$document operation.",
+    "supports": ["source_change_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "9b504f3a74; 7f9f6257cc^",
+    "ref": { "commit_1": "9b504f3a74145babd8481e5c5b6a79cbb66918d7", "commit_2": "7f9f6257cc05849685341f1e521e5fe616032d56^" },
+    "summary": "The historical GF#13987 commit records adding Composition/$document.id, and the pre-FHIR-19974 XML still had type=true with a type-scoped id input typed uri.",
+    "learned": "FHIR-13987 was applied historically, so the absence of id now needs to be interpreted through later changes rather than as a missed application.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E4",
+    "kind": "jira",
+    "locator": "FHIR-19974 and git 7f9f6257cc",
+    "url": "https://jira.hl7.org/browse/FHIR-19974",
+    "snapshot_path": "contexts/FHIR-19974/jira/FHIR-19974.md",
+    "ref": { "jira_key": "FHIR-19974", "commit": "7f9f6257cc05849685341f1e521e5fe616032d56" },
+    "summary": "Later Published/Persuasive with Modification decision removed the [base]/Composition/$document URL variant and id parameter because $document always requires an existing resource.",
+    "learned": "The current instance-only operation is the later approved state and should not be changed back for FHIR-13987.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "SD 2023-02-09 Agenda and Minutes page 144992485",
+    "url": "https://confluence.hl7.org/spaces/SD/pages/144992485/2023-02-09+Agenda+and+Minutes",
+    "snapshot_path": "contexts/FHIR-19974/confluence/144992485.md",
+    "ref": { "confluence_page_id": 144992485 },
+    "summary": "Minutes record a 14-0-0 approval of the FHIR-19974 resolution, including removal of URL:[base]/Composition/$document and the id parameter.",
+    "learned": "The later removal superseding the old id-parameter application was explicitly approved by SD.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip searches for original and later Composition $document discussions",
+    "command": "bun run zulip:search sql \"SELECT ... FROM messages WHERE stream_name='implementers' AND topic='$' || 'document' ...\"; bun run zulip:search sql \"SELECT ... WHERE content LIKE '%FHIR-19974%' OR content LIKE '%FHIR-36699%' ...\"",
+    "query": "implementers $document; FHIR-19974/FHIR-36699 Composition document",
+    "summary": "The original implementers $document topic shows Lloyd identifying the missing specification support and linking the tracker, while later implementers discussion references the no-id/type-level ambiguity handled by FHIR-19974/FHIR-36699.",
+    "learned": "Community discussion follows the same issue trail and does not conflict with leaving the current source instance-only.",
+    "supports": ["additional_context", "absence_of_conflict"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-13856 and FHIR-14391",
+    "url": "https://jira.hl7.org/browse/FHIR-13856",
+    "snapshot_path": "contexts/FHIR-13856/jira/FHIR-13856.md",
+    "ref": { "jira_key": "FHIR-13856" },
+    "summary": "FHIR-13856 and FHIR-14391 are the GraphDefinition-parameter issues mentioned by FHIR-13987 comments; both are already audited on the combined branch and the current operation has graph 0..1 typed uri.",
+    "learned": "No additional source or duplicate related-issue commit is needed for the GraphDefinition part.",
+    "supports": ["related_jiras", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "command",
+    "locator": "Local idempotency and source checks",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-13987' ...; rg -n '<type value=\"false\"|<instance value=\"true\"|<name value=\"graph\"|<name value=\"id\"|<scope value=\"type\"' source/composition/operationdefinition-Composition-document.xml; xmllint --noout source/composition/operationdefinition-Composition-document.xml; git diff --check",
+    "summary": "No existing combined-branch FHIR-13987 reconcile commit was found; the current XML shows type=false, instance=true, graph present, no id/scope=type, and XML/whitespace checks passed.",
+    "learned": "The current source is consistent and only an audit commit is required.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

@@ -1,0 +1,85 @@
+FHIR-6140: Audit Quantity-derived schema extension inheritance
+
+Issue request:
+FHIR-6140 was a Published/Persuasive with Modification DSTU1 change request reporting that Quantity restriction datatypes such as Age and Count had XSD definitions with the inherited id attribute but without the inherited Element.extension child. The approved resolution was to fix the schema and defer a separate profile-schema discussion.
+
+Initial application:
+The issue was applied in git-svn commit bab51846f44373312018eb2de38ff460b7dd734d, which corresponds to SVN revision 6077 and was titled "#6140 - fix schema for restriction types". That historical commit added an explicit extension element while generating XSD restriction types in tools/java/org.hl7.fhir.tools.core/src/org/hl7/fhir/definitions/generators/xsd/XSDBaseGenerator.java. That Java generator path is no longer present in the current core source checkout.
+
+Additional context:
+Current build-scope datatype configuration still includes Quantity, Duration, SimpleQuantity=Quantity, MoneyQuantity=Quantity, Distance, Count, Money, and Age in source/fhir.ini. The active datatype spreadsheets define Age, Count, Distance, and Duration as Quantity-derived datatypes, while current generated build artifacts represent those datatypes with xs:extension base="Quantity". Element provides the extension child, DataType extends Element, and Quantity extends DataType, so the generated schema now inherits Element.extension without needing the old restriction-type special case. Current generated StructureDefinition snapshots for Age, Count, Distance, Duration, SimpleQuantity, and MoneyQuantity also include extension from Element.extension.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The current build-scope source and generated schema surface already satisfy the issue: Quantity-derived datatypes inherit Element.extension, and the old in-repository XSD generator fix has either been preserved in newer tooling or superseded by generating xs:extension-based derived datatypes.
+
+Recommendation:
+Keep this audit commit as-is. No core source follow-up is needed for FHIR-6140 unless a future publisher/schema regression reintroduces restriction-based Quantity derivatives without Element.extension.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-6140
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-6140: Published/Persuasive with Modification issue requested fixing the schema for Quantity-derived datatypes missing Element.extension. Learned: this establishes the final approved request and its scope.
+- E2 Git bab51846f44373312018eb2de38ff460b7dd734d: historical application commit "#6140 - fix schema for restriction types" added extension generation for restriction types and mapped to SVN revision 6077. Learned: the issue was explicitly applied in source history.
+- E3 Source source/fhir.ini:11-27 and source/datatypes/age.xml:825-829, count.xml:809-813, distance.xml:819-823, duration.xml:826-830: active datatype build entries and spreadsheets show Quantity-derived datatypes remain in build scope. Learned: the current source locations relevant to the issue are active.
+- E4 Published spec https://build.fhir.org/fhir-base.xsd and datatype profile JSON checks: Element defines extension, Quantity extends DataType, and Age/Count/Distance/Duration extend Quantity; generated snapshots include *.extension from Element.extension. Learned: the current generated schema/profile surface satisfies the requested inheritance.
+- E5 Community search: Zulip and Confluence searches for FHIR-6140 plus Age/Count/Quantity/extension/schema found no directly relevant discussions or conflicting decisions. Learned: no discovered community evidence changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-6140",
+    "url": "https://jira.hl7.org/browse/FHIR-6140",
+    "snapshot_path": "contexts/FHIR-6140/jira/FHIR-6140.md",
+    "ref": { "jira_key": "FHIR-6140" },
+    "summary": "Published/Persuasive with Modification issue reporting that Quantity-derived schema restriction types such as Age and Count omitted the inherited Element.extension child.",
+    "learned": "The final WG request was to fix the XSD schema for those restriction types, while deferring a separate profile discussion.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "bab51846f44373312018eb2de38ff460b7dd734d",
+    "ref": { "commit": "bab51846f44373312018eb2de38ff460b7dd734d" },
+    "summary": "Git-svn commit '#6140 - fix schema for restriction types' added explicit extension generation in XSDBaseGenerator.java and records svn revision 6077.",
+    "learned": "FHIR-6140 was explicitly applied historically; the original generator file is no longer present in the current checkout.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:11-27; source/datatypes/age.xml:825-829; source/datatypes/count.xml:809-813; source/datatypes/distance.xml:819-823; source/datatypes/duration.xml:826-830",
+    "summary": "Active datatype configuration includes Quantity-derived datatypes, and the datatype spreadsheets define Age, Count, Distance, and Duration as based on Quantity.",
+    "learned": "The relevant datatype definitions are in current build scope and still use the inheritance path affected by the issue.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "https://build.fhir.org/fhir-base.xsd and build.fhir.org/*.profile.json",
+    "url": "https://build.fhir.org/fhir-base.xsd",
+    "command": "curl -fsSL https://build.fhir.org/fhir-base.xsd | grep -n -A14 -E '<xs:complexType name=\"(Count|Distance|Age|Duration|Quantity)\"'; curl -fsSL https://build.fhir.org/age.profile.json | jq -r '.snapshot.element[] | select(.id==\"Age.extension\")'",
+    "summary": "Current generated schema has Element.extension, Quantity extending DataType, and Count/Distance/Age/Duration extending Quantity; generated snapshots include extension elements inherited from Element.extension.",
+    "learned": "The current publication surface already includes the extension element for Quantity-derived datatypes, so no source correction is required.",
+    "supports": ["reconciliation", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-6140 and Quantity-derived schema extension terms",
+    "command": "bun run zulip:search fts '\"FHIR-6140\" \"Age\" \"Count\" \"Quantity\" \"extension\" \"schema\"' --limit 10; bun run confluence:search refs jira FHIR-6140; bun run confluence:search fts '\"FHIR-6140\" \"Age\" \"Count\" \"Quantity\" \"extension\" \"schema\"' --limit 10",
+    "query": "FHIR-6140 Age Count Quantity extension schema",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence references were found.",
+    "learned": "No discovered community record changes the Jira, git, source, and generated-schema conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

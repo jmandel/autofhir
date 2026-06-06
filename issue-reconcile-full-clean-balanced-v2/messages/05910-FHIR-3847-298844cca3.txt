@@ -1,0 +1,97 @@
+FHIR-3847: Audit RelatedPerson modifier status
+
+Issue request:
+FHIR-3847 is a Published / Persuasive with Modification DSTU1 PA issue asking that incorrectly marked isModifier fields be removed from RelatedPerson. The recorded resolution says there are no isModifier fields on RelatedPerson and that all were removed.
+
+Initial application:
+No current git commit in this checkout mentions FHIR-3847, which appears to have been applied in the legacy DSTU1 source history before the current StructureDefinition XML source. The current build source no longer has the original group of incorrectly marked RelatedPerson fields; it has exactly one RelatedPerson isModifier flag, on RelatedPerson.active.
+
+Additional context:
+The remaining RelatedPerson.active modifier is a later status-element change, not the old set of fields addressed by FHIR-3847. FHIR-10364 later added an active flag and search parameter to RelatedPerson, Schedule, and HealthcareService so those resources could be marked inactive/not in current use, consistent with Patient, Practitioner, and Person. Published STU3, R4, and R5 RelatedPerson definitions and the current active build source all treat RelatedPerson.active as a modifier because it can indicate that a record should not be treated as valid. FHIR-54873 separately confirms the same current .active pattern for another resource.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. Removing the current RelatedPerson.active isModifier flag would conflict with the later active/status semantics and with the current published FHIR pattern.
+
+Recommendation:
+Keep this no-change audit. If PA wants to revisit whether .active should distinguish inactive from entered-in-error or whether active should remain a modifier, that should be handled as a new cross-resource active/status tracker rather than by reapplying the older DSTU1 cleanup.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-3847
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-10364: later-change - added RelatedPerson.active after the DSTU1 cleanup, consistent with Patient, Practitioner, and Person.
+FHIR-54873: supporting-decision - confirms the current .active modifier rationale for a parallel resource status pattern.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-3847: Published / Persuasive with Modification; resolution says all RelatedPerson isModifier fields were removed. Learned: this establishes the original DSTU1 cleanup request.
+- E2 Source source/fhir.ini:221 and source/relatedperson/structuredefinition-RelatedPerson.xml:132-145: RelatedPerson is an active resource in the current build and the only current RelatedPerson isModifier flag is RelatedPerson.active with an invalid-record rationale. Learned: the current source differs only for the later active status element.
+- E3 Jira FHIR-10364: Published / Persuasive issue added active to RelatedPerson, Schedule, and HealthcareService, consistent with Patient, Practitioner, and Person. Learned: the remaining active element is a later approved change that supersedes a literal no-modifiers reading of FHIR-3847.
+- E4 Published spec check for STU3/R4/R5 RelatedPerson.active: STU3, R4, and R5 publication surfaces show RelatedPerson.active as a modifier. Learned: retaining the active modifier is not a local source accident.
+- E5 Git 33b409a4b6 and v5.0.0 source: the 2021 source rework and R5 tag both contain the current RelatedPerson.active modifier; git log --grep=FHIR-3847 found no current-history implementation commit. Learned: the current XML source inherited the later active pattern, not the old erroneous field set.
+- E6 Zulip/Confluence search for FHIR-3847 and RelatedPerson isModifier: no directly relevant or conflicting community discussion was found. Learned: no community evidence was discovered that would justify changing the current source.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-3847",
+    "url": "https://jira.hl7.org/browse/FHIR-3847",
+    "snapshot_path": "contexts/FHIR-3847/jira/FHIR-3847.md",
+    "ref": { "jira_key": "FHIR-3847" },
+    "summary": "Published/Persuasive with Modification issue requiring incorrectly marked RelatedPerson isModifier fields to be removed.",
+    "learned": "This establishes the original DSTU1 cleanup request but not the later active-status semantics.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:221; source/relatedperson/structuredefinition-RelatedPerson.xml:132-145",
+    "ref": { "path": "source/relatedperson/structuredefinition-RelatedPerson.xml", "line": 144 },
+    "summary": "RelatedPerson is active in the current build and only RelatedPerson.active carries isModifier=true.",
+    "learned": "The current source no longer has the old broad set of RelatedPerson modifiers; only the later active status modifier remains.",
+    "supports": ["build_scope", "current_source"]
+  },
+  {
+    "id": "E3",
+    "kind": "jira",
+    "locator": "FHIR-10364",
+    "url": "https://jira.hl7.org/browse/FHIR-10364",
+    "ref": { "jira_key": "FHIR-10364" },
+    "summary": "Published/Persuasive issue added active to RelatedPerson, Schedule, and HealthcareService consistent with Patient, Practitioner, and Person.",
+    "learned": "RelatedPerson.active is a later approved change, so it should not be removed to satisfy the older DSTU1 cleanup.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "published-spec",
+    "locator": "Published STU3/R4/R5 RelatedPerson.active definitions",
+    "command": "curl -fsSL https://hl7.org/fhir/R4/relatedperson.profile.json | jq -r '.snapshot.element[] | select(.id==\"RelatedPerson.active\") | .isModifier'; curl -fsSL https://hl7.org/fhir/R5/relatedperson.profile.json | jq -r '.snapshot.element[] | select(.id==\"RelatedPerson.active\") | .isModifier'",
+    "summary": "Published STU3, R4, and R5 definitions expose RelatedPerson.active as a modifier.",
+    "learned": "The active modifier is part of the publication history, not an accidental current-build artifact.",
+    "supports": ["publication_surface", "confidence"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "33b409a4b6; v5.0.0 source; git log --grep=FHIR-3847",
+    "ref": { "commit": "33b409a4b6d544598262f2f074ebb4b6dc466157" },
+    "summary": "The 2021 source rework introduced the current XML StructureDefinition with RelatedPerson.active as a modifier, and the R5 tag retained it; no current-history commit mentions FHIR-3847.",
+    "learned": "The current source state reflects later active/status modeling rather than a forgotten FHIR-3847 application.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Zulip and Confluence search for FHIR-3847 and RelatedPerson isModifier",
+    "command": "bun run zulip:search fts '\"FHIR-3847\" RelatedPerson isModifier' --limit 10; bun run zulip:search fts '\"RelatedPerson\" isModifier' --limit 10; bun run confluence:search refs jira FHIR-3847; bun run confluence:search fts '\"RelatedPerson\" isModifier' --limit 10",
+    "query": "FHIR-3847 RelatedPerson isModifier; RelatedPerson isModifier",
+    "summary": "No directly relevant or conflicting Zulip or Confluence evidence was found.",
+    "learned": "No discovered community record changes the Jira/source conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

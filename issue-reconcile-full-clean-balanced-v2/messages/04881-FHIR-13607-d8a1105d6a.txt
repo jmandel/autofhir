@@ -1,0 +1,135 @@
+FHIR-13607: Audit Location operating hours support
+
+Issue request:
+FHIR-13607 was a Published/Persuasive STU3 Patient Administration change request asking for a way to represent clinic operating hours on Location or Organization. The approved resolution added a Location hoursOfOperation structure with daysOfWeek, allDay, openingTime, closingTime, plus an availabilityExceptions property, modeled after HealthcareService but named for Location.
+
+Initial application:
+No explicit git commit mentioning FHIR-13607 was found in the available history. The current source history shows Location.hoursOfOperation present with the requested children and availabilityExceptions before later refactoring. Commit 447e89f4a4 replaced the local backbone children and string exception with the reusable Availability datatype while preserving the Location.hoursOfOperation element and adding comments that availableStartTime and availableEndTime are the opening and closing times.
+
+Additional context:
+FHIR-17622 later confirmed that physical Location hours should retain their Location-specific name and remain distinct from service or role availability, while adding unavailable-time support. FHIR-25381 introduced the shared Availability datatype and the Organization/ExtendedContactDetail contact availability extension, and FHIR-36017 later made Location.hoursOfOperation 0..1 because repeated availability blocks live inside Availability.availableTime. Zulip discussion likewise distinguishes Location building hours from HealthcareService and PractitionerRole/service availability and notes that Organization does not have a core hours element.
+
+AutoFHIR reconciliation:
+This audit commit intentionally makes no source change. On the combined branch, source/fhir.ini actively includes Location and Organization; Location.hoursOfOperation is present as 0..1 Availability, and Availability contains repeated availableTime entries with daysOfWeek, allDay, availableStartTime, availableEndTime, plus notAvailableTime description/during for exceptions. That current representation preserves the implementer-facing capability requested by FHIR-13607 and its later refinements.
+
+Recommendation:
+Keep this no-change audit. Do not reintroduce the obsolete inline Location.hoursOfOperation child backbone or Location.availabilityExceptions string; the current Availability datatype is the maintained representation. Organization-wide or contact-specific availability should continue to be handled through the later HealthcareService/Location/PractitionerRole guidance and the ExtendedContactDetail availability extension rather than by adding a new core Organization.hoursOfOperation element under this old issue.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-13607
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-17622: same-change-family - confirmed Location physical opening hours are distinct from HealthcareService/PractitionerRole availability and added unavailable-time handling.
+FHIR-25381: later-change - introduced the shared Availability datatype and ExtendedContactDetail availability extension, explaining the current datatype-based representation.
+FHIR-36017: later-change - made Location/HealthcareService/PractitionerRole availability wrappers 0..1 because repetitions are represented inside Availability.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-13607: Published/Persuasive request to add operating-hours support for Location or Organization, with final resolution choosing Location.hoursOfOperation plus availabilityExceptions. Learned: this establishes the original approved capability and Location-oriented naming.
+- E2 Source source/fhir.ini:169-210: active resources include Location and Organization. Learned: the inspected Location and Organization definitions are in current build scope.
+- E3 Source source/location/structuredefinition-Location.xml:490: Location.hoursOfOperation is present as 0..1 Availability with comments tying availableStartTime/endTime to opening/closing times. Learned: current Location source still provides the requested operating-hours element.
+- E4 Source source/datatypes/availability.xml:849-1062: Availability defines availableTime.daysOfWeek, allDay, availableStartTime, availableEndTime, and notAvailableTime description/during. Learned: the shared datatype carries the original child fields and exception capability.
+- E5 Jira FHIR-17622 and Confluence PA 2020 Sept WGM minutes: WG retained Location-specific hours naming because physical location hours differ from organization/service availability, while accepting unavailable-time support. Learned: later WG context supports not adding Organization.hoursOfOperation for this issue.
+- E6 Jira FHIR-25381 and Extension Pack source input/definitions/datatypes/StructureDefinition-extended-contact-availability.xml: introduced Availability and an ExtendedContactDetail availability extension. Learned: later Organization/contact availability concerns were handled through a shared datatype and extension path.
+- E7 Git 447e89f4a4 and 738b674287: refactored Location.hoursOfOperation from inline backbone children to Availability and then changed wrapper cardinality to 0..1. Learned: current shape is an intentional later application, not a missing FHIR-13607 field.
+- E8 Community Zulip #implementers Organization's working hours and PractitionerRole.location VS PracRole.healthcrsrvce.location: community guidance distinguishes Location building hours from HealthcareService/PractitionerRole availability and notes Organization lacks a core hours element. Learned: no discovered community evidence requires a new source change.
+- E9 Verification command: git show robo-spec-combined-issue-reconcile-full-clean-balanced-v2:source/location/structuredefinition-Location.xml and source/datatypes/availability.xml confirmed the current combined branch state. Learned: the no-change decision is based on the branch that will receive this audit commit.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-13607",
+    "url": "https://jira.hl7.org/browse/FHIR-13607",
+    "snapshot_path": "contexts/FHIR-13607/jira/FHIR-13607.md",
+    "ref": { "jira_key": "FHIR-13607" },
+    "summary": "Published/Persuasive STU3 request to represent clinic operating hours, resolved by adding Location.hoursOfOperation and availabilityExceptions.",
+    "learned": "This establishes the original approved capability and that the final resolution selected Location-oriented naming.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:169-210",
+    "summary": "The current build resource list actively includes Location and Organization.",
+    "learned": "The inspected Location and Organization definitions are in current FHIR build scope.",
+    "supports": ["build_scope", "confidence"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/location/structuredefinition-Location.xml:490",
+    "summary": "Location.hoursOfOperation is present as 0..1 Availability with comments mapping availableStartTime and availableEndTime to opening and closing times.",
+    "learned": "The current Location source provides the operating-hours element requested by FHIR-13607.",
+    "supports": ["reconciliation", "source_current"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/datatypes/availability.xml:849-1062",
+    "summary": "Availability defines repeated availableTime with daysOfWeek, allDay, availableStartTime, availableEndTime, and notAvailableTime description/during.",
+    "learned": "The shared datatype carries the original child fields and exception capability after later refactoring.",
+    "supports": ["reconciliation", "source_current"]
+  },
+  {
+    "id": "E5",
+    "kind": "jira",
+    "locator": "FHIR-17622",
+    "url": "https://jira.hl7.org/browse/FHIR-17622",
+    "snapshot_path": "contexts/FHIR-17622/jira/FHIR-17622.md",
+    "ref": { "jira_key": "FHIR-17622" },
+    "summary": "Published issue retained Location-specific hours naming and added unavailable-time support because physical location hours differ from service or role availability.",
+    "learned": "This supports preserving Location.hoursOfOperation and not adding an Organization core hours element for FHIR-13607.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E6",
+    "kind": "jira",
+    "locator": "FHIR-25381",
+    "url": "https://jira.hl7.org/browse/FHIR-25381",
+    "snapshot_path": "contexts/FHIR-25381/jira/FHIR-25381.md",
+    "ref": { "jira_key": "FHIR-25381" },
+    "summary": "Published issue introduced the Availability datatype and an ExtendedContactDetail availability extension for contact availability use cases.",
+    "learned": "Later Organization/contact availability concerns were handled by a shared datatype and extension path rather than a FHIR-13607 Organization element.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "source",
+    "locator": "/home/jmandel/work/fhir-extensions/input/definitions/datatypes/StructureDefinition-extended-contact-availability.xml:4",
+    "summary": "The Extension Pack defines StructureDefinition/extended-contact-availability with valueAvailability for ExtendedContactDetail, ContactDetail, and Address contexts.",
+    "learned": "Organization contact availability support now lives in the extension ecosystem, so core FHIR source should not grow a new Organization.hoursOfOperation for this seed.",
+    "supports": ["external_context", "recommendation"]
+  },
+  {
+    "id": "E8",
+    "kind": "git",
+    "locator": "447e89f4a4; 738b674287",
+    "ref": { "commit_1": "447e89f4a4", "commit_2": "738b674287" },
+    "summary": "Git history refactored Location.hoursOfOperation from inline children to Availability and later set its wrapper cardinality to 0..1.",
+    "learned": "The current representation is intentional later application, not a missing FHIR-13607 source edit.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E9",
+    "kind": "zulip",
+    "locator": "#implementers > Organization's working hours; #implementers > PractitionerRole.location VS PracRole.healthcrsrvce.location",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Organization's%20working%20hours",
+    "summary": "Community discussion distinguishes Location building hours from HealthcareService and PractitionerRole availability and notes that Organization lacks a core hours element.",
+    "learned": "No community evidence found requires changing the current FHIR core representation for FHIR-13607.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E10",
+    "kind": "command",
+    "locator": "Combined branch source verification",
+    "command": "git -C /home/jmandel/work/fhir show robo-spec-combined-issue-reconcile-full-clean-balanced-v2:source/location/structuredefinition-Location.xml; git -C /home/jmandel/work/fhir show robo-spec-combined-issue-reconcile-full-clean-balanced-v2:source/datatypes/availability.xml",
+    "summary": "The latest combined branch contains Location.hoursOfOperation as Availability and the Availability child fields needed for operating hours and exceptions.",
+    "learned": "The no-change audit is based on the branch that receives the reconciliation commit.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

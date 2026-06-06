@@ -1,0 +1,111 @@
+FHIR-16148: Audit Encounter reason diagnosis redesign
+
+Issue request:
+FHIR-16148 is a Published/Persuasive with Modification Patient Administration change request for FHIR-core Encounter. It asked to clarify and restructure Encounter.reason and Encounter.diagnosis so Encounter.reason captures expected medical reasons or symptoms for the encounter, Encounter.diagnosis captures medical conditions addressed during the encounter, diagnosis billing/ranking is handled outside Encounter on Account, and new reason/diagnosis use value sets carry concepts such as Chief Complaint, Reason for Visit, Working, and Final.
+
+Initial application:
+The issue was applied by source commit 084c723e14, which explicitly names FHIR-16148 and updated the active Encounter StructureDefinition, examples, search parameters, and new encounter-reason-use and encounter-diagnosis-use terminology. That implementation created Encounter.reason as a backbone with CodeableReference values, created Encounter.diagnosis.condition as a CodeableReference to Condition, removed the old ranked billing diagnosis model from Encounter, and added the new reason/diagnosis use code systems and value sets.
+
+Additional context:
+Confluence page 51223352 records the multi-year PA design work and lists FHIR-16148 as the master tracker, including the approved decision to drop rank from Encounter and point billing diagnosis ranking to Account. Later final decisions intentionally changed some details from the 2021 proposal: FHIR-38784 made Encounter.reason.use and Encounter.diagnosis.use repeat, FHIR-32130 added DiagnosticReport as an Encounter.reason.value target, FHIR-48869 states that Encounter.reason.value references remain as they are while synchronizing EpisodeOfCare, and FHIR-19285/FHIR-23764 account for billing/ranking and v2 mapping follow-up. The combined branch already contains source/audit commits for those related decisions, including FHIR-38807, which corrected stale Encounter reason/diagnosis prose left after the original implementation.
+
+AutoFHIR reconciliation:
+This audit makes no source change because the current active Encounter source already satisfies FHIR-16148 when interpreted with those later decisions. source/fhir.ini lists Encounter as an active resource; source/encounter/structuredefinition-Encounter.xml now defines Encounter.reason as medical reasons expected during the encounter, Encounter.reason.value as a repeat CodeableReference, Encounter.diagnosis as medical conditions addressed during the encounter, Encounter.diagnosis.condition as a repeat CodeableReference to Condition, and Encounter.diagnosis.use as repeat. The encounter reason and diagnosis use code systems contain the requested Chief Complaint/Health Concern/Admitting Diagnosis/Reason for Visit/Health Maintenance and Working/Final concepts. No Encounter.diagnosis.rank source should be restored.
+
+Recommendation:
+Keep this empty audit commit as the FHIR-16148 reconciliation record. Do not make additional Encounter source changes for this seed unless PA opens a new current decision to revisit Encounter.reason.value target profiles, reason/diagnosis use cardinalities, or Account-vs-Encounter billing diagnosis placement.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-16148
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-38807: same-change-family - R5 ballot issue for applying outstanding Encounter trackers; its combined-branch source fix corrected stale Encounter reason/diagnosis prose from the FHIR-16148 family.
+FHIR-35863: same-change-family - EpisodeOfCare alignment was implemented in the same source commit as FHIR-16148.
+FHIR-38784: later-change - Published decision made Encounter.reason.use and Encounter.diagnosis.use 0..*, explaining the current repeat cardinality.
+FHIR-48869: later-change - Applied R6 decision synchronized EpisodeOfCare.reason and explicitly left Encounter.reason.value references unchanged.
+FHIR-19285: supporting-decision - Published decision moved ranked billing diagnosis/procedure information to Account, supporting the absence of Encounter.diagnosis.rank.
+FHIR-20483: supporting-decision - Resolved-No-Change decision kept encounter-specific diagnosis properties on Encounter rather than denormalizing them into Condition.
+FHIR-32130: later-change - Added DiagnosticReport as an Encounter.reason target, explaining a current target profile not listed in the original FHIR-16148 resolution text.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-16148: Published/Persuasive with Modification issue requested the Encounter.reason and Encounter.diagnosis redesign, new use value sets, and Account-based billing/ranking guidance. Learned: this is the seed decision and target behavior.
+- E2 Source source/fhir.ini:191,1149,1363 and source/encounter/structuredefinition-Encounter.xml:787-936: Encounter is active and the authoritative StructureDefinition contains the current reason and diagnosis structure/definitions. Learned: the current build source implements the seed semantics.
+- E3 Source source/encounter/codesystem-encounter-reason-use.xml:43-67 and source/encounter/codesystem-encounter-diagnosis-use.xml:42-50: the new use terminology contains Chief Complaint, Health Concern, Admitting Diagnosis, Reason for Visit, Health Maintenance, Working, and Final. Learned: the requested terminology family is present.
+- E4 Git 084c723e14: implementation commit explicitly named FHIR-16148 and changed Encounter source, examples, search parameters, and terminology. Learned: there was a real prior application of the seed issue.
+- E5 Confluence page 51223352 and Zulip #implementers > Encounter reasons: PA design notes and community discussion identify FHIR-16148 as the master tracker, support dropping rank from Encounter, and point billing rank to Account/Claim or extensions. Learned: community evidence supports the current no-rank Encounter model.
+- E6 Jira FHIR-38784, FHIR-48869, FHIR-38807, FHIR-19285, FHIR-20483, and FHIR-32130: later/supporting decisions explain current differences from the original resolution text and already have combined-branch representation where applicable. Learned: apparent mismatches are governed by later decisions, not missing FHIR-16148 work.
+- E7 Verification command/query: checked active Encounter source lines, stale phrase absence, related combined-branch commits, and XML parsing for Encounter source/terminology. Learned: the current source is syntactically sound and no seed-driven source hunk remains.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-16148",
+    "url": "https://jira.hl7.org/browse/FHIR-16148",
+    "snapshot_path": "contexts/FHIR-16148/jira/FHIR-16148.md",
+    "ref": { "jira_key": "FHIR-16148" },
+    "summary": "Published/Persuasive with Modification Patient Administration issue redesigning Encounter.reason and Encounter.diagnosis for R5.",
+    "learned": "This establishes the final seed request and the intended reason-versus-diagnosis distinction.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:191,1149,1363; source/encounter/structuredefinition-Encounter.xml:787-936",
+    "ref": { "path": "source/encounter/structuredefinition-Encounter.xml" },
+    "summary": "Encounter is active and its StructureDefinition defines Encounter.reason and Encounter.diagnosis using the current FHIR-16148 model.",
+    "learned": "The authoritative current source already carries the seed semantics.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/encounter/codesystem-encounter-reason-use.xml:43-67; source/encounter/codesystem-encounter-diagnosis-use.xml:42-50",
+    "summary": "Encounter reason use has CC/HC/AD/RV/HM and Encounter diagnosis use has working/final.",
+    "learned": "The requested use terminology was created and remains present.",
+    "supports": ["source_check", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "084c723e14",
+    "ref": { "commit": "084c723e14093f9463b52edae50c08bfd1194da5" },
+    "summary": "Implementation commit explicitly named FHIR-16148 and updated Encounter structure, examples, search parameters, and use terminology.",
+    "learned": "The seed issue was previously applied in source rather than being unimplemented.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "confluence",
+    "locator": "PA Encounter, Condition, Procedure, Diagnosis page 51223352",
+    "url": "https://confluence.hl7.org/spaces/PA/pages/51223352/Encounter+Condition+Procedure+Diagnosis+",
+    "ref": { "confluence_page_id": 51223352 },
+    "summary": "PA design page lists FHIR-16148 as the master tracker, records the reason/diagnosis proposal, and notes the approved decision to drop rank from Encounter.",
+    "learned": "The design evidence supports leaving ranked billing diagnosis outside Encounter.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#implementers > Encounter reasons",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Encounter.20reasons",
+    "ref": { "stream": "implementers", "topic": "Encounter reasons" },
+    "summary": "PA described the proposed Encounter redesign and sought input on whether Encounter.reason needed rank; responses supported no rank or using billing artifacts/extensions.",
+    "learned": "Community discussion does not reveal a conflict with the current no-rank Encounter model.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Local source and history verification for FHIR-16148",
+    "command": "git log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-16148' ...; rg active Encounter source; rg stale phrases; git log --grep FHIR-16148; python3 ElementTree parse",
+    "summary": "No prior FHIR-16148 combined-branch audit existed; current source had the expected Encounter reason/diagnosis lines, stale phrases were absent, the implementation commit was found, and edited XML sources parsed.",
+    "learned": "The correct reconciliation is an empty audit commit rather than a source change.",
+    "supports": ["verification", "confidence"]
+  }
+]
+</evidence-manifest>

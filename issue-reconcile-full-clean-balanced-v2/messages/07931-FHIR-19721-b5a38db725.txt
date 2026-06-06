@@ -1,0 +1,113 @@
+FHIR-19721: Audit ValueSet generated link fix
+
+Issue request:
+FHIR-19721 was a Published/Persuasive technical correction for the ValueSet page. It reported that the generated "see designation" link for ValueSet.expansion.contains.designation and the analogous ValueSet.expansion.contains.contains content-reference link were dead on valueset.html, even though the underlying StructureDefinition text was not wrong.
+
+Initial application:
+The issue appears to have been applied by source commit 9734426b100dc8a2f7c986e87cd2630dc7e09d9f, "FHIR-19721 Dead hyperlinks in ValueSet page", which changed the resource templates from <%resource-table%> to <%resource-table-all%>. That makes the main resource page include the full structure table and therefore include the anchors needed by content-reference links.
+
+Additional context:
+ValueSet is an active build resource in source/fhir.ini. The current ValueSet StructureDefinition still has the expected contentReference values for ValueSet.expansion.contains.designation and ValueSet.expansion.contains.contains, so the remaining question is generated-page link behavior rather than resource semantics. Confluence records show Vocab sent the ticket to FHIR-I because changing ValueSet wording would not fix the generated-link problem, and FHIR-I assigned it to Grahame. A Zulip committers thread records Grahame investigating and fixing the unique-link/rendering behavior in February 2023.
+
+AutoFHIR reconciliation:
+This commit makes no source change. The source/templates already contain the applied fix, and current rendered R5 and CI pages include valueset-definitions.html links plus matching anchors for the reported content references.
+
+Recommendation:
+Keep this audit commit as-is. No further FHIR core source change is needed for FHIR-19721 unless a future publisher/template regression removes the full resource table or breaks these generated anchors again.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-19721
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-19721: Published/Persuasive technical correction reported dead generated links on valueset.html for ValueSet.expansion.contains.designation and .contains. Learned: the request targeted generated link behavior, not a semantic StructureDefinition change.
+- E2 Source source/fhir.ini:226 and :943: ValueSet is an active resource and belongs to the conformance section. Learned: the ValueSet page/template evidence is in current build scope.
+- E3 Source source/valueset/structuredefinition-ValueSet.xml:1264 and :1393: the reported elements still use contentReference values to the canonical source elements. Learned: the authored ValueSet definition is not the broken part.
+- E4 Git 9734426b100dc8a2f7c986e87cd2630dc7e09d9f: changed resource templates from resource-table to resource-table-all for FHIR-19721. Learned: the historical application fixed generated page anchor availability.
+- E5 Source tools/templates/template.html:117 plus abstract/interface/logical templates: the current templates use <%resource-table-all%>. Learned: the FHIR-19721 template fix is present in the current checkout and combined branch history.
+- E6 Published/CI check: curl checks of build.fhir.org and hl7.org/fhir/R5 valueset.html found valueset-definitions.html#ValueSet.compose.include.concept.designation and #ValueSet.expansion.contains hrefs with matching anchors. Learned: the reported links resolve on current rendered pages.
+- E7 Zulip #committers > Request for help: Grahame discussed FHIR-19721 and reported fixing the unique-link/rendering behavior. Learned: community discussion supports that the implementation was a renderer/template fix.
+- E8 Confluence FHIR-I/Vocab minutes: Vocab noted text edits would not help and sent the ticket to FHIR-I; FHIR-I assigned it to Grahame. Learned: the work-group path aligns with a tooling/template correction.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-19721",
+    "url": "https://jira.hl7.org/browse/FHIR-19721",
+    "snapshot_path": "contexts/FHIR-19721/jira/FHIR-19721.md",
+    "ref": { "jira_key": "FHIR-19721" },
+    "summary": "Published/Persuasive technical correction reporting dead generated ValueSet content-reference links on valueset.html.",
+    "learned": "The issue targeted generated hyperlink behavior rather than an incorrect ValueSet element definition.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/fhir.ini:226,943",
+    "summary": "ValueSet is active in the resources list and assigned to the conformance section.",
+    "learned": "The ValueSet resource page and its templates are in current build scope.",
+    "supports": ["build_scope", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/valueset/structuredefinition-ValueSet.xml:1264,1393",
+    "summary": "The reported elements remain normal contentReference elements for designation and recursive contains.",
+    "learned": "The authored StructureDefinition text does not need a semantic edit to address the issue.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "git",
+    "locator": "9734426b100dc8a2f7c986e87cd2630dc7e09d9f",
+    "ref": { "commit": "9734426b100dc8a2f7c986e87cd2630dc7e09d9f" },
+    "summary": "FHIR-19721 commit changed resource templates from <%resource-table%> to <%resource-table-all%>.",
+    "learned": "The historical application fixed the template that controls anchor availability on resource pages.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "tools/templates/template.html:117; template-abstract.html:57; template-intf.html:79; template-logical.html:116",
+    "summary": "Current templates use <%resource-table-all%> in the structure tab.",
+    "learned": "The FHIR-19721 fix is already present in current source.",
+    "supports": ["source_state", "reconciliation"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Rendered ValueSet link checks",
+    "command": "curl -fsSL https://build.fhir.org/valueset.html; curl -fsSL https://hl7.org/fhir/R5/valueset.html; grep href/anchor targets for ValueSet.compose.include.concept.designation and ValueSet.expansion.contains",
+    "summary": "Current CI and R5 pages include valueset-definitions.html content-reference hrefs and matching same-page anchor targets.",
+    "learned": "The originally reported links resolve in the current rendered specification surface.",
+    "supports": ["verification", "confidence"]
+  },
+  {
+    "id": "E7",
+    "kind": "zulip",
+    "locator": "#committers > Request for help",
+    "snapshot_path": "contexts/FHIR-19721/zulip/committers--Request-for-help.md",
+    "ref": { "stream": "committers", "topic": "Request for help" },
+    "summary": "Grahame discussed FHIR-19721 link behavior and reported fixing the unique-link/rendering issue in February 2023.",
+    "learned": "Community evidence supports interpreting the applied change as a renderer/template fix.",
+    "supports": ["additional_context", "confidence"]
+  },
+  {
+    "id": "E8",
+    "kind": "confluence",
+    "locator": "FHIR Tracker Issues 2022-03-07 and FHIR Infrastructure Minutes CC 2022-04-18",
+    "url": "https://confluence.hl7.org/spaces/FHIRI/pages/94660790/FHIR+Infrastructure+Minutes+CC+2022-04-18",
+    "snapshot_path": "contexts/FHIR-19721/confluence/94660790.md",
+    "ref": { "confluence_page_id": 94660790 },
+    "summary": "Vocab noted text changes would not help and FHIR-I assigned FHIR-19721 to Grahame.",
+    "learned": "The meeting trail aligns with resolving the issue through FHIR-I tooling/templates instead of ValueSet prose.",
+    "supports": ["additional_context", "reconciliation"]
+  }
+]
+</evidence-manifest>

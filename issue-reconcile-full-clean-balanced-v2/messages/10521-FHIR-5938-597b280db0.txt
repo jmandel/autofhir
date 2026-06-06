@@ -1,0 +1,96 @@
+FHIR-5938: Audit retired extension worksheet type parsing fix
+
+Issue request:
+FHIR-5938 was Published/Persuasive for DSTU1 and asked that extension worksheet Type values of the form Reference(Resource){profileUrl} be accepted while defining a profile. The concrete failure was the historical QICore Other.AdverseEvent.cause.item extension, where the old spreadsheet parser rejected profiled reference types because it parsed the extension value type with the inProfile flag set to false.
+
+Initial application:
+Jira records Grahame Grieve's application note as svn revision 4745. In the migrated git history, commit 81d1bff591ce339694764d726741b17b6770fe00 carries the #5938 application message for extension type profile parsing, and the nearby historical parser commit db55db7414cc49a9bd93c668c9fd19c3de26fccf changes SpreadsheetParser.parseExtensionElement so extension worksheet Type values are parsed with inProfile=true instead of false.
+
+Additional context:
+The affected QICore source was historical profile content, not a current core profile. The old source/other/adverseevent-qicore-profile-spreadsheet.xml was later renamed when Other became Basic and then moved out of core source under CQF/QICore work. Current source/fhir.ini still lists Basic and AdverseEvent as active resources, but the active [profiles] list contains current core extension/profile spreadsheets and no QICore AdverseEvent profile package. The old Java publisher/parser classes that implemented this worksheet behavior are no longer present in the current checkout. The directly related follow-up FHIR-5955, about preserving the parsed profile URLs in generated extension definitions, is already represented on the combined branch and is not duplicated here.
+
+AutoFHIR reconciliation:
+No source change was made. The requested tooling behavior was applied historically, and neither the failing old parser code nor the specific QICore AdverseEvent profile/extension source remains in the current FHIR core build.
+
+Recommendation:
+Keep this empty audit commit as the reconciliation record for FHIR-5938. No current FHIR core follow-up is needed unless a human chooses to audit archived QICore/CQF IG material or old publisher history outside the current core build.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-5938
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-5955: same-change-family - follow-up Published/Persuasive issue for generated extension definitions ignoring the profile URLs after parsing; it is already reconciled on the combined branch and is not duplicated here.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-5938: Published/Persuasive DSTU1 issue requiring Reference(Resource){profileUrl} Type syntax to work in extension worksheets while defining a profile. Learned: final issue status and the exact old parser failure mode.
+- E2 Git 81d1bff591ce339694764d726741b17b6770fe00: migrated svn revision 4745 commit message includes #5938 - fix extension type profile parsing. Learned: Jira's recorded application maps to migrated source history.
+- E3 Git db55db7414cc49a9bd93c668c9fd19c3de26fccf: SpreadsheetParser.parseExtensionElement changed the TypeParser call for Extension.value[x] from inProfile=false to inProfile=true. Learned: the historical parser behavior requested by the issue was implemented.
+- E4 Source source/fhir.ini:176, source/fhir.ini:279, source/fhir.ini:449-472, source/fhir.ini:1471: Basic and AdverseEvent are active resources, current active profiles are core profile/extension spreadsheets, and fhir.ini records that Other became Basic. Learned: current build scope does not include the historical QICore Other/Basic AdverseEvent profile package.
+- E5 Command current source and FHIR Extension Pack searches for FHIR-5938, adverseevent-qicore, extension-adverseevent-qicore, and TypeParser/SpreadsheetParser anchors. Learned: the old Java parser and affected QICore extension source are absent from current core/extension-pack source.
+- E6 Command Zulip and Confluence searches for FHIR-5938 plus profile Type extension/adverseevent-qicore terms. Learned: no directly relevant community record was found that changes the Jira/source/history conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-5938",
+    "url": "https://jira.hl7.org/browse/FHIR-5938",
+    "snapshot_path": "contexts/FHIR-5938/jira/FHIR-5938.md",
+    "ref": { "jira_key": "FHIR-5938" },
+    "summary": "Published/Persuasive DSTU1 issue requiring extension worksheet Type values like Reference(Resource){profileUrl} to parse while defining a profile.",
+    "learned": "This establishes final WG/application state and the old parser failure mode for QICore Other.AdverseEvent.cause.item.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "git",
+    "locator": "81d1bff591ce339694764d726741b17b6770fe00",
+    "ref": { "commit": "81d1bff591ce339694764d726741b17b6770fe00" },
+    "summary": "Migrated svn revision 4745 commit message says '#5938 - fix extension type profile parsing'.",
+    "learned": "Jira's application note is represented in migrated source history as the initial application event.",
+    "supports": ["initial_application"]
+  },
+  {
+    "id": "E3",
+    "kind": "git",
+    "locator": "db55db7414cc49a9bd93c668c9fd19c3de26fccf",
+    "ref": { "commit": "db55db7414cc49a9bd93c668c9fd19c3de26fccf" },
+    "summary": "SpreadsheetParser.parseExtensionElement changed the Extension.value[x] TypeParser call from inProfile=false to inProfile=true.",
+    "learned": "The parser behavior requested by FHIR-5938 was implemented in the old publisher/parser code.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/fhir.ini:176, source/fhir.ini:279, source/fhir.ini:449-472, source/fhir.ini:1471",
+    "summary": "Current fhir.ini lists Basic and AdverseEvent as active resources, lists active core profile spreadsheets, and records that Other became Basic.",
+    "learned": "The current core build does not include the historical QICore Other/Basic AdverseEvent profile package that exposed this issue.",
+    "supports": ["additional_context", "build_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "command",
+    "locator": "Current core and Extension Pack source searches",
+    "command": "rg -n 'FHIR-5938|adverseevent-qicore|extension-adverseevent-qicore|TypeParser|SpreadsheetParser' . /home/jmandel/work/fhir-extensions; find . -path './.git' -prune -o -type f -name '*TypeParser*' -o -name '*SpreadsheetParser*' -print",
+    "query": "FHIR-5938, adverseevent-qicore, extension-adverseevent-qicore, TypeParser, SpreadsheetParser",
+    "summary": "Current source has no old Java TypeParser/SpreadsheetParser classes and no active affected QICore AdverseEvent extension source in core or the Extension Pack.",
+    "learned": "There is no current FHIR core source location that needs the historical parser fix reapplied.",
+    "supports": ["additional_context", "reconciliation", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "command",
+    "locator": "Negative community search for FHIR-5938 and old QICore extension anchors",
+    "command": "bun run zulip:search fts '\"FHIR-5938\" profile Type extension' --limit 10; bun run confluence:search refs jira FHIR-5938; bun run zulip:search fts '\"adverseevent-qicore\" OR \"extension-adverseevent-qicore\"' --limit 10; bun run confluence:search fts '\"adverseevent-qicore\" \"profile Url\"' --limit 10",
+    "query": "FHIR-5938 profile Type extension; adverseevent-qicore extension-adverseevent-qicore profile Url",
+    "result_count": 0,
+    "summary": "No directly relevant Zulip or Confluence hits were found.",
+    "learned": "No discovered community record changes the Jira/source/history conclusion.",
+    "supports": ["absence_of_conflict", "confidence"]
+  }
+]
+</evidence-manifest>

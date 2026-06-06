@@ -1,0 +1,109 @@
+FHIR-20848: Audit dependent rule combination syntax
+
+Issue request:
+FHIR-20848 was Published/Persuasive for the FHIR mapping language and StructureMap. It asked whether a `then` clause can combine dependent group invocations with nested local rules, and its resolution said to document that `then` consists of zero or more invocations followed by at most one group of dependent rules, with the ANTLR grammar changed as much as possible.
+
+Initial application:
+The issue was applied by the FHIR#20848/FHIR#20840 application commits 562bf9f82d7 and a81d5848a6, merged by PR #984 as b3a5ebd9c3. Those commits changed source/mapping-language.html to say that multiple group invocations may be comma-separated and that the last group invocation may be followed by dependent rules, and changed images/mapping.g4 so a `then` clause can parse group invocations followed by nested rules. A later grammar refactor in db673c36e8 renamed the rules but preserved the same shape as `groupInvocation (',' groupInvocation)* mapRules? | mapRules`.
+
+Additional context:
+The mapping-language page is in current build navigation, `images/mapping.g4` is the grammar linked by that page, and StructureMap is an active current resource in source/fhir.ini. FHIR-20840 is the same resolution family for repeated dependent invocations. Later related decisions matter only for the execution-order words in the old resolution: FHIR-23010 established the general mapping-language guidance that rules may be applied in any order, and the FHIR-25220 application thread explicitly questioned and dropped equivalent `Groups are executed in order` wording for R5.
+
+AutoFHIR reconciliation:
+This empty audit commit makes no source change. Current build-scope source already permits and documents the combination FHIR-20848 requested: comma-separated group invocations may be followed by one nested dependent-rules block, and the grammar accepts that form. Adding new `executed sequentially` prose now would reopen the later order question rather than safely completing FHIR-20848.
+
+Recommendation:
+Keep this audit commit as-is. If FHIR-I wants deterministic execution order for group invocations after `then`, handle that as a new ordering decision that explicitly reconciles FHIR-20848, FHIR-20840, FHIR-25220, and FHIR-23010.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-20848
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-20840: same-change-family - same resolution and application commits for repeated comma-separated dependent group invocations.
+FHIR-25220: later-change - later mapping-language clarification revisited equivalent group execution-order wording and intentionally omitted it during R5 application.
+FHIR-23010: supporting-decision - current mapping-language rule-order guidance says rules may be applied in any order and order is implementation-defined.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-20848: Published/Persuasive; requested documentation and grammar support for group invocations followed by nested dependent rules after `then`. Learned: this establishes the seed request and final WG disposition.
+- E2 Source source/mapping-language.html:851-873: current Dependent Rules text says a rule can nominate groups and that multiple groups may be comma-separated, with the last group invocation followed by dependent rules evaluated after nominated groups. Learned: the current narrative documents the requested combination.
+- E3 Source images/mapping.g4:211-213 and source/mapping-language.html:932-934: the linked ANTLR grammar parses `then` as group invocations optionally followed by mapRules, or mapRules alone. Learned: the grammar reflects the requested syntax.
+- E4 Source source/structuremap/structuredefinition-StructureMap.xml:1008-1025 and source/fhir.ini:259: StructureMap is an active resource and both nested rule and dependent invocation children are 0..*. Learned: the current StructureMap model does not forbid combining the two representations.
+- E5 Git 562bf9f82d7, a81d5848a6, b3a5ebd9c3, db673c36e8: application commits and later grammar refactor added and preserved the current source behavior. Learned: the issue was applied in source and the current grammar is not an accidental drift.
+- E6 Zulip #fhir/infrastructure-wg > Mapping Language Question (FHIR-25220) plus Jira FHIR-23010: later application discussion rejected equivalent deterministic group-order wording in light of implementation-defined rule-order guidance. Learned: omitting new sequential-order prose is intentional and safer than editing under this issue.
+- E7 Command searches: exact Zulip and Confluence searches for FHIR-20848 found no direct community record; related searches found the FHIR-25220 order discussion. Learned: no discovered community evidence conflicts with the source-based no-change conclusion.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-20848",
+    "url": "https://jira.hl7.org/browse/FHIR-20848",
+    "snapshot_path": "contexts/FHIR-20848/jira/FHIR-20848.md",
+    "ref": { "jira_key": "FHIR-20848" },
+    "summary": "Published/Persuasive issue asking whether a `then` clause can combine dependent group invocations with nested local rules and resolving to document invocations followed by at most one group of dependent rules.",
+    "learned": "This establishes the seed request and final WG intent for the source check.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "source",
+    "locator": "source/mapping-language.html:851-873",
+    "ref": { "path": "source/mapping-language.html", "lines": "851-873" },
+    "summary": "The current Dependent Rules section documents group invocations, comma-separated multiple groups, and a nested dependent-rules block after the last group invocation.",
+    "learned": "The current narrative already conveys the combination requested by FHIR-20848.",
+    "supports": ["initial_application", "reconciliation"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "images/mapping.g4:211-213; source/mapping-language.html:932-934",
+    "ref": { "paths": "images/mapping.g4:211-213; source/mapping-language.html:932-934" },
+    "summary": "The mapping-language page links to mapping.g4, whose dependentExpression rule accepts group invocations optionally followed by mapRules, or mapRules alone.",
+    "learned": "The ANTLR grammar reflects the approved `then` syntax as currently published.",
+    "supports": ["initial_application", "reconciliation", "build_scope"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/structuremap/structuredefinition-StructureMap.xml:1008-1025; source/fhir.ini:259",
+    "ref": { "paths": "source/structuremap/structuredefinition-StructureMap.xml:1008-1025; source/fhir.ini:259" },
+    "summary": "The active StructureMap resource keeps both StructureMap.group.rule.rule and StructureMap.group.rule.dependent as repeatable children.",
+    "learned": "The current resource model remains compatible with combining nested rules and dependent group invocations.",
+    "supports": ["reconciliation", "build_scope"]
+  },
+  {
+    "id": "E5",
+    "kind": "git",
+    "locator": "562bf9f82d7; a81d5848a6; b3a5ebd9c3; db673c36e8",
+    "ref": { "commits": "562bf9f82d7,a81d5848a6,b3a5ebd9c3,db673c36e8" },
+    "summary": "FHIR#20848/FHIR#20840 application commits updated the narrative and grammar; the 2025 grammar refactor preserved the same dependentExpression shape.",
+    "learned": "The current source behavior traces to explicit application and later preservation, not an unrelated accidental change.",
+    "supports": ["initial_application", "confidence"]
+  },
+  {
+    "id": "E6",
+    "kind": "zulip",
+    "locator": "#fhir/infrastructure-wg > Mapping Language Question (FHIR-25220)",
+    "url": "https://chat.fhir.org/#narrow/stream/fhir%2Finfrastructure-wg/topic/Mapping%20Language%20Question%20(FHIR-25220)",
+    "ref": { "stream": "fhir/infrastructure-wg", "topic": "Mapping Language Question (FHIR-25220)" },
+    "summary": "During related R5 application work, Grahame cited FHIR-23010 when challenging deterministic group-order wording, and the reporter agreed to revert the execution-order part.",
+    "learned": "This later context supports not adding new sequential-order prose under FHIR-20848.",
+    "supports": ["additional_context", "recommendation"]
+  },
+  {
+    "id": "E7",
+    "kind": "command",
+    "locator": "Community and idempotency searches for FHIR-20848",
+    "command": "bun run zulip:search fts '\"FHIR-20848\" StructureMap dependent rules then' --limit 10; bun run confluence:search refs jira FHIR-20848; bun run confluence:search fts '\"FHIR-20848\" dependent rules StructureMap' --limit 10; git -C /home/jmandel/work/fhir log --fixed-strings --grep='Issue-Reconcile-Key: FHIR-20848' --format='%H %s' -n 5 robo-spec-combined-issue-reconcile-full-clean-balanced-v2",
+    "query": "FHIR-20848 StructureMap dependent rules then",
+    "result_count": 0,
+    "summary": "Direct seed community searches and combined-branch idempotency checks found no conflicting community evidence and no existing FHIR-20848 audit commit.",
+    "learned": "A new no-change audit commit is needed, and no discovered external discussion changes the conclusion.",
+    "supports": ["absence_of_conflict", "publication", "confidence"]
+  }
+]
+</evidence-manifest>

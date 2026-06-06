@@ -1,0 +1,117 @@
+FHIR-23704: Audit Device patient compartment decision
+
+Issue request:
+FHIR-23704 was a Published FHIR-core Device change request, resolved Persuasive for R5. It asked why Device, which then had a patient reference, was not in the Patient compartment. The Jira discussion recorded the OO rationale that many Device instances are reusable and do not uniquely belong to one patient, while patient-specific device use/association belongs in device-use or association artifacts.
+
+Initial application:
+No source commit explicitly mentioning FHIR-23704 was found. The R5 source history shows the question was initially reflected through the broader patient-compartment cleanup: commit 49328521 added a Device row entry of subject to the Patient compartment as part of FHIR-39386, matching the R5-era state where Device carried patient association information.
+
+Additional context:
+Later Published issues FHIR-38904, FHIR-39226, and FHIR-39243 superseded the R5-era approach by moving patient association out of Device to avoid reusable Device instances carrying patient-identifying history and by introducing DeviceAssociation for the patient/device relationship. Commit 97e59d026 removed Device subject from source/compartments.xml and commented out Device.association plus Device subject/patient search parameters. Later Applied issue FHIR-51498 updated the current Device-related compartment matrix without adding Device back to the Patient compartment; it added the Device root to the Device compartment and added/kept patient-relevant mappings on resources such as DeviceAssociation.
+
+AutoFHIR reconciliation:
+This commit intentionally makes no source change. The active build source already matches the later decisions: source/fhir.ini keeps Device, DeviceAssociation, and CompartmentDefinition in the current build; source/compartments.xml has no Patient-compartment parameter for Device, while DeviceAssociation is in the Patient compartment via patient | subject | focus; source/device/structuredefinition-Device.xml has the old Device.association backbone commented out; and source/device/device-introduction.xml directs patient/device ownership and custodianship to DeviceAssociation while noting that devices may be reused.
+
+Recommendation:
+Keep this no-change audit. Re-adding Device itself to the Patient compartment would conflict with the later FHIR-38904/FHIR-39226/FHIR-39243 decision family and the FHIR-51498 compartment update unless OO/FHIR-I make a new explicit decision to reverse the DeviceAssociation-based model.
+
+AutofHIR-Run: issue-reconcile-full-clean-balanced-v2
+Issue-Reconcile-Key: FHIR-23704
+Issue-Reconcile-Decision: no-change
+
+<related-jiras>
+FHIR-39386: background - broader R5 patient-compartment cleanup whose implementation briefly added Device subject to the Patient compartment.
+FHIR-38904: later-change - moved patient association out of Device and required removing Device from the Patient compartment or restoring a single-patient cardinality.
+FHIR-39226: same-change-family - duplicate/linked Device patient-association issue resolved by the FHIR-38904 disposition.
+FHIR-39243: same-change-family - duplicate/linked Device patient-association issue resolved by the FHIR-38904 disposition.
+FHIR-51498: later-change - R6 Applied compartment update for Device-related resources that did not add Device to the Patient compartment.
+</related-jiras>
+
+<evidence>
+- E1 Jira FHIR-23704: Published/Persuasive Device issue asking why Device was not in the Patient compartment despite a patient reference; Jira comment explains reusable devices and points patient-specific use elsewhere. Learned: this establishes the seed request and original OO rationale.
+- E2 Confluence OO 2020-09-03 Main: OO block vote minutes list FHIR-23704 among Device trackers in the 4-0-7 passed Healthcare Product block vote. Learned: this corroborates WG handling of the seed.
+- E3 Source source/fhir.ini:185,270,305,523,525,681,683: active build entries include device, compartmentdefinition, and deviceassociation. Learned: the checked source files are in current build scope.
+- E4 Source source/compartments.xml:341-356: current Device row has no Patient-compartment parameter, while DeviceAssociation has patient | subject | focus in the Patient compartment. Learned: the current compartment matrix follows the DeviceAssociation approach rather than placing Device itself in Patient.
+- E5 Source source/device/structuredefinition-Device.xml:1231-1298 and source/device/device-introduction.xml:76,89: Device.association is commented out; DeviceAssociation is documented for patient ownership/custodianship; Device text notes reuse. Learned: current Device no longer carries the patient association that motivated adding it to Patient.
+- E6 Git 49328521 and 97e59d026: 49328521 added Device subject to the Patient compartment during R5 patient-compartment cleanup, and 97e59d026 removed that entry while commenting out Device association/search parameters for FHIR-38904. Learned: the source history shows the seed's R5-era application and the later superseding change.
+- E7 Jira FHIR-38904 and FHIR-51498: FHIR-38904 required moving patient association out of Device to avoid PHI leakage from reusable devices; FHIR-51498 later updated Device-related compartments and only added Device to the Device compartment. Learned: later final decisions make the current no-Device-in-Patient source correct.
+- E8 Zulip #implementers > Compartment Patient definition: participants noted Device had been added in R5, then OO/Devices expected tickets to remove Device by removing the patient reference. Learned: community discussion aligns with the Jira/source timeline and reveals no contrary current requirement.
+</evidence>
+
+<evidence-manifest>
+[
+  {
+    "id": "E1",
+    "kind": "jira",
+    "locator": "FHIR-23704",
+    "url": "https://jira.hl7.org/browse/FHIR-23704",
+    "snapshot_path": "contexts/FHIR-23704/jira/FHIR-23704.md",
+    "ref": { "jira_key": "FHIR-23704" },
+    "summary": "Published/Persuasive Device issue asking why Device was not in the Patient compartment despite a patient reference; the Jira comment explains that reusable devices do not uniquely belong to one patient.",
+    "learned": "This establishes the seed request and the original OO rationale for not treating all Device instances as patient-compartment resources.",
+    "supports": ["issue_request", "reconciliation"]
+  },
+  {
+    "id": "E2",
+    "kind": "confluence",
+    "locator": "OO 2020-09-03 Main page 91986582",
+    "url": "https://confluence.hl7.org/spaces/OO/pages/91986582/2020-09-03+Main",
+    "ref": { "confluence_page_id": 91986582 },
+    "summary": "OO minutes list FHIR-23704 in the Healthcare Product Device block vote that passed 4-0-7.",
+    "learned": "This corroborates WG handling of the seed issue.",
+    "supports": ["issue_request", "additional_context"]
+  },
+  {
+    "id": "E3",
+    "kind": "source",
+    "locator": "source/fhir.ini:185,270,305,523,525,681,683",
+    "summary": "The current build configuration includes Device, CompartmentDefinition, and DeviceAssociation resources and classifies Device as business and DeviceAssociation as patient.",
+    "learned": "The source files inspected are in active build scope and DeviceAssociation is the current patient-facing association resource.",
+    "supports": ["source_scope", "reconciliation"]
+  },
+  {
+    "id": "E4",
+    "kind": "source",
+    "locator": "source/compartments.xml:341-356",
+    "summary": "The current Device row has no Patient-compartment parameter, while DeviceAssociation is in the Patient compartment through patient | subject | focus.",
+    "learned": "The current compartment matrix leaves Device itself out of Patient and routes patient/device association through DeviceAssociation.",
+    "supports": ["current_source", "reconciliation"]
+  },
+  {
+    "id": "E5",
+    "kind": "source",
+    "locator": "source/device/structuredefinition-Device.xml:1231-1298; source/device/device-introduction.xml:76,89",
+    "summary": "Device.association is commented out; DeviceAssociation is documented for patient ownership/custodianship; Device guidance notes reusable devices.",
+    "learned": "Current Device no longer contains the patient association that motivated the R5 patient-compartment entry.",
+    "supports": ["current_source", "additional_context"]
+  },
+  {
+    "id": "E6",
+    "kind": "git",
+    "locator": "49328521; 97e59d026",
+    "ref": { "commit_1": "49328521fcc745d1d17b58456d31234829f71a88", "commit_2": "97e59d026d9311992199080e53a49ec78cf6aae5" },
+    "summary": "49328521 added Device subject to the Patient compartment; 97e59d026 removed that entry and commented out Device patient association/search parameters for FHIR-38904.",
+    "learned": "The git history shows both the R5-era application and the later superseding change.",
+    "supports": ["initial_application", "additional_context"]
+  },
+  {
+    "id": "E7",
+    "kind": "jira",
+    "locator": "FHIR-38904 and FHIR-51498",
+    "url": "https://jira.hl7.org/browse/FHIR-38904",
+    "ref": { "jira_key": "FHIR-38904" },
+    "summary": "FHIR-38904 moved patient association out of Device to avoid reusable Device instances carrying patient history; FHIR-51498 later updated Device-related compartments without adding Device to Patient.",
+    "learned": "Later final decisions explain why the current source should not re-add Device to the Patient compartment.",
+    "supports": ["additional_context", "reconciliation"]
+  },
+  {
+    "id": "E8",
+    "kind": "zulip",
+    "locator": "#implementers > Compartment Patient definition",
+    "url": "https://chat.fhir.org/#narrow/stream/implementers/topic/Compartment%20Patient%20definition",
+    "summary": "The thread notes Device had been added in R5 and that OO/Devices expected tickets to remove Device by removing the patient reference.",
+    "learned": "Community discussion aligns with the Jira/source timeline and reveals no contrary current requirement.",
+    "supports": ["additional_context", "confidence"]
+  }
+]
+</evidence-manifest>
