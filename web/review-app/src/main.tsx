@@ -4,10 +4,45 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 type ReviewDecision = "undecided" | "approve" | "reject" | "defer";
+type TriageCategory = "misapplied-jira" | "real-fix-unclear-jira" | "not-needed-for-spec-correctness";
+
+type CommitTriage = {
+  schema_version: "commit-triage-result-v1" | "commit-triage-result-v2";
+  run_id: string;
+  source_run_id?: string;
+  commit_sha: string;
+  issue_key?: string;
+  category: TriageCategory;
+  summary?: string;
+  reviewer_summary?: string;
+  category_rationale?: string;
+  fhir_spec_impact?: string;
+  recommended_reviewer_action?: string;
+  confidence: "high" | "medium" | "low";
+  justifying_jiras?: { key: string; role: string; why: string }[];
+  jira_evidence?: { key: string; relationship: string; explanation: string }[];
+  seed_jira_correct?: "yes" | "partial" | "no" | "unknown";
+  attribution_note?: string;
+  issue_attribution?: "direct" | "misattributed" | "mixed" | "unclear" | "none-needed";
+  why_required?: string;
+  possible_jiras?: string[];
+  why_real?: string;
+  why_jira_unclear?: string;
+  suggested_path?: string;
+  category_2_path?: string;
+  reason?: string;
+  category_3_reason?: string;
+  spec_impact_explanation?: string;
+  tooling_recommendation?: string;
+  review_notes?: string[];
+  caveats?: string[];
+};
 
 type CommitReport = {
   sequence: number;
+  review_id?: string;
   sha: string;
+  commit_sha?: string;
   short_sha: string;
   author: string;
   authored_at: string;
@@ -15,8 +50,6 @@ type CommitReport = {
   body?: string;
   body_url?: string;
   issue_key?: string;
-  seed_key?: string;
-  seed_decisions?: SeedDecision[];
   status?: string;
   decision_status?: string;
   commit_summary?: string;
@@ -25,7 +58,6 @@ type CommitReport = {
   recommendation?: string;
   original_subject?: string;
   original_body?: string;
-  original_body_url?: string;
   fixup_status?: string;
   fixup_decision_status?: string;
   fixup_result_path?: string;
@@ -39,6 +71,18 @@ type CommitReport = {
   previous_issue_commits?: PreviousIssueCommit[];
   previous_issue_commits_omitted?: number;
   result_path?: string;
+  details_url?: string;
+  seed_key?: string;
+  role?: "seed" | "opportunistic";
+  issue_request?: string;
+  initial_application?: string;
+  additional_context?: string;
+  reconciliation?: string;
+  source_changes?: string[];
+  related_jiras?: { key: string; relationship: string; note: string }[];
+  evidence_items?: { id: string; kind: string; locator: string; url?: string; summary: string; learned?: string; supports?: string[] }[];
+  checks?: string[];
+  confidence?: "high" | "medium" | "low";
   wg?: string;
   wg_label?: string;
   wg_confidence?: "high" | "medium" | "low";
@@ -49,14 +93,7 @@ type CommitReport = {
   patch_bytes?: number;
   patch_truncated?: boolean;
   omitted_patch_files?: { file: string; reason: string }[];
-};
-
-type SeedDecision = {
-  issue_key: string;
-  role?: string;
-  status?: string;
-  commit_sha?: string;
-  summary?: string;
+  triage?: CommitTriage;
 };
 
 type PreviousIssueCommit = {
@@ -98,18 +135,6 @@ type Report = {
   commits: CommitReport[];
 };
 
-type TextBundle = {
-  schema_version: string;
-  generated_at?: string;
-  assets: Record<string, string>;
-};
-
-type TextBundleState = {
-  assets: Record<string, string>;
-  ready: boolean;
-  failed: boolean;
-};
-
 type ReviewEntry = {
   decision: ReviewDecision;
   note: string;
@@ -129,7 +154,6 @@ type SelectionStore = {
 };
 
 const EnhancementContext = React.createContext(false);
-const TextBundleContext = React.createContext<TextBundleState>({ assets: {}, ready: false, failed: false });
 
 const reviewOptions: [ReviewDecision, string][] = [
   ["undecided", "Undecided"],
@@ -137,6 +161,38 @@ const reviewOptions: [ReviewDecision, string][] = [
   ["reject", "Reject"],
   ["defer", "Defer"],
 ];
+
+const wgNames: Record<string, string> = {
+  brr: "Biomedical Research and Regulation",
+  cbcc: "Community Based Collaborative Care",
+  cds: "Clinical Decision Support",
+  cg: "Clinical Genomics",
+  cgit: "Conformance",
+  cqi: "Clinical Quality Information",
+  dev: "Health Care Devices",
+  director: "FHIR Director",
+  ehr: "Electronic Health Records",
+  "fhir-i": "FHIR Infrastructure",
+  fm: "Financial Management",
+  fmg: "FHIR Management Group",
+  hsi: "Health Standards Integration",
+  ii: "Imaging Integration",
+  inm: "Infrastructure and Messaging",
+  its: "Implementable Technology Specifications",
+  mnm: "Modeling and Methodology",
+  oo: "Orders and Observations",
+  pa: "Patient Administration",
+  pc: "Patient Care",
+  pharm: "Pharmacy",
+  pher: "Public Health",
+  phx: "Pharmacy",
+  sd: "Structured Documents",
+  sec: "Security",
+  security: "Security",
+  "us-realm": "US Realm Steering Committee",
+  vocab: "Vocabulary",
+  unknown: "Unknown",
+};
 
 const useReviewStore = create<ReviewStore>()(
   persist(
@@ -189,39 +245,31 @@ function App() {
   const [status, setStatus] = useState("");
   const [wg, setWg] = useState("");
   const [file, setFile] = useState("");
+  const [triagePreset, setTriagePreset] = useState("jira-backed-spec-change");
+  const [triageCategory, setTriageCategory] = useState("");
+  const [triagePath, setTriagePath] = useState("");
   const [reviewDecision, setReviewDecision] = useState("");
   const [sort, setSort] = useState("wg");
   const [diffsEnabled, setDiffsEnabled] = useState(false);
   const [linksEnabled, setLinksEnabled] = useState(false);
-  const [textBundle, setTextBundle] = useState<TextBundleState>({ assets: {}, ready: false, failed: false });
   const [copied, setCopied] = useState(false);
   const bySha = useReviewStore((state) => state.bySha);
   const clear = useReviewStore((state) => state.clear);
 
   useEffect(() => {
     const url = window.__AUTOFHIR_REPORT_URL__ || "issue-fixup-diff-report.json";
-    const textBundlePromise = window.__AUTOFHIR_TEXT_BUNDLE_URL__
-      ? loadTextBundleUrl(window.__AUTOFHIR_TEXT_BUNDLE_URL__)
-      : undefined;
     ensureScrollIdleTracker();
     fetch(url)
       .then((response) => {
         if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-        return jsonResponse(response, url) as Promise<Report>;
+        return response.json();
       })
       .then((data: Report) => {
         const hashSha = shaFromHash(data.commits);
         setReport(data);
-        (textBundlePromise ?? loadTextBundle(data))
-          .then((bundle) => setTextBundle({ assets: bundle.assets || {}, ready: true, failed: false }))
-          .catch((err) => {
-            console.error("Failed to load text bundle", err);
-            setTextBundle({ assets: {}, ready: true, failed: true });
-          });
-        if (!hashSha && !isAuditReport(data)) setStatus(sourceChangingStatus(data.commits));
-        setDiffsEnabled(true);
         window.requestAnimationFrame(() => {
           window.setTimeout(() => setLinksEnabled(true), 250);
+          window.setTimeout(() => setDiffsEnabled(true), 1000);
         });
         useSelectionStore.getState().setSelected(hashSha || data.commits[0]?.sha || null);
         if (hashSha) window.setTimeout(() => scrollToSha(hashSha), 0);
@@ -229,8 +277,8 @@ function App() {
       .catch((err) => setError(String(err?.message || err)));
   }, []);
 
-  const options = React.useMemo(() => report ? buildOptions(report, bySha, { status, wg, file, reviewDecision }) : null, [report, bySha, status, wg, file, reviewDecision]);
-  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, wg, file, reviewDecision })), sort) : [], [report, bySha, status, wg, file, reviewDecision, sort]);
+  const options = React.useMemo(() => report ? buildOptions(report, bySha, { status, wg, file, triagePreset, triageCategory, triagePath, reviewDecision }) : null, [report, bySha, status, wg, file, triagePreset, triageCategory, triagePath, reviewDecision]);
+  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, wg, file, triagePreset, triageCategory, triagePath, reviewDecision })), sort) : [], [report, bySha, status, wg, file, triagePreset, triageCategory, triagePath, reviewDecision, sort]);
 
   const selectCommit = useCallback((sha: string, urlMode: "push" | "replace" | "none" = "none") => {
     useSelectionStore.getState().setSelected(sha);
@@ -245,9 +293,9 @@ function App() {
   useEffect(() => {
     const selected = useSelectionStore.getState().selected;
     if (!rows.length) useSelectionStore.getState().setSelected(null);
-    else if (!selected || !rows.some((commit) => commit.sha === selected)) {
-      useSelectionStore.getState().setSelected(rows[0].sha);
-      updateUrlForSha(rows[0].sha, "replace");
+    else if (!selected || !rows.some((commit) => reviewKey(commit) === selected)) {
+      useSelectionStore.getState().setSelected(reviewKey(rows[0]));
+      updateUrlForSha(reviewKey(rows[0]), "replace");
     }
   }, [rows]);
 
@@ -262,13 +310,6 @@ function App() {
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, [report]);
-
-  useVisibleCommitObserver(rows, (sha) => {
-    if (useSelectionStore.getState().selected !== sha) {
-      useSelectionStore.getState().setSelected(sha);
-      scheduleUrlForSha(sha);
-    }
-  });
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -295,11 +336,11 @@ function App() {
       } else if (key === "j" || event.key === "ArrowDown") {
         event.preventDefault();
         const next = relativeCommit(rows, selected, 1);
-        openCommit(next.sha, "replace");
+        openCommit(reviewKey(next), "replace");
       } else if (key === "k" || event.key === "ArrowUp") {
         event.preventDefault();
         const next = relativeCommit(rows, selected, -1);
-        openCommit(next.sha, "replace");
+        openCommit(reviewKey(next), "replace");
       } else if (key === "c") {
         event.preventDefault();
         copyPlan(report, rows, bySha, setCopied);
@@ -317,10 +358,9 @@ function App() {
   }
 
   return (
-    <TextBundleContext.Provider value={textBundle}>
-      <EnhancementContext.Provider value={linksEnabled}>
+    <EnhancementContext.Provider value={linksEnabled}>
       <header>
-        <h1>{isAuditReport(report) ? "AutoFHIR Issue Fixup Audit Review" : "AutoFHIR Issue Fixup Diffs"}</h1>
+        <h1>{reportTitle(report)}</h1>
         <div className="meta">
           <span>Run: {report.run.run_id}</span>
           {isAuditReport(report) ? <span>Audit view</span> : null}
@@ -334,7 +374,7 @@ function App() {
       </header>
       <Intro report={report} />
       <div className="controls">
-        <Facet className="control-status" value={status} onChange={setStatus} label="All commit types" options={options.statuses} />
+        <Facet className="control-triage-preset" value={triagePreset} onChange={setTriagePreset} label="All" options={options.triagePresets} />
         <Facet className="control-wg" value={wg} onChange={setWg} label="All work groups" options={options.wgs} />
         <Facet className="control-file" value={file} onChange={setFile} label="All changed files" options={options.files} />
         <Facet className="control-review" value={reviewDecision} onChange={setReviewDecision} label="All review choices" options={options.reviews} />
@@ -346,11 +386,11 @@ function App() {
       <div className="reviewbar">
         <div>
           <div>{reviewCountText(report.commits, bySha)}</div>
-          <div className="help">Shortcuts: <strong>A</strong> approve, <strong>R</strong> reject, <strong>D</strong> defer, <strong>J/K</strong> next/previous, <strong>C</strong> copy review plan. Browser Ctrl-F searches the rendered commit messages and diffs.</div>
+          <div className="help">Shortcuts: <strong>A</strong> approve, <strong>R</strong> reject, <strong>D</strong> defer, <strong>J/K</strong> next/previous, <strong>C</strong> copy review plan. Browser Ctrl-F searches the sidebar plus the selected issue details and diff.</div>
         </div>
         <div className="buttons">
           <button className={copied ? "primary copied" : "primary"} onClick={() => copyPlan(report, rows, bySha, setCopied)}>{copied ? "Copied" : "Copy Review Plan"}</button>
-          <button onClick={() => clear(rows.map((commit) => commit.sha))}>Clear Visible Review State</button>
+          <button onClick={() => clear(rows.map((commit) => reviewKey(commit)))}>Clear Visible Review State</button>
         </div>
       </div>
       <SelectionSideEffects />
@@ -358,40 +398,8 @@ function App() {
         <CommitList rows={rows} onOpen={openCommit} sort={sort} />
         <CommitDetails rows={rows} onSelect={selectCommit} sort={sort} diffsEnabled={diffsEnabled} />
       </main>
-      </EnhancementContext.Provider>
-    </TextBundleContext.Provider>
+    </EnhancementContext.Provider>
   );
-}
-
-function loadTextBundle(report: Report): Promise<TextBundle> {
-  const gzipPath = report.run.artifacts?.text_bundle_gzip;
-  const plainPath = report.run.artifacts?.text_bundle || "review-text-bundle.json";
-  const bundlePath = gzipPath && supportsGzipStream() ? gzipPath : plainPath;
-  return loadTextBundleUrl(bundlePath);
-}
-
-function loadTextBundleUrl(bundlePath: string): Promise<TextBundle> {
-  return fetch(assetUrl(bundlePath))
-    .then((response) => {
-      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-      return jsonResponse(response, bundlePath) as Promise<TextBundle>;
-    });
-}
-
-function supportsGzipStream() {
-  return typeof DecompressionStream !== "undefined";
-}
-
-function jsonResponse(response: Response, url: string): Promise<unknown> {
-  if (url.endsWith(".gz")) return gzipJson(response);
-  return response.json();
-}
-
-async function gzipJson(response: Response): Promise<unknown> {
-  if (!response.body) throw new Error("gzip response has no body");
-  const stream = response.body.pipeThrough(new DecompressionStream("gzip"));
-  const text = await new Response(stream).text();
-  return JSON.parse(text);
 }
 
 function SelectionSideEffects() {
@@ -405,6 +413,18 @@ function SelectionSideEffects() {
 }
 
 function Intro({ report }: { report: Report }) {
+  if (isReconcileReport(report)) {
+    return (
+      <section className="intro" aria-label="Review guide">
+        <p>
+          This page reviews issue-reconcile decisions for Applied/Published FHIR Jira issues. The app loads the report JSON externally and renders source-changing fixes, no-change audits, external-repo audits, human-review decisions, and any opportunistic related issue decisions from the same combined branch.
+        </p>
+        <p>
+          Use the filters to narrow by decision, changed file, or review choice. Mark each item Approve, Reject, or Defer; notes are saved locally in this browser. Source-changing commits include diffs, while empty audit commits should be reviewed from their structured rationale and evidence.
+        </p>
+      </section>
+    );
+  }
   if (isAuditReport(report)) {
     return (
       <section className="intro" aria-label="Review guide">
@@ -440,6 +460,8 @@ function Facet({ label, value, options, onChange, className }: { label: string; 
 
 function CommitList({ rows, onOpen, sort }: { rows: CommitReport[]; onOpen: (sha: string) => void; sort: string }) {
   let lastGroup = "";
+  const selected = useSelectionStore((state) => state.selected);
+  const bySha = useReviewStore((state) => state.bySha);
   return (
     <div className="list">
       {rows.map((commit) => {
@@ -447,9 +469,9 @@ function CommitList({ rows, onOpen, sort }: { rows: CommitReport[]; onOpen: (sha
         const header = sort === "wg" && group !== lastGroup;
         if (header) lastGroup = group;
         return (
-          <React.Fragment key={commit.sha}>
+          <React.Fragment key={reviewKey(commit)}>
             {header && <div className="group-header">{group}</div>}
-            <CommitRow commit={commit} onOpen={onOpen} />
+            <CommitRow commit={commit} active={selected === reviewKey(commit)} entry={reviewEntry(reviewKey(commit), bySha)} onOpen={onOpen} />
           </React.Fragment>
         );
       })}
@@ -457,18 +479,17 @@ function CommitList({ rows, onOpen, sort }: { rows: CommitReport[]; onOpen: (sha
   );
 }
 
-const CommitRow = memo(function CommitRow({ commit, onOpen }: { commit: CommitReport; onOpen: (sha: string) => void }) {
-  const active = useSelectionStore((state) => state.selected === commit.sha);
-  const rawEntry = useReviewStore((state) => state.bySha[commit.sha]);
-  const entry = normalizeEntry(rawEntry);
+const CommitRow = memo(function CommitRow({ commit, active, entry, onOpen }: { commit: CommitReport; active: boolean; entry: ReviewEntry; onOpen: (sha: string) => void }) {
+  const id = reviewKey(commit);
   return (
-    <button id={`row-${commit.sha}`} type="button" className={active ? "row active" : "row"} onClick={() => onOpen(commit.sha)}>
+    <button id={`row-${id}`} type="button" className={active ? "row active" : "row"} onClick={() => onOpen(id)}>
       <span className="row-title">{commit.short_sha} {commit.subject}</span>
       <span className="row-summary">{displaySummary(commit)}</span>
       <span className="chips">
         <Chip value={commit.issue_key} />
         <OutcomeChip value={commit.status || commit.decision_status} />
         <Chip value={commit.wg || "unknown"} />
+        <TriageChip triage={commit.triage} />
         <Chip value={decisionLabel(entry.decision)} className={entry.decision} />
         <Chip value={`${commit.files?.length || 0} files`} />
       </span>
@@ -477,47 +498,66 @@ const CommitRow = memo(function CommitRow({ commit, onOpen }: { commit: CommitRe
 });
 
 function CommitDetails({ rows, onSelect, sort, diffsEnabled }: { rows: CommitReport[]; onSelect: (sha: string) => void; sort: string; diffsEnabled: boolean }) {
-  let lastGroup = "";
+  const selected = useSelectionStore((state) => state.selected);
   const selectCommit = useCallback((sha: string) => onSelect(sha), [onSelect]);
+  const commit = rows.find((row) => reviewKey(row) === selected) || rows[0];
+  if (!commit) return <div className="detail"><div className="empty">No commits match the current filters.</div></div>;
+  const group = wgTitle(commit);
   return (
     <div className="detail">
-      {rows.length ? rows.map((commit) => {
-        const group = wgTitle(commit);
-        const header = sort === "wg" && group !== lastGroup;
-        if (header) lastGroup = group;
-        return (
-          <React.Fragment key={commit.sha}>
-            {header && <div className="detail-group">{group}</div>}
-            <CommitCard commit={commit} onSelect={selectCommit} diffsEnabled={diffsEnabled} />
-          </React.Fragment>
-        );
-      }) : <div className="empty">No commits match the current filters.</div>}
+      {sort === "wg" && <div className="detail-group">{group}</div>}
+      <CommitCard key={reviewKey(commit)} commit={commit} onSelect={selectCommit} diffsEnabled={diffsEnabled} />
     </div>
   );
 }
 
 const CommitCard = memo(function CommitCard({ commit, onSelect, diffsEnabled }: { commit: CommitReport; onSelect: (sha: string) => void; diffsEnabled: boolean }) {
-  const cardRef = useRef<HTMLElement | null>(null);
-  const selected = useSelectionStore((state) => state.selected === commit.sha);
-  const nearViewport = useNearViewport(cardRef);
-  const rawEntry = useReviewStore((state) => state.bySha[commit.sha]);
+  const id = reviewKey(commit);
+  const selected = useSelectionStore((state) => state.selected === id);
+  const rawEntry = useReviewStore((state) => state.bySha[id]);
   const entry = normalizeEntry(rawEntry);
   const setDecision = useReviewStore((state) => state.setDecision);
   const setNote = useReviewStore((state) => state.setNote);
-  const body = useLazyText(commit.sha, commit.body, commit.body_url);
-  const originalBody = useLazyText(commit.sha, commit.original_body, commit.original_body_url);
+  const [details, setDetails] = useState<Partial<CommitReport> | null>(null);
+  const [detailsState, setDetailsState] = useState<"ready" | "loading" | "error">(!commit.details_url ? "ready" : "loading");
+  useEffect(() => {
+    let cancelled = false;
+    setDetails(null);
+    if (!commit.details_url) {
+      setDetailsState("ready");
+      return () => { cancelled = true; };
+    }
+    setDetailsState("loading");
+    fetch(assetUrl(commit.details_url))
+      .then((response) => {
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        return response.json();
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setDetails(data);
+          setDetailsState("ready");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setDetailsState("error");
+      });
+    return () => { cancelled = true; };
+  }, [id, commit.details_url]);
+  const view = details ? { ...commit, ...details } : commit;
   return (
-    <article ref={cardRef} id={`commit-${commit.sha}`} data-sha={commit.sha} className={selected ? "commit-card active" : "commit-card"} onFocus={() => onSelect(commit.sha)}>
+    <article id={`commit-${id}`} data-sha={id} className={selected ? "commit-card active" : "commit-card"} onFocus={() => onSelect(id)}>
       <div className="card-head">
         <h2>
           {commit.short_sha} {commit.subject}
-          <a className="permalink" href={`#commit-${commit.sha}`} title="Permalink to this review item" aria-label={`Permalink to ${commit.issue_key || commit.short_sha}`} onClick={() => onSelect(commit.sha)}>#</a>
+          <a className="permalink" href={`#commit-${id}`} title="Permalink to this review item" aria-label={`Permalink to ${commit.issue_key || commit.short_sha}`} onClick={() => onSelect(id)}>#</a>
           {commit.github_commit_url && <a className="full-link" href={commit.github_commit_url} target="_blank" rel="noreferrer">{commit.patch_truncated ? "Full diff on GitHub (required)" : "Full diff on GitHub"}</a>}
         </h2>
         <div className="chips">
           <Chip value={commit.issue_key} />
           <OutcomeChip value={commit.status || commit.decision_status} />
           <Chip value={commit.wg || "unknown"} />
+          <TriageChip triage={commit.triage} />
           <Chip value={decisionLabel(entry.decision)} className={entry.decision} />
           <Chip value={`${commit.files?.length || 0} files`} />
           {commit.patch_truncated && <Chip value="embedded diff incomplete" />}
@@ -525,33 +565,33 @@ const CommitCard = memo(function CommitCard({ commit, onSelect, diffsEnabled }: 
         <div className="decision-grid">
           <div className="decision-actions">
             {reviewOptions.filter(([value]) => value !== "undecided").map(([value, label]) => (
-              <button key={value} type="button" className={`decision-button ${value}${entry.decision === value ? " active" : ""}`} onClick={() => setDecision(commit.sha, value)}>{label}</button>
+              <button key={value} type="button" className={`decision-button ${value}${entry.decision === value ? " active" : ""}`} onClick={() => setDecision(id, value)}>{label}</button>
             ))}
           </div>
-          <textarea className="decision-note" value={entry.note} onChange={(event) => setNote(commit.sha, event.target.value)} placeholder="Optional review note for later apply/exclude context" />
+          <textarea className="decision-note" value={entry.note} onChange={(event) => setNote(id, event.target.value)} placeholder="Optional review note for later apply/exclude context" />
         </div>
       </div>
       <div className="card-body">
         {commit.omitted_patch_files?.length ? <div className="notice critical">Embedded diff is incomplete for this commit. Use the GitHub full diff link for complete content.</div> : null}
-        <CommitOverview commit={commit} />
-        <CommitMessageNarrative commit={commit} body={body} pretty={selected || nearViewport} />
+        {detailsState === "error" ? <div className="notice critical">Could not load issue detail JSON. The list metadata is still available.</div> : null}
+        {detailsState === "loading" ? <div className="notice">Loading issue details.</div> : null}
+        <CommitOverview commit={view} />
+        <TriagePanel triage={view.triage} />
         {!commit.audit_decision ? (
-          <details className="review-details">
-            <summary>Raw git commit message</summary>
-            <pre className="commit-message">{body || commit.subject || "(empty commit message)"}</pre>
-          </details>
+          <RawCommitMessage commit={view} />
         ) : null}
-        {originalBody && !commit.audit_decision ? (
+        <AgentExtractedDetails commit={view} />
+        {commit.original_body && !commit.audit_decision ? (
           <details className="review-details">
             <summary>Original generated commit message</summary>
-            <pre className="commit-message">{originalBody}</pre>
+            <pre className="commit-message">{commit.original_body}</pre>
           </details>
         ) : null}
         <details className="review-details">
           <summary>{commit.audit_decision ? "Files and stats" : "Fixup agent assessment, files, and stats"}</summary>
-          {commit.audit_decision ? <FilesAndStats commit={commit} /> : <AgentAssessment commit={commit} />}
+          {commit.audit_decision ? <FilesAndStats commit={view} /> : <AgentAssessment commit={view} />}
         </details>
-        {diffsEnabled ? <DiffSection commit={commit} pretty={selected || nearViewport} /> : <DeferredDiffSection />}
+        {diffsEnabled ? <DiffSection commit={view} /> : <DeferredDiffSection />}
       </div>
     </article>
   );
@@ -568,16 +608,145 @@ function DeferredDiffSection() {
   );
 }
 
+function TriageChip({ triage }: { triage?: CommitTriage }) {
+  return <Chip value={triage ? triageCategoryLabel(triage.category) : "Untriaged"} className={triage?.category || "untriaged"} />;
+}
+
+function TriagePanel({ triage }: { triage?: CommitTriage }) {
+  if (!triage) {
+    return (
+      <section className="triage-panel untriaged">
+        <h3>Triage</h3>
+        <p className="help">No 1/2/3 triage result is attached for this commit yet.</p>
+      </section>
+    );
+  }
+  return (
+    <section className={`triage-panel ${triage.category}`}>
+      <div className="section-heading">
+        <h3>Triage</h3>
+        <span className="chips">
+          <Chip value={triageCategoryLabel(triage.category)} className={triage.category} />
+          <Chip value={triage.confidence} />
+          {triage.issue_attribution ? <Chip value={`attribution ${triage.issue_attribution}`} /> : null}
+          {triage.seed_jira_correct ? <Chip value={`seed ${triage.seed_jira_correct}`} /> : null}
+        </span>
+      </div>
+      <RichText text={triage.reviewer_summary || triage.summary || "(no triage summary)"} />
+      {triage.category_rationale ? <TriageText title="Category Rationale" text={triage.category_rationale} /> : null}
+      {triage.fhir_spec_impact ? <TriageText title="FHIR Spec Impact" text={triage.fhir_spec_impact} /> : null}
+      {triage.recommended_reviewer_action ? <TriageText title="Recommended Reviewer Action" text={triage.recommended_reviewer_action} /> : null}
+      {triage.jira_evidence?.length ? (
+        <div className="triage-block">
+          <h4>Jira Evidence</h4>
+          <ul className="file-list">
+            {triage.jira_evidence.map((row) => (
+              <li key={`${row.key}-${row.relationship}`}>
+                <a href={jiraUrl(row.key)} target="_blank" rel="noreferrer">{row.key}</a>
+                {" "}<Chip value={row.relationship} /> <LinkifiedText text={row.explanation || ""} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {triage.justifying_jiras?.length ? (
+        <div className="triage-block">
+          <h4>Justifying Jiras</h4>
+          <ul className="file-list">
+            {triage.justifying_jiras.map((row) => (
+              <li key={`${row.key}-${row.role}`}>
+                <a href={jiraUrl(row.key)} target="_blank" rel="noreferrer">{row.key}</a>
+                {" "}<Chip value={row.role} /> <LinkifiedText text={row.why || ""} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {triage.attribution_note ? <TriageText title="Attribution" text={triage.attribution_note} /> : null}
+      {triage.why_required ? <TriageText title="Why Required" text={triage.why_required} /> : null}
+      {triage.why_real ? <TriageText title="Why Real" text={triage.why_real} /> : null}
+      {triage.why_jira_unclear ? <TriageText title="Why Jira Is Unclear" text={triage.why_jira_unclear} /> : null}
+      {triage.spec_impact_explanation ? <TriageText title="Spec Impact" text={triage.spec_impact_explanation} /> : null}
+      {triage.tooling_recommendation ? <TriageText title="Tooling Recommendation" text={triage.tooling_recommendation} /> : null}
+      {((triage.category_2_path || triage.suggested_path) && (triage.category_2_path || triage.suggested_path) !== "none") || ((triage.category_3_reason || triage.reason) && (triage.category_3_reason || triage.reason) !== "none") || triage.possible_jiras?.length ? (
+        <dl className="metadata-grid triage-meta">
+          {(triage.category_2_path || triage.suggested_path) && (triage.category_2_path || triage.suggested_path) !== "none" ? <div><dt>Review Path</dt><dd>{triagePathLabel(triage.category_2_path || triage.suggested_path)}</dd></div> : null}
+          {(triage.category_3_reason || triage.reason) && (triage.category_3_reason || triage.reason) !== "none" ? <div><dt>No-Impact Reason</dt><dd>{triagePathLabel(triage.category_3_reason || triage.reason)}</dd></div> : null}
+          {triage.possible_jiras?.length ? <div><dt>Possible Jiras</dt><dd>{triage.possible_jiras.join(", ")}</dd></div> : null}
+        </dl>
+      ) : null}
+      {(triage.caveats || triage.review_notes)?.length ? <ListOrEmpty values={triage.caveats || triage.review_notes || []} /> : null}
+    </section>
+  );
+}
+
+function TriageText({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="triage-block">
+      <h4>{title}</h4>
+      <RichText text={text} />
+    </div>
+  );
+}
+
+function RawCommitMessage({ commit }: { commit: CommitReport }) {
+  const id = reviewKey(commit);
+  const [body, setBody] = useState(commit.body || "");
+  const [state, setState] = useState<"ready" | "loading" | "error">(commit.body || !commit.body_url ? "ready" : "loading");
+  useEffect(() => {
+    let cancelled = false;
+    setBody(commit.body || "");
+    if (commit.body || !commit.body_url) {
+      setState("ready");
+      return () => { cancelled = true; };
+    }
+    setState("loading");
+    fetch(assetUrl(commit.body_url))
+      .then((response) => {
+        if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+        return response.text();
+      })
+      .then((text) => {
+        if (!cancelled) {
+          setBody(text);
+          setState("ready");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setState("error");
+      });
+    return () => { cancelled = true; };
+  }, [id, commit.body, commit.body_url]);
+  const text = body || (state === "loading" ? "Loading raw commit message." : state === "error" ? "Could not load raw commit message." : commit.subject || "(empty commit message)");
+  return (
+    <details className="review-details">
+      <summary>Raw git commit message</summary>
+      <pre className="commit-message">{text}</pre>
+    </details>
+  );
+}
+
+function AgentExtractedDetails({ commit }: { commit: CommitReport }) {
+  const hasDetails = isIssueReconcileCommit(commit) || parsedMessageSections(commit).length > 0 || displaySummary(commit);
+  if (!hasDetails) return null;
+  return (
+    <details className="review-details extracted-details">
+      <summary>Agent extracted details</summary>
+      {isIssueReconcileCommit(commit) ? <IssueReconcileMainPanel commit={commit} /> : <CommitMessageNarrative commit={commit} />}
+    </details>
+  );
+}
+
 function CommitOverview({ commit }: { commit: CommitReport }) {
+  const addressedJiras = directlyAddressedJiras(commit);
   return (
     <section className="overview">
       <div className="link-row">
-        {commit.issue_key ? <a href={jiraUrl(commit.issue_key)} target="_blank" rel="noreferrer">Jira {commit.issue_key}</a> : <span>No Jira issue</span>}
+        {addressedJiras.length ? addressedJiras.map((key) => <a key={key} href={jiraUrl(key)} target="_blank" rel="noreferrer">Jira {key}</a>) : <span>No Jira issue</span>}
         {commit.github_commit_url ? <a href={commit.github_commit_url} target="_blank" rel="noreferrer">GitHub commit {commit.short_sha}</a> : null}
         {commit.result_path ? <span>{commit.audit_decision ? "Audit report" : "Agent report"}: {commit.result_path}</span> : <span>No agent report JSON</span>}
       </div>
       <PreviousIssueCommits commit={commit} />
-      <SeedDecisions commit={commit} />
       <dl className="metadata-grid">
         <div><dt>{commit.audit_decision ? "Audit Decision" : "Result"}</dt><dd>{outcomeLabel(commit.status || commit.decision_status)}</dd></div>
         {commit.fixup_status ? <div><dt>Original Fixup Result</dt><dd>{outcomeLabel(commit.fixup_status)}</dd></div> : null}
@@ -596,77 +765,20 @@ function CommitOverview({ commit }: { commit: CommitReport }) {
   );
 }
 
-function SeedDecisions({ commit }: { commit: CommitReport }) {
-  const decisions = commit.seed_decisions || [];
-  if (!commit.seed_key || decisions.length <= 1) return null;
-  return (
-    <section className="previous-commits seed-decisions">
-      <h3>Issues Decided From Seed {commit.seed_key}</h3>
-      <ul>
-        {decisions.map((decision) => (
-          <li key={decision.issue_key}>
-            <a href={jiraUrl(decision.issue_key)} target="_blank" rel="noreferrer">{decision.issue_key}</a>
-            {decision.role ? <span className="chip">{decision.role}</span> : null}
-            {decision.status ? <span className={`chip ${decision.status}`}>{outcomeLabel(decision.status)}</span> : null}
-            <span>{decision.summary || ""}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 type MessageSection = { key: string; title: string; text: string };
 
 const commitSectionTitles = [
   "Issue request",
   "Initial application",
   "Additional context",
-  "AutoFHIR fixup",
   "AutoFHIR reconciliation",
+  "Reconciliation",
+  "AutoFHIR fixup",
   "Recommendation",
 ];
 
-// Loads commit text that the report may inline (`inline`) or externalize behind a
-// side-file URL (`url`, e.g. messages/<id>.txt). Mirrors the patch_url lazy load so
-// large reports stay small while the full commit message still renders into the DOM.
-function useLazyText(sha: string, inline: string | undefined, url: string | undefined): string {
-  const textBundle = React.useContext(TextBundleContext);
-  const [text, setText] = useState(inline ?? "");
-  useEffect(() => {
-    let cancelled = false;
-    if (inline !== undefined) {
-      setText(inline);
-      return () => { cancelled = true; };
-    }
-    if (!url) {
-      setText("");
-      return () => { cancelled = true; };
-    }
-    if (Object.prototype.hasOwnProperty.call(textBundle.assets, url)) {
-      setText(textBundle.assets[url] || "");
-      return () => { cancelled = true; };
-    }
-    if (!textBundle.ready && !textBundle.failed) return () => { cancelled = true; };
-    setText("");
-    fetchTextAsset(url)
-      .then((value) => { if (!cancelled) setText(value); })
-      .catch(() => { if (!cancelled) setText(""); });
-    return () => { cancelled = true; };
-  }, [sha, inline, url, textBundle]);
-  return text;
-}
-
-function CommitMessageNarrative({ commit, body, pretty }: { commit: CommitReport; body: string; pretty: boolean }) {
-  const sections = React.useMemo(() => pretty ? parsedMessageSections(commit, body) : [], [pretty, body, commit.subject, commit.commit_summary, commit.commit_context, commit.recommendation]);
-  if (!pretty) {
-    return (
-      <section className="narrative-card">
-        <h3>Commit message</h3>
-        <p>{displaySummary(commit) || "(no summary)"}</p>
-      </section>
-    );
-  }
+function CommitMessageNarrative({ commit }: { commit: CommitReport }) {
+  const sections = React.useMemo(() => parsedMessageSections(commit), [commit.body, commit.subject, commit.commit_summary, commit.commit_context, commit.recommendation]);
   if (!sections.length) {
     return (
       <section className="narrative-card">
@@ -687,8 +799,8 @@ function CommitMessageNarrative({ commit, body, pretty }: { commit: CommitReport
   );
 }
 
-function parsedMessageSections(commit: CommitReport, body: string): MessageSection[] {
-  const fromBody = sectionsFromBody(body || "");
+function parsedMessageSections(commit: CommitReport): MessageSection[] {
+  const fromBody = sectionsFromBody(commit.body || "");
   if (fromBody.length) return fromBody;
   const fromExportedFields = sectionsFromExportedFields(commit);
   if (fromExportedFields.length) return fromExportedFields;
@@ -723,12 +835,20 @@ function sectionsFromBody(body: string): MessageSection[] {
 function isCommitMetadataStart(trimmed: string) {
   return /^AutofHIR-Run:/i.test(trimmed)
     || /^Issue-Fixup-/i.test(trimmed)
-    || /^Issue-Reconcile-/i.test(trimmed)
     || /^<\/?(related-jiras|evidence)>$/i.test(trimmed)
     || /^Verification:/i.test(trimmed);
 }
 
 function sectionsFromExportedFields(commit: CommitReport): MessageSection[] {
+  if (commit.issue_request || commit.initial_application || commit.additional_context || commit.reconciliation || commit.recommendation) {
+    return [
+      { key: "issue-request", title: "Issue request", text: commit.issue_request || "" },
+      { key: "initial-application", title: "Initial application", text: commit.initial_application || "" },
+      { key: "additional-context", title: "Additional context", text: commit.additional_context || "" },
+      { key: "reconciliation", title: "Reconciliation", text: commit.reconciliation || "" },
+      { key: "recommendation", title: "Recommendation", text: commit.recommendation || "" },
+    ].filter((section) => section.text.trim());
+  }
   const sections: MessageSection[] = [];
   if (commit.commit_summary) {
     sections.push({ key: "issue-request", title: "Issue request", text: stripSectionPrefix(commit.commit_summary, "Issue request") });
@@ -740,6 +860,96 @@ function sectionsFromExportedFields(commit: CommitReport): MessageSection[] {
     sections.push({ key: "recommendation", title: "Recommendation", text: commit.recommendation });
   }
   return sections.filter((section) => section.text.trim());
+}
+
+function isIssueReconcileCommit(commit: CommitReport) {
+  return Boolean(commit.issue_request || commit.initial_application || commit.additional_context || commit.reconciliation || commit.source_changes?.length || commit.evidence_items?.length || commit.checks?.length);
+}
+
+function IssueReconcileMainPanel({ commit }: { commit: CommitReport }) {
+  return (
+    <section className="reconcile-main" aria-label="Issue reconcile details">
+      <div className="reconcile-summary-grid">
+        <article>
+          <h3>Summary</h3>
+          <RichText text={commit.summary || displaySummary(commit) || "(no summary)"} />
+        </article>
+        <article>
+          <h3>Recommendation</h3>
+          <RichText text={commit.recommendation || "(no recommendation recorded)"} />
+        </article>
+      </div>
+      <ReconcileTextDetails title="Issue request" text={commit.issue_request} />
+      <ReconcileTextDetails title="Initial application" text={commit.initial_application} />
+      <ReconcileTextDetails title="Additional context" text={commit.additional_context} />
+      <ReconcileTextDetails title="Reconciliation" text={commit.reconciliation} />
+      <IssueReconcileAssessment commit={commit} />
+    </section>
+  );
+}
+
+function ReconcileTextDetails({ title, text }: { title: string; text?: string }) {
+  return (
+    <details className="review-details">
+      <summary>{title}</summary>
+      {text?.trim() ? <div className="details-body"><RichText text={text} /></div> : <p className="help">None recorded.</p>}
+    </details>
+  );
+}
+
+function IssueReconcileAssessment({ commit }: { commit: CommitReport }) {
+  return (
+    <section className="assessment">
+      <details className="review-details">
+        <summary>Source changes</summary>
+        <ListOrEmpty values={commit.source_changes || []} />
+      </details>
+      <details className="review-details">
+        <summary>Related Jiras</summary>
+        {commit.related_jiras?.length ? (
+          <ul className="file-list">
+            {commit.related_jiras.map((row) => (
+              <li key={`${row.key}-${row.relationship}`}>
+                <a href={jiraUrl(row.key)} target="_blank" rel="noreferrer">{row.key}</a>
+                {" "}<Chip value={row.relationship} /> <LinkifiedText text={row.note || ""} />
+              </li>
+            ))}
+          </ul>
+        ) : <p className="help">None recorded.</p>}
+      </details>
+      <details className="review-details">
+        <summary>Evidence</summary>
+        {commit.evidence_items?.length ? <EvidenceTable rows={commit.evidence_items} /> : <p className="help">None recorded.</p>}
+      </details>
+      <details className="review-details">
+        <summary>Checks</summary>
+        <ListOrEmpty values={commit.checks || []} />
+      </details>
+    </section>
+  );
+}
+
+function ListOrEmpty({ values }: { values: string[] }) {
+  if (!values.length) return <p className="help">None recorded.</p>;
+  return <ul className="file-list">{values.map((value) => <li key={value}><LinkifiedText text={value} /></li>)}</ul>;
+}
+
+function EvidenceTable({ rows }: { rows: NonNullable<CommitReport["evidence_items"]> }) {
+  return (
+    <table className="evidence-table">
+      <thead><tr><th>ID</th><th>Kind</th><th>Locator</th><th>Summary</th></tr></thead>
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.id}>
+            <td>{row.id}</td>
+            <td>{row.kind}</td>
+            <td>{row.url ? <a href={row.url} target="_blank" rel="noreferrer">{row.locator}</a> : <LinkifiedText text={row.locator} />}</td>
+            <td><LinkifiedText text={row.summary} />{row.learned ? <><br /><small><LinkifiedText text={row.learned} /></small></> : null}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 }
 
 function stripSectionPrefix(text: string, title: string) {
@@ -871,7 +1081,7 @@ function useVisibleCommitObserver(rows: CommitReport[], onVisible: (sha: string)
     window.requestAnimationFrame(() => {
       if (cancelled) return;
       for (const commit of rows) {
-        const element = document.getElementById(`commit-${commit.sha}`);
+        const element = document.getElementById(`commit-${reviewKey(commit)}`);
         if (element) observer.observe(element);
       }
     });
@@ -882,24 +1092,6 @@ function useVisibleCommitObserver(rows: CommitReport[], onVisible: (sha: string)
       observer.disconnect();
     };
   }, [rows]);
-}
-
-function useNearViewport(ref: React.RefObject<Element | null>) {
-  const [near, setNear] = useState(false);
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-    if (!("IntersectionObserver" in window)) {
-      setNear(true);
-      return;
-    }
-    const observer = new IntersectionObserver((entries) => {
-      setNear(entries.some((entry) => entry.isIntersecting));
-    }, { root: null, rootMargin: "1200px 0px", threshold: 0 });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [ref]);
-  return near;
 }
 
 function PreviousIssueCommits({ commit }: { commit: CommitReport }) {
@@ -959,11 +1151,12 @@ function FilesAndStats({ commit }: { commit: CommitReport }) {
   );
 }
 
-function DiffSection({ commit, pretty }: { commit: CommitReport; pretty: boolean }) {
-  const textBundle = React.useContext(TextBundleContext);
+function DiffSection({ commit }: { commit: CommitReport }) {
+  const id = reviewKey(commit);
   const hasEmbeddedPatch = commit.patch !== undefined;
   const [patch, setPatch] = useState(commit.patch ?? "");
   const [patchState, setPatchState] = useState<"ready" | "loading" | "error">(hasEmbeddedPatch ? "ready" : commit.patch_url ? "loading" : "ready");
+  const preRef = useRef<HTMLPreElement | null>(null);
   useEffect(() => {
     let cancelled = false;
     setPatch(commit.patch ?? "");
@@ -971,17 +1164,11 @@ function DiffSection({ commit, pretty }: { commit: CommitReport; pretty: boolean
       setPatchState("ready");
       return () => { cancelled = true; };
     }
-    if (Object.prototype.hasOwnProperty.call(textBundle.assets, commit.patch_url)) {
-      setPatch(textBundle.assets[commit.patch_url] || "");
-      setPatchState("ready");
-      return () => { cancelled = true; };
-    }
-    if (!textBundle.ready && !textBundle.failed) {
-      setPatchState("loading");
-      return () => { cancelled = true; };
-    }
     setPatchState("loading");
-    fetchTextAsset(commit.patch_url)
+    fetchPatchQueued(assetUrl(commit.patch_url))
+      .then((text) => {
+        return waitForScrollIdle().then(() => text);
+      })
       .then((text) => {
         if (!cancelled) {
           setPatch(text);
@@ -992,101 +1179,24 @@ function DiffSection({ commit, pretty }: { commit: CommitReport; pretty: boolean
         if (!cancelled) setPatchState("error");
     });
     return () => { cancelled = true; };
-  }, [commit.sha, commit.patch, commit.patch_url, textBundle]);
+  }, [id, commit.patch, commit.patch_url]);
   const patchText =
     patch || (patchState === "loading" ? "Loading diff." : patchState === "error" ? "Could not load embedded diff. Use the GitHub full diff link." : "(empty commit; no source diff)");
+  useEffect(() => {
+    const element = preRef.current;
+    if (!element) return;
+    registerDiffHighlights(id, element, patchText);
+    return () => unregisterDiffHighlights(id);
+  }, [id, patchText]);
   return (
     <section className="diff-section">
       <div className="section-heading">
         <h3>Diff</h3>
       </div>
       {commit.patch_truncated ? <div className="notice critical">Embedded diff is truncated. Use the GitHub full diff link for complete content.</div> : null}
-      {pretty ? (
-          <pre className="diff-text diff-rows" aria-label={`Diff for ${commit.subject}`}>{renderDiffRows(patchText)}</pre>
-      ) : (
-        <>
-          <div className="help">Diff text is loaded for browser find; detailed rendering activates near the viewport.</div>
-          <UntilFoundPre className="diff-text raw-diff-search" ariaLabel={`Diff for ${commit.subject}`} text={patchText} />
-        </>
-      )}
+      <pre ref={preRef} className="diff-text" aria-label={`Diff for ${commit.subject}`}>{patchText}</pre>
     </section>
   );
-}
-
-function UntilFoundPre({ className, ariaLabel, text }: { className: string; ariaLabel: string; text: string }) {
-  const ref = useRef<HTMLPreElement | null>(null);
-  useEffect(() => {
-    ref.current?.setAttribute("hidden", "until-found");
-  }, []);
-  return <pre ref={ref} className={className} aria-label={ariaLabel}>{text}</pre>;
-}
-
-type InlineSegment = { text: string; changed: boolean };
-type RenderedDiffLine = { text: string; kind: DiffGroup["kind"]; segments?: InlineSegment[] };
-
-function renderDiffRows(text: string) {
-  return diffRows(text).map((line, index) => (
-    <div key={index} className={`diff-line ${line.kind}`}>
-      {line.segments ? (
-        <>
-          <span className="diff-marker">{line.text.slice(0, 1)}</span>
-          {line.segments.map((segment, segmentIndex) => (
-            <span key={segmentIndex} className={segment.changed ? "diff-token changed" : undefined}>{segment.text}</span>
-          ))}
-        </>
-      ) : line.text || " "}
-    </div>
-  ));
-}
-
-function diffRows(text: string): RenderedDiffLine[] {
-  const lines = text.split("\n");
-  const rows: RenderedDiffLine[] = lines.map((line) => ({ text: line, kind: diffKind(line) }));
-  for (let index = 0; index < rows.length;) {
-    if (rows[index]?.kind !== "del") {
-      index += 1;
-      continue;
-    }
-    const delStart = index;
-    while (rows[index]?.kind === "del") index += 1;
-    const addStart = index;
-    while (rows[index]?.kind === "add") index += 1;
-    const pairCount = Math.min(addStart - delStart, index - addStart);
-    for (let offset = 0; offset < pairCount; offset += 1) {
-      const del = rows[delStart + offset];
-      const add = rows[addStart + offset];
-      const [delSegments, addSegments] = inlineDiffSegments(del.text.slice(1), add.text.slice(1));
-      del.segments = delSegments;
-      add.segments = addSegments;
-    }
-  }
-  return rows;
-}
-
-function inlineDiffSegments(oldText: string, newText: string): [InlineSegment[], InlineSegment[]] {
-  let prefix = 0;
-  const maxPrefix = Math.min(oldText.length, newText.length);
-  while (prefix < maxPrefix && oldText[prefix] === newText[prefix]) prefix += 1;
-
-  let oldSuffix = oldText.length;
-  let newSuffix = newText.length;
-  while (oldSuffix > prefix && newSuffix > prefix && oldText[oldSuffix - 1] === newText[newSuffix - 1]) {
-    oldSuffix -= 1;
-    newSuffix -= 1;
-  }
-
-  return [
-    changedSegments(oldText, prefix, oldSuffix),
-    changedSegments(newText, prefix, newSuffix),
-  ];
-}
-
-function changedSegments(text: string, changeStart: number, changeEnd: number): InlineSegment[] {
-  const segments: InlineSegment[] = [];
-  if (changeStart > 0) segments.push({ text: text.slice(0, changeStart), changed: false });
-  if (changeEnd > changeStart) segments.push({ text: text.slice(changeStart, changeEnd), changed: true });
-  if (changeEnd < text.length) segments.push({ text: text.slice(changeEnd), changed: false });
-  return segments.length ? segments : [{ text, changed: false }];
 }
 
 type PatchJob = {
@@ -1095,47 +1205,51 @@ type PatchJob = {
   reject: (error: unknown) => void;
 };
 
-const textAssetCache = new Map<string, string>();
-const textAssetInflight = new Map<string, Promise<string>>();
-const textAssetQueue: PatchJob[] = [];
-let activeTextAssetLoads = 0;
-const maxTextAssetLoads = 24;
+const patchCache = new Map<string, string>();
+const patchInflight = new Map<string, Promise<string>>();
+const patchQueue: PatchJob[] = [];
+let activePatchLoads = 0;
+const maxPatchLoads = 4;
 let scrollTrackerInstalled = false;
 let scrollIdleTimer = 0;
 let scrollBusyUntil = 0;
 let scrollIdleWaiters: (() => void)[] = [];
 
-function fetchTextAsset(url: string): Promise<string> {
-  const cached = textAssetCache.get(url);
+function fetchPatchQueued(url: string): Promise<string> {
+  const cached = patchCache.get(url);
   if (cached !== undefined) return Promise.resolve(cached);
-  const inflight = textAssetInflight.get(url);
+  const inflight = patchInflight.get(url);
   if (inflight) return inflight;
   const promise = new Promise<string>((resolve, reject) => {
-    textAssetQueue.push({ url: assetUrl(url), resolve, reject });
-    pumpTextAssetQueue();
+    patchQueue.push({ url, resolve, reject });
+    pumpPatchQueue();
   });
-  textAssetInflight.set(url, promise);
-  promise.finally(() => textAssetInflight.delete(url));
+  patchInflight.set(url, promise);
+  promise.finally(() => patchInflight.delete(url));
   return promise;
 }
 
-function pumpTextAssetQueue() {
-  while (activeTextAssetLoads < maxTextAssetLoads && textAssetQueue.length) {
-    const job = textAssetQueue.shift()!;
-    activeTextAssetLoads++;
+function pumpPatchQueue() {
+  if (!isScrollIdle()) {
+    scheduleScrollIdleFlush();
+    return;
+  }
+  while (activePatchLoads < maxPatchLoads && patchQueue.length) {
+    const job = patchQueue.shift()!;
+    activePatchLoads++;
     fetch(job.url)
       .then((response) => {
         if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
         return response.text();
       })
       .then((text) => {
-        textAssetCache.set(job.url, text);
+        patchCache.set(job.url, text);
         job.resolve(text);
       })
       .catch(job.reject)
       .finally(() => {
-        activeTextAssetLoads--;
-        pumpTextAssetQueue();
+        activePatchLoads--;
+        pumpPatchQueue();
       });
   }
 }
@@ -1174,11 +1288,14 @@ function scheduleScrollIdleFlush() {
     const waiters = scrollIdleWaiters;
     scrollIdleWaiters = [];
     for (const resolve of waiters) resolve();
-    pumpTextAssetQueue();
+    pumpPatchQueue();
   }, delay);
 }
 
-type HighlightRangeSet = Record<DiffGroup["kind"], Range[]>;
+type HighlightRangeSet = Record<DiffGroup["kind"], Range[]> & {
+  addStrong: Range[];
+  delStrong: Range[];
+};
 
 const diffHighlightRegistry = new Map<string, HighlightRangeSet>();
 let diffHighlightFrame = 0;
@@ -1187,7 +1304,8 @@ function registerDiffHighlights(id: string, element: HTMLPreElement, text: strin
   if (!supportsCssHighlights()) return;
   const node = element.firstChild;
   if (!node || node.nodeType !== Node.TEXT_NODE) return;
-  const ranges: HighlightRangeSet = { meta: [], hunk: [], add: [], del: [], context: [] };
+  const ranges: HighlightRangeSet = { meta: [], hunk: [], add: [], del: [], context: [], addStrong: [], delStrong: [] };
+  const changedLines: DiffLineInfo[] = [];
   let offset = 0;
   for (const line of text.split("\n")) {
     const length = line.length;
@@ -1198,8 +1316,12 @@ function registerDiffHighlights(id: string, element: HTMLPreElement, text: strin
       range.setEnd(node, offset + length);
       ranges[kind].push(range);
     }
+    if (length && (kind === "add" || kind === "del")) {
+      changedLines.push({ kind, line, offset });
+    }
     offset += length + 1;
   }
+  addIntralineDiffRanges(node, changedLines, ranges);
   diffHighlightRegistry.set(id, ranges);
   scheduleDiffHighlightApply();
 }
@@ -1220,17 +1342,21 @@ function scheduleDiffHighlightApply() {
 
 function applyDiffHighlights() {
   if (!supportsCssHighlights()) return;
-  const merged: HighlightRangeSet = { meta: [], hunk: [], add: [], del: [], context: [] };
+  const merged: HighlightRangeSet = { meta: [], hunk: [], add: [], del: [], context: [], addStrong: [], delStrong: [] };
   for (const ranges of diffHighlightRegistry.values()) {
     merged.meta.push(...ranges.meta);
     merged.hunk.push(...ranges.hunk);
     merged.add.push(...ranges.add);
     merged.del.push(...ranges.del);
+    merged.addStrong.push(...ranges.addStrong);
+    merged.delStrong.push(...ranges.delStrong);
   }
   setHighlight("autofhir-diff-meta", merged.meta);
   setHighlight("autofhir-diff-hunk", merged.hunk);
   setHighlight("autofhir-diff-add", merged.add);
   setHighlight("autofhir-diff-del", merged.del);
+  setHighlight("autofhir-diff-add-strong", merged.addStrong);
+  setHighlight("autofhir-diff-del-strong", merged.delStrong);
 }
 
 function setHighlight(name: string, ranges: Range[]) {
@@ -1247,17 +1373,70 @@ function supportsCssHighlights() {
   return typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight !== "undefined";
 }
 
+type DiffLineInfo = {
+  kind: "add" | "del";
+  line: string;
+  offset: number;
+};
+
+function addIntralineDiffRanges(node: ChildNode, changedLines: DiffLineInfo[], ranges: HighlightRangeSet) {
+  let i = 0;
+  while (i < changedLines.length) {
+    const delBlock: DiffLineInfo[] = [];
+    const addBlock: DiffLineInfo[] = [];
+    while (changedLines[i]?.kind === "del") delBlock.push(changedLines[i++]);
+    while (changedLines[i]?.kind === "add") addBlock.push(changedLines[i++]);
+    if (!delBlock.length || !addBlock.length) continue;
+    const pairCount = Math.min(delBlock.length, addBlock.length);
+    for (let index = 0; index < pairCount; index++) {
+      addIntralinePairRanges(node, delBlock[index], addBlock[index], ranges);
+    }
+  }
+}
+
+function addIntralinePairRanges(node: ChildNode, delLine: DiffLineInfo, addLine: DiffLineInfo, ranges: HighlightRangeSet) {
+  const oldText = delLine.line.slice(1);
+  const newText = addLine.line.slice(1);
+  let prefix = 0;
+  const maxPrefix = Math.min(oldText.length, newText.length);
+  while (prefix < maxPrefix && oldText[prefix] === newText[prefix]) prefix++;
+
+  let suffix = 0;
+  const maxSuffix = Math.min(oldText.length - prefix, newText.length - prefix);
+  while (
+    suffix < maxSuffix
+    && oldText[oldText.length - suffix - 1] === newText[newText.length - suffix - 1]
+  ) {
+    suffix++;
+  }
+
+  addStrongRange(node, ranges.delStrong, delLine.offset + 1 + prefix, delLine.offset + 1 + oldText.length - suffix);
+  addStrongRange(node, ranges.addStrong, addLine.offset + 1 + prefix, addLine.offset + 1 + newText.length - suffix);
+}
+
+function addStrongRange(node: ChildNode, ranges: Range[], start: number, end: number) {
+  if (end <= start) return;
+  const range = document.createRange();
+  range.setStart(node, start);
+  range.setEnd(node, end);
+  ranges.push(range);
+}
+
 type FacetOption = { total: number; items: { value: string; label: string; count: number }[] };
 
 function buildOptions(report: Report, bySha: Record<string, ReviewEntry>, filters: Record<string, string>) {
   return {
     statuses: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, status: "" })), (c) => [statusValue(c)], outcomeLabel),
+    changeKinds: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, changeKind: "" })), (c) => [changeKindValue(c)], changeKindLabel),
     wgs: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, wg: "" })), (c) => [wgCode(c)], (value) => {
       const sample = report.commits.find((c) => wgCode(c) === value);
       return `${value} · ${sample ? wgName(sample) : value}`;
     }),
     files: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, file: "" })), (c) => c.files || [], (value) => value),
-    reviews: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, reviewDecision: "" })), (c) => [reviewEntry(c.sha, bySha).decision], decisionLabel),
+    triagePresets: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, triagePreset: "" })), (c) => [triagePresetValue(c)], triagePresetLabel),
+    triageCategories: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, triageCategory: "" })), (c) => [triageCategoryValue(c)], triageCategoryLabel),
+    triagePaths: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, triagePath: "" })), (c) => [triagePathValue(c)], triagePathLabel),
+    reviews: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, reviewDecision: "" })), (c) => [reviewEntry(reviewKey(c), bySha).decision], decisionLabel),
   };
 }
 
@@ -1272,9 +1451,13 @@ function facet(rows: CommitReport[], valuesFor: (commit: CommitReport) => string
 
 function passes(commit: CommitReport, bySha: Record<string, ReviewEntry>, filters: Record<string, string>) {
   return (!filters.status || statusValue(commit) === filters.status)
+    && (!filters.changeKind || changeKindValue(commit) === filters.changeKind)
     && (!filters.wg || wgCode(commit) === filters.wg)
     && (!filters.file || (commit.files || []).includes(filters.file))
-    && (!filters.reviewDecision || reviewEntry(commit.sha, bySha).decision === filters.reviewDecision);
+    && (!filters.triagePreset || triagePresetValue(commit) === filters.triagePreset)
+    && (!filters.triageCategory || triageCategoryValue(commit) === filters.triageCategory)
+    && (!filters.triagePath || triagePathValue(commit) === filters.triagePath)
+    && (!filters.reviewDecision || reviewEntry(reviewKey(commit), bySha).decision === filters.reviewDecision);
 }
 
 function ordered(rows: CommitReport[], sort: string) {
@@ -1291,31 +1474,6 @@ function statusValue(commit: CommitReport) {
   return commit.status || commit.decision_status || "none";
 }
 
-function isSourceChanging(commit: CommitReport) {
-  return (commit.files || []).length > 0;
-}
-
-// Default the combined "commit types" filter to the status shared by the
-// source-changing commits (e.g. "fixed"), so reviewers land on source changes
-// first while still being able to pick any other commit type from the dropdown.
-function sourceChangingStatus(commits: CommitReport[]) {
-  const counts = new Map<string, number>();
-  for (const commit of commits) {
-    if (!isSourceChanging(commit)) continue;
-    const value = statusValue(commit);
-    counts.set(value, (counts.get(value) || 0) + 1);
-  }
-  let best = "";
-  let bestCount = 0;
-  for (const [value, count] of counts) {
-    if (count > bestCount) {
-      best = value;
-      bestCount = count;
-    }
-  }
-  return best;
-}
-
 function outcomeLabel(value?: string) {
   return ({
     keep: "Keep",
@@ -1324,11 +1482,80 @@ function outcomeLabel(value?: string) {
     drop: "Drop",
     fixed: "Source change made",
     "no-change": "No source change needed",
-    "external-repo": "External repo",
+    "external-repo": "External repo / out of core",
     ambiguous: "Needs human review",
     blocked: "Blocked",
     none: "Missing review data",
   } as Record<string, string>)[value || "none"] || value || "Missing review data";
+}
+
+function changeKindValue(commit: CommitReport) {
+  return (commit.files || []).length ? "source-change" : "no-source-change";
+}
+
+function changeKindLabel(value?: string) {
+  return ({
+    "source-change": "Source-changing commits",
+    "no-source-change": "No source changes",
+  } as Record<string, string>)[value || ""] || value || "Unknown";
+}
+
+function triagePresetValue(commit: CommitReport) {
+  if (triageCategoryValue(commit) === "misapplied-jira" && triagePathValue(commit) === "clean-whole-commit") {
+    return "jira-backed-spec-change";
+  }
+  if (commit.triage) return "needs-secondary-review";
+  return "untriaged";
+}
+
+function triagePresetLabel(value?: string) {
+  return ({
+    "jira-backed-spec-change": "Jira-backed spec changes",
+    "needs-secondary-review": "Secondary review",
+    untriaged: "Untriaged",
+  } as Record<string, string>)[value || "untriaged"] || value || "Untriaged";
+}
+
+function triageCategoryValue(commit: CommitReport) {
+  return commit.triage?.category || "untriaged";
+}
+
+function triageCategoryLabel(value?: string) {
+  return ({
+    "misapplied-jira": "Jira-backed missed application",
+    "real-fix-unclear-jira": "Real fix, unclear path",
+    "not-needed-for-spec-correctness": "No current spec impact",
+    untriaged: "Untriaged",
+  } as Record<string, string>)[value || "untriaged"] || value || "Untriaged";
+}
+
+function triagePathValue(commit: CommitReport) {
+  const path = commit.triage?.category_2_path || commit.triage?.suggested_path;
+  if (path && path !== "none") return path;
+  const reason = commit.triage?.category_3_reason || commit.triage?.reason;
+  if (reason && reason !== "none") return reason;
+  return commit.triage ? "clean-whole-commit" : "untriaged";
+}
+
+function triagePathLabel(value?: string) {
+  return ({
+    "clean-whole-commit": "Clean whole-commit review",
+    "apply-subset-only": "Apply subset only",
+    "find-better-jira": "Find better Jira",
+    "new-jira": "Needs new Jira",
+    "rollup-cleanup-jira": "Rollup cleanup Jira",
+    "wg-review": "Needs WG review",
+    "build-ignores-or-strips": "Build ignores or strips source",
+    "commented-out-source": "Commented-out source",
+    "non-rendered-metadata": "Non-rendered metadata",
+    "layout-only-svg": "Layout/diagram SVG",
+    "generated-or-derived-file": "Generated or derived file",
+    "outside-editor-owned-surface": "Outside editor-owned surface",
+    "repo-hygiene-only": "Repository hygiene only",
+    "tooling-warning-candidate": "Tooling warning candidate",
+    other: "Other",
+    untriaged: "Untriaged",
+  } as Record<string, string>)[value || "untriaged"] || value || "Untriaged";
 }
 
 function wgCode(commit: CommitReport) {
@@ -1336,7 +1563,8 @@ function wgCode(commit: CommitReport) {
 }
 
 function wgName(commit: CommitReport) {
-  return commit.wg_label || commit.wg || "Unknown";
+  const code = commit.wg || "unknown";
+  return commit.wg_label && commit.wg_label !== code ? commit.wg_label : wgNames[code] || commit.wg_label || code || "Unknown";
 }
 
 function wgTitle(commit: CommitReport) {
@@ -1344,7 +1572,52 @@ function wgTitle(commit: CommitReport) {
 }
 
 function displaySummary(commit: CommitReport) {
-  return commit.audit_recommended_next_step || commit.recommendation || commit.commit_summary || commit.summary || "";
+  return commit.audit_recommended_next_step || commit.summary || commit.commit_summary || commit.recommendation || "";
+}
+
+function directBackingJiras(commit: CommitReport) {
+  const keys = new Set<string>();
+  for (const row of commit.triage?.jira_evidence || []) {
+    if (row.relationship === "directly-justifies" || row.relationship === "better-attribution") {
+      keys.add(row.key);
+    }
+  }
+  return [...keys].filter((key) => key && key !== commit.issue_key).sort();
+}
+
+function directlyAddressedJiras(commit: CommitReport) {
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  for (const row of commit.triage?.jira_evidence || []) {
+    if (row.relationship !== "directly-justifies" && row.relationship !== "better-attribution") continue;
+    if (!row.key || seen.has(row.key)) continue;
+    seen.add(row.key);
+    keys.push(row.key);
+  }
+  if (!keys.length && commit.issue_key) keys.push(commit.issue_key);
+  return keys;
+}
+
+function reviewTitle(commit: CommitReport) {
+  return commit.subject;
+}
+
+function stripLeadingIssueKey(subject: string, issueKey?: string) {
+  if (!issueKey) return subject;
+  return subject.replace(new RegExp(`^${escapeRegExp(issueKey)}:\\s*`), "");
+}
+
+function reviewKey(commit: CommitReport) {
+  return commit.review_id || commit.sha;
+}
+
+function reportTitle(report: Report) {
+  if (isReconcileReport(report)) return "AutoFHIR Issue Reconcile Review";
+  return isAuditReport(report) ? "AutoFHIR Issue Fixup Audit Review" : "AutoFHIR Issue Fixup Diffs";
+}
+
+function isReconcileReport(report: Report) {
+  return report.schema_version === "issue-reconcile-review-report-v1";
 }
 
 function isAuditReport(report: Report) {
@@ -1365,12 +1638,12 @@ function decisionLabel(value: string) {
 
 function reviewCountText(commits: CommitReport[], bySha: Record<string, ReviewEntry>) {
   const counts: Record<ReviewDecision, number> = { approve: 0, reject: 0, defer: 0, undecided: 0 };
-  for (const commit of commits) counts[reviewEntry(commit.sha, bySha).decision]++;
+  for (const commit of commits) counts[reviewEntry(reviewKey(commit), bySha).decision]++;
   return `Your review: approve ${counts.approve} · reject ${counts.reject} · defer ${counts.defer} · undecided ${counts.undecided}`;
 }
 
 function relativeCommit(rows: CommitReport[], selected: string, delta: number) {
-  const index = Math.max(0, rows.findIndex((commit) => commit.sha === selected));
+  const index = Math.max(0, rows.findIndex((commit) => reviewKey(commit) === selected));
   return rows[Math.min(rows.length - 1, Math.max(0, index + delta))] || rows[0];
 }
 
@@ -1378,7 +1651,8 @@ function shaFromHash(commits: CommitReport[]) {
   const rawHash = decodeURIComponent(window.location.hash.replace(/^#/, ""));
   if (!rawHash) return null;
   const token = rawHash.startsWith("commit-") ? rawHash.slice("commit-".length) : rawHash;
-  return commits.find((commit) => commit.sha === token || commit.short_sha === token || commit.issue_key === token)?.sha || null;
+  const match = commits.find((commit) => reviewKey(commit) === token || commit.sha === token || commit.commit_sha === token || commit.short_sha === token || commit.issue_key === token);
+  return match ? reviewKey(match) : null;
 }
 
 function updateUrlForSha(sha: string, mode: "push" | "replace") {
@@ -1406,12 +1680,12 @@ function scheduleUrlForSha(sha: string) {
 function visibleSha(rows: CommitReport[]) {
   const offset = stickyBottomOffset() + 8;
   for (const commit of rows) {
-    const element = document.getElementById(`commit-${commit.sha}`);
+    const element = document.getElementById(`commit-${reviewKey(commit)}`);
     if (!element) continue;
     const rect = element.getBoundingClientRect();
-    if (rect.bottom > offset) return commit.sha;
+    if (rect.bottom > offset) return reviewKey(commit);
   }
-  return rows[rows.length - 1]?.sha || null;
+  return rows.length ? reviewKey(rows[rows.length - 1]) : null;
 }
 
 function stickyBottomOffset() {
@@ -1485,13 +1759,17 @@ function assetUrl(name: string) {
 }
 
 function reviewPlan(report: Report, visibleRows: CommitReport[], bySha: Record<string, ReviewEntry>) {
-  const reviewed = report.commits.filter((commit) => reviewEntry(commit.sha, bySha).decision !== "undecided" || reviewEntry(commit.sha, bySha).note.trim());
+  const reviewed = report.commits.filter((commit) => reviewEntry(reviewKey(commit), bySha).decision !== "undecided" || reviewEntry(reviewKey(commit), bySha).note.trim());
   const groups = {
-    approve: reviewed.filter((commit) => reviewEntry(commit.sha, bySha).decision === "approve"),
-    reject: reviewed.filter((commit) => reviewEntry(commit.sha, bySha).decision === "reject"),
-    defer: reviewed.filter((commit) => reviewEntry(commit.sha, bySha).decision === "defer"),
+    approve: reviewed.filter((commit) => reviewEntry(reviewKey(commit), bySha).decision === "approve"),
+    reject: reviewed.filter((commit) => reviewEntry(reviewKey(commit), bySha).decision === "reject"),
+    defer: reviewed.filter((commit) => reviewEntry(reviewKey(commit), bySha).decision === "defer"),
   };
-  const lineFor = (commit: CommitReport) => `- ${commit.sha} ${commit.issue_key || ""} ${commit.subject}${reviewEntry(commit.sha, bySha).note ? `\n  Reviewer note: ${reviewEntry(commit.sha, bySha).note}` : ""}`;
+  const lineFor = (commit: CommitReport) => {
+    const backing = directBackingJiras(commit);
+    const backingText = backing.length ? ` [backing Jira${backing.length === 1 ? "" : "s"}: ${backing.join(", ")}]` : "";
+    return `- ${commit.commit_sha || commit.sha} ${commit.issue_key || ""}${backingText} ${reviewTitle(commit)}${reviewEntry(reviewKey(commit), bySha).note ? `\n  Reviewer note: ${reviewEntry(reviewKey(commit), bySha).note}` : ""}`;
+  };
   const artifacts = report.run.artifacts || {};
   const payload = {
     schema_version: "issue-fixup-review-decisions-v1",
@@ -1507,10 +1785,13 @@ function reviewPlan(report: Report, visibleRows: CommitReport[], bySha: Record<s
     visible_count: visibleRows.length,
     decisions: reviewed.map((commit) => ({
       issue_key: commit.issue_key || null,
+      backing_jiras: directBackingJiras(commit),
+      review_id: reviewKey(commit),
       sha: commit.sha,
-      subject: commit.subject,
-      review_decision: reviewEntry(commit.sha, bySha).decision,
-      review_note: reviewEntry(commit.sha, bySha).note,
+      commit_sha: commit.commit_sha || commit.sha,
+      subject: reviewTitle(commit),
+      review_decision: reviewEntry(reviewKey(commit), bySha).decision,
+      review_note: reviewEntry(reviewKey(commit), bySha).note,
       github_commit_url: commit.github_commit_url || null,
       files: commit.files || [],
     })),
@@ -1534,6 +1815,7 @@ function reviewPlan(report: Report, visibleRows: CommitReport[], bySha: Record<s
     `- Full review JSON used by this app: ${artifactUrl(report, artifacts.fixup_review_json)}`,
     `- Gzipped fixup review JSON with embedded patches: ${artifactUrl(report, artifacts.fixup_review_full_json_gzip || artifacts.fixup_review_json_gzip)}`,
     `- Original pre-audit fixup review JSON, when this is a post-audit app: ${artifactUrl(report, artifacts.source_issue_fixup_review_json_gzip)}`,
+    `- Commit triage rollup, when available: ${artifactUrl(report, artifacts.triage_rollup_md)}`,
     `- Per-commit embedded patch files: ${artifactUrl(report, artifacts.fixup_patch_dir)}`,
     `- Standalone review HTML: ${artifactUrl(report, "index.html")}`,
     `- Source run id: ${report.run.source_run_id || "(unknown)"}`,
@@ -1587,7 +1869,6 @@ async function copyPlan(report: Report, rows: CommitReport[], bySha: Record<stri
 declare global {
   interface Window {
     __AUTOFHIR_REPORT_URL__?: string;
-    __AUTOFHIR_TEXT_BUNDLE_URL__?: string;
   }
 }
 
