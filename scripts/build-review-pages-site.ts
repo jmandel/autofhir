@@ -137,7 +137,7 @@ function authCloneArgs(repo: string, branch: string, dest: string): string[] {
 
 function backfillReportLinks(reportPath: string, run: ReviewRun, repo: string, baseUrl: string): void {
   if (!existsSync(reportPath)) return;
-  runCommand([
+  const command = [
     "bun",
     path.join(autofhirRoot, "scripts/backfill-issue-reconcile-report-links.ts"),
     "--report",
@@ -148,7 +148,11 @@ function backfillReportLinks(reportPath: string, run: ReviewRun, repo: string, b
     repo,
     "--pages-base-url",
     baseUrl,
-  ], { cwd: repoRoot });
+  ];
+  if (run.source_branch) command.push("--source-branch", run.source_branch);
+  if (run.artifact_branch) command.push("--artifact-branch", run.artifact_branch);
+  if (run.artifact_path) command.push("--artifact-path", run.artifact_path);
+  runCommand(command, { cwd: repoRoot });
 }
 
 function copyReviewExport(reviewDir: string, dest: string): void {
