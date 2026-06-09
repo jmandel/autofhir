@@ -103,7 +103,7 @@ type WgInference = Pick<SideFileCommit, "wg" | "wg_label" | "wg_confidence" | "w
 type WgV2FileEvidence = {
   file: string;
   wgs: string[];
-  confidence: "explicit" | "fhir.ini" | "unknown";
+  confidence: "explicit" | "fhir.ini" | "manual" | "unknown";
   reason: string;
 };
 
@@ -514,12 +514,42 @@ function companionPageOwnership(file: string): WgV2FileEvidence | undefined {
   return undefined;
 }
 
+function fhirInfrastructureOwnership(file: string): WgV2FileEvidence | undefined {
+  const exact = new Set([
+    "build.gradle.kts",
+    "images/mapping.g4",
+    "images/source/QuestionnaireItems.drawio",
+    "implementations/translations.xml",
+    "publish.ini",
+    "source/datatypes/_changelog.txt",
+    "source/fhir.css",
+    "source/fhir.ini",
+    "source/hierarchy.xml",
+    "source/index.html",
+    "source/mappingSpaces.xml",
+    "source/modules-fragment.html",
+    "source/modules-list.html",
+  ]);
+  const prefixes = [
+    "tools/html/",
+    "tools/templates/",
+  ];
+  if (!exact.has(file) && !prefixes.some((prefix) => file.startsWith(prefix))) return undefined;
+  return {
+    file,
+    wgs: ["fhir-i"],
+    confidence: "manual",
+    reason: "FHIR-I owns core build, tooling, navigation, and global specification infrastructure files",
+  };
+}
+
 function documentedFileOwnership(file: string): WgV2FileEvidence {
   const clean = file.replace(/\\/g, "/").replace(/^[ab]\//, "");
   const directOwner = explicitOwnerForSourceFile(clean)
     ?? profileOwnership(clean)
     ?? datatypeOwnership(clean)
-    ?? companionPageOwnership(clean);
+    ?? companionPageOwnership(clean)
+    ?? fhirInfrastructureOwnership(clean);
   if (directOwner) return directOwner;
 
   const parts = clean.split("/");

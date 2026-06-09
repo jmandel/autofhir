@@ -41,7 +41,7 @@ type CommitTriage = {
 type WgV2Evidence = {
   file: string;
   wgs: string[];
-  confidence: "explicit" | "fhir.ini" | "unknown";
+  confidence: "explicit" | "fhir.ini" | "manual" | "unknown";
   reason: string;
 };
 
