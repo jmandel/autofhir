@@ -56,6 +56,7 @@ type ReportItem = IssueResult & {
   wg_label?: string;
   wg_confidence?: "high" | "medium" | "low";
   wg_evidence?: WgEvidence[];
+  wg_v2?: WgV2Assignment;
 };
 
 type SideFileCommit = {
@@ -86,6 +87,7 @@ type SideFileCommit = {
   wg_label?: string;
   wg_confidence?: "high" | "medium" | "low";
   wg_evidence?: WgEvidence[];
+  wg_v2?: WgV2Assignment;
 };
 
 type WgEvidence = {
@@ -97,6 +99,28 @@ type WgEvidence = {
 };
 
 type WgInference = Pick<SideFileCommit, "wg" | "wg_label" | "wg_confidence" | "wg_evidence">;
+
+type WgV2FileEvidence = {
+  file: string;
+  wgs: string[];
+  confidence: "explicit" | "fhir.ini" | "unknown";
+  reason: string;
+};
+
+type WgV2Assignment = {
+  method: "documented-file-ownership-v1";
+  assignment: "single" | "multiple" | "unassigned";
+  wgs: string[];
+  wg_labels: Record<string, string>;
+  agrees_with_current: boolean;
+  current_wg: string;
+  current_wg_label: string;
+  changed_file_count: number;
+  known_file_count: number;
+  unknown_file_count: number;
+  owner_counts: Record<string, number>;
+  evidence: WgV2FileEvidence[];
+};
 
 const wgNames: Record<string, string> = {
   "brr": "Biomedical Research and Regulation",
@@ -238,8 +262,10 @@ function jiraWg(code: string): string {
   const clean = code.toLowerCase();
   const aliases: Record<string, string> = {
     cgit: "cg",
+    devices: "dev",
     fhir: "fhir-i",
     pharm: "phx",
+    rcrim: "brr",
     security: "sec",
   };
   if (aliases[clean]) return aliases[clean];
@@ -303,6 +329,98 @@ function fileTopic(file: string, workgroups: Map<string, string>): { topic?: str
     return { topic: direct, wg: inferred.wg, note: `filename contains ${direct}; ${inferred.note}` };
   }
   return {};
+}
+
+function readOwnedFile(file: string): string {
+  const clean = file.replace(/\\/g, "/").replace(/^[ab]\//, "");
+  const fullPath = path.join(run.fhirRepo!, clean);
+  if (!existsSync(fullPath)) return "";
+  try {
+    return readFileSync(fullPath, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+function uniqueWgs(values: string[]): string[] {
+  return [...new Set(values.map((value) => jiraWg(value)).filter((value) => value && value !== "unknown"))].sort();
+}
+
+function explicitFileWgs(text: string): string[] {
+  if (!text) return [];
+  const values: string[] = [];
+  for (const match of text.matchAll(/<extension\s+url="http:\/\/hl7\.org\/fhir\/StructureDefinition\/structuredefinition-wg"[\s\S]*?<valueCode\s+value="([^"]+)"/g)) {
+    values.push(match[1]);
+  }
+  for (const match of text.matchAll(/\[%\s*wg\s+([a-z0-9-]+)\s*%\]/gi)) {
+    values.push(match[1]);
+  }
+  return uniqueWgs(values);
+}
+
+function documentedFileOwnership(file: string): WgV2FileEvidence {
+  const clean = file.replace(/\\/g, "/").replace(/^[ab]\//, "");
+  const explicit = explicitFileWgs(readOwnedFile(clean));
+  if (explicit.length) {
+    return {
+      file: clean,
+      wgs: explicit,
+      confidence: "explicit",
+      reason: "source file declares work group ownership",
+    };
+  }
+
+  const parts = clean.split("/");
+  const sourceIndex = parts.indexOf("source");
+  if (sourceIndex >= 0) {
+    const first = parts[sourceIndex + 1];
+    if (first) {
+      const topic = parts[sourceIndex + 2] ? first.toLowerCase() : pageTopic(first);
+      const direct = workgroups.get(topic);
+      if (direct) {
+        const wg = jiraWg(direct);
+        return {
+          file: clean,
+          wgs: wg === "unknown" ? [] : [wg],
+          confidence: "fhir.ini",
+          reason: `source/fhir.ini [workgroups] ${topic}=${direct}`,
+        };
+      }
+    }
+  }
+
+  return {
+    file: clean,
+    wgs: [],
+    confidence: "unknown",
+    reason: "no documented file ownership found",
+  };
+}
+
+function inferItemWgV2(files: string[], current: Pick<WgInference, "wg" | "wg_label">): WgV2Assignment {
+  const evidence = files.map((file) => documentedFileOwnership(file));
+  const counts = new Map<string, number>();
+  for (const item of evidence) {
+    for (const wg of item.wgs) counts.set(wg, (counts.get(wg) ?? 0) + 1);
+  }
+  const wgs = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([wg]) => wg);
+  const currentWg = current.wg ?? "unknown";
+  return {
+    method: "documented-file-ownership-v1",
+    assignment: wgs.length > 1 ? "multiple" : wgs.length === 1 ? "single" : "unassigned",
+    wgs,
+    wg_labels: Object.fromEntries(wgs.map((wg) => [wg, wgNames[wg] ?? wg])),
+    agrees_with_current: wgs.includes(currentWg),
+    current_wg: currentWg,
+    current_wg_label: current.wg_label ?? wgNames[currentWg] ?? currentWg,
+    changed_file_count: files.length,
+    known_file_count: evidence.filter((item) => item.wgs.length > 0).length,
+    unknown_file_count: evidence.filter((item) => item.wgs.length === 0).length,
+    owner_counts: Object.fromEntries([...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))),
+    evidence,
+  };
 }
 
 const workgroups = (() => {
@@ -493,6 +611,7 @@ for (const file of resultFiles) {
   for (const issue of result.issue_results ?? []) {
     const info = commitInfo(issue.commit?.sha);
     const wg = inferItemWg(issue, info.files);
+    const wgV2 = inferItemWgV2(info.files, wg);
     const branchIndex = info.commit_sha ? commitOrder.get(info.commit_sha) : undefined;
     const mappedSha = publishedSha(info.commit_sha);
     const anchorIndex = branchIndex !== undefined ? String(branchIndex + 1).padStart(5, "0") : "xxxxx";
@@ -506,6 +625,7 @@ for (const file of resultFiles) {
       ...issue,
       ...info,
       ...wg,
+      wg_v2: wgV2,
       commit_sha: mappedSha ?? info.commit_sha,
       short_sha: mappedSha ? mappedSha.slice(0, 10) : info.short_sha,
       branch_index: branchIndex,
@@ -575,6 +695,7 @@ const compactCommits: SideFileCommit[] = items.map((item, index) => {
     wg_label: item.wg_label,
     wg_confidence: item.wg_confidence,
     wg_evidence: item.wg_evidence,
+    wg_v2: item.wg_v2,
     files: item.files,
     stat: item.stat,
     patch_url: patchUrl,
@@ -633,6 +754,8 @@ const report = {
     with_result: items.length,
     by_status: countBy(compactCommits.map((commit) => commit.status ?? "none")),
     by_wg: countBy(compactCommits.map((commit) => commit.wg ?? "unknown")),
+    by_wg_v2: countBy(compactCommits.flatMap((commit) => commit.wg_v2?.wgs?.length ? commit.wg_v2.wgs : ["unassigned"])),
+    by_wg_v2_assignment: countBy(compactCommits.map((commit) => commit.wg_v2?.assignment ?? "unassigned")),
   },
   commits: compactCommits,
   item_count: items.length,

@@ -38,6 +38,28 @@ type CommitTriage = {
   caveats?: string[];
 };
 
+type WgV2Evidence = {
+  file: string;
+  wgs: string[];
+  confidence: "explicit" | "fhir.ini" | "unknown";
+  reason: string;
+};
+
+type WgV2Assignment = {
+  method: "documented-file-ownership-v1";
+  assignment: "single" | "multiple" | "unassigned";
+  wgs: string[];
+  wg_labels?: Record<string, string>;
+  agrees_with_current: boolean;
+  current_wg: string;
+  current_wg_label: string;
+  changed_file_count: number;
+  known_file_count: number;
+  unknown_file_count: number;
+  owner_counts: Record<string, number>;
+  evidence: WgV2Evidence[];
+};
+
 type CommitReport = {
   sequence: number;
   review_id?: string;
@@ -86,6 +108,7 @@ type CommitReport = {
   wg?: string;
   wg_label?: string;
   wg_confidence?: "high" | "medium" | "low";
+  wg_v2?: WgV2Assignment;
   files: string[];
   stat: string;
   patch?: string;
@@ -244,6 +267,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [wg, setWg] = useState("");
+  const [wgV2, setWgV2] = useState("");
   const [file, setFile] = useState("");
   const [triagePreset, setTriagePreset] = useState("jira-backed-spec-change");
   const [triageCategory, setTriageCategory] = useState("");
@@ -278,8 +302,8 @@ function App() {
       .catch((err) => setError(String(err?.message || err)));
   }, []);
 
-  const options = React.useMemo(() => report ? buildOptions(report, bySha, { status, wg, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision }) : null, [report, bySha, status, wg, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision]);
-  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, wg, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision })), sort) : [], [report, bySha, status, wg, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision, sort]);
+  const options = React.useMemo(() => report ? buildOptions(report, bySha, { status, wg, wgV2, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision }) : null, [report, bySha, status, wg, wgV2, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision]);
+  const rows = React.useMemo(() => report ? ordered(report.commits.filter((commit) => passes(commit, bySha, { status, wg, wgV2, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision })), sort) : [], [report, bySha, status, wg, wgV2, file, fileQuery, triagePreset, triageCategory, triagePath, reviewDecision, sort]);
 
   const selectCommit = useCallback((sha: string, urlMode: "push" | "replace" | "none" = "none") => {
     useSelectionStore.getState().setSelected(sha);
@@ -376,12 +400,13 @@ function App() {
       <Intro report={report} />
       <div className="controls">
         <Facet className="control-triage-preset" value={triagePreset} onChange={setTriagePreset} label="All" options={options.triagePresets} />
-        <Facet className="control-wg" value={wg} onChange={setWg} label="All work groups" options={options.wgs} />
+        <Facet className="control-wg" value={wg} onChange={setWg} label="All existing WGs" options={options.wgs} />
+        <Facet className="control-wg-v2" value={wgV2} onChange={setWgV2} label="All source-owner WGs" options={options.wgV2s} />
         <input className="control-file-query" value={fileQuery} onChange={(event) => setFileQuery(event.target.value)} placeholder="File path contains" />
         <Facet className="control-file" value={file} onChange={setFile} label="All changed files" options={options.files} />
         <Facet className="control-review" value={reviewDecision} onChange={setReviewDecision} label="All review choices" options={options.reviews} />
         <select className="control-sort" value={sort} onChange={(event) => setSort(event.target.value)}>
-          <option value="wg">Group by work group</option>
+          <option value="wg">Group by existing WG</option>
           <option value="branch">Commit order</option>
         </select>
       </div>
@@ -491,6 +516,7 @@ const CommitRow = memo(function CommitRow({ commit, active, entry, onOpen }: { c
         <Chip value={commit.issue_key} />
         <OutcomeChip value={commit.status || commit.decision_status} />
         <Chip value={commit.wg || "unknown"} />
+        {commit.wg_v2 ? <Chip value={`src ${wgV2Title(commit)}`} className={wgV2ChipClass(commit)} /> : null}
         <TriageChip triage={commit.triage} />
         <Chip value={decisionLabel(entry.decision)} className={entry.decision} />
         <Chip value={`${commit.files?.length || 0} files`} />
@@ -559,6 +585,7 @@ const CommitCard = memo(function CommitCard({ commit, onSelect, diffsEnabled }: 
           <Chip value={commit.issue_key} />
           <OutcomeChip value={commit.status || commit.decision_status} />
           <Chip value={commit.wg || "unknown"} />
+          {commit.wg_v2 ? <Chip value={`src ${wgV2Title(commit)}`} className={wgV2ChipClass(commit)} /> : null}
           <TriageChip triage={commit.triage} />
           <Chip value={decisionLabel(entry.decision)} className={entry.decision} />
           <Chip value={`${commit.files?.length || 0} files`} />
@@ -753,8 +780,10 @@ function CommitOverview({ commit }: { commit: CommitReport }) {
         <div><dt>{commit.audit_decision ? "Audit Decision" : "Result"}</dt><dd>{outcomeLabel(commit.status || commit.decision_status)}</dd></div>
         {commit.fixup_status ? <div><dt>Original Fixup Result</dt><dd>{outcomeLabel(commit.fixup_status)}</dd></div> : null}
         {commit.audit_confidence ? <div><dt>Audit Confidence</dt><dd>{commit.audit_confidence}</dd></div> : null}
-        <div><dt>Work Group</dt><dd>{wgTitle(commit)}</dd></div>
+        <div><dt>Existing Work Group</dt><dd>{wgTitle(commit)}</dd></div>
+        {commit.wg_v2 ? <div><dt>Source-owner WGs</dt><dd>{wgV2Title(commit)}</dd></div> : null}
       </dl>
+      <WorkGroupV2Details commit={commit} />
       {commit.audit_source_tweaks_needed?.length ? (
         <section className="narrative-section">
           <h3>Source Tweaks Needed</h3>
@@ -764,6 +793,44 @@ function CommitOverview({ commit }: { commit: CommitReport }) {
         </section>
       ) : null}
     </section>
+  );
+}
+
+function WorkGroupV2Details({ commit }: { commit: CommitReport }) {
+  const wgV2 = commit.wg_v2;
+  if (!wgV2) return null;
+  return (
+    <details className="review-details wg-v2-details">
+      <summary>Workgroup assignment v2</summary>
+      <dl className="metadata-grid">
+        <div><dt>Method</dt><dd>{wgV2.method}</dd></div>
+        <div><dt>Assignment</dt><dd>{wgV2.assignment}</dd></div>
+        <div><dt>Existing WG Included</dt><dd>{wgV2.agrees_with_current ? "yes" : "no"}</dd></div>
+        <div><dt>Owned Files</dt><dd>{wgV2.known_file_count} / {wgV2.changed_file_count}</dd></div>
+      </dl>
+      {Object.keys(wgV2.owner_counts || {}).length ? (
+        <div className="triage-block">
+          <h4>Owner Counts</h4>
+          <ul className="file-list">
+            {Object.entries(wgV2.owner_counts).map(([wg, count]) => (
+              <li key={wg}><Chip value={wg} /> {wgV2.wg_labels?.[wg] || wgNames[wg] || wg}: {count}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      <div className="triage-block">
+        <h4>File Evidence</h4>
+        <ul className="file-list">
+          {(wgV2.evidence || []).map((row) => (
+            <li key={row.file}>
+              <code>{row.file}</code>{" "}
+              {row.wgs.length ? row.wgs.map((wg) => <Chip key={wg} value={wg} />) : <Chip value="unassigned" />}
+              {" "}<span className="muted">{row.confidence}: {row.reason}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </details>
   );
 }
 
@@ -1434,6 +1501,7 @@ function buildOptions(report: Report, bySha: Record<string, ReviewEntry>, filter
       const sample = report.commits.find((c) => wgCode(c) === value);
       return `${value} · ${sample ? wgName(sample) : value}`;
     }),
+    wgV2s: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, wgV2: "" })), (c) => wgV2Codes(c), (value) => wgV2Label(report, value)),
     files: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, file: "" })), (c) => c.files || [], (value) => value, "label"),
     triagePresets: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, triagePreset: "" })), (c) => [triagePresetValue(c)], triagePresetLabel),
     triageCategories: facet(report.commits.filter((c) => passes(c, bySha, { ...filters, triageCategory: "" })), (c) => [triageCategoryValue(c)], triageCategoryLabel),
@@ -1458,6 +1526,7 @@ function passes(commit: CommitReport, bySha: Record<string, ReviewEntry>, filter
   return (!filters.status || statusValue(commit) === filters.status)
     && (!filters.changeKind || changeKindValue(commit) === filters.changeKind)
     && (!filters.wg || wgCode(commit) === filters.wg)
+    && (!filters.wgV2 || wgV2Codes(commit).includes(filters.wgV2))
     && (!filters.file || (commit.files || []).includes(filters.file))
     && (!filters.fileQuery || fileQueryMatches(commit, filters.fileQuery))
     && (!filters.triagePreset || triagePresetValue(commit) === filters.triagePreset)
@@ -1582,6 +1651,28 @@ function wgName(commit: CommitReport) {
 
 function wgTitle(commit: CommitReport) {
   return `${wgCode(commit)} · ${wgName(commit)}`;
+}
+
+function wgV2Codes(commit: CommitReport) {
+  if (!commit.wg_v2) return [];
+  return commit.wg_v2.wgs?.length ? commit.wg_v2.wgs : ["unassigned"];
+}
+
+function wgV2Label(report: Report, value: string) {
+  if (value === "unassigned") return "Unassigned";
+  const sample = report.commits.find((commit) => commit.wg_v2?.wgs?.includes(value));
+  return `${value} · ${sample?.wg_v2?.wg_labels?.[value] || wgNames[value] || value}`;
+}
+
+function wgV2Title(commit: CommitReport) {
+  const codes = wgV2Codes(commit);
+  if (codes.length === 1 && codes[0] === "unassigned") return "Unassigned";
+  return codes.map((code) => code).join(" + ");
+}
+
+function wgV2ChipClass(commit: CommitReport) {
+  if (!commit.wg_v2?.wgs?.length) return "untriaged";
+  return commit.wg_v2.agrees_with_current ? "source-wg-agree" : "source-wg-disagree";
 }
 
 function displaySummary(commit: CommitReport) {
