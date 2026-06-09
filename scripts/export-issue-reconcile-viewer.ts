@@ -258,11 +258,31 @@ function parseWorkgroups(file: string): Map<string, string> {
   return map;
 }
 
+function parseIniSection(file: string, section: string): Map<string, string> {
+  const map = new Map<string, string>();
+  let inSection = false;
+  for (const raw of readFileSync(file, "utf8").split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith(";") || line.startsWith("#")) continue;
+    if (line.startsWith("[") && line.endsWith("]")) {
+      inSection = line.slice(1, -1).toLowerCase() === section.toLowerCase();
+      continue;
+    }
+    if (!inSection) continue;
+    const eq = line.indexOf("=");
+    const key = (eq < 0 ? line : line.slice(0, eq)).trim().toLowerCase();
+    const value = (eq < 0 ? line : line.slice(eq + 1)).trim().toLowerCase();
+    if (key && value) map.set(key, value);
+  }
+  return map;
+}
+
 function jiraWg(code: string): string {
   const clean = code.toLowerCase();
   const aliases: Record<string, string> = {
     cgit: "cg",
     devices: "dev",
+    fiwg: "fhir-i",
     fhir: "fhir-i",
     pharm: "phx",
     rcrim: "brr",
@@ -355,20 +375,152 @@ function explicitFileWgs(text: string): string[] {
   for (const match of text.matchAll(/\[%\s*wg\s+([a-z0-9-]+)\s*%\]/gi)) {
     values.push(match[1]);
   }
+  const ownerBlock = text.match(/Responsible Owner:[\s\S]{0,500}?(?:<\/td>|<\/tr>)/i)?.[0] ?? "";
+  for (const match of ownerBlock.matchAll(/hl7\.org\/Special\/committees\/([^/"]+)\/index\.cfm/gi)) {
+    values.push(match[1]);
+  }
+  if (/FHIR Infrastructure/i.test(ownerBlock)) values.push("fhir");
   return uniqueWgs(values);
+}
+
+function explicitOwnerForSourceFile(file: string): WgV2FileEvidence | undefined {
+  const explicit = explicitFileWgs(readOwnedFile(file));
+  if (!explicit.length) return undefined;
+  return {
+    file,
+    wgs: explicit,
+    confidence: "explicit",
+    reason: "source file declares work group ownership",
+  };
+}
+
+function profileOwnership(file: string): WgV2FileEvidence | undefined {
+  const owner = profilePaths.get(file.toLowerCase());
+  const profileOwner = owner ?? [...profilePrefixes.entries()].find(([prefix]) => file.toLowerCase().startsWith(prefix))?.[1];
+  if (!profileOwner) return undefined;
+  const wg = jiraWg(profileOwner);
+  const reason = owner
+    ? `source/fhir.ini [profiles] maps this file to ${profileOwner}`
+    : `source/fhir.ini [profiles] maps this profile family to ${profileOwner}`;
+  return {
+    file,
+    wgs: wg === "unknown" ? [] : [wg],
+    confidence: "fhir.ini",
+    reason,
+  };
+}
+
+function fileWorkgroupOwnership(file: string, name: string): WgV2FileEvidence | undefined {
+  const direct = workgroups.get(name);
+  if (!direct) return undefined;
+  const wg = jiraWg(direct);
+  return {
+    file,
+    wgs: wg === "unknown" ? [] : [wg],
+    confidence: "fhir.ini",
+    reason: `source/fhir.ini [workgroups] ${name}=${direct}`,
+  };
+}
+
+function pageOwner(file: string, page: string, reason: string): WgV2FileEvidence | undefined {
+  const cleanPage = page.replace(/\\/g, "/").replace(/#.*$/, "").replace(/\.html$/i, "");
+  const pageFile = `source/${cleanPage}.html`;
+  const explicit = explicitFileWgs(readOwnedFile(pageFile));
+  if (!explicit.length) return undefined;
+  return {
+    file,
+    wgs: explicit,
+    confidence: "fhir.ini",
+    reason: `${reason}; ${pageFile} declares ownership`,
+  };
+}
+
+function datatypeOwnership(file: string): WgV2FileEvidence | undefined {
+  if (!file.startsWith("source/datatypes/")) return undefined;
+  const name = path.basename(file).replace(/\.(xml|json|html|md|svg|txt)$/i, "").toLowerCase();
+  const direct = fileWorkgroupOwnership(file, name) ?? fileWorkgroupOwnership(file, name.split("-")[0]);
+  if (direct) return direct;
+
+  const typePage = typePages.get(name) ?? (typeNames.has(name) ? typePages.get("*") : undefined);
+  if (typePage) {
+    const owner = pageOwner(file, typePage, `source/fhir.ini [type-pages] maps ${name} to ${typePage}`);
+    if (owner) return owner;
+  }
+  if (name.startsWith("codesystem-")) {
+    const sibling = `source/datatypes/valueset-${name.slice("codesystem-".length)}.xml`;
+    const explicit = explicitFileWgs(readOwnedFile(sibling));
+    if (explicit.length) {
+      return {
+        file,
+        wgs: explicit,
+        confidence: "explicit",
+        reason: `${sibling} declares ownership for the paired terminology artifact`,
+      };
+    }
+  }
+  if (name === "primitives") {
+    const owner = pageOwner(file, "datatypes", "primitive datatype source is published on the datatypes page");
+    if (owner) return owner;
+  }
+  if (typeNames.has(name) || infrastructureTypes.has(name)) {
+    return {
+      file,
+      wgs: ["fhir-i"],
+      confidence: "fhir.ini",
+      reason: `source/fhir.ini ${typeNames.has(name) ? "[types]" : "[infrastructure]"} lists ${name}; comments require FHIR-I approval for this list`,
+    };
+  }
+  return undefined;
+}
+
+function companionPageOwnership(file: string): WgV2FileEvidence | undefined {
+  if (file === "source/oids.ini") return pageOwner(file, "oids", "OID registry source has companion oids.html page");
+  if (file === "source/bindings.ini") return pageOwner(file, "bindings-list", "binding registry source has companion bindings-list.html page");
+  if (file === "source/compartments.xml") {
+    const direct = workgroups.get("compartmentdefinition");
+    const wg = direct ? jiraWg(direct) : "fhir-i";
+    return {
+      file,
+      wgs: [wg],
+      confidence: "fhir.ini",
+      reason: `source/fhir.ini [workgroups] compartmentdefinition=${direct ?? "fhir"}`,
+    };
+  }
+  if (file.startsWith("source/terminologies/")) {
+    const owner = pageOwner(file, "terminologies", "terminology source is published under the terminologies page");
+    if (owner) return owner;
+  }
+  if (file.startsWith("source/request/") || file.startsWith("source/definition/") || file.startsWith("source/event/") || file.startsWith("source/shareable/")) {
+    const family = file.split("/")[1];
+    if (logicalPatterns.has(family)) {
+      return {
+        file,
+        wgs: ["fhir-i"],
+        confidence: "fhir.ini",
+        reason: `source/fhir.ini [logical] lists ${family}; workflow/pattern infrastructure is FHIR-I owned`,
+      };
+    }
+  }
+  if (file.startsWith("images/subscriptions/")) {
+    const direct = workgroups.get("subscription");
+    const wg = direct ? jiraWg(direct) : "fhir-i";
+    return {
+      file,
+      wgs: [wg],
+      confidence: "fhir.ini",
+      reason: `image path is under subscriptions; source/fhir.ini [workgroups] subscription=${direct ?? "fhir"}`,
+    };
+  }
+  return undefined;
 }
 
 function documentedFileOwnership(file: string): WgV2FileEvidence {
   const clean = file.replace(/\\/g, "/").replace(/^[ab]\//, "");
-  const explicit = explicitFileWgs(readOwnedFile(clean));
-  if (explicit.length) {
-    return {
-      file: clean,
-      wgs: explicit,
-      confidence: "explicit",
-      reason: "source file declares work group ownership",
-    };
-  }
+  const directOwner = explicitOwnerForSourceFile(clean)
+    ?? profileOwnership(clean)
+    ?? datatypeOwnership(clean)
+    ?? companionPageOwnership(clean);
+  if (directOwner) return directOwner;
 
   const parts = clean.split("/");
   const sourceIndex = parts.indexOf("source");
@@ -426,6 +578,33 @@ function inferItemWgV2(files: string[], current: Pick<WgInference, "wg" | "wg_la
 const workgroups = (() => {
   const file = path.join(run.fhirRepo!, "source", "fhir.ini");
   return existsSync(file) ? parseWorkgroups(file) : new Map<string, string>();
+})();
+
+const fhirIniPath = path.join(run.fhirRepo!, "source", "fhir.ini");
+const typeNames = existsSync(fhirIniPath) ? new Set(parseIniSection(fhirIniPath, "types").keys()) : new Set<string>();
+const infrastructureTypes = existsSync(fhirIniPath) ? new Set(parseIniSection(fhirIniPath, "infrastructure").keys()) : new Set<string>();
+const typePages = existsSync(fhirIniPath) ? parseIniSection(fhirIniPath, "type-pages") : new Map<string, string>();
+const logicalPatterns = existsSync(fhirIniPath) ? new Set(parseIniSection(fhirIniPath, "logical").keys()) : new Set<string>();
+const profilePaths = (() => {
+  const map = new Map<string, string>();
+  if (!existsSync(fhirIniPath)) return map;
+  for (const value of parseIniSection(fhirIniPath, "profiles").values()) {
+    const match = value.match(/^([^:]+):(.+)$/);
+    if (!match) continue;
+    map.set(match[2].replace(/\\/g, "/").toLowerCase(), match[1]);
+  }
+  return map;
+})();
+const profilePrefixes = (() => {
+  const map = new Map<string, string>();
+  if (!existsSync(fhirIniPath)) return map;
+  for (const [key, value] of parseIniSection(fhirIniPath, "profiles").entries()) {
+    const match = value.match(/^([^:]+):(.+)$/);
+    if (!match) continue;
+    const profilePath = match[2].replace(/\\/g, "/").toLowerCase();
+    map.set(profilePath.replace(/[^/]+$/, `${key}-`), match[1]);
+  }
+  return map;
 })();
 
 type CandidateIssue = {
